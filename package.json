@@ -9,7 +9,7 @@
     "backend/frontend/frontend/node_modules"
   ],
   "scripts": {
-    "heroku-prebuild": "cd backend/frontend/frontend && npm ci",
+    "heroku-prebuild": "cd backend/frontend/frontend && npm install",
     "heroku-postbuild": "cd backend/frontend/frontend && npm run build"
   }
 } 
