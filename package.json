@@ -9,7 +9,7 @@
     "backend/frontend/frontend/node_modules"
   ],
   "scripts": {
-    "build": "cd backend/frontend/frontend && npm install && npm run build",
+    "build": "cd backend/frontend/frontend && npm install && npx vite build",
     "heroku-postbuild": "npm run build"
   }
 } 
