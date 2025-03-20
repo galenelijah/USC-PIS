@@ -1,0 +1,11 @@
+{
+  "name": "usc-pis",
+  "version": "1.0.0",
+  "engines": {
+    "node": "20.x",
+    "npm": "10.x"
+  },
+  "cacheDirectories": [
+    "backend/frontend/frontend/node_modules"
+  ]
+} 

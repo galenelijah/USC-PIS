@@ -6,13 +6,14 @@ export default defineConfig({
   plugins: [react()],
   base: '/static/',
   build: {
-    // generate manifest.json in outDir
-    manifest: true,
-    rollupOptions: {
-      // overwrite default .html entry
-      input: '/src/main.jsx',
-    },
     outDir: 'dist',
-    assetsDir: '',
+    assetsDir: 'static',
+    rollupOptions: {
+      output: {
+        assetFileNames: 'static/[name].[ext]',
+        chunkFileNames: 'static/[name].js',
+        entryFileNames: 'static/[name].js',
+      },
+    },
   },
 })
