@@ -7,5 +7,9 @@
   },
   "cacheDirectories": [
     "backend/frontend/frontend/node_modules"
-  ]
+  ],
+  "scripts": {
+    "build": "cd backend/frontend/frontend && npm install && npm run build",
+    "heroku-postbuild": "npm run build"
+  }
 } 
