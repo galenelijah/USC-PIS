@@ -7,27 +7,44 @@ import {useForm} from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
-const Login = () =>{
+const Login = () => {
     const navigate = useNavigate()
     const {handleSubmit, control} = useForm()
 
     const submission = async (data) => {
         try {
+            console.log('Login attempt with:', {
+                username: data.email,
+                password: data.password
+            });
+
             const response = await axios.post('/api/auth/login/', {
-                username: data.email,  // Django expects username
+                username: data.email,
                 password: data.password,
             });
             
+            console.log('Login response:', response.data);
+
             if (response.data.token) {
                 localStorage.setItem('Token', response.data.token);
-                // Set the token in axios defaults for future requests
                 axios.defaults.headers.common['Authorization'] = `Token ${response.data.token}`;
                 navigate('/home');
             }
         } catch (error) {
-            console.error('Error during login:', error);
-            // You might want to show an error message to the user here
-            alert(error.response?.data?.detail || 'Login failed. Please try again.');
+            console.error('Login error details:', {
+                status: error.response?.status,
+                data: error.response?.data,
+                message: error.message
+            });
+            
+            let errorMessage = 'Login failed. Please try again.';
+            if (error.response?.data?.detail) {
+                errorMessage = error.response.data.detail;
+            } else if (error.response?.data?.non_field_errors) {
+                errorMessage = error.response.data.non_field_errors[0];
+            }
+            
+            alert(errorMessage);
         }
     }
 
@@ -57,9 +74,6 @@ const Login = () =>{
                             label={"Login"}
                             type={"submit"}
                         />
-                    </Box>
-                    <Box className="itemBox">
-                        Forgot Password
                     </Box>
                     <Box className="itemBox">
                         <Link to="/register">No Account Yet?</Link>
