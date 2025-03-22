@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react()],
   base: '/static/',
   build: {
-    outDir: path.resolve(__dirname, '../../../staticfiles'),
+    outDir: path.resolve(__dirname, 'dist'),
     emptyOutDir: true,
     manifest: true,
     rollupOptions: {
