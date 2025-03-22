@@ -13,16 +13,17 @@ logger = logging.getLogger(__name__)
 @permission_classes([AllowAny])
 def register_user(request):
     if request.method == 'POST':
-        if User.objects.filter(username=request.data.get('username')).exists():
-            return Response({'detail': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
+        email = request.data.get('email')
+        if User.objects.filter(email=email).exists():
+            return Response({'detail': 'Email already exists'}, status=status.HTTP_400_BAD_REQUEST)
         
         if request.data.get('password') != request.data.get('password2'):
             return Response({'detail': 'Passwords do not match'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             user = User.objects.create_user(
-                username=request.data.get('username'),
-                email=request.data.get('email'),
+                username=email,  # Use email as username
+                email=email,
                 password=request.data.get('password')
             )
             return Response({'detail': 'User created successfully'}, status=status.HTTP_201_CREATED)
@@ -34,36 +35,40 @@ def register_user(request):
 @permission_classes([AllowAny])
 def login_user(request):
     if request.method == 'POST':
-        username = request.data.get('username')
+        email = request.data.get('username')  # Frontend sends email as username
         password = request.data.get('password')
 
-        logger.info(f"Login attempt for username: {username}")
+        logger.info(f"Login attempt for email: {email}")
 
-        if username is None or password is None:
-            return Response({'detail': 'Please provide both username and password'},
+        if email is None or password is None:
+            return Response({'detail': 'Please provide both email and password'},
                           status=status.HTTP_400_BAD_REQUEST)
 
-        # Try to get the user first
         try:
-            user = User.objects.get(username=username)
+            # Find user by email (which is also username)
+            user = User.objects.get(email=email)
+            # Authenticate with email as username
+            authenticated_user = authenticate(username=email, password=password)
+            
+            if authenticated_user is None:
+                logger.warning(f"Login failed: Invalid password for email {email}")
+                return Response({'detail': 'Invalid credentials'},
+                              status=status.HTTP_401_UNAUTHORIZED)
+
+            token, _ = Token.objects.get_or_create(user=authenticated_user)
+            logger.info(f"Login successful for email {email}")
+            
+            return Response({
+                'token': token.key,
+                'user_id': authenticated_user.pk,
+                'email': authenticated_user.email
+            })
+            
         except User.DoesNotExist:
-            logger.warning(f"Login failed: User {username} does not exist")
+            logger.warning(f"Login failed: No user with email {email}")
             return Response({'detail': 'Invalid credentials'},
                           status=status.HTTP_401_UNAUTHORIZED)
-
-        # Now try to authenticate
-        user = authenticate(username=username, password=password)
-        
-        if not user:
-            logger.warning(f"Login failed: Invalid password for user {username}")
-            return Response({'detail': 'Invalid credentials'},
-                          status=status.HTTP_401_UNAUTHORIZED)
-
-        token, _ = Token.objects.get_or_create(user=user)
-        logger.info(f"Login successful for user {username}")
-        
-        return Response({
-            'token': token.key,
-            'user_id': user.pk,
-            'email': user.email
-        }) 
+        except Exception as e:
+            logger.error(f"Login error: {str(e)}")
+            return Response({'detail': 'An error occurred during login'},
+                          status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
