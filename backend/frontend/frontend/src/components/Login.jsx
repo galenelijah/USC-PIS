@@ -11,19 +11,24 @@ const Login = () =>{
     const navigate = useNavigate()
     const {handleSubmit, control} = useForm()
 
-    const submission = (data) => {
-        axios.post(`/api/login/`, {
-            email: data.email,
-            password: data.password,
-        })
-            .then((response) => {
-                console.log(response)
-                localStorage.setItem('Token', response.data.token)
-                navigate(`/home`)
-            })
-            .catch((error)=> {
-                console.error('Error during login', error)
-            })
+    const submission = async (data) => {
+        try {
+            const response = await axios.post('/api/auth/login/', {
+                username: data.email,  // Django expects username
+                password: data.password,
+            });
+            
+            if (response.data.token) {
+                localStorage.setItem('Token', response.data.token);
+                // Set the token in axios defaults for future requests
+                axios.defaults.headers.common['Authorization'] = `Token ${response.data.token}`;
+                navigate('/home');
+            }
+        } catch (error) {
+            console.error('Error during login:', error);
+            // You might want to show an error message to the user here
+            alert(error.response?.data?.detail || 'Login failed. Please try again.');
+        }
     }
 
     return(

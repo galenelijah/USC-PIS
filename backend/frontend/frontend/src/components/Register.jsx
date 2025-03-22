@@ -11,18 +11,29 @@ const Register = () =>{
     const navigate = useNavigate()
     const {handleSubmit, control} = useForm()
 
-    const submission = (data) => {
-        axios.post(`/api/register/`, {
-            email: data.email,
-            password: data.password,
-            password2: data.password2
-        })
-            .then(() => {
-                navigate(`/`)
-            })
-            .catch((error) => {
-                console.error('Error during registration', error)
-            })
+    const submission = async (data) => {
+        try {
+            if (data.password !== data.password2) {
+                alert("Passwords don't match!");
+                return;
+            }
+
+            const response = await axios.post('/api/auth/register/', {
+                username: data.email,  // Django expects username
+                email: data.email,
+                password: data.password,
+                password2: data.password2
+            });
+
+            if (response.data) {
+                // Registration successful, redirect to login
+                navigate('/');
+                alert('Registration successful! Please login.');
+            }
+        } catch (error) {
+            console.error('Error during registration:', error);
+            alert(error.response?.data?.detail || 'Registration failed. Please try again.');
+        }
     }
 
     return(

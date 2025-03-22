@@ -40,8 +40,10 @@ INSTALLED_APPS = [
     'whitenoise.runserver_nostatic',  # Add whitenoise before staticfiles
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework.authtoken',  # Add token authentication
     'corsheaders',
     'patients',
+    'authentication',  # New authentication app
 ]
 
 MIDDLEWARE = [
@@ -60,9 +62,11 @@ MIDDLEWARE = [
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Vite default port
     "http://localhost:8000",
+    "https://usc-pis-5f030223f7a8.herokuapp.com",  # Add your Heroku domain
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = True  # For development only, change in production
 
 ROOT_URLCONF = 'backend.urls'
 
@@ -148,11 +152,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # REST Framework settings
 REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
-    ],
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
     ],
 }
