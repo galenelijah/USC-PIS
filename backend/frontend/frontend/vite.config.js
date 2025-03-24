@@ -6,6 +6,14 @@ import path from 'path'
 export default defineConfig({
   plugins: [react()],
   base: '/static/',
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      }
+    }
+  },
   build: {
     outDir: path.resolve(__dirname, 'dist'),
     emptyOutDir: true,
@@ -17,12 +25,4 @@ export default defineConfig({
       },
     },
   },
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      }
-    }
-  }
 })

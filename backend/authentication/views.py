@@ -77,7 +77,7 @@ def login_user(request):
 
             try:
                 # First check if user exists
-                user = User.objects.get(email=email)
+                user = User.objects.get(username=email)
                 logger.info(f"Found user with email: {email}")
             except User.DoesNotExist:
                 logger.warning(f"No user found with email: {email}")
