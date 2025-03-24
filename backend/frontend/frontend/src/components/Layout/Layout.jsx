@@ -5,7 +5,7 @@ import Header from './Header';
 
 const Layout = ({ children, onSearch }) => {
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#f5f5f5' }}>
       <Sidebar />
       <Box
         component="main"
@@ -15,6 +15,7 @@ const Layout = ({ children, onSearch }) => {
           width: { sm: `calc(100% - 240px)` },
           ml: '240px',
           mt: '64px',
+          overflow: 'auto'
         }}
       >
         <Header onSearch={onSearch} />

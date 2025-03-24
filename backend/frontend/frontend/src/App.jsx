@@ -6,6 +6,7 @@ import Login from './components/Login';
 import Register from './components/Register';
 import RequireAuth from './components/RequireAuth';
 import RequireNoAuth from './components/RequireNoAuth';
+import Dashboard from './components/Dashboard';
 import StudentRecords from './components/StudentRecords';
 import Medical from './components/Medical';
 import Dental from './components/Dental';
@@ -80,11 +81,7 @@ function App() {
           element={
             <RequireAuth>
               <Layout onSearch={handleSearch}>
-                <PatientList
-                  patients={patients}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                />
+                <Dashboard />
               </Layout>
             </RequireAuth>
           }
