@@ -97,17 +97,14 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'd7gkgonfbph4ls',
-        'USER': 'ud3u7jqbnm24pu',
-        'PASSWORD': 'p0ece0857bf635a8bb146e289b3ed8d5c06fe6a679645a0ae790af3b89adad82dc',
-        'HOST': 'c6efjnr30ch74e.cluster.czrs8kj4isg7.us-east-1.rds.amazonaws.com',
-        'PORT': '5432',
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
-# Use DATABASE_URL environment variable if available (Heroku sets this automatically)
+# Heroku Postgres configuration
 if 'DATABASE_URL' in os.environ:
+    import dj_database_url
     DATABASES['default'] = dj_database_url.config(conn_max_age=600)
 
 
