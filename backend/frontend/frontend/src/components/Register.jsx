@@ -18,7 +18,15 @@ const Register = () =>{
                 return;
             }
 
+            // Log the registration data for debugging
+            console.log('Registering with data:', {
+                ...data,
+                password: '[REDACTED]',
+                password2: '[REDACTED]'
+            });
+
             const response = await authService.register({
+                username: data.email, // Add username field
                 email: data.email,
                 password: data.password,
                 password2: data.password2,
@@ -61,13 +69,18 @@ const Register = () =>{
                 phone_number: data.phone_number || ''
             });
 
-            if (response.data) {
-                navigate('/');
+            if (response?.data) {
+                console.log('Registration successful:', response.data);
                 alert('Registration successful! Please login.');
+                navigate('/');
             }
         } catch (error) {
-            console.error('Error during registration:', error);
-            alert(error.response?.data?.detail || 'Registration failed. Please try again.');
+            console.error('Registration error:', error);
+            const errorMessage = error.response?.data?.detail || 
+                               error.response?.data?.email?.[0] ||
+                               error.response?.data?.password?.[0] ||
+                               'Registration failed. Please try again.';
+            alert(errorMessage);
         }
     }
 
@@ -86,6 +99,13 @@ const Register = () =>{
                             name="email"
                             control={control}
                             required
+                            rules={{
+                                required: 'Email is required',
+                                pattern: {
+                                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                    message: 'Invalid email address'
+                                }
+                            }}
                         />
                     </Box>
                     <Box className="itemBox">
@@ -94,6 +114,13 @@ const Register = () =>{
                             name="password"
                             control={control}
                             required
+                            rules={{
+                                required: 'Password is required',
+                                minLength: {
+                                    value: 8,
+                                    message: 'Password must be at least 8 characters'
+                                }
+                            }}
                         />
                     </Box>
                     <Box className="itemBox">
@@ -102,6 +129,10 @@ const Register = () =>{
                             name="password2"
                             control={control}
                             required
+                            rules={{
+                                required: 'Please confirm your password',
+                                validate: value => value === control._getWatch('password') || 'Passwords do not match'
+                            }}
                         />
                     </Box>
                     <Box className="itemBox">

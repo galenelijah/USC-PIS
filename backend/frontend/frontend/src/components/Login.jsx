@@ -14,20 +14,24 @@ const Login = () => {
     const submission = async (data) => {
         try {
             const response = await authService.login({
-                email: data.email,
+                username: data.email,
                 password: data.password
             });
 
             if (response.data.token) {
-                // Store the token in localStorage
                 localStorage.setItem('token', response.data.token);
-                // Store user data if needed
-                localStorage.setItem('user', JSON.stringify(response.data.user));
+                localStorage.setItem('user', JSON.stringify({
+                    id: response.data.user_id,
+                    email: response.data.email,
+                    role: response.data.role,
+                    completeSetup: response.data.completeSetup
+                }));
                 navigate('/dashboard');
             }
         } catch (error) {
-            console.error('Error during login:', error);
-            alert(error.response?.data?.detail || 'Login failed. Please check your credentials.');
+            console.error('Login error:', error);
+            const errorMessage = error.response?.data?.detail || 'Login failed. Please check your credentials.';
+            alert(errorMessage);
         }
     }
 
