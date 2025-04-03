@@ -1,9 +1,10 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout/Layout';
 import PatientList from './components/Patients/PatientList';
 import Login from './components/Login';
 import Register from './components/Register';
+import Profile from './components/Profile';
 import RequireAuth from './components/RequireAuth';
 import RequireNoAuth from './components/RequireNoAuth';
 import Dashboard from './components/Dashboard';
@@ -11,11 +12,23 @@ import StudentRecords from './components/StudentRecords';
 import Medical from './components/Medical';
 import Dental from './components/Dental';
 import { useState, useEffect } from 'react';
-import { patientService } from './services/api';
+import { patientService, authService } from './services/api';
 
 function App() {
   const [patients, setPatients] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+    
+    if (token && storedUser) {
+      setIsAuthenticated(true);
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
 
   useEffect(() => {
     loadPatients();
@@ -54,6 +67,18 @@ function App() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setIsAuthenticated(false);
+      setUser(null);
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
+  };
+
   return (
     <Router>
       <Routes>
@@ -61,7 +86,7 @@ function App() {
         <Route
           path="/"
           element={
-            <RequireNoAuth>
+            <RequireNoAuth isAuthenticated={isAuthenticated}>
               <Login />
             </RequireNoAuth>
           }
@@ -69,7 +94,7 @@ function App() {
         <Route
           path="/register"
           element={
-            <RequireNoAuth>
+            <RequireNoAuth isAuthenticated={isAuthenticated}>
               <Register />
             </RequireNoAuth>
           }
@@ -79,9 +104,9 @@ function App() {
         <Route
           path="/home"
           element={
-            <RequireAuth>
+            <RequireAuth isAuthenticated={isAuthenticated}>
               <Layout onSearch={handleSearch}>
-                <Dashboard />
+                <Dashboard user={user} onLogout={handleLogout} />
               </Layout>
             </RequireAuth>
           }
@@ -89,7 +114,7 @@ function App() {
         <Route
           path="/patients"
           element={
-            <RequireAuth>
+            <RequireAuth isAuthenticated={isAuthenticated}>
               <Layout onSearch={handleSearch}>
                 <PatientList
                   patients={patients}
@@ -103,7 +128,7 @@ function App() {
         <Route
           path="/students"
           element={
-            <RequireAuth>
+            <RequireAuth isAuthenticated={isAuthenticated}>
               <Layout onSearch={handleSearch}>
                 <StudentRecords />
               </Layout>
@@ -113,7 +138,7 @@ function App() {
         <Route
           path="/medical/:id"
           element={
-            <RequireAuth>
+            <RequireAuth isAuthenticated={isAuthenticated}>
               <Layout onSearch={handleSearch}>
                 <Medical />
               </Layout>
@@ -123,13 +148,22 @@ function App() {
         <Route
           path="/dental/:id"
           element={
-            <RequireAuth>
+            <RequireAuth isAuthenticated={isAuthenticated}>
               <Layout onSearch={handleSearch}>
                 <Dental />
               </Layout>
             </RequireAuth>
           }
         />
+        <Route
+          path="/profile"
+          element={
+            <RequireAuth isAuthenticated={isAuthenticated}>
+              <Profile />
+            </RequireAuth>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );

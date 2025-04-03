@@ -6,12 +6,30 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ('email', 'password', 'password2', 'role', 'phone_number', 'department')
+        fields = (
+            'email', 'password', 'password2', 'role',
+            # Personal Information
+            'first_name', 'last_name', 'middle_name', 'id_number',
+            'course', 'year_level', 'school', 'sex', 'civil_status',
+            'birthday', 'nationality', 'religion', 'address_permanent',
+            'address_present', 'phone',
+            # Physical Information
+            'weight', 'height', 'bmi',
+            # Emergency Contacts
+            'father_name', 'mother_name', 'emergency_contact',
+            'emergency_contact_number',
+            # Medical Information
+            'illness', 'childhood_diseases', 'special_needs',
+            'existing_medical_condition', 'medications', 'allergies',
+            'hospitalization_history', 'surgical_procedures',
+            # Staff Information
+            'department', 'phone_number'
+        )
         extra_kwargs = {
             'password': {'write_only': True},
             'role': {'required': False},
-            'phone_number': {'required': False},
             'department': {'required': False},
+            'phone_number': {'required': False},
         }
 
     def validate(self, data):
@@ -25,16 +43,35 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             username=validated_data['email'],
             email=validated_data['email'],
             password=validated_data['password'],
-            role=validated_data.get('role', User.Role.STAFF),
-            phone_number=validated_data.get('phone_number'),
-            department=validated_data.get('department')
+            role=validated_data.get('role', User.Role.STUDENT),
+            **{k: v for k, v in validated_data.items() if k not in ['email', 'password']}
         )
         return user
 
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'email', 'role', 'phone_number', 'department', 'is_active', 'created_at', 'updated_at')
+        fields = (
+            'id', 'email', 'role', 'completeSetup',
+            # Personal Information
+            'first_name', 'last_name', 'middle_name', 'id_number',
+            'course', 'year_level', 'school', 'sex', 'civil_status',
+            'birthday', 'nationality', 'religion', 'address_permanent',
+            'address_present', 'phone',
+            # Physical Information
+            'weight', 'height', 'bmi',
+            # Emergency Contacts
+            'father_name', 'mother_name', 'emergency_contact',
+            'emergency_contact_number',
+            # Medical Information
+            'illness', 'childhood_diseases', 'special_needs',
+            'existing_medical_condition', 'medications', 'allergies',
+            'hospitalization_history', 'surgical_procedures',
+            # Staff Information
+            'department', 'phone_number',
+            # Timestamps
+            'created_at', 'updated_at'
+        )
         read_only_fields = ('id', 'email', 'created_at', 'updated_at')
 
 class ChangePasswordSerializer(serializers.Serializer):

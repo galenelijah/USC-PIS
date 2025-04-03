@@ -1,15 +1,15 @@
-import {Box} from '@mui/material'
+import {Box, FormControl, InputLabel, MenuItem, Select, Grid, Typography} from '@mui/material'
 import MyTextField from './forms/MyTextField'
 import MyPassField from './forms/MyPassField'
 import MyButton from './forms/MyButton'
 import {Link} from 'react-router-dom'
-import {useForm} from 'react-hook-form'
+import {useForm, Controller} from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import { authService } from '../services/api'
 
 const Register = () =>{
     const navigate = useNavigate()
-    const {handleSubmit, control} = useForm()
+    const {handleSubmit, control, formState: {errors}} = useForm()
 
     const submission = async (data) => {
         try {
@@ -18,15 +18,50 @@ const Register = () =>{
                 return;
             }
 
-            const response = await axios.post('/api/auth/register/', {
-                username: data.email,  // Django expects username
+            const response = await authService.register({
                 email: data.email,
                 password: data.password,
-                password2: data.password2
+                password2: data.password2,
+                role: data.role || 'STUDENT',
+                // Personal Information
+                first_name: data.first_name || '',
+                last_name: data.last_name || '',
+                middle_name: data.middle_name || '',
+                id_number: data.id_number || '',
+                course: data.course || '',
+                year_level: data.year_level || '',
+                school: data.school || '',
+                sex: data.sex || '',
+                civil_status: data.civil_status || '',
+                birthday: data.birthday || null,
+                nationality: data.nationality || '',
+                religion: data.religion || '',
+                address_permanent: data.address_permanent || '',
+                address_present: data.address_present || '',
+                phone: data.phone || '',
+                // Physical Information
+                weight: data.weight || '',
+                height: data.height || '',
+                // Emergency Contacts
+                father_name: data.father_name || '',
+                mother_name: data.mother_name || '',
+                emergency_contact: data.emergency_contact || '',
+                emergency_contact_number: data.emergency_contact_number || '',
+                // Medical Information
+                illness: data.illness || '',
+                childhood_diseases: data.childhood_diseases || '',
+                special_needs: data.special_needs || '',
+                existing_medical_condition: data.existing_medical_condition || '',
+                medications: data.medications || '',
+                allergies: data.allergies || '',
+                hospitalization_history: data.hospitalization_history || '',
+                surgical_procedures: data.surgical_procedures || '',
+                // Staff Information
+                department: data.department || '',
+                phone_number: data.phone_number || ''
             });
 
             if (response.data) {
-                // Registration successful, redirect to login
                 navigate('/');
                 alert('Registration successful! Please login.');
             }
@@ -41,33 +76,117 @@ const Register = () =>{
             <form onSubmit={handleSubmit(submission)}>
                 <Box className="registerBox">
                     <Box className="itemBox">
-                       <Box className="title">Register</Box>
+                       <Typography variant="h5" className="title">Register</Typography>
                     </Box>
+                    
+                    {/* Basic Information */}
                     <Box className="itemBox">
                         <MyTextField
-                            label={"Email"}
-                            name={"email"}
+                            label="Email"
+                            name="email"
                             control={control}
+                            required
                         />
                     </Box>
                     <Box className="itemBox">
                         <MyPassField
-                            label={"Password"}
-                            name={"password"}
+                            label="Password"
+                            name="password"
                             control={control}
+                            required
                         />
                     </Box>
                     <Box className="itemBox">
                         <MyPassField
-                            label={"Confirm Password"}
-                            name={"password2"}
+                            label="Confirm Password"
+                            name="password2"
                             control={control}
+                            required
                         />
                     </Box>
+                    <Box className="itemBox">
+                        <Controller
+                            name="role"
+                            control={control}
+                            defaultValue="STUDENT"
+                            render={({ field }) => (
+                                <FormControl fullWidth>
+                                    <InputLabel>Role</InputLabel>
+                                    <Select {...field} label="Role">
+                                        <MenuItem value="STUDENT">Student</MenuItem>
+                                        <MenuItem value="DOCTOR">Doctor</MenuItem>
+                                        <MenuItem value="NURSE">Nurse</MenuItem>
+                                        <MenuItem value="STAFF">Staff</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            )}
+                        />
+                    </Box>
+
+                    {/* Personal Information */}
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6}>
+                            <MyTextField
+                                label="First Name"
+                                name="first_name"
+                                control={control}
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <MyTextField
+                                label="Last Name"
+                                name="last_name"
+                                control={control}
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <MyTextField
+                                label="Middle Name"
+                                name="middle_name"
+                                control={control}
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <MyTextField
+                                label="ID Number"
+                                name="id_number"
+                                control={control}
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <MyTextField
+                                label="Course"
+                                name="course"
+                                control={control}
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <MyTextField
+                                label="Year Level"
+                                name="year_level"
+                                control={control}
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <MyTextField
+                                label="School"
+                                name="school"
+                                control={control}
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <MyTextField
+                                label="Phone"
+                                name="phone"
+                                control={control}
+                            />
+                        </Grid>
+                    </Grid>
+
                     <Box className="itemBox">
                         <MyButton
-                            label={"Register"}
-                            type={"submit"}
+                            label="Register"
+                            type="submit"
                         />
                     </Box>
                     <Box className="itemBox">

@@ -1,11 +1,11 @@
-import {Box} from '@mui/material'
+import {Box, Typography} from '@mui/material'
 import MyTextField from './forms/MyTextField'
 import MyPassField from './forms/MyPassField'
 import MyButton from './forms/MyButton'
 import {Link} from 'react-router-dom'
 import {useForm} from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import { authService } from '../services/api'
 
 const Login = () => {
     const navigate = useNavigate()
@@ -13,38 +13,21 @@ const Login = () => {
 
     const submission = async (data) => {
         try {
-            console.log('Login attempt with:', {
-                username: data.email,
+            const response = await authService.login({
+                email: data.email,
                 password: data.password
             });
 
-            const response = await axios.post('/api/auth/login/', {
-                username: data.email,
-                password: data.password,
-            });
-            
-            console.log('Login response:', response.data);
-
             if (response.data.token) {
-                localStorage.setItem('Token', response.data.token);
-                axios.defaults.headers.common['Authorization'] = `Token ${response.data.token}`;
-                navigate('/home');
+                // Store the token in localStorage
+                localStorage.setItem('token', response.data.token);
+                // Store user data if needed
+                localStorage.setItem('user', JSON.stringify(response.data.user));
+                navigate('/dashboard');
             }
         } catch (error) {
-            console.error('Login error details:', {
-                status: error.response?.status,
-                data: error.response?.data,
-                message: error.message
-            });
-            
-            let errorMessage = 'Login failed. Please try again.';
-            if (error.response?.data?.detail) {
-                errorMessage = error.response.data.detail;
-            } else if (error.response?.data?.non_field_errors) {
-                errorMessage = error.response.data.non_field_errors[0];
-            }
-            
-            alert(errorMessage);
+            console.error('Error during login:', error);
+            alert(error.response?.data?.detail || 'Login failed. Please check your credentials.');
         }
     }
 
@@ -53,30 +36,32 @@ const Login = () => {
             <form onSubmit={handleSubmit(submission)}>
                 <Box className="loginBox">
                     <Box className="itemBox">
-                       <Box className="title">Login</Box>
+                        <Typography variant="h5" className="title">Login</Typography>
                     </Box>
                     <Box className="itemBox">
                         <MyTextField
-                            label={"Email"}
-                            name={"email"}
+                            label="Email"
+                            name="email"
                             control={control}
+                            required
                         />
                     </Box>
                     <Box className="itemBox">
                         <MyPassField
-                            label={"Password"}
-                            name={"password"}
+                            label="Password"
+                            name="password"
                             control={control}
+                            required
                         />
                     </Box>
                     <Box className="itemBox">
                         <MyButton
-                            label={"Login"}
-                            type={"submit"}
+                            label="Login"
+                            type="submit"
                         />
                     </Box>
                     <Box className="itemBox">
-                        <Link to="/register">No Account Yet?</Link>
+                        <Link to="/register">Don't have an account?</Link>
                     </Box>
                 </Box>
             </form>

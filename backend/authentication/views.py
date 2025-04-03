@@ -1,4 +1,4 @@
-from rest_framework import status
+from rest_framework import status, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
@@ -10,6 +10,13 @@ import logging
 import traceback
 
 logger = logging.getLogger(__name__)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def check_email(request):
+    email = request.data.get('email', '')
+    exists = User.objects.filter(email=email).exists()
+    return Response({'exists': exists})
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -66,7 +73,8 @@ def login_user(request):
                 'token': token.key,
                 'user_id': user.pk,
                 'email': user.email,
-                'role': user.role
+                'role': user.role,
+                'completeSetup': user.completeSetup
             })
             
         except Exception as e:
@@ -76,15 +84,32 @@ def login_user(request):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-@api_view(['GET', 'PUT'])
-@permission_classes([IsAuthenticated])
-def user_profile(request):
-    if request.method == 'GET':
-        serializer = UserProfileSerializer(request.user)
+class ProfileViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserProfileSerializer
+
+    def get_queryset(self):
+        return User.objects.filter(id=self.request.user.id)
+
+    def get_object(self):
+        return self.request.user
+
+    def retrieve(self, request, *args, **kwargs):
+        user = self.get_object()
+        serializer = self.serializer_class(user)
         return Response(serializer.data)
-    
-    elif request.method == 'PUT':
-        serializer = UserProfileSerializer(request.user, data=request.data, partial=True)
+
+    def update(self, request, *args, **kwargs):
+        user = self.get_object()
+        serializer = self.serializer_class(user, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def partial_update(self, request, *args, **kwargs):
+        user = self.get_object()
+        serializer = self.serializer_class(user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
