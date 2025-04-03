@@ -63,11 +63,40 @@ MIDDLEWARE = [
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Vite default port
     "http://localhost:8000",
-    "https://usc-pis-5f030223f7a8.herokuapp.com",  # Add your Heroku domain
+    "https://usc-pis-5f030223f7a8.herokuapp.com",  # Heroku domain
 ]
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = True  # For development only, change in production
+
+# Security settings
+CSRF_TRUSTED_ORIGINS = [
+    "https://usc-pis-5f030223f7a8.herokuapp.com",
+]
+
+# Remove this in production as it's insecure
+# CORS_ALLOW_ALL_ORIGINS = True
+
+# Additional CORS settings
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 ROOT_URLCONF = 'backend.urls'
 
