@@ -3,6 +3,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Count
+from django.db.models.functions import TruncMonth
 from .models import Patient, MedicalRecord
 from .serializers import PatientSerializer, MedicalRecordSerializer
 
@@ -41,7 +42,7 @@ def dashboard_stats(request):
         
         # Get visit statistics
         visits_by_month = MedicalRecord.objects.annotate(
-            month=models.functions.TruncMonth('visit_date')
+            month=TruncMonth('visit_date')
         ).values('month').annotate(
             count=Count('id')
         ).order_by('month')

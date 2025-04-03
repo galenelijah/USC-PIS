@@ -8,8 +8,15 @@ class CustomUserManager(BaseUserManager):
             raise ValueError('Email is required')
         
         email = self.normalize_email(email)
+        # Set username to email if not provided
+        if 'username' not in extra_fields:
+            extra_fields['username'] = email
+            
         user = self.model(email=email, **extra_fields)
-        user.set_password(password)
+        if password:
+            user.set_password(password)
+        else:
+            user.set_unusable_password()
         user.save(using=self.db)
         return user
 
@@ -17,6 +24,7 @@ class CustomUserManager(BaseUserManager):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('role', 'ADMIN')
+        extra_fields.setdefault('username', email)  # Ensure username is set for superuser
         return self.create_user(email, password, **extra_fields)
 
 class User(AbstractUser):
@@ -29,6 +37,7 @@ class User(AbstractUser):
 
     # Authentication fields
     email = models.EmailField(max_length=200, unique=True)
+    username = models.CharField(max_length=200, unique=True)  # Make explicit
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.STUDENT)
     completeSetup = models.BooleanField(default=False)
 
@@ -82,4 +91,10 @@ class User(AbstractUser):
     REQUIRED_FIELDS = []
 
     def __str__(self):
-        return f"{self.email} - {self.role}" 
+        return f"{self.email} - {self.role}"
+
+    def save(self, *args, **kwargs):
+        # Ensure username is set to email if not provided
+        if not self.username:
+            self.username = self.email
+        super().save(*args, **kwargs) 

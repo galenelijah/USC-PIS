@@ -39,11 +39,12 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.pop('password2')
+        role = validated_data.pop('role', User.Role.STUDENT)
         user = User.objects.create_user(
             username=validated_data['email'],
             email=validated_data['email'],
             password=validated_data['password'],
-            role=validated_data.get('role', User.Role.STUDENT),
+            role=role,
             **{k: v for k, v in validated_data.items() if k not in ['email', 'password']}
         )
         return user
