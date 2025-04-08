@@ -65,9 +65,11 @@ MIDDLEWARE = [
 
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # Vite default port
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
     "http://localhost:8000",
-    "https://usc-pis-5f030223f7a8.herokuapp.com",  # Heroku domain
+    "http://127.0.0.1:8000",
+    "https://usc-pis-5f030223f7a8.herokuapp.com",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -75,10 +77,17 @@ CORS_ALLOW_CREDENTIALS = True
 # Security settings
 CSRF_TRUSTED_ORIGINS = [
     "https://usc-pis-5f030223f7a8.herokuapp.com",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
 ]
 
-# Remove this in production as it's insecure
-# CORS_ALLOW_ALL_ORIGINS = True
+# For development only - don't use in production
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True  # This will override CORS_ALLOWED_ORIGINS
+else:
+    CORS_ALLOW_ALL_ORIGINS = False  # Disable in production
 
 # Additional CORS settings
 CORS_ALLOW_METHODS = [

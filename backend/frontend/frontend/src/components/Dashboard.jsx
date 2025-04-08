@@ -39,14 +39,17 @@ const Dashboard = ({ user, onLogout }) => {
         setLoading(true);
         setError(null);
         const response = await authService.getDashboardStats();
-        // Initialize default values if data is missing
-        const data = response?.data || {
-          totalPatients: 0,
-          totalRecords: 0,
-          recentPatients: [],
-          visitsByMonth: []
-        };
-        setStats(data);
+        
+        if (!response || !response.data) {
+          throw new Error('Invalid response from server');
+        }
+
+        setStats({
+          totalPatients: response.data.total_patients || 0,
+          totalRecords: response.data.total_records || 0,
+          recentPatients: Array.isArray(response.data.recent_patients) ? response.data.recent_patients : [],
+          visitsByMonth: Array.isArray(response.data.visits_by_month) ? response.data.visits_by_month : []
+        });
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
         if (error.response?.status === 401) {

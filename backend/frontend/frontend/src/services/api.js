@@ -2,13 +2,13 @@ import axios from 'axios';
 
 // Use production URL when deployed, localhost for development
 const API_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://usc-pis-5f030223f7a8.herokuapp.com/api'
-  : 'http://localhost:8000/api';
+  ? 'https://usc-pis-5f030223f7a8.herokuapp.com'
+  : 'http://127.0.0.1:8000';
 
-console.log('API URL:', API_URL); // Debug log
+console.log('Current API URL:', API_URL); // Debug log
 
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: `${API_URL}/api`,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -17,35 +17,24 @@ const api = axios.create({
 });
 
 // Add request interceptor for debugging
-api.interceptors.request.use(
-  (config) => {
-    console.log('Making request to:', config.url);
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Token ${token}`;
-      console.log('Using token:', token);
-    }
-    return config;
-  },
-  (error) => {
-    console.error('Request error:', error);
-    return Promise.reject(error);
+api.interceptors.request.use(request => {
+  console.log('Starting Request:', request);
+  const token = localStorage.getItem('token');
+  if (token) {
+    request.headers.Authorization = `Token ${token}`;
+    console.log('Using token:', token);
   }
-);
+  return request;
+});
 
 // Add response interceptor for debugging
 api.interceptors.response.use(
-  (response) => {
-    console.log('Response from:', response.config.url, response.status);
+  response => {
+    console.log('Response:', response);
     return response;
   },
-  (error) => {
-    console.error('Response error:', {
-      url: error.config?.url,
-      status: error.response?.status,
-      data: error.response?.data,
-      message: error.message
-    });
+  error => {
+    console.error('Request Error:', error);
     return Promise.reject(error);
   }
 );
