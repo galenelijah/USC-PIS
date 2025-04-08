@@ -25,14 +25,28 @@ function App() {
     const storedUser = localStorage.getItem('user');
     
     if (token && storedUser) {
-      setIsAuthenticated(true);
-      setUser(JSON.parse(storedUser));
+      try {
+        const userData = JSON.parse(storedUser);
+        setIsAuthenticated(true);
+        setUser(userData);
+      } catch (error) {
+        console.error('Error parsing stored user data:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setIsAuthenticated(false);
+        setUser(null);
+      }
+    } else {
+      setIsAuthenticated(false);
+      setUser(null);
     }
   }, []);
 
   useEffect(() => {
-    loadPatients();
-  }, []);
+    if (isAuthenticated) {
+      loadPatients();
+    }
+  }, [isAuthenticated]);
 
   const loadPatients = async () => {
     try {
@@ -40,6 +54,10 @@ function App() {
       setPatients(response.data);
     } catch (error) {
       console.error('Error loading patients:', error);
+      if (error.response?.status === 401) {
+        // Handle unauthorized access
+        handleLogout();
+      }
     }
   };
 
@@ -70,12 +88,13 @@ function App() {
   const handleLogout = async () => {
     try {
       await authService.logout();
+    } catch (error) {
+      console.error('Error during logout:', error);
+    } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       setIsAuthenticated(false);
       setUser(null);
-    } catch (error) {
-      console.error('Error during logout:', error);
     }
   };
 

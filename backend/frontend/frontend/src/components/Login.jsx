@@ -26,7 +26,7 @@ const Login = () => {
                     role: response.data.role,
                     completeSetup: response.data.completeSetup
                 }));
-                navigate('/dashboard');
+                navigate('/home');
             }
         } catch (error) {
             console.error('Login error:', error);
