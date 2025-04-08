@@ -14,32 +14,35 @@ import Dental from './components/Dental';
 import { useState, useEffect } from 'react';
 import { patientService, authService } from './services/api';
 
-function App() {
+const App = () => {
   const [patients, setPatients] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    
-    if (token && storedUser) {
-      try {
-        const userData = JSON.parse(storedUser);
-        setIsAuthenticated(true);
-        setUser(userData);
-      } catch (error) {
-        console.error('Error parsing stored user data:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+    const checkAuth = () => {
+      const token = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
+      
+      if (token && storedUser) {
+        try {
+          const userData = JSON.parse(storedUser);
+          setUser(userData);
+          setIsAuthenticated(true);
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+          handleLogout();
+        }
+      } else {
         setIsAuthenticated(false);
         setUser(null);
       }
-    } else {
-      setIsAuthenticated(false);
-      setUser(null);
-    }
+      setLoading(false);
+    };
+
+    checkAuth();
   }, []);
 
   useEffect(() => {
@@ -87,7 +90,15 @@ function App() {
 
   const handleLogout = async () => {
     try {
-      await authService.logout();
+      const token = localStorage.getItem('token');
+      if (token) {
+        await fetch('/api/auth/logout/', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Token ${token}`
+          }
+        });
+      }
     } catch (error) {
       console.error('Error during logout:', error);
     } finally {
@@ -95,8 +106,13 @@ function App() {
       localStorage.removeItem('user');
       setIsAuthenticated(false);
       setUser(null);
+      window.location.href = '/login';
     }
   };
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <Router>
@@ -186,6 +202,6 @@ function App() {
       </Routes>
     </Router>
   );
-}
+};
 
 export default App;
