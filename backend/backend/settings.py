@@ -31,7 +31,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-q0=r7vwj)6n3rfwu6tcdz
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['usc-pis-5f030223f7a8.herokuapp.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['usc-pis.herokuapp.com', 'localhost', '127.0.0.1']
 
 
 # Application definition
@@ -67,14 +67,14 @@ MIDDLEWARE = [
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Vite default port
     "http://localhost:8000",
-    "https://usc-pis-5f030223f7a8.herokuapp.com",  # Heroku domain
+    "https://usc-pis.herokuapp.com",  # Heroku domain
 ]
 
 CORS_ALLOW_CREDENTIALS = True
 
 # Security settings
 CSRF_TRUSTED_ORIGINS = [
-    "https://usc-pis-5f030223f7a8.herokuapp.com",
+    "https://usc-pis.herokuapp.com",
 ]
 
 # Remove this in production as it's insecure

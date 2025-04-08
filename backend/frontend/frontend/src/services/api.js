@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Use production URL when deployed, localhost for development
 const API_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://usc-pis-5f030223f7a8.herokuapp.com/api'
+  ? 'https://usc-pis.herokuapp.com/api'
   : 'http://localhost:8000/api';
 
 console.log('API URL:', API_URL); // Debug log
