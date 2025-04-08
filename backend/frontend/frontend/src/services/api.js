@@ -126,7 +126,7 @@ export const authService = {
   },
   getDashboardStats: async () => {
     try {
-      return await api.get('/api/dashboard/stats/');
+      return await api.get('/dashboard/stats/');
     } catch (error) {
       handleApiError(error);
     }

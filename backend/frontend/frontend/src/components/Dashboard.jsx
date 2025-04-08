@@ -38,7 +38,14 @@ const Dashboard = ({ user, onLogout }) => {
       try {
         setLoading(true);
         setError(null);
-        const data = await authService.getDashboardStats();
+        const response = await authService.getDashboardStats();
+        // Initialize default values if data is missing
+        const data = response?.data || {
+          totalPatients: 0,
+          totalRecords: 0,
+          recentPatients: [],
+          visitsByMonth: []
+        };
         setStats(data);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
