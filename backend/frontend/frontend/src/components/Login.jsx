@@ -13,25 +13,37 @@ const Login = () => {
 
     const submission = async (data) => {
         try {
-            const response = await authService.login({
-                username: data.email,
-                password: data.password
+            const response = await fetch('/api/auth/login/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: data.email,
+                    password: data.password
+                })
             });
 
-            if (response.data.token) {
-                localStorage.setItem('token', response.data.token);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Login failed');
+            }
+
+            const responseData = await response.json();
+            
+            if (responseData.token) {
+                localStorage.setItem('token', responseData.token);
                 localStorage.setItem('user', JSON.stringify({
-                    id: response.data.user_id,
-                    email: response.data.email,
-                    role: response.data.role,
-                    completeSetup: response.data.completeSetup
+                    id: responseData.user_id,
+                    email: responseData.email,
+                    role: responseData.role,
+                    completeSetup: responseData.completeSetup
                 }));
                 navigate('/home');
             }
         } catch (error) {
             console.error('Login error:', error);
-            const errorMessage = error.response?.data?.detail || 'Login failed. Please check your credentials.';
-            alert(errorMessage);
+            alert(error.message || 'Login failed. Please check your credentials.');
         }
     }
 

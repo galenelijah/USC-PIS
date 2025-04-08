@@ -44,7 +44,7 @@ def register_user(request):
 def login_user(request):
     if request.method == 'POST':
         try:
-            email = request.data.get('username')
+            email = request.data.get('email')
             password = request.data.get('password')
 
             if not email or not password:
@@ -53,7 +53,7 @@ def login_user(request):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            user = authenticate(username=email, password=password)
+            user = authenticate(request, username=email, password=password)
             
             if user is None:
                 return Response(
