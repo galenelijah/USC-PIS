@@ -38,24 +38,16 @@ const Dashboard = ({ user, onLogout }) => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch('/api/patients/dashboard-stats/', {
-          headers: {
-            'Authorization': `Token ${localStorage.getItem('token')}`
-          }
-        });
-        if (!response.ok) {
-          if (response.status === 401) {
-            // Handle unauthorized access
-            if (onLogout) onLogout();
-            throw new Error('Unauthorized access');
-          }
-          throw new Error('Failed to fetch dashboard data');
-        }
-        const data = await response.json();
+        const data = await authService.getDashboardStats();
         setStats(data);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
-        setError(error.message || 'Failed to load dashboard data. Please try again later.');
+        if (error.response?.status === 401) {
+          // Handle unauthorized access
+          if (onLogout) onLogout();
+        } else {
+          setError(error.message || 'Failed to load dashboard data. Please try again later.');
+        }
       } finally {
         setLoading(false);
       }

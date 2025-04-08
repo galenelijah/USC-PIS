@@ -124,6 +124,13 @@ export const authService = {
       handleApiError(error);
     }
   },
+  getDashboardStats: async () => {
+    try {
+      return await api.get('/api/dashboard/stats/');
+    } catch (error) {
+      handleApiError(error);
+    }
+  }
 };
 
 export const patientService = {
