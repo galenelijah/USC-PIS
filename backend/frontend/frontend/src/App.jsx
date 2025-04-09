@@ -11,6 +11,9 @@ import Dashboard from './components/Dashboard';
 import StudentRecords from './components/StudentRecords';
 import Medical from './components/Medical';
 import Dental from './components/Dental';
+import PasswordResetRequest from './components/PasswordResetRequest';
+import PasswordReset from './components/PasswordReset';
+import ProfileSetup from './components/ProfileSetup';
 import { useState, useEffect } from 'react';
 import { patientService, authService } from './services/api';
 
@@ -198,6 +201,21 @@ const App = () => {
             </RequireAuth>
           }
         />
+        <Route path="/password-reset-request" element={
+          <RequireNoAuth>
+            <PasswordResetRequest />
+          </RequireNoAuth>
+        } />
+        <Route path="/password-reset/:token" element={
+          <RequireNoAuth>
+            <PasswordReset />
+          </RequireNoAuth>
+        } />
+        <Route path="/profile-setup" element={
+          <RequireAuth>
+            <ProfileSetup />
+          </RequireAuth>
+        } />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

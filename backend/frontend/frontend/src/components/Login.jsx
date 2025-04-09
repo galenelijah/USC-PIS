@@ -59,14 +59,35 @@ const Login = () => {
                             required
                         />
                     </Box>
+                    <Box className="itemBox" sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <Link 
+                            to="/password-reset-request" 
+                            style={{ 
+                                color: '#1976d2',
+                                textDecoration: 'none',
+                                fontSize: '0.875rem',
+                                marginBottom: '16px'
+                            }}
+                        >
+                            Forgot Password?
+                        </Link>
+                    </Box>
                     <Box className="itemBox">
                         <MyButton
                             label="Login"
                             type="submit"
                         />
                     </Box>
-                    <Box className="itemBox">
-                        <Link to="/register">Don't have an account?</Link>
+                    <Box className="itemBox" sx={{ textAlign: 'center' }}>
+                        <Link 
+                            to="/register" 
+                            style={{ 
+                                color: '#1976d2',
+                                textDecoration: 'none'
+                            }}
+                        >
+                            Don't have an account?
+                        </Link>
                     </Box>
                 </Box>
             </form>

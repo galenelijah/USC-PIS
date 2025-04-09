@@ -119,7 +119,19 @@ export const authService = {
     } catch (error) {
       handleApiError(error);
     }
-  }
+  },
+  requestPasswordReset: async (email) => {
+    const response = await api.post('/auth/password-reset-request/', { email });
+    return response.data;
+  },
+  resetPassword: async (token, password) => {
+    const response = await api.post('/auth/password-reset/', { token, password });
+    return response.data;
+  },
+  completeProfileSetup: async (profileData) => {
+    const response = await api.post('/auth/complete-profile/', profileData);
+    return response.data;
+  },
 };
 
 export const patientService = {
