@@ -140,9 +140,9 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': dj_database_url.config(
         default='sqlite:///db.sqlite3',
-        conn_max_age=600,
+        conn_max_age=600,  # 10 minutes connection persistence
         conn_health_checks=True,
-        ssl_require=False,  # Don't require SSL for SQLite
+        ssl_require=False  # Don't require SSL for SQLite
     )
 }
 
@@ -154,6 +154,32 @@ if not os.environ.get('DATABASE_URL'):
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+
+# Database optimization settings
+DATABASE_OPTIMIZATIONS = {
+    'ATOMIC_REQUESTS': True,  # Wrap each request in a transaction
+    'CONN_MAX_AGE': 600,  # 10 minutes
+    'OPTIONS': {
+        'connect_timeout': 10,
+        'keepalives': 1,
+        'keepalives_idle': 30,
+        'keepalives_interval': 10,
+        'keepalives_count': 5,
+    }
+}
+
+# Cache settings for database queries
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
+
+# Session settings
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE = 86400  # 24 hours
+SESSION_SAVE_EVERY_REQUEST = True
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

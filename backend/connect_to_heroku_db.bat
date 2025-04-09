@@ -1,0 +1,3 @@
+@echo off
+echo Connecting to Heroku Postgres database...
+heroku pg:psql -a usc-pis 

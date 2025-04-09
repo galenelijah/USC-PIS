@@ -23,6 +23,8 @@ api.interceptors.request.use(request => {
   if (token) {
     request.headers.Authorization = `Token ${token}`;
     console.log('Using token:', token);
+  } else {
+    console.log('No token found in localStorage');
   }
   return request;
 });
@@ -34,26 +36,28 @@ api.interceptors.response.use(
     return response;
   },
   error => {
-    console.error('Request Error:', error);
+    console.error('API Error:', error.response || error);
     return Promise.reject(error);
   }
 );
 
 // Helper function to handle API errors
 const handleApiError = (error) => {
+  console.error('API Error:', error);
   if (error.response) {
-    // Server responded with error status
-    console.error('Server error:', error.response.data);
-    throw error;
+    // The request was made and the server responded with a status code
+    // that falls out of the range of 2xx
+    console.error('Error data:', error.response.data);
+    console.error('Error status:', error.response.status);
+    console.error('Error headers:', error.response.headers);
   } else if (error.request) {
-    // Request made but no response
-    console.error('Network error:', error.message);
-    throw new Error('Network error. Please check your connection.');
+    // The request was made but no response was received
+    console.error('Error request:', error.request);
   } else {
-    // Error in request setup
-    console.error('Request setup error:', error.message);
-    throw error;
+    // Something happened in setting up the request that triggered an Error
+    console.error('Error message:', error.message);
   }
+  throw error;
 };
 
 export const authService = {
@@ -131,6 +135,25 @@ export const authService = {
   completeProfileSetup: async (profileData) => {
     const response = await api.post('/auth/complete-profile/', profileData);
     return response.data;
+  },
+  getDatabaseHealth: async () => {
+    try {
+      console.log('Fetching database health...');
+      const token = localStorage.getItem('token');
+      console.log('Current token:', token);
+      
+      const response = await api.get('/auth/database-health/', {
+        headers: {
+          'Authorization': `Token ${token}`
+        }
+      });
+      
+      console.log('Database health response:', response);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching database health:', error);
+      handleApiError(error);
+    }
   },
 };
 

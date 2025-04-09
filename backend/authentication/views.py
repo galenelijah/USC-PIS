@@ -8,6 +8,11 @@ from .models import User
 from .serializers import UserRegistrationSerializer, UserProfileSerializer, ChangePasswordSerializer
 import logging
 import traceback
+from django.http import JsonResponse
+from django.db import connection
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -151,4 +156,43 @@ def logout_user(request):
         return Response(
             {'detail': 'Error during logout'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        ) 
+        )
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def database_health_check(request):
+    try:
+        # Check database connection
+        with connection.cursor() as cursor:
+            # Get table counts
+            cursor.execute("""
+                SELECT table_name, (SELECT count(*) FROM information_schema.columns WHERE table_name = t.table_name) as column_count,
+                       (SELECT count(*) FROM information_schema.tables WHERE table_name = t.table_name) as row_count
+                FROM information_schema.tables t
+                WHERE table_schema = 'public'
+            """)
+            tables = cursor.fetchall()
+            
+            # Get database size
+            cursor.execute("SELECT pg_size_pretty(pg_database_size(current_database()))")
+            db_size = cursor.fetchone()[0]
+            
+            # Get connection count
+            cursor.execute("SELECT count(*) FROM pg_stat_activity")
+            connection_count = cursor.fetchone()[0]
+            
+            return JsonResponse({
+                'status': 'healthy',
+                'database_size': db_size,
+                'connection_count': connection_count,
+                'tables': [{
+                    'name': table[0],
+                    'columns': table[1],
+                    'rows': table[2]
+                } for table in tables]
+            })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'unhealthy',
+            'error': str(e)
+        }, status=500) 

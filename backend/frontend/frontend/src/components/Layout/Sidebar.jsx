@@ -14,6 +14,7 @@ import {
   People as PeopleIcon,
   LocalHospital as LocalHospitalIcon,
   ExitToApp as ExitToAppIcon,
+  Storage as StorageIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -31,6 +32,7 @@ const Sidebar = () => {
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/home' },
     { text: 'Patients', icon: <PeopleIcon />, path: '/patients' },
     { text: 'Medical Records', icon: <LocalHospitalIcon />, path: '/records' },
+    { text: 'Database Monitor', icon: <StorageIcon />, path: '/database-monitor' },
   ];
 
   return (

@@ -14,6 +14,7 @@ import Dental from './components/Dental';
 import PasswordResetRequest from './components/PasswordResetRequest';
 import PasswordReset from './components/PasswordReset';
 import ProfileSetup from './components/ProfileSetup';
+import DatabaseMonitor from './components/DatabaseMonitor';
 import { useState, useEffect } from 'react';
 import { patientService, authService } from './services/api';
 
@@ -214,6 +215,11 @@ const App = () => {
         <Route path="/profile-setup" element={
           <RequireAuth>
             <ProfileSetup />
+          </RequireAuth>
+        } />
+        <Route path="/database-monitor" element={
+          <RequireAuth>
+            <DatabaseMonitor />
           </RequireAuth>
         } />
         <Route path="*" element={<Navigate to="/" replace />} />
