@@ -15,6 +15,7 @@ import PasswordResetRequest from './components/PasswordResetRequest';
 import PasswordReset from './components/PasswordReset';
 import ProfileSetup from './components/ProfileSetup';
 import DatabaseMonitor from './components/DatabaseMonitor';
+import HealthInfo from './components/HealthInfo/HealthInfo';
 import { useState, useEffect } from 'react';
 import { patientService, authService } from './services/api';
 
@@ -220,6 +221,13 @@ const App = () => {
         <Route path="/database-monitor" element={
           <RequireAuth>
             <DatabaseMonitor />
+          </RequireAuth>
+        } />
+        <Route path="/health-info" element={
+          <RequireAuth isAuthenticated={isAuthenticated}>
+            <Layout onSearch={handleSearch}>
+              <HealthInfo />
+            </Layout>
           </RequireAuth>
         } />
         <Route path="*" element={<Navigate to="/" replace />} />

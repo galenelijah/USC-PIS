@@ -15,6 +15,7 @@ import {
   LocalHospital as LocalHospitalIcon,
   ExitToApp as ExitToAppIcon,
   Storage as StorageIcon,
+  HealthAndSafety as HealthInfoIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -32,6 +33,7 @@ const Sidebar = () => {
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/home' },
     { text: 'Patients', icon: <PeopleIcon />, path: '/patients' },
     { text: 'Medical Records', icon: <LocalHospitalIcon />, path: '/records' },
+    { text: 'Health Information', icon: <HealthInfoIcon />, path: '/health-info' },
     { text: 'Database Monitor', icon: <StorageIcon />, path: '/database-monitor' },
   ];
 
@@ -44,7 +46,7 @@ const Sidebar = () => {
         '& .MuiDrawer-paper': {
           width: drawerWidth,
           boxSizing: 'border-box',
-          backgroundColor: '#1a237e',
+          backgroundColor: '#2e7d32',
           color: 'white',
         },
       }}
