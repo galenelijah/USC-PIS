@@ -2,37 +2,39 @@ import {Box, Typography} from '@mui/material'
 import MyTextField from './forms/MyTextField'
 import MyPassField from './forms/MyPassField'
 import MyButton from './forms/MyButton'
-import {Link} from 'react-router-dom'
+import {Link, useNavigate} from 'react-router-dom'
 import {useForm} from 'react-hook-form'
-import { useNavigate } from 'react-router-dom'
-import { authService } from '../services/api'
+import { useDispatch, useSelector } from 'react-redux'
+import { loginUser, selectAuthStatus, selectAuthError, resetAuthStatus } from '../features/authentication/authSlice'
+import { useEffect } from 'react'
 
 const Login = () => {
     const navigate = useNavigate()
     const {handleSubmit, control} = useForm()
+    const dispatch = useDispatch()
+    const authStatus = useSelector(selectAuthStatus)
+    const authError = useSelector(selectAuthError)
+
+    useEffect(() => {
+        return () => {
+            if (authStatus === 'failed') {
+                dispatch(resetAuthStatus())
+            }
+        }
+    }, [dispatch, authStatus])
 
     const submission = async (data) => {
-        try {
-            const response = await authService.login({
-                email: data.email,
-                password: data.password
-            });
+        const resultAction = await dispatch(loginUser({
+            email: data.email,
+            password: data.password
+        }))
 
-            if (response?.data) {
-                localStorage.setItem('token', response.data.token);
-                localStorage.setItem('user', JSON.stringify({
-                    id: response.data.user_id,
-                    email: response.data.email,
-                    role: response.data.role,
-                    completeSetup: response.data.completeSetup
-                }));
-                
-                // Force a page reload to update the authentication state
-                window.location.href = '/home';
+        if (loginUser.fulfilled.match(resultAction)) {
+            navigate('/home')
+        } else {
+            if (resultAction.payload) {
+                alert(`Login Failed: ${resultAction.payload}`)
             }
-        } catch (error) {
-            console.error('Login error:', error);
-            alert(error.response?.data?.detail || 'Login failed. Please check your credentials.');
         }
     }
 
@@ -76,7 +78,9 @@ const Login = () => {
                         <MyButton
                             label="Login"
                             type="submit"
+                            disabled={authStatus === 'loading'}
                         />
+                        {authStatus === 'loading' && <Typography sx={{mt: 1, textAlign: 'center'}}>Logging in...</Typography>}
                     </Box>
                     <Box className="itemBox" sx={{ textAlign: 'center' }}>
                         <Link 

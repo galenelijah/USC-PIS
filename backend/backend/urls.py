@@ -25,8 +25,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('authentication.urls')),  # Authentication endpoints
     path('api/', include('patients.urls')),
-    # Serve static files
-    re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
+    # Serve static files - Removed re_path, Whitenoise handles this via middleware/storage
+    # re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
     # Serve React app - must be last
     re_path(r'^.*$', TemplateView.as_view(template_name='index.html')),
 ]

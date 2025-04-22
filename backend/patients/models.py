@@ -10,6 +10,15 @@ class Patient(models.Model):
         ('O', 'Other'),
     ]
 
+    # Link to the user account, if applicable (especially for students)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.SET_NULL,  # Keep patient record if user is deleted
+        null=True, 
+        blank=True, 
+        related_name='patient_profile' # Allows user.patient_profile access
+    )
+    
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     date_of_birth = models.DateField()

@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import { selectIsAuthenticated, selectCurrentUser, logout } from './features/authentication/authSlice';
 import Layout from './components/Layout/Layout';
 import PatientList from './components/Patients/PatientList';
 import Login from './components/Login';
@@ -16,39 +18,15 @@ import PasswordReset from './components/PasswordReset';
 import ProfileSetup from './components/ProfileSetup';
 import DatabaseMonitor from './components/DatabaseMonitor';
 import HealthInfo from './components/HealthInfo/HealthInfo';
-import { useState, useEffect } from 'react';
-import { patientService, authService } from './services/api';
+import { patientService } from './services/api';
 
 const App = () => {
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const user = useSelector(selectCurrentUser);
+  const dispatch = useDispatch();
+
   const [patients, setPatients] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
-      
-      if (token && storedUser) {
-        try {
-          const userData = JSON.parse(storedUser);
-          setUser(userData);
-          setIsAuthenticated(true);
-        } catch (error) {
-          console.error('Error parsing user data:', error);
-          handleLogout();
-        }
-      } else {
-        setIsAuthenticated(false);
-        setUser(null);
-      }
-      setLoading(false);
-    };
-
-    checkAuth();
-  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -63,8 +41,7 @@ const App = () => {
     } catch (error) {
       console.error('Error loading patients:', error);
       if (error.response?.status === 401) {
-        // Handle unauthorized access
-        handleLogout();
+        dispatch(logout());
       }
     }
   };
@@ -80,7 +57,6 @@ const App = () => {
   };
 
   const handleEdit = (patient) => {
-    // TODO: Implement edit functionality
     console.log('Edit patient:', patient);
   };
 
@@ -93,36 +69,13 @@ const App = () => {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (token) {
-        await fetch('/api/auth/logout/', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Token ${token}`
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Error during logout:', error);
-    } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      setIsAuthenticated(false);
-      setUser(null);
-      window.location.href = '/login';
-    }
+  const handleLogout = () => {
+    dispatch(logout());
   };
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
 
   return (
     <Router>
       <Routes>
-        {/* Public routes */}
         <Route
           path="/"
           element={
@@ -140,7 +93,6 @@ const App = () => {
           }
         />
 
-        {/* Protected routes */}
         <Route
           path="/home"
           element={
@@ -204,22 +156,22 @@ const App = () => {
           }
         />
         <Route path="/password-reset-request" element={
-          <RequireNoAuth>
+          <RequireNoAuth isAuthenticated={isAuthenticated}>
             <PasswordResetRequest />
           </RequireNoAuth>
         } />
         <Route path="/password-reset/:token" element={
-          <RequireNoAuth>
+          <RequireNoAuth isAuthenticated={isAuthenticated}>
             <PasswordReset />
           </RequireNoAuth>
         } />
         <Route path="/profile-setup" element={
-          <RequireAuth>
+          <RequireAuth isAuthenticated={isAuthenticated}>
             <ProfileSetup />
           </RequireAuth>
         } />
         <Route path="/database-monitor" element={
-          <RequireAuth>
+          <RequireAuth isAuthenticated={isAuthenticated}>
             <DatabaseMonitor />
           </RequireAuth>
         } />
@@ -230,7 +182,10 @@ const App = () => {
             </Layout>
           </RequireAuth>
         } />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route 
+            path="*" 
+            element={isAuthenticated ? <Navigate to="/home" replace /> : <Navigate to="/" replace />} 
+        />
       </Routes>
     </Router>
   );

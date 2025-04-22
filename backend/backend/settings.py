@@ -21,6 +21,36 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# --- Start Database Configuration ---
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if DATABASE_URL:
+    # Configure for PostgreSQL using DATABASE_URL
+    DATABASES = {
+        'default': dj_database_url.config(
+            conn_max_age=600,
+            conn_health_checks=True,
+            ssl_require=os.environ.get('DATABASE_SSL_REQUIRE', 'True') == 'True' # Default to requiring SSL for Heroku PG
+        )
+    }
+    # Apply PostgreSQL specific settings
+    DATABASES['default']['ATOMIC_REQUESTS'] = True
+    DATABASES['default'].setdefault('OPTIONS', {})
+    DATABASES['default']['OPTIONS']['connect_timeout'] = 10
+    # Add other PostgreSQL-specific options here if needed (e.g., keepalives)
+
+else:
+    # Configure for local SQLite development
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+            'ATOMIC_REQUESTS': True, # Safe for SQLite too
+            # No incompatible OPTIONS needed for SQLite
+        }
+    }
+# --- End Database Configuration ---
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -49,6 +79,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'patients',
     'authentication',  # New authentication app
+    'health_info',     # Add the missing health_info app
 ]
 
 MIDDLEWARE = [
@@ -133,40 +164,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
-DATABASES = {
-    'default': dj_database_url.config(
-        default='sqlite:///db.sqlite3',
-        conn_max_age=600,  # 10 minutes connection persistence
-        conn_health_checks=True,
-        ssl_require=False  # Don't require SSL for SQLite
-    )
-}
-
-# For local development, use SQLite without SSL
-if not os.environ.get('DATABASE_URL'):
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
-
-# Database optimization settings
-DATABASE_OPTIMIZATIONS = {
-    'ATOMIC_REQUESTS': True,  # Wrap each request in a transaction
-    'CONN_MAX_AGE': 600,  # 10 minutes
-    'OPTIONS': {
-        'connect_timeout': 10,
-        'keepalives': 1,
-        'keepalives_idle': 30,
-        'keepalives_interval': 10,
-        'keepalives_count': 5,
-    }
-}
 
 # Cache settings for database queries
 CACHES = {
