@@ -23,6 +23,43 @@ export const loginUser = createAsyncThunk(
   }
 );
 
+// --- Async Thunk for Registration ---
+export const registerUser = createAsyncThunk(
+  'auth/registerUser',
+  async (userData, { rejectWithValue }) => {
+    // userData contains all fields from the registration form
+    try {
+      const response = await authService.register(userData);
+      // Assuming backend returns success message or created user data (without token)
+      return response.data; 
+    } catch (error) {
+      // Handle validation errors (400) or other errors (500)
+      const errorData = error.response?.data || { detail: error.message || 'Registration failed' };
+      return rejectWithValue(errorData);
+    }
+  }
+);
+
+// --- Async Thunk for Logout ---
+export const logoutUser = createAsyncThunk(
+  'auth/logoutUser',
+  async (_, { rejectWithValue }) => {
+    // No arguments needed, token is sent via interceptor
+    try {
+      await authService.logout();
+      // No data needed on success, the reducer handles state clearing
+      return; 
+    } catch (error) {
+      // Even if backend logout fails, we still clear frontend state.
+      // Log the error, but don't necessarily block logout.
+      console.error("Backend logout failed:", error);
+      // Optionally return error if needed elsewhere
+      const errorData = error.response?.data?.detail || error.message || 'Logout failed on server';
+      return rejectWithValue(errorData);
+    }
+  }
+);
+
 // Attempt to load initial state from localStorage
 const loadInitialState = () => {
   try {
@@ -118,6 +155,52 @@ const authSlice = createSlice({
         // Clear localStorage on failed login attempt?
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+      })
+      // Handle logout thunk lifecycle (optional, as main logic is sync)
+      .addCase(logoutUser.pending, (state) => {
+          // Optionally set status to loading during backend call
+          // state.status = 'loading'; 
+      })
+      .addCase(logoutUser.fulfilled, (state) => {
+          // Clear state using the existing logout reducer logic
+          // Note: Calling reducers directly isn't standard, 
+          // better to duplicate the logic or rely on component dispatching sync logout
+          state.user = null;
+          state.token = null;
+          state.isAuthenticated = false;
+          state.status = 'idle';
+          state.error = null;
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          console.log("Logout fulfilled, state cleared.")
+      })
+      .addCase(logoutUser.rejected, (state, action) => {
+          // Still log out frontend even if backend call fails
+          state.user = null;
+          state.token = null;
+          state.isAuthenticated = false;
+          state.status = 'idle'; // Or 'failed' depending on desired UX
+          state.error = action.payload; // Store backend error if needed
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          console.error("Logout rejected but frontend state cleared. Error:", action.payload)
+      })
+      // Registration cases
+      .addCase(registerUser.pending, (state) => {
+          state.status = 'loading';
+          state.error = null;
+      })
+      .addCase(registerUser.fulfilled, (state, action) => {
+          state.status = 'succeeded'; // Indicate success, but don't log in
+          state.error = null;
+          // Optionally store success message or data: state.registrationResult = action.payload;
+          console.log("Registration successful:", action.payload)
+      })
+      .addCase(registerUser.rejected, (state, action) => {
+          state.status = 'failed';
+          // action.payload might contain specific field errors from backend validation
+          state.error = action.payload; 
+          console.error("Registration failed:", action.payload)
       });
   },
 });

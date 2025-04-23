@@ -98,7 +98,7 @@ const App = () => {
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
               <Layout onSearch={handleSearch}>
-                <Dashboard user={user} onLogout={handleLogout} />
+                <Dashboard user={user} />
               </Layout>
             </RequireAuth>
           }

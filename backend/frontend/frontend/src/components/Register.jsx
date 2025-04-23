@@ -2,84 +2,54 @@ import {Box, FormControl, InputLabel, MenuItem, Select, Grid, Typography} from '
 import MyTextField from './forms/MyTextField'
 import MyPassField from './forms/MyPassField'
 import MyButton from './forms/MyButton'
-import {Link} from 'react-router-dom'
+import {Link, useNavigate} from 'react-router-dom'
 import {useForm, Controller} from 'react-hook-form'
-import { useNavigate } from 'react-router-dom'
-import { authService } from '../services/api'
+import { useDispatch, useSelector } from 'react-redux';
+import { registerUser, selectAuthStatus, selectAuthError, resetAuthStatus } from '../features/authentication/authSlice';
+import { useEffect } from 'react';
 
 const Register = () =>{
     const navigate = useNavigate()
-    const {handleSubmit, control, formState: {errors}} = useForm()
+    const {handleSubmit, control, watch, errors} = useForm()
+    const dispatch = useDispatch();
+    const authStatus = useSelector(selectAuthStatus);
+    const authError = useSelector(selectAuthError);
+
+    const password = watch('password');
+
+    useEffect(() => {
+        return () => {
+            dispatch(resetAuthStatus());
+        };
+    }, [dispatch]);
 
     const submission = async (data) => {
-        try {
-            if (data.password !== data.password2) {
-                alert("Passwords don't match!");
-                return;
+        const userData = {
+            ...data,
+            birthday: data.birthday || null,
+            username: data.email 
+        };
+
+        console.log('Dispatching registerUser with data:', userData);
+        const resultAction = await dispatch(registerUser(userData));
+
+        if (registerUser.fulfilled.match(resultAction)) {
+            console.log('Registration successful');
+            alert('Registration successful! Please login.');
+            navigate('/');
+        } else {
+            let errorMessage = 'Registration failed. Please check your inputs.';
+            if (resultAction.payload) {
+                if (typeof resultAction.payload === 'string') {
+                    errorMessage = resultAction.payload;
+                } else if (typeof resultAction.payload === 'object') {
+                    const fieldErrors = Object.values(resultAction.payload).flat();
+                    if (fieldErrors.length > 0) {
+                        errorMessage = fieldErrors[0];
+                    }
+                }
             }
-
-            // Log the registration data for debugging
-            console.log('Registering with data:', {
-                ...data,
-                password: '[REDACTED]',
-                password2: '[REDACTED]'
-            });
-
-            const response = await authService.register({
-                username: data.email, // Add username field
-                email: data.email,
-                password: data.password,
-                password2: data.password2,
-                role: data.role || 'STUDENT',
-                // Personal Information
-                first_name: data.first_name || '',
-                last_name: data.last_name || '',
-                middle_name: data.middle_name || '',
-                id_number: data.id_number || '',
-                course: data.course || '',
-                year_level: data.year_level || '',
-                school: data.school || '',
-                sex: data.sex || '',
-                civil_status: data.civil_status || '',
-                birthday: data.birthday || null,
-                nationality: data.nationality || '',
-                religion: data.religion || '',
-                address_permanent: data.address_permanent || '',
-                address_present: data.address_present || '',
-                phone: data.phone || '',
-                // Physical Information
-                weight: data.weight || '',
-                height: data.height || '',
-                // Emergency Contacts
-                father_name: data.father_name || '',
-                mother_name: data.mother_name || '',
-                emergency_contact: data.emergency_contact || '',
-                emergency_contact_number: data.emergency_contact_number || '',
-                // Medical Information
-                illness: data.illness || '',
-                childhood_diseases: data.childhood_diseases || '',
-                special_needs: data.special_needs || '',
-                existing_medical_condition: data.existing_medical_condition || '',
-                medications: data.medications || '',
-                allergies: data.allergies || '',
-                hospitalization_history: data.hospitalization_history || '',
-                surgical_procedures: data.surgical_procedures || '',
-                // Staff Information
-                department: data.department || '',
-                phone_number: data.phone_number || ''
-            });
-
-            if (response?.data) {
-                console.log('Registration successful:', response.data);
-                alert('Registration successful! Please login.');
-                navigate('/');
-            }
-        } catch (error) {
-            console.error('Registration error:', error);
-            const errorMessage = error.response?.data?.detail || 
-                               error.response?.data?.email?.[0] ||
-                               error.response?.data?.password?.[0] ||
-                               'Registration failed. Please try again.';
+            console.error('Registration error:', resultAction.payload);
             alert(errorMessage);
         }
     }
@@ -92,13 +62,14 @@ const Register = () =>{
                        <Typography variant="h5" className="title">Register</Typography>
                     </Box>
                     
-                    {/* Basic Information */}
                     <Box className="itemBox">
                         <MyTextField
                             label="Email"
                             name="email"
                             control={control}
                             required
+                            error={!!errors.email}
+                            helperText={errors.email?.message}
                             rules={{
                                 required: 'Email is required',
                                 pattern: {
@@ -114,6 +85,8 @@ const Register = () =>{
                             name="password"
                             control={control}
                             required
+                            error={!!errors.password}
+                            helperText={errors.password?.message}
                             rules={{
                                 required: 'Password is required',
                                 minLength: {
@@ -129,9 +102,11 @@ const Register = () =>{
                             name="password2"
                             control={control}
                             required
+                            error={!!errors.password2}
+                            helperText={errors.password2?.message}
                             rules={{
                                 required: 'Please confirm your password',
-                                validate: value => value === control._getWatch('password') || 'Passwords do not match'
+                                validate: value => value === password || 'Passwords do not match'
                             }}
                         />
                     </Box>
@@ -154,7 +129,6 @@ const Register = () =>{
                         />
                     </Box>
 
-                    {/* Personal Information */}
                     <Grid container spacing={2}>
                         <Grid item xs={12} sm={6}>
                             <MyTextField
@@ -218,7 +192,9 @@ const Register = () =>{
                         <MyButton
                             label="Register"
                             type="submit"
+                            disabled={authStatus === 'loading'}
                         />
+                        {authStatus === 'loading' && <Typography sx={{mt: 1}}>Registering...</Typography>}
                     </Box>
                     <Box className="itemBox">
                         <Link to="/">Already have an account?</Link>

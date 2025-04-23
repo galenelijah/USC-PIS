@@ -22,8 +22,11 @@ import {
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import { authService } from '../services/api';
+import { useDispatch } from 'react-redux';
+import { logoutUser, logout } from '../features/authentication/authSlice';
 
-const Dashboard = ({ user, onLogout }) => {
+const Dashboard = ({ user }) => {
+  const dispatch = useDispatch();
   const [stats, setStats] = useState({
     totalPatients: 0,
     totalRecords: 0,
@@ -53,8 +56,7 @@ const Dashboard = ({ user, onLogout }) => {
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
         if (error.response?.status === 401) {
-          // Handle unauthorized access
-          if (onLogout) onLogout();
+          dispatch(logout());
         } else {
           setError(error.message || 'Failed to load dashboard data. Please try again later.');
         }
@@ -64,7 +66,7 @@ const Dashboard = ({ user, onLogout }) => {
     };
 
     fetchDashboardData();
-  }, [onLogout]);
+  }, [dispatch]);
 
   const StatCard = ({ title, value, icon, color }) => (
     <Card sx={{ height: '100%', bgcolor: color }}>
@@ -238,7 +240,7 @@ const Dashboard = ({ user, onLogout }) => {
               <Button
                 variant="contained"
                 color="error"
-                onClick={onLogout}
+                onClick={() => dispatch(logoutUser())}
               >
                 Logout
               </Button>
