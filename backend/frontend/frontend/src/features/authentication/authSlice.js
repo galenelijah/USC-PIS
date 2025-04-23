@@ -29,12 +29,34 @@ export const registerUser = createAsyncThunk(
   async (userData, { rejectWithValue }) => {
     // userData contains all fields from the registration form
     try {
+      console.log('Sending registration data:', userData);
       const response = await authService.register(userData);
-      // Assuming backend returns success message or created user data (without token)
-      return response.data; 
+      
+      // Safely handle the response
+      console.log('Registration response:', response);
+      
+      // Check if response exists and has data property
+      if (!response || !response.data) {
+        console.error('Invalid response format:', response);
+        return rejectWithValue('Server returned an invalid response');
+      }
+      
+      // Return the data from the response
+      return response.data;
     } catch (error) {
+      console.error('Registration error:', error);
+      
       // Handle validation errors (400) or other errors (500)
-      const errorData = error.response?.data || { detail: error.message || 'Registration failed' };
+      let errorData;
+      
+      if (error.response?.data) {
+        errorData = error.response.data;
+      } else if (error.message) {
+        errorData = { detail: error.message };
+      } else {
+        errorData = { detail: 'Registration failed' };
+      }
+      
       return rejectWithValue(errorData);
     }
   }
@@ -193,14 +215,14 @@ const authSlice = createSlice({
       .addCase(registerUser.fulfilled, (state, action) => {
           state.status = 'succeeded'; // Indicate success, but don't log in
           state.error = null;
-          // Optionally store success message or data: state.registrationResult = action.payload;
-          console.log("Registration successful:", action.payload)
+          // We don't update user or token here as the user needs to login separately
+          console.log("Registration successful:", action.payload || 'No response data');
       })
       .addCase(registerUser.rejected, (state, action) => {
           state.status = 'failed';
-          // action.payload might contain specific field errors from backend validation
-          state.error = action.payload; 
-          console.error("Registration failed:", action.payload)
+          // Safely store error data
+          state.error = action.payload || 'Registration failed';
+          console.error("Registration failed:", action.payload || 'Unknown error');
       });
   },
 });

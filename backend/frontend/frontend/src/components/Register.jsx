@@ -10,7 +10,7 @@ import { useEffect } from 'react';
 
 const Register = () =>{
     const navigate = useNavigate()
-    const {handleSubmit, control, watch, errors} = useForm()
+    const {handleSubmit, control, watch, formState: { errors } } = useForm()
     const dispatch = useDispatch();
     const authStatus = useSelector(selectAuthStatus);
     const authError = useSelector(selectAuthError);
@@ -24,33 +24,44 @@ const Register = () =>{
     }, [dispatch]);
 
     const submission = async (data) => {
-        const userData = {
-            ...data,
-            birthday: data.birthday || null,
-            username: data.email 
-        };
+        try {
+            // Ensure all required fields are present
+            const userData = {
+                ...data,
+                birthday: data.birthday || null,
+                username: data.email // Set username to email
+            };
 
-        console.log('Dispatching registerUser with data:', userData);
-        const resultAction = await dispatch(registerUser(userData));
+            console.log('Dispatching registerUser with data:', userData);
+            const resultAction = await dispatch(registerUser(userData));
 
-        if (registerUser.fulfilled.match(resultAction)) {
-            console.log('Registration successful');
-            alert('Registration successful! Please login.');
-            navigate('/');
-        } else {
+            if (registerUser.fulfilled.match(resultAction)) {
+                console.log('Registration successful');
+                alert('Registration successful! Please login.');
+                // Navigate to login page
+                navigate('/', { replace: true });
+                return;
+            } 
+            
+            // Handle error
             let errorMessage = 'Registration failed. Please check your inputs.';
             if (resultAction.payload) {
                 if (typeof resultAction.payload === 'string') {
                     errorMessage = resultAction.payload;
-                } else if (typeof resultAction.payload === 'object') {
-                    const fieldErrors = Object.values(resultAction.payload).flat();
+                } else if (resultAction.payload && typeof resultAction.payload === 'object') {
+                    // Safely handle object errors
+                    const fieldErrors = Object.values(resultAction.payload).flat().filter(Boolean);
                     if (fieldErrors.length > 0) {
                         errorMessage = fieldErrors[0];
                     }
                 }
             }
-            console.error('Registration error:', resultAction.payload);
+            console.error('Registration error:', resultAction.payload || 'Unknown error');
             alert(errorMessage);
+        } catch (error) {
+            // Add global error handler
+            console.error('Unexpected error during registration:', error);
+            alert('An unexpected error occurred. Please try again.');
         }
     }
 
@@ -68,8 +79,8 @@ const Register = () =>{
                             name="email"
                             control={control}
                             required
-                            error={!!errors.email}
-                            helperText={errors.email?.message}
+                            error={!!errors?.email}
+                            helperText={errors?.email?.message}
                             rules={{
                                 required: 'Email is required',
                                 pattern: {
@@ -85,8 +96,8 @@ const Register = () =>{
                             name="password"
                             control={control}
                             required
-                            error={!!errors.password}
-                            helperText={errors.password?.message}
+                            error={!!errors?.password}
+                            helperText={errors?.password?.message}
                             rules={{
                                 required: 'Password is required',
                                 minLength: {
@@ -102,8 +113,8 @@ const Register = () =>{
                             name="password2"
                             control={control}
                             required
-                            error={!!errors.password2}
-                            helperText={errors.password2?.message}
+                            error={!!errors?.password2}
+                            helperText={errors?.password2?.message}
                             rules={{
                                 required: 'Please confirm your password',
                                 validate: value => value === password || 'Passwords do not match'

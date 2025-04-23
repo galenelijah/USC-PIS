@@ -63,9 +63,29 @@ const handleApiError = (error) => {
 export const authService = {
   register: async (data) => {
     try {
-      return await api.post('/auth/register/', data);
+      console.log('Register API call with data:', data);
+      const response = await api.post('/auth/register/', data);
+      console.log('Register API response:', response);
+      return response;
     } catch (error) {
-      handleApiError(error);
+      console.error('Register API error:', error);
+      // Enhanced error handling
+      if (error.response) {
+        // The request was made and the server responded with a status code outside of 2xx
+        console.error('Error status:', error.response.status);
+        console.error('Error data:', error.response.data);
+        
+        // Return a structured error that can be handled by the thunk
+        throw error;
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error('No response received:', error.request);
+        throw new Error('No response from server. Please check your connection.');
+      } else {
+        // Something happened in setting up the request
+        console.error('Error setting up request:', error.message);
+        throw error;
+      }
     }
   },
   login: async (data) => {
