@@ -65,23 +65,42 @@ class MedicalRecordViewSet(viewsets.ModelViewSet):
 @permission_classes([IsAuthenticated])
 def dashboard_stats(request):
     try:
+        user = request.user
         total_patients = Patient.objects.count()
         total_records = MedicalRecord.objects.count()
         recent_patients = Patient.objects.prefetch_related('medical_records').order_by('-created_at')[:5]
-        
-        # Get visit statistics
         visits_by_month = MedicalRecord.objects.annotate(
             month=TruncMonth('visit_date')
         ).values('month').annotate(
             count=Count('id')
         ).order_by('month')
 
-        return Response({
-            'total_patients': total_patients,
-            'total_records': total_records,
-            'recent_patients': PatientSerializer(recent_patients, many=True).data,
-            'visits_by_month': list(visits_by_month)
-        })
+        # Role-based stats
+        if user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.NURSE]:
+            # Admin/Staff/Doctor/Nurse dashboard
+            return Response({
+                'total_patients': total_patients,
+                'total_records': total_records,
+                'recent_patients': PatientSerializer(recent_patients, many=True).data,
+                'visits_by_month': list(visits_by_month),
+                'appointments_today': 5,  # Placeholder
+                'pending_requests': 2,    # Placeholder
+            })
+        elif user.role == User.Role.STUDENT:
+            # Student/Patient dashboard
+            # Find the linked patient record
+            patient = getattr(user, 'patient_profile', None)
+            # Placeholder logic for next appointment, recent health info, profile completion
+            next_appointment = '2024-07-01 10:00'  # Placeholder
+            recent_health_info = 'COVID-19 Vaccination Drive'  # Placeholder
+            profile_completion = 80  # Placeholder percent
+            return Response({
+                'next_appointment': next_appointment,
+                'recent_health_info': recent_health_info,
+                'profile_completion': profile_completion,
+            })
+        else:
+            return Response({'error': 'Unknown user role'}, status=400)
     except Exception as e:
         return Response(
             {'error': str(e)},

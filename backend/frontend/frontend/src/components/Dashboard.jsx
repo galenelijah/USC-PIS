@@ -32,6 +32,11 @@ const Dashboard = ({ user }) => {
     totalRecords: 0,
     recentPatients: [],
     visitsByMonth: [],
+    appointmentsToday: 0,
+    pendingRequests: 0,
+    nextAppointment: null,
+    recentHealthInfo: null,
+    profileCompletion: null,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -51,7 +56,12 @@ const Dashboard = ({ user }) => {
           totalPatients: response.data.total_patients || 0,
           totalRecords: response.data.total_records || 0,
           recentPatients: Array.isArray(response.data.recent_patients) ? response.data.recent_patients : [],
-          visitsByMonth: Array.isArray(response.data.visits_by_month) ? response.data.visits_by_month : []
+          visitsByMonth: Array.isArray(response.data.visits_by_month) ? response.data.visits_by_month : [],
+          appointmentsToday: response.data.appointments_today || 0,
+          pendingRequests: response.data.pending_requests || 0,
+          nextAppointment: response.data.next_appointment,
+          recentHealthInfo: response.data.recent_health_info,
+          profileCompletion: response.data.profile_completion,
         });
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -197,6 +207,163 @@ const Dashboard = ({ user }) => {
     }
   };
 
+  // Helper: Admin/Staff dashboard
+  const renderAdminDashboard = () => (
+    <>
+      {/* Stats Section */}
+      <Grid item xs={12} md={3}>
+        <StatCard
+          title="Total Patients"
+          value={stats.totalPatients}
+          icon={<PeopleIcon />}
+          color="#1976d2"
+        />
+      </Grid>
+      <Grid item xs={12} md={3}>
+        <StatCard
+          title="Total Records"
+          value={stats.totalRecords}
+          icon={<AssessmentIcon />}
+          color="#2e7d32"
+        />
+      </Grid>
+      <Grid item xs={12} md={3}>
+        <StatCard
+          title="Appointments Today"
+          value={stats.appointmentsToday || 0}
+          icon={<AssignmentIcon />}
+          color="#ed6c02"
+        />
+      </Grid>
+      <Grid item xs={12} md={3}>
+        <StatCard
+          title="Pending Requests"
+          value={stats.pendingRequests || 0}
+          icon={<AssignmentIcon />}
+          color="#ab47bc"
+        />
+      </Grid>
+      {/* Quick Actions */}
+      <Grid item xs={12}>
+        <Typography variant="h5" gutterBottom sx={{ mt: 4, mb: 3 }}>
+          Admin Quick Actions
+        </Typography>
+        <Divider sx={{ mb: 3 }} />
+      </Grid>
+      <Grid item xs={12} md={3}>
+        <QuickAction
+          title="Add Patient"
+          description="Register a new patient"
+          icon={<PeopleIcon />}
+          to="/patients/add"
+          color="primary"
+        />
+      </Grid>
+      <Grid item xs={12} md={3}>
+        <QuickAction
+          title="Add Health Info"
+          description="Publish new health information"
+          icon={<AssessmentIcon />}
+          to="/health-info"
+          color="success"
+        />
+      </Grid>
+      <Grid item xs={12} md={3}>
+        <QuickAction
+          title="Review Submissions"
+          description="Review recent health form submissions"
+          icon={<AssignmentIcon />}
+          to="/forms/review"
+          color="secondary"
+        />
+      </Grid>
+      <Grid item xs={12} md={3}>
+        <QuickAction
+          title="User Management"
+          description="Manage users and roles"
+          icon={<PeopleIcon />}
+          to="/admin/users"
+          color="warning"
+        />
+      </Grid>
+    </>
+  );
+
+  // Helper: Student/Patient dashboard
+  const renderStudentDashboard = () => (
+    <>
+      {/* Next Appointment */}
+      <Grid item xs={12} md={4}>
+        <StatCard
+          title="Next Appointment"
+          value={stats.nextAppointment || 'None'}
+          icon={<AssignmentIcon />}
+          color="#1976d2"
+        />
+      </Grid>
+      <Grid item xs={12} md={4}>
+        <StatCard
+          title="Recent Health Info"
+          value={stats.recentHealthInfo || 'None'}
+          icon={<AssessmentIcon />}
+          color="#2e7d32"
+        />
+      </Grid>
+      <Grid item xs={12} md={4}>
+        <StatCard
+          title="Profile Completion"
+          value={stats.profileCompletion ? `${stats.profileCompletion}%` : '100%'}
+          icon={<PeopleIcon />}
+          color="#ed6c02"
+        />
+      </Grid>
+      {/* Quick Actions */}
+      <Grid item xs={12}>
+        <Typography variant="h5" gutterBottom sx={{ mt: 4, mb: 3 }}>
+          Quick Actions
+        </Typography>
+        <Divider sx={{ mb: 3 }} />
+      </Grid>
+      <Grid item xs={12} md={3}>
+        <QuickAction
+          title="View Medical Records"
+          description="Access your medical records"
+          icon={<MedicalIcon />}
+          to="/medical-records"
+          color="primary"
+        />
+      </Grid>
+      <Grid item xs={12} md={3}>
+        <QuickAction
+          title="Book Appointment"
+          description="Schedule a new appointment"
+          icon={<AssignmentIcon />}
+          to="/appointments"
+          color="secondary"
+        />
+      </Grid>
+      <Grid item xs={12} md={3}>
+        <QuickAction
+          title="Health Info"
+          description="Read health announcements"
+          icon={<AssessmentIcon />}
+          to="/health-info"
+          color="success"
+        />
+      </Grid>
+      <Grid item xs={12} md={3}>
+        <QuickAction
+          title="Submit Health Form"
+          description="Submit a new health form"
+          icon={<AssignmentIcon />}
+          to="/forms"
+          color="info"
+        />
+      </Grid>
+    </>
+  );
+
+  // Main render
   return (
     <Box sx={{ p: 3 }}>
       <Grid container spacing={3}>
@@ -208,7 +375,9 @@ const Dashboard = ({ user }) => {
               display: 'flex', 
               justifyContent: 'space-between', 
               alignItems: 'center',
-              background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+              background: user?.role === 'ADMIN' || user?.role === 'STAFF'
+                ? 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)'
+                : 'linear-gradient(45deg, #388e3c 30%, #81c784 90%)',
               color: 'white'
             }}
           >
@@ -248,7 +417,7 @@ const Dashboard = ({ user }) => {
           </Paper>
         </Grid>
 
-        {/* Stats Section */}
+        {/* Role-based Dashboard Sections */}
         {loading ? (
           <Grid item xs={12}>
             <Box display="flex" justifyContent="center" p={3}>
@@ -261,41 +430,11 @@ const Dashboard = ({ user }) => {
           </Grid>
         ) : (
           <>
-            <Grid item xs={12} md={4}>
-              <StatCard
-                title="Total Patients"
-                value={stats.totalPatients}
-                icon={<PeopleIcon />}
-                color="#1976d2"
-              />
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <StatCard
-                title="Total Records"
-                value={stats.totalRecords}
-                icon={<AssessmentIcon />}
-                color="#2e7d32"
-              />
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <StatCard
-                title="Recent Activities"
-                value={stats.recentPatients.length}
-                icon={<AssignmentIcon />}
-                color="#ed6c02"
-              />
-            </Grid>
+            {user?.role === 'ADMIN' || user?.role === 'STAFF'
+              ? renderAdminDashboard()
+              : renderStudentDashboard()}
           </>
         )}
-
-        {/* Quick Actions Section */}
-        <Grid item xs={12}>
-          <Typography variant="h5" gutterBottom sx={{ mt: 4, mb: 3 }}>
-            Quick Actions
-          </Typography>
-          <Divider sx={{ mb: 3 }} />
-        </Grid>
-        {renderRoleBasedActions()}
       </Grid>
     </Box>
   );
