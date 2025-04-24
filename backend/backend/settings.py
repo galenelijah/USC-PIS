@@ -24,6 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # --- Start Database Configuration ---
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
+# If DATABASE_URL environment variable exists, use that (for Heroku)
 if DATABASE_URL:
     # Configure for PostgreSQL using DATABASE_URL
     DATABASES = {
@@ -38,7 +39,6 @@ if DATABASE_URL:
     DATABASES['default'].setdefault('OPTIONS', {})
     DATABASES['default']['OPTIONS']['connect_timeout'] = 10
     # Add other PostgreSQL-specific options here if needed (e.g., keepalives)
-
 else:
     # Configure for local SQLite development
     DATABASES = {
