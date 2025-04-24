@@ -222,4 +222,35 @@ export const patientService = {
   },
 };
 
+export const healthInfoService = {
+  getAll: async () => {
+    try {
+      return await api.get('/health-info/health-information/');
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+  create: async (data) => {
+    try {
+      return await api.post('/health-info/health-information/', data);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+  update: async (id, data) => {
+    try {
+      return await api.put(`/health-info/health-information/${id}/`, data);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+  delete: async (id) => {
+    try {
+      return await api.delete(`/health-info/health-information/${id}/`);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+};
+
 export default api; 

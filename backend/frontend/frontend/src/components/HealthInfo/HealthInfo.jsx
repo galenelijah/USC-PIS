@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
@@ -19,48 +19,34 @@ import {
   Edit as EditIcon,
   Add as AddIcon,
 } from '@mui/icons-material';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchHealthInfo, addHealthInfo, updateHealthInfo, deleteHealthInfo, setEditing, clearEditing } from '../../features/healthInfoSlice';
+import { selectCurrentUser } from '../../features/authentication/authSlice';
 
 const HealthInfo = () => {
   const theme = useTheme();
-  const [healthInfo, setHealthInfo] = useState([
-    {
-      id: 1,
-      title: 'COVID-19 Prevention Guidelines',
-      content: 'Stay safe by following these guidelines...',
-      date: '2024-03-20',
-      category: 'Infectious Diseases',
-    },
-    {
-      id: 2,
-      title: 'Mental Health Awareness',
-      content: 'Tips for maintaining good mental health...',
-      date: '2024-03-19',
-      category: 'Mental Health',
-    },
-  ]);
+  const dispatch = useDispatch();
+  const { list: healthInfo = [], loading, error, editing } = useSelector(state => state.healthInfo);
+  const user = useSelector(selectCurrentUser);
+  const [form, setForm] = useState({ title: '', content: '', category: '' });
 
-  const [newInfo, setNewInfo] = useState({
-    title: '',
-    content: '',
-    category: '',
-  });
+  useEffect(() => { dispatch(fetchHealthInfo()); }, [dispatch]);
+  useEffect(() => {
+    if (editing) setForm(editing);
+    else setForm({ title: '', content: '', category: '' });
+  }, [editing]);
 
-  const handleAddInfo = () => {
-    if (newInfo.title && newInfo.content && newInfo.category) {
-      setHealthInfo([
-        ...healthInfo,
-        {
-          id: Date.now(),
-          ...newInfo,
-          date: new Date().toISOString().split('T')[0],
-        },
-      ]);
-      setNewInfo({ title: '', content: '', category: '' });
+  const isStaff = user && (user.role === 'ADMIN' || user.role === 'STAFF');
+
+  const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleSubmit = e => {
+    e.preventDefault();
+    if (editing) {
+      dispatch(updateHealthInfo({ id: editing.id, data: form })).then(() => dispatch(clearEditing()));
+    } else {
+      dispatch(addHealthInfo(form));
     }
-  };
-
-  const handleDeleteInfo = (id) => {
-    setHealthInfo(healthInfo.filter((info) => info.id !== id));
+    setForm({ title: '', content: '', category: '' });
   };
 
   return (
@@ -69,71 +55,77 @@ const HealthInfo = () => {
         Health Information Dissemination
       </Typography>
 
-      {/* Add New Health Information */}
-      <Paper 
-        sx={{ 
-          p: 3, 
-          mb: 3,
-          borderLeft: `4px solid ${theme.palette.primary.main}`,
-        }}
-      >
-        <Typography variant="h6" gutterBottom color="primary">
-          Add New Health Information
-        </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              label="Title"
-              value={newInfo.title}
-              onChange={(e) => setNewInfo({ ...newInfo, title: e.target.value })}
-              variant="outlined"
-            />
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              label="Category"
-              value={newInfo.category}
-              onChange={(e) => setNewInfo({ ...newInfo, category: e.target.value })}
-              variant="outlined"
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              multiline
-              rows={4}
-              label="Content"
-              value={newInfo.content}
-              onChange={(e) => setNewInfo({ ...newInfo, content: e.target.value })}
-              variant="outlined"
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<AddIcon />}
-              onClick={handleAddInfo}
-              disabled={!newInfo.title || !newInfo.content || !newInfo.category}
-            >
-              Add Information
-            </Button>
-          </Grid>
-        </Grid>
-      </Paper>
+      {/* Add/Edit Health Information (Staff/Admin only) */}
+      {isStaff && (
+        <Paper sx={{ p: 3, mb: 3, borderLeft: `4px solid ${theme.palette.primary.main}` }}>
+          <Typography variant="h6" gutterBottom color="primary">
+            {editing ? 'Edit Health Information' : 'Add New Health Information'}
+          </Typography>
+          <form onSubmit={handleSubmit}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  label="Title"
+                  name="title"
+                  value={form.title}
+                  onChange={handleChange}
+                  variant="outlined"
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  label="Category"
+                  name="category"
+                  value={form.category}
+                  onChange={handleChange}
+                  variant="outlined"
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={4}
+                  label="Content"
+                  name="content"
+                  value={form.content}
+                  onChange={handleChange}
+                  variant="outlined"
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={editing ? <EditIcon /> : <AddIcon />}
+                  type="submit"
+                  disabled={!form.title || !form.content || !form.category}
+                >
+                  {editing ? 'Update Information' : 'Add Information'}
+                </Button>
+                {editing && (
+                  <Button sx={{ ml: 2 }} variant="outlined" color="secondary" onClick={() => dispatch(clearEditing())}>
+                    Cancel
+                  </Button>
+                )}
+              </Grid>
+            </Grid>
+          </form>
+        </Paper>
+      )}
 
       {/* Health Information List */}
-      <Paper 
-        sx={{ 
-          p: 3,
-          borderLeft: `4px solid ${theme.palette.secondary.main}`,
-        }}
-      >
+      <Paper sx={{ p: 3, borderLeft: `4px solid ${theme.palette.secondary.main}` }}>
         <Typography variant="h6" gutterBottom color="secondary">
           Health Information List
         </Typography>
+        {loading && <Typography>Loading...</Typography>}
+        {error && <Typography color="error">Error: {error}</Typography>}
         <List>
           {healthInfo.map((info) => (
             <React.Fragment key={info.id}>
@@ -142,9 +134,7 @@ const HealthInfo = () => {
                   bgcolor: 'background.paper',
                   mb: 1,
                   borderRadius: 1,
-                  '&:hover': {
-                    bgcolor: 'action.hover',
-                  },
+                  '&:hover': { bgcolor: 'action.hover' },
                 }}
               >
                 <ListItemText
@@ -161,24 +151,21 @@ const HealthInfo = () => {
                       {` — ${info.content}`}
                       <br />
                       <Typography component="span" variant="caption" color="text.secondary">
-                        Posted on: {info.date}
+                        Posted on: {new Date(info.created_at).toLocaleDateString()}
                       </Typography>
                     </>
                   }
                 />
-                <ListItemSecondaryAction>
-                  <IconButton edge="end" aria-label="edit" color="primary">
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton
-                    edge="end"
-                    aria-label="delete"
-                    onClick={() => handleDeleteInfo(info.id)}
-                    color="error"
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </ListItemSecondaryAction>
+                {isStaff && (
+                  <ListItemSecondaryAction>
+                    <IconButton edge="end" aria-label="edit" color="primary" onClick={() => dispatch(setEditing(info))}>
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton edge="end" aria-label="delete" onClick={() => dispatch(deleteHealthInfo(info.id))} color="error">
+                      <DeleteIcon />
+                    </IconButton>
+                  </ListItemSecondaryAction>
+                )}
               </ListItem>
               <Divider />
             </React.Fragment>
