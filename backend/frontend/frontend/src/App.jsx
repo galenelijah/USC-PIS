@@ -9,6 +9,8 @@ import Register from './components/Register';
 import Profile from './components/Profile';
 import RequireAuth from './components/RequireAuth';
 import RequireNoAuth from './components/RequireNoAuth';
+import RequireProfileSetup from './components/RequireProfileSetup';
+import RequireIncompleteSetup from './components/RequireIncompleteSetup';
 import Dashboard from './components/Dashboard';
 import StudentRecords from './components/StudentRecords';
 import Medical from './components/Medical';
@@ -18,6 +20,7 @@ import PasswordReset from './components/PasswordReset';
 import ProfileSetup from './components/ProfileSetup';
 import DatabaseMonitor from './components/DatabaseMonitor';
 import HealthInfo from './components/HealthInfo/HealthInfo';
+import HealthRecords from './components/HealthRecords';
 import { patientService } from './services/api';
 
 const App = () => {
@@ -73,9 +76,16 @@ const App = () => {
     dispatch(logout());
   };
 
+  // Check if user has admin/staff role
+  const isAdminOrStaff = user && ['ADMIN', 'STAFF'].includes(user.role);
+  const isDoctor = user && user.role === 'DOCTOR';
+  const isNurse = user && user.role === 'NURSE';
+  const isStudent = user && user.role === 'STUDENT';
+
   return (
     <Router>
       <Routes>
+        {/* Public Routes */}
         <Route
           path="/"
           element={
@@ -92,99 +102,190 @@ const App = () => {
             </RequireNoAuth>
           }
         />
+        <Route 
+          path="/password-reset-request" 
+          element={
+            <RequireNoAuth isAuthenticated={isAuthenticated}>
+              <PasswordResetRequest />
+            </RequireNoAuth>
+          } 
+        />
+        <Route 
+          path="/password-reset/:token" 
+          element={
+            <RequireNoAuth isAuthenticated={isAuthenticated}>
+              <PasswordReset />
+            </RequireNoAuth>
+          } 
+        />
 
+        {/* Profile Setup Route - Only for users who need to complete profile */}
+        <Route 
+          path="/profile-setup" 
+          element={
+            <RequireAuth isAuthenticated={isAuthenticated}>
+              <RequireIncompleteSetup>
+                <ProfileSetup />
+              </RequireIncompleteSetup>
+            </RequireAuth>
+          } 
+        />
+        
+        {/* Protected Routes - Require completed profile */}
         <Route
           path="/home"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <Layout onSearch={handleSearch}>
-                <Dashboard user={user} />
-              </Layout>
+              <RequireProfileSetup>
+                <Layout onSearch={handleSearch}>
+                  <Dashboard user={user} />
+                </Layout>
+              </RequireProfileSetup>
             </RequireAuth>
           }
         />
+        
+        {/* Admin Routes */}
+        <Route
+          path="/database-monitor"
+          element={
+            <RequireAuth isAuthenticated={isAuthenticated}>
+              <RequireProfileSetup>
+                {isAdminOrStaff ? (
+                  <Layout onSearch={handleSearch}>
+                    <DatabaseMonitor />
+                  </Layout>
+                ) : (
+                  <Navigate to="/home" replace />
+                )}
+              </RequireProfileSetup>
+            </RequireAuth>
+          }
+        />
+
+        {/* Healthcare Staff Routes */}
         <Route
           path="/patients"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <Layout onSearch={handleSearch}>
-                <PatientList
-                  patients={patients}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                />
-              </Layout>
+              <RequireProfileSetup>
+                {isAdminOrStaff || isDoctor || isNurse ? (
+                  <Layout onSearch={handleSearch}>
+                    <PatientList
+                      patients={patients}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                    />
+                  </Layout>
+                ) : (
+                  <Navigate to="/home" replace />
+                )}
+              </RequireProfileSetup>
             </RequireAuth>
           }
         />
+        
+        <Route
+          path="/health-info"
+          element={
+            <RequireAuth isAuthenticated={isAuthenticated}>
+              <RequireProfileSetup>
+                <Layout onSearch={handleSearch}>
+                  <HealthInfo canEdit={isAdminOrStaff || isDoctor || isNurse} />
+                </Layout>
+              </RequireProfileSetup>
+            </RequireAuth>
+          }
+        />
+
         <Route
           path="/students"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <Layout onSearch={handleSearch}>
-                <StudentRecords />
-              </Layout>
+              <RequireProfileSetup>
+                {isAdminOrStaff || isDoctor || isNurse ? (
+                  <Layout onSearch={handleSearch}>
+                    <StudentRecords />
+                  </Layout>
+                ) : (
+                  <Navigate to="/home" replace />
+                )}
+              </RequireProfileSetup>
             </RequireAuth>
           }
         />
+        
+        {/* Health Records Route */}
+        <Route
+          path="/health-records"
+          element={
+            <RequireAuth isAuthenticated={isAuthenticated}>
+              <RequireProfileSetup>
+                <Layout onSearch={handleSearch}>
+                  <HealthRecords />
+                </Layout>
+              </RequireProfileSetup>
+            </RequireAuth>
+          }
+        />
+        
+        {/* Medical Record Routes */}
         <Route
           path="/medical/:id"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <Layout onSearch={handleSearch}>
-                <Medical />
-              </Layout>
+              <RequireProfileSetup>
+                {!isStudent ? (
+                  <Layout onSearch={handleSearch}>
+                    <Medical />
+                  </Layout>
+                ) : (
+                  <Navigate to="/home" replace />
+                )}
+              </RequireProfileSetup>
             </RequireAuth>
           }
         />
+        
         <Route
           path="/dental/:id"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <Layout onSearch={handleSearch}>
-                <Dental />
-              </Layout>
+              <RequireProfileSetup>
+                {!isStudent ? (
+                  <Layout onSearch={handleSearch}>
+                    <Dental />
+                  </Layout>
+                ) : (
+                  <Navigate to="/home" replace />
+                )}
+              </RequireProfileSetup>
             </RequireAuth>
           }
         />
+        
+        {/* User Profile Route - Available to all authenticated users */}
         <Route
           path="/profile"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <Profile />
+              <RequireProfileSetup>
+                <Layout onSearch={handleSearch}>
+                  <Profile />
+                </Layout>
+              </RequireProfileSetup>
             </RequireAuth>
           }
         />
-        <Route path="/password-reset-request" element={
-          <RequireNoAuth isAuthenticated={isAuthenticated}>
-            <PasswordResetRequest />
-          </RequireNoAuth>
-        } />
-        <Route path="/password-reset/:token" element={
-          <RequireNoAuth isAuthenticated={isAuthenticated}>
-            <PasswordReset />
-          </RequireNoAuth>
-        } />
-        <Route path="/profile-setup" element={
-          <RequireAuth isAuthenticated={isAuthenticated}>
-            <ProfileSetup />
-          </RequireAuth>
-        } />
-        <Route path="/database-monitor" element={
-          <RequireAuth isAuthenticated={isAuthenticated}>
-            <DatabaseMonitor />
-          </RequireAuth>
-        } />
-        <Route path="/health-info" element={
-          <RequireAuth isAuthenticated={isAuthenticated}>
-            <Layout onSearch={handleSearch}>
-              <HealthInfo />
-            </Layout>
-          </RequireAuth>
-        } />
+        
+        {/* Fallback Route */}
         <Route 
-            path="*" 
-            element={isAuthenticated ? <Navigate to="/home" replace /> : <Navigate to="/" replace />} 
+          path="*" 
+          element={
+            isAuthenticated ? 
+              <Navigate to="/home" replace /> : 
+              <Navigate to="/" replace />
+          } 
         />
       </Routes>
     </Router>

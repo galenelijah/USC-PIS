@@ -146,8 +146,19 @@ export const authService = {
     return response.data;
   },
   completeProfileSetup: async (profileData) => {
-    const response = await api.post('/auth/complete-profile/', profileData);
-    return response.data;
+    try {
+      console.log('Calling completeProfileSetup with data:', profileData);
+      const response = await api.post('/auth/complete-profile/', profileData);
+      console.log('Complete profile API response:', response);
+      return response.data;
+    } catch (error) {
+      console.error('Complete profile API error:', error);
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
+      throw error;
+    }
   },
   getDatabaseHealth: async () => {
     try {
@@ -240,6 +251,79 @@ export const healthInfoService = {
   delete: async (id) => {
     try {
       return await api.delete(`/health-info/health-information/${id}/`);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+};
+
+export const healthRecordsService = {
+  getAll: async () => {
+    try {
+      return await api.get('/patients/medical-records/');
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+  getById: async (id) => {
+    try {
+      return await api.get(`/patients/medical-records/${id}/`);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+  getByPatient: async (patientId) => {
+    try {
+      return await api.get(`/patients/${patientId}/medical-records/`);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+  create: async (data) => {
+    try {
+      return await api.post('/patients/medical-records/', data);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+  update: async (id, data) => {
+    try {
+      return await api.put(`/patients/medical-records/${id}/`, data);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+  delete: async (id) => {
+    try {
+      return await api.delete(`/patients/medical-records/${id}/`);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+  searchByDate: async (date) => {
+    try {
+      return await api.get(`/patients/medical-records/?visit_date=${date}`);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+  searchByPatient: async (query) => {
+    try {
+      return await api.get(`/patients/medical-records/?search=${query}`);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+  searchByType: async (recordType) => {
+    try {
+      return await api.get(`/patients/medical-records/?record_type=${recordType}`);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+  getDashboardStats: async () => {
+    try {
+      return await api.get('/patients/medical-records/stats/');
     } catch (error) {
       handleApiError(error);
     }
