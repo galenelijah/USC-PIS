@@ -37,6 +37,9 @@ const HealthInfo = () => {
   }, [editing]);
 
   const isStaff = user && (user.role === 'ADMIN' || user.role === 'STAFF');
+  const isStudent = user && user.role === 'STUDENT';
+  const isPatient = user && user.role === 'PATIENT';
+  const isReadOnly = !isStaff;
 
   const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
   const handleSubmit = e => {
@@ -54,6 +57,10 @@ const HealthInfo = () => {
       <Typography variant="h4" gutterBottom color="primary">
         Health Information Dissemination
       </Typography>
+      <Box sx={{ mb: 2 }}>
+        {isStaff && <Typography color="success.main">Admin/Staff View</Typography>}
+        {(isStudent || isPatient) && <Typography color="info.main">Patient/Student View (Read-Only)</Typography>}
+      </Box>
 
       {/* Add/Edit Health Information (Staff/Admin only) */}
       {isStaff && (
