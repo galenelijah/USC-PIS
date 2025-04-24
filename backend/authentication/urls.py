@@ -7,10 +7,12 @@ router.register(r'profile', views.ProfileViewSet, basename='profile')
 
 urlpatterns = [
     path('register/', views.register_user, name='register'),
+    path('debug-register/', views.debug_register, name='debug-register'),
     path('login/', views.login_user, name='login'),
     path('logout/', views.logout_user, name='logout'),
     path('check-email/', views.check_email, name='check-email'),
     path('change-password/', views.change_password, name='change-password'),
     path('database-health/', views.database_health_check, name='database-health'),
+    path('complete-profile/', views.complete_profile_setup, name='complete-profile'),
     path('', include(router.urls)),
 ] 

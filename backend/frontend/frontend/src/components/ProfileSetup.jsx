@@ -1,8 +1,43 @@
-import { Box, Typography, Grid } from '@mui/material';
-import MyTextField from './forms/MyTextField';
-import MyButton from './forms/MyButton';
+import Grid from '@mui/material/Grid';
+import * as React from 'react';
+import {
+  Box,
+  Button,
+  Typography,
+  Stepper,
+  Step,
+  StepLabel,
+  IconButton,
+  TextField,
+  Checkbox,
+  FormControlLabel,
+} from '@mui/material';
 import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
 import { useNavigate } from 'react-router-dom';
+import { Add, Remove } from '@mui/icons-material';
+import { Avatar } from '@mui/material';
+import MyTextField from './forms/MyTextField';
+import MyDatePicker from './forms/MyDatePicker';
+import MySelector from './forms/MySelector';
+import MyButton from './forms/MyButton';
+import {CivilStatusChoices} from './static/choices';
+import {SexChoices} from './static/choices';
+import {ProgramsChoices} from './static/choices';
+import dayjs from 'dayjs';
+import Cropper from 'react-easy-crop';
+import Slider from '@mui/material/Slider';
+import CircularProgress from '@mui/material/CircularProgress';
+import { getCroppedImg } from './utils/cropImage';
+import { useCallback } from 'react';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import Check from '@mui/icons-material/Check';
+import StepConnector, { stepConnectorClasses } from '@mui/material/StepConnector';
+import { styled } from '@mui/material/styles';
+import * as Yup from 'yup';
 import { authService } from '../services/api';
 
 const ProfileSetup = () => {
@@ -11,7 +46,13 @@ const ProfileSetup = () => {
 
     const submission = async (data) => {
         try {
-            await authService.completeProfileSetup(data);
+            const formData = {
+                ...data,
+                completeSetup: true
+            };
+
+            console.log('Submitting profile data:', formData);
+            await authService.completeProfileSetup(formData);
             alert('Profile setup completed successfully!');
             navigate('/home');
         } catch (error) {
@@ -31,7 +72,7 @@ const ProfileSetup = () => {
                         <Grid item xs={12} sm={6}>
                             <MyTextField
                                 label="First Name"
-                                name="firstName"
+                                name="first_name"
                                 control={control}
                                 required
                             />
@@ -39,7 +80,7 @@ const ProfileSetup = () => {
                         <Grid item xs={12} sm={6}>
                             <MyTextField
                                 label="Last Name"
-                                name="lastName"
+                                name="last_name"
                                 control={control}
                                 required
                             />
@@ -47,7 +88,7 @@ const ProfileSetup = () => {
                         <Grid item xs={12}>
                             <MyTextField
                                 label="Student ID"
-                                name="studentId"
+                                name="student_id"
                                 control={control}
                                 required
                             />
@@ -55,7 +96,7 @@ const ProfileSetup = () => {
                         <Grid item xs={12}>
                             <MyTextField
                                 label="Course"
-                                name="course"
+                                name="program"
                                 control={control}
                                 required
                             />
@@ -63,7 +104,7 @@ const ProfileSetup = () => {
                         <Grid item xs={12}>
                             <MyTextField
                                 label="Year Level"
-                                name="yearLevel"
+                                name="year_level"
                                 control={control}
                                 required
                             />
@@ -71,7 +112,7 @@ const ProfileSetup = () => {
                         <Grid item xs={12}>
                             <MyTextField
                                 label="Contact Number"
-                                name="contactNumber"
+                                name="contact_number"
                                 control={control}
                                 required
                             />
@@ -79,7 +120,7 @@ const ProfileSetup = () => {
                         <Grid item xs={12}>
                             <MyTextField
                                 label="Emergency Contact"
-                                name="emergencyContact"
+                                name="emergency_contact"
                                 control={control}
                                 required
                             />

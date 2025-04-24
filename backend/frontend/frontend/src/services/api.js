@@ -1,14 +1,7 @@
 import axios from 'axios';
 
-// Use production URL when deployed, localhost for development
-const API_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://usc-pis-5f030223f7a8.herokuapp.com'
-  : 'http://127.0.0.1:8000';
-
-console.log('Current API URL:', API_URL); // Debug log
-
 const api = axios.create({
-  baseURL: `${API_URL}/api`,
+  baseURL: '/api', // Always use relative path!
   headers: {
     'Content-Type': 'application/json',
   },

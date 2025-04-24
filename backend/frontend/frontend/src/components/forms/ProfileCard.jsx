@@ -7,7 +7,7 @@ import { Box } from '@mui/material';
 import '../../App.css';
 
 export default function ProfileCard(props) {
-    const { name, course } = props;
+    const { name, course, content } = props;
     const [expanded, setExpanded] = React.useState(false);
     const cardRef = React.useRef(null); // Reference to the card
 
@@ -34,19 +34,21 @@ export default function ProfileCard(props) {
             <Card sx={{ minWidth: 600, maxWidth: 600, margin: '10px' }}>
                 <CardHeader
                     avatar={
-                        <Avatar sx={{ bgcolor: 'black' }} aria-label="recipe">
+                        <Avatar sx={{ bgcolor: 'black' }} aria-label="profile">
+                            {name.charAt(0)}
                         </Avatar>
                     }
                     title={name}
-                    subheader={course}
-                    expand={expanded}
+                    subheader={`${course}`}
                     onClick={handleExpandClick}
                     aria-expanded={expanded}
                     aria-label="show more"
                 />
 
                 <Collapse in={expanded} timeout="auto" unmountOnExit>
-                    <Box className="loginBox">DETAILS</Box>
+                    <Box className="loginBox">
+                        <Box>{content}</Box>
+                    </Box>
                 </Collapse>
             </Card>
         </Box>

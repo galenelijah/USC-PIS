@@ -22,39 +22,43 @@ export default function MyPassField(props) {
 
     return (
         <Controller
-            name={name}
-            control={control}
-            render={({
+            name = {name}
+            control = {control}
+            render = {({
                 field:{onChange, value},
                 fieldState:{error},
                 formState,
             }) =>(
-            <FormControl className="myForm" variant="outlined">
+            <FormControl className="myForm" variant="outlined" sx={{ marginLeft: "10px", marginRight: "10px" }}>
                 <InputLabel htmlFor="outlined-adornment-password">{label}</InputLabel>
                 <OutlinedInput
-                    id="outlined-adornment-password"
-                    onChange={onChange}
-                    value={value}
-                    error={!!error}
-                    type={showPassword ? 'text' : 'password'}
+                id="outlined-adornment-password"
+                onChange={onChange}
+                value ={value}
+                error = {!!error}
+                type={showPassword ? 'text' : 'password'}
                     endAdornment={
-                        <InputAdornment position="end">
-                            <IconButton
-                                aria-label={showPassword ? 'hide the password' : 'display the password'}
-                                onClick={handleClickShowPassword}
-                                onMouseDown={handleMouseDownPassword}
-                                onMouseUp={handleMouseUpPassword}
-                                edge="end"
-                            >
-                                {showPassword ? <VisibilityOff /> : <Visibility />}
+                    <InputAdornment position="end">
+                        <IconButton
+                            aria-label={
+                                showPassword ? 'hide the password' : 'display the password'
+                            }
+                            onClick={handleClickShowPassword}
+                            onMouseDown={handleMouseDownPassword}
+                            onMouseUp={handleMouseUpPassword}
+                            edge="end"
+                        >
+                            {showPassword ? <VisibilityOff /> : <Visibility />}
                             </IconButton>
                         </InputAdornment>
-                    }
-                    label={label}
-                />
-                <FormHelperText sx={{color:"#D32F2F"}}>{error?.message}</FormHelperText>
+                        }
+                        label={label}
+                    />
+                <FormHelperText sx={{color:"#D32F2F"}}> {error?.message} </FormHelperText>
             </FormControl>
-            )}
+
+            )
+        }  
         />
     );
 } 

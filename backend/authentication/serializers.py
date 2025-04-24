@@ -4,26 +4,53 @@ from patients.models import Patient
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(write_only=True)
-    
+    first_name = serializers.CharField(required=False, allow_blank=True)
+    last_name = serializers.CharField(required=False, allow_blank=True)
+    middle_name = serializers.CharField(required=False, allow_blank=True)
+    id_number = serializers.CharField(required=False, allow_blank=True)
+    course = serializers.CharField(required=False, allow_blank=True)
+    year_level = serializers.CharField(required=False, allow_blank=True)
+    school = serializers.CharField(required=False, allow_blank=True)
+    sex = serializers.CharField(required=False, allow_blank=True)
+    civil_status = serializers.CharField(required=False, allow_blank=True)
+    birthday = serializers.DateField(required=False, allow_null=True)
+    nationality = serializers.CharField(required=False, allow_blank=True)
+    religion = serializers.CharField(required=False, allow_blank=True)
+    address_permanent = serializers.CharField(required=False, allow_blank=True)
+    address_present = serializers.CharField(required=False, allow_blank=True)
+    phone = serializers.CharField(required=False, allow_blank=True)
+    weight = serializers.CharField(required=False, allow_blank=True)
+    height = serializers.CharField(required=False, allow_blank=True)
+    bmi = serializers.CharField(required=False, allow_blank=True)
+    father_name = serializers.CharField(required=False, allow_blank=True)
+    mother_name = serializers.CharField(required=False, allow_blank=True)
+    emergency_contact = serializers.CharField(required=False, allow_blank=True)
+    emergency_contact_number = serializers.CharField(required=False, allow_blank=True)
+    illness = serializers.CharField(required=False, allow_blank=True)
+    childhood_diseases = serializers.CharField(required=False, allow_blank=True)
+    special_needs = serializers.CharField(required=False, allow_blank=True)
+    existing_medical_condition = serializers.CharField(required=False, allow_blank=True)
+    medications = serializers.CharField(required=False, allow_blank=True)
+    allergies = serializers.CharField(required=False, allow_blank=True)
+    hospitalization_history = serializers.CharField(required=False, allow_blank=True)
+    surgical_procedures = serializers.CharField(required=False, allow_blank=True)
+    department = serializers.CharField(required=False, allow_blank=True)
+    phone_number = serializers.CharField(required=False, allow_blank=True)
+
     class Meta:
         model = User
         fields = (
             'email', 'password', 'password2', 'role',
-            # Personal Information
             'first_name', 'last_name', 'middle_name', 'id_number',
             'course', 'year_level', 'school', 'sex', 'civil_status',
             'birthday', 'nationality', 'religion', 'address_permanent',
             'address_present', 'phone',
-            # Physical Information
             'weight', 'height', 'bmi',
-            # Emergency Contacts
             'father_name', 'mother_name', 'emergency_contact',
             'emergency_contact_number',
-            # Medical Information
             'illness', 'childhood_diseases', 'special_needs',
             'existing_medical_condition', 'medications', 'allergies',
             'hospitalization_history', 'surgical_procedures',
-            # Staff Information
             'department', 'phone_number'
         )
         extra_kwargs = {
@@ -31,6 +58,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             'role': {'required': False},
             'department': {'required': False},
             'phone_number': {'required': False},
+            # All other fields are not required
         }
 
     def validate(self, data):
@@ -39,64 +67,35 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        validated_data.pop('password2')
+        # Extract and remove password2 from validated data
+        validated_data.pop('password2', None)
+        
+        # Extract role or use default STUDENT
         role = validated_data.pop('role', User.Role.STUDENT)
         
-        # Fields for User model creation (excluding potential Patient fields for now)
-        user_fields = ['email', 'password', 'first_name', 'last_name'] 
-        user_create_data = {k: validated_data[k] for k in user_fields if k in validated_data}
-        user_create_data['username'] = validated_data['email'] # Ensure username is set
+        # Get email and password
+        email = validated_data.get('email')
+        password = validated_data.get('password')
         
-        # Remaining fields might belong to User or Patient
-        other_data = {k: v for k, v in validated_data.items() if k not in user_fields and k != 'email'}
-
-        user = User.objects.create_user(
-            role=role,
-            **user_create_data
-        )
-        
-        # Update user with other non-patient-specific fields from validated_data
-        # (This part might need refinement depending on which fields truly belong only to User)
-        user_only_fields = ['middle_name', 'id_number', 'course', 'year_level', 'school', 
-                            'sex', 'civil_status', 'nationality', 'religion', 'phone', 
-                            'department', 'phone_number', 'completeSetup']
-        for field in user_only_fields:
-            if field in other_data:
-                setattr(user, field, other_data[field])
-        user.save() # Save updated user fields
-
-        # If the user is a student, create a linked Patient record
-        if user.role == User.Role.STUDENT:
-            patient_fields = {
-                'user': user,
-                'first_name': user.first_name, 
-                'last_name': user.last_name,
-                'email': user.email,
-                # Map other relevant fields from validated_data if available
-                # Ensure these fields exist on the Patient model!
-                'date_of_birth': validated_data.get('birthday'), # Map birthday to date_of_birth
-                'gender': validated_data.get('sex'), # Map sex to gender (needs validation/mapping)
-                'phone_number': validated_data.get('phone'), # Map phone to phone_number
-                'address': validated_data.get('address_permanent'), # Map permanent address
-                # Add other Patient fields if needed and available in validated_data
-            }
-            # Remove None values to avoid setting nulls if data wasn't provided
-            patient_create_data = {k: v for k, v in patient_fields.items() if v is not None}
+        try:
+            # Create user with minimal required fields
+            user = User.objects.create_user(
+                email=email,
+                username=email,  # Set username to email
+                password=password,
+                role=role,
+                first_name=validated_data.get('first_name', ''),
+                last_name=validated_data.get('last_name', ''),
+                completeSetup=False  # Explicitly set to False
+            )
             
-            # Map gender/sex explicitly if needed (e.g., 'Male' -> 'M')
-            if 'gender' in patient_create_data:
-                sex_map = {'Male': 'M', 'Female': 'F', 'Other': 'O'} # Example mapping
-                patient_create_data['gender'] = sex_map.get(patient_create_data['gender'], None)
-                if patient_create_data['gender'] is None: # Handle unmappable gender
-                    del patient_create_data['gender']
-            
-            Patient.objects.create(**patient_create_data)
-            
-            # Set user.completeSetup = True perhaps?
-            # user.completeSetup = True
-            # user.save()
-
-        return user
+            # Success! Return the user
+            return user
+        except Exception as e:
+            import traceback
+            print(f"Error creating user: {str(e)}")
+            print(traceback.format_exc())
+            raise  # Re-raise to let the view handle it
 
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:

@@ -30,7 +30,12 @@ const Login = () => {
         }))
 
         if (loginUser.fulfilled.match(resultAction)) {
-            navigate('/home')
+            const user = resultAction.payload.user;
+            if (user && user.completeSetup === false) {
+                navigate('/profile-setup');
+            } else {
+                navigate('/home');
+            }
         } else {
             if (resultAction.payload) {
                 alert(`Login Failed: ${resultAction.payload}`)

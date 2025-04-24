@@ -28,19 +28,61 @@ def check_email(request):
 def register_user(request):
     if request.method == 'POST':
         try:
-            serializer = UserRegistrationSerializer(data=request.data)
-            if serializer.is_valid():
-                user = serializer.save()
-                logger.info(f"User created successfully: {user.email}")
+            # Log the received data
+            print("Registration request data:", request.data)
+            
+            # Get required fields from the request
+            email = request.data.get('email')
+            password = request.data.get('password')
+            password2 = request.data.get('password2')
+            role = request.data.get('role', 'STUDENT')
+            
+            # Basic validation
+            if not email or not password or not password2:
                 return Response(
-                    {'detail': 'User created successfully'},
-                    status=status.HTTP_201_CREATED
+                    {'detail': 'Email, password, and password confirmation are required.'},
+                    status=status.HTTP_400_BAD_REQUEST
                 )
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            logger.error(f"Registration error: {str(e)}\n{traceback.format_exc()}")
+                
+            if password != password2:
+                return Response(
+                    {'detail': "Passwords don't match"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Check if user already exists
+            if User.objects.filter(email=email).exists():
+                return Response(
+                    {'detail': 'A user with this email already exists.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Create user directly
+            from django.db import transaction
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    username=email,
+                    email=email,
+                    password=password,
+                    role=role,
+                    first_name='',  # Empty default
+                    last_name='',   # Empty default
+                    completeSetup=False
+                )
+            
+            logger.info(f"User created successfully: {user.email}")
             return Response(
-                {'detail': 'Registration failed'},
+                {'detail': 'User created successfully'},
+                status=status.HTTP_201_CREATED
+            )
+        except Exception as e:
+            import traceback
+            error_msg = f"Registration error: {str(e)}"
+            print(error_msg)
+            print(traceback.format_exc())
+            logger.error(f"{error_msg}\n{traceback.format_exc()}")
+            return Response(
+                {'detail': f'Registration failed: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -195,4 +237,79 @@ def database_health_check(request):
         return JsonResponse({
             'status': 'unhealthy',
             'error': str(e)
-        }, status=500) 
+        }, status=500)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def debug_register(request):
+    """
+    Debug endpoint to test user creation directly.
+    Access via /auth/debug-register/ to create a test user.
+    """
+    try:
+        # Generate a unique email
+        import random
+        test_email = f"test{random.randint(1000, 9999)}@example.com"
+        test_password = "Password123"
+        
+        # Create user directly using User.objects.create_user
+        from django.db import transaction
+        with transaction.atomic():
+            user = User.objects.create_user(
+                username=test_email,
+                email=test_email,
+                password=test_password,
+                role='STUDENT',
+                first_name='Test',
+                last_name='User',
+                completeSetup=False
+            )
+        
+        # Return success
+        return Response({
+            'detail': 'Debug user created successfully',
+            'email': test_email,
+            'password': test_password
+        }, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        import traceback
+        error_msg = f"Debug registration error: {str(e)}"
+        print(error_msg)
+        print(traceback.format_exc())
+        return Response({'detail': error_msg}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def complete_profile_setup(request):
+    if request.method == 'POST':
+        try:
+            # Get the current user
+            user = request.user
+            
+            # Log the received data for debugging
+            print("Profile setup data:", request.data)
+            
+            # Update the user profile with submitted data
+            user_serializer = UserProfileSerializer(user, data=request.data, partial=True)
+            
+            if user_serializer.is_valid():
+                # Set completeSetup flag to True
+                user_serializer.validated_data['completeSetup'] = True
+                user_serializer.save()
+                
+                return Response({
+                    'detail': 'Profile setup completed successfully',
+                    'user': user_serializer.data
+                }, status=status.HTTP_200_OK)
+            else:
+                print("Serializer errors:", user_serializer.errors)
+                return Response({
+                    'detail': 'Invalid data provided',
+                    'errors': user_serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            logger.error(f"Profile setup error: {str(e)}\n{traceback.format_exc()}")
+            return Response({
+                'detail': f'An error occurred during profile setup: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 

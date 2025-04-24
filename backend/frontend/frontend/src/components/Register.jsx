@@ -1,4 +1,4 @@
-import {Box, FormControl, InputLabel, MenuItem, Select, Grid, Typography} from '@mui/material'
+import {Box, FormControl, InputLabel, MenuItem, Select, Typography} from '@mui/material'
 import MyTextField from './forms/MyTextField'
 import MyPassField from './forms/MyPassField'
 import MyButton from './forms/MyButton'
@@ -25,10 +25,11 @@ const Register = () =>{
 
     const submission = async (data) => {
         try {
-            // Ensure all required fields are present
             const userData = {
-                ...data,
-                birthday: data.birthday || null,
+                email: data.email,
+                password: data.password,
+                password2: data.password2,
+                role: data.role,
                 username: data.email // Set username to email
             };
 
@@ -38,18 +39,14 @@ const Register = () =>{
             if (registerUser.fulfilled.match(resultAction)) {
                 console.log('Registration successful');
                 alert('Registration successful! Please login.');
-                // Navigate to login page
                 navigate('/', { replace: true });
                 return;
             } 
-            
-            // Handle error
             let errorMessage = 'Registration failed. Please check your inputs.';
             if (resultAction.payload) {
                 if (typeof resultAction.payload === 'string') {
                     errorMessage = resultAction.payload;
                 } else if (resultAction.payload && typeof resultAction.payload === 'object') {
-                    // Safely handle object errors
                     const fieldErrors = Object.values(resultAction.payload).flat().filter(Boolean);
                     if (fieldErrors.length > 0) {
                         errorMessage = fieldErrors[0];
@@ -59,7 +56,6 @@ const Register = () =>{
             console.error('Registration error:', resultAction.payload || 'Unknown error');
             alert(errorMessage);
         } catch (error) {
-            // Add global error handler
             console.error('Unexpected error during registration:', error);
             alert('An unexpected error occurred. Please try again.');
         }
@@ -72,7 +68,6 @@ const Register = () =>{
                     <Box className="itemBox">
                        <Typography variant="h5" className="title">Register</Typography>
                     </Box>
-                    
                     <Box className="itemBox">
                         <MyTextField
                             label="Email"
@@ -139,74 +134,12 @@ const Register = () =>{
                             )}
                         />
                     </Box>
-
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6}>
-                            <MyTextField
-                                label="First Name"
-                                name="first_name"
-                                control={control}
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <MyTextField
-                                label="Last Name"
-                                name="last_name"
-                                control={control}
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <MyTextField
-                                label="Middle Name"
-                                name="middle_name"
-                                control={control}
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <MyTextField
-                                label="ID Number"
-                                name="id_number"
-                                control={control}
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <MyTextField
-                                label="Course"
-                                name="course"
-                                control={control}
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <MyTextField
-                                label="Year Level"
-                                name="year_level"
-                                control={control}
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <MyTextField
-                                label="School"
-                                name="school"
-                                control={control}
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <MyTextField
-                                label="Phone"
-                                name="phone"
-                                control={control}
-                            />
-                        </Grid>
-                    </Grid>
-
-                    <Box className="itemBox">
-                        <MyButton
-                            label="Register"
-                            type="submit"
-                            disabled={authStatus === 'loading'}
-                        />
-                        {authStatus === 'loading' && <Typography sx={{mt: 1}}>Registering...</Typography>}
-                    </Box>
+                    <MyButton
+                        label="Register"
+                        type="submit"
+                        disabled={authStatus === 'loading'}
+                    />
+                    {authStatus === 'loading' && <Typography sx={{mt: 1}}>Registering...</Typography>}
                     <Box className="itemBox">
                         <Link to="/">Already have an account?</Link>
                     </Box>
