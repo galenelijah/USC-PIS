@@ -14,5 +14,12 @@ urlpatterns = [
     path('change-password/', views.change_password, name='change-password'),
     path('database-health/', views.database_health_check, name='database-health'),
     path('complete-profile/', views.complete_profile_setup, name='complete-profile'),
+    
+    # Password Reset URLs
+    path('password-reset-request/', views.PasswordResetRequestView.as_view(), name='password-reset-request'),
+    path('password-reset/confirm/<uidb64>/<token>/', views.PasswordResetConfirmView.as_view(), name='password-reset-confirm'), # Traditional Django style path
+    # Or, if we handle token/uid extraction purely in the view from POST data:
+    # path('password-reset/confirm/', views.PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
+
     path('', include(router.urls)),
 ] 

@@ -5,7 +5,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import authenticate
 from .models import User
-from .serializers import UserRegistrationSerializer, UserProfileSerializer, ChangePasswordSerializer
+from .serializers import UserRegistrationSerializer, UserProfileSerializer, ChangePasswordSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer
 import logging
 import traceback
 from django.http import JsonResponse
@@ -13,6 +13,13 @@ from django.db import connection
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 import json
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.conf import settings
+from rest_framework.views import APIView
 
 logger = logging.getLogger(__name__)
 
@@ -312,4 +319,89 @@ def complete_profile_setup(request):
             logger.error(f"Profile setup error: {str(e)}\n{traceback.format_exc()}")
             return Response({
                 'detail': f'An error occurred during profile setup: {str(e)}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class PasswordResetRequestView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        print("--- PasswordResetRequestView START ---") # DEBUG
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            print(f"DEBUG: Valid email received: {email}") # DEBUG
+            try:
+                user = User.objects.get(email=email)
+                print(f"DEBUG: User found: {user.email}") # DEBUG
+            except User.DoesNotExist:
+                print(f"DEBUG: User with email {email} does not exist. Sending generic response.") # DEBUG
+                # Don't reveal that the user does not exist
+                return Response({'detail': 'Password reset instructions sent if email exists.'}, status=status.HTTP_200_OK)
+
+            # Generate token and uid
+            token = default_token_generator.make_token(user)
+            uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+            print(f"DEBUG: Generated token: {token}, uidb64: {uidb64}") # DEBUG
+
+            # Construct reset URL (adjust domain/protocol as needed)
+            # Use frontend URL structure
+            reset_url = f"{settings.FRONTEND_URL}/password-reset/{uidb64}/{token}/"
+            print(f"DEBUG: Constructed reset URL: {reset_url}") # DEBUG
+
+            # Send email
+            subject = 'Password Reset Request'
+            message = render_to_string('emails/password_reset_email.html', {
+                'user': user,
+                'reset_url': reset_url,
+            })
+            print("DEBUG: Attempting to send email...") # DEBUG
+            try:
+                send_mail(
+                    subject,
+                    message, # Use HTML message as plain text for now, or use html_message arg
+                    settings.DEFAULT_FROM_EMAIL,
+                    [user.email],
+                    fail_silently=False,
+                    # html_message=message # Uncomment if using HTML email
+                )
+                print("DEBUG: send_mail function completed.") # DEBUG
+                logger.info(f"Password reset email sent to {user.email}")
+            except Exception as e:
+                print(f"DEBUG: Error during send_mail: {e}") # DEBUG
+                logger.error(f"Failed to send password reset email to {user.email}: {e}")
+                # Still return 200 OK but log the error
+                # return Response({'detail': 'Error sending password reset email.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            print("DEBUG: Sending final 200 OK response.") # DEBUG
+            return Response({'detail': 'Password reset instructions sent if email exists.'}, status=status.HTTP_200_OK)
+        else:
+            print(f"DEBUG: Serializer errors: {serializer.errors}") # DEBUG
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        if serializer.is_valid():
+            uidb64 = serializer.validated_data['uidb64']
+            token = serializer.validated_data['token']
+            password = serializer.validated_data['password']
+
+            try:
+                uid = force_str(urlsafe_base64_decode(uidb64))
+                user = User.objects.get(pk=uid)
+            except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+                user = None
+
+            if user is not None and default_token_generator.check_token(user, token):
+                user.set_password(password)
+                user.save()
+                # Optional: Log the user in automatically after reset?
+                # Optional: Invalidate the token after use (Django might handle this depending on version/settings)
+                logger.info(f"Password successfully reset for user {user.email}")
+                return Response({'detail': 'Password has been reset successfully.'}, status=status.HTTP_200_OK)
+            else:
+                logger.warning(f"Password reset failed for token {token} or uid {uidb64}")
+                return Response({'detail': 'Invalid token or user ID.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 

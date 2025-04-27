@@ -131,4 +131,18 @@ class ChangePasswordSerializer(serializers.Serializer):
     def validate(self, data):
         if data['new_password'] != data['new_password2']:
             raise serializers.ValidationError("New passwords don't match")
-        return data 
+        return data
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    uidb64 = serializers.CharField(required=True)
+    token = serializers.CharField(required=True)
+    password = serializers.CharField(write_only=True, required=True, min_length=8)
+    # password2 = serializers.CharField(write_only=True, required=True)
+
+    # def validate(self, data):
+    #     if data['password'] != data['password2']:
+    #         raise serializers.ValidationError("Passwords must match.")
+    #     return data 
