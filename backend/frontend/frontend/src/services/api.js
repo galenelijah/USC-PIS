@@ -111,21 +111,21 @@ export const authService = {
   },
   getProfile: async () => {
     try {
-      return await api.get('/auth/profile/');
+      return await api.get('/auth/profile/me/');
     } catch (error) {
       handleApiError(error);
     }
   },
   updateProfile: async (data) => {
     try {
-      return await api.put('/auth/profile/', data);
+      return await api.patch('/auth/profile/me/', data);
     } catch (error) {
       handleApiError(error);
     }
   },
   partialUpdateProfile: async (data) => {
     try {
-      return await api.patch('/auth/profile/', data);
+      return await api.patch('/auth/profile/me/', data);
     } catch (error) {
       handleApiError(error);
     }

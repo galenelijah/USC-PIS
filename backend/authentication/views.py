@@ -1,5 +1,5 @@
 from rest_framework import status, viewsets
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -143,31 +143,59 @@ class ProfileViewSet(viewsets.ModelViewSet):
     serializer_class = UserProfileSerializer
 
     def get_queryset(self):
+        # This queryset is used for list view, if enabled/needed, or admin
+        # For direct profile access, use get_object or the 'me' action
         return User.objects.filter(id=self.request.user.id)
 
     def get_object(self):
+        # This correctly gets the current user, used by default retrieve/update/etc.
+        # if accessed via /api/auth/profile/{user_id}/
         return self.request.user
 
+    # Custom action for retrieving and updating the current user's profile via /api/auth/profile/me/
+    @action(detail=False, methods=['get', 'put', 'patch'], url_path='me', url_name='profile-me')
+    def me(self, request):
+        user = self.request.user # Directly get the authenticated user
+        
+        if request.method == 'GET':
+            serializer = self.serializer_class(user)
+            return Response(serializer.data)
+        
+        elif request.method in ['PUT', 'PATCH']:
+            # Determine if it's a partial update (PATCH)
+            partial = (request.method == 'PATCH')
+            serializer = self.serializer_class(user, data=request.data, partial=partial)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Should not happen given the methods specified in @action
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    # Default retrieve (maps to /api/auth/profile/{pk}/) - kept for potential admin use or direct access
     def retrieve(self, request, *args, **kwargs):
-        user = self.get_object()
+        user = self.get_object() # Gets user based on {pk} from URL if used
         serializer = self.serializer_class(user)
         return Response(serializer.data)
 
-    def update(self, request, *args, **kwargs):
-        user = self.get_object()
-        serializer = self.serializer_class(user, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    # Default update (maps to /api/auth/profile/{pk}/) - No longer the primary way for user updates
+    # def update(self, request, *args, **kwargs):
+    #     user = self.get_object()
+    #     serializer = self.serializer_class(user, data=request.data)
+    #     if serializer.is_valid():
+    #         serializer.save()
+    #         return Response(serializer.data)
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def partial_update(self, request, *args, **kwargs):
-        user = self.get_object()
-        serializer = self.serializer_class(user, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    # Default partial_update (maps to /api/auth/profile/{pk}/) - No longer the primary way
+    # def partial_update(self, request, *args, **kwargs):
+    #     user = self.get_object()
+    #     serializer = self.serializer_class(user, data=request.data, partial=True)
+    #     if serializer.is_valid():
+    #         serializer.save()
+    #         return Response(serializer.data)
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

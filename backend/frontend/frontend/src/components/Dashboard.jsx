@@ -355,84 +355,148 @@ const Dashboard = ({ user }) => {
 
   const renderAdminDashboard = () => (
     <>
-      <Grid container spacing={3} mb={3}>
-        <Grid item xs={12} md={3}>
-          <StatCard
-            title="Total Patients"
-            value={stats.totalPatients}
-            icon={<PeopleIcon />}
-            color="#1976d2"
-          />
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <StatCard
-            title="Total Records"
-            value={stats.totalRecords}
-            icon={<AssessmentIcon />}
-            color="#2e7d32"
-          />
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <StatCard
-            title="Appointments Today"
-            value={stats.appointmentsToday || 0}
-            icon={<AssignmentIcon />}
-            color="#ed6c02"
-          />
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <StatCard
-            title="Pending Requests"
-            value={stats.pendingRequests || 0}
-            icon={<AssignmentIcon />}
-            color="#ab47bc"
-          />
-        </Grid>
-      </Grid>
+      {/* Welcome Header */}
+      <Paper sx={{ p: 2, mb: 3, display: 'flex', alignItems: 'center', bgcolor: 'primary.main', color: 'white' }}>
+        <Box sx={{ flexGrow: 1 }}>
+          <Typography variant="h5">
+            Welcome, {user?.username || 'Admin'}
+          </Typography>
+          <Typography variant="body1">
+            Role: {user?.role?.toUpperCase() || 'ADMIN'}
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          color="secondary" // Use secondary or another contrasting color
+          component={Link}
+          to="/profile"
+          sx={{ mr: 1 }}
+        >
+          Profile
+        </Button>
+        <Button
+          variant="contained"
+          color="error"
+          onClick={() => dispatch(logoutUser())}
+        >
+          Logout
+        </Button>
+      </Paper>
 
-      {renderHealthRecordsStats()}
-
-      <Grid item xs={12}>
-        <Typography variant="h5" gutterBottom sx={{ mt: 4, mb: 3 }}>
-          Admin Quick Actions
+      {/* Consolidated Statistics Section */}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+          System Statistics
         </Typography>
-        <Divider sx={{ mb: 3 }} />
-      </Grid>
-      <Grid item xs={12} md={3}>
-        <QuickAction
-          title="Add Patient"
-          description="Register a new patient"
-          icon={<PeopleIcon />}
-          to="/patients/add"
-          color="primary"
-        />
-      </Grid>
-      <Grid item xs={12} md={3}>
-        <QuickAction
-          title="Add Health Info"
-          description="Publish new health information"
-          icon={<AssessmentIcon />}
-          to="/health-info"
-          color="success"
-        />
-      </Grid>
-      <Grid item xs={12} md={3}>
-        <QuickAction
-          title="Review Submissions"
-          description="Review recent health form submissions"
-          icon={<AssignmentIcon />}
-          to="/forms/review"
-          color="secondary"
-        />
-      </Grid>
-      <Grid item xs={12} md={3}>
-        <QuickAction
-          title="User Management"
-          description="Manage users and roles"
-          icon={<PeopleIcon />}
-          to="/admin/users"
-          color="warning"
-        />
+        <Grid container spacing={3} mb={3}>
+          {/* Main Stats */}
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Total Patients"
+              value={stats.totalPatients}
+              icon={<PeopleIcon />}
+              color="#1976d2" // primary.main
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Total Health Records"
+              value={stats.totalRecords}
+              icon={<AssessmentIcon />}
+              color="#2e7d32" // success.main
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Appointments Today"
+              value={stats.appointmentsToday || 0}
+              icon={<AssignmentIcon />}
+              color="#ed6c02" // warning.main
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Pending Requests"
+              value={stats.pendingRequests || 0}
+              icon={<AssignmentIcon />}
+              color="#ab47bc" // secondary.main (adjust if needed)
+            />
+          </Grid>
+        </Grid>
+
+        {/* Health Records Stats (using same StatCard for consistency) */}
+        <Typography variant="subtitle1" gutterBottom sx={{ mt: 3, mb: 2 }}>
+          Health Records Breakdown
+        </Typography>
+        <Grid container spacing={3}>
+           <Grid item xs={12} sm={6} md={4}>
+            <StatCard
+              title="Medical Records"
+              value={healthStats.totalMedicalRecords}
+              icon={<MedicalIcon />}
+              color="rgb(104, 138, 124)" // Custom color or theme color
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={4}>
+            <StatCard
+              title="Dental Records"
+              value={healthStats.totalDentalRecords}
+              icon={<HealingIcon />}
+              color="rgb(70, 110, 180)" // Custom color or theme color
+            />
+          </Grid>
+          <Grid item xs={12} sm={12} md={4}>
+            <StatCard
+              title="Total Records (M+D)"
+              value={healthStats.totalMedicalRecords + healthStats.totalDentalRecords}
+              icon={<AssessmentIcon />}
+              color="rgb(180, 110, 70)" // Custom color or theme color
+            />
+          </Grid>
+        </Grid>
+      </Paper>
+
+      {/* Admin Quick Actions Section */}
+      <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
+        Admin Quick Actions
+      </Typography>
+      <Grid container spacing={3}>
+         <Grid item xs={12} sm={6} md={3}>
+          <QuickAction
+            title="Add Patient"
+            description="Register a new patient"
+            icon={<PeopleIcon />}
+            to="/patients/add"
+            color="primary"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <QuickAction
+            title="Add Health Info"
+            description="Publish new health information"
+            icon={<AssessmentIcon />}
+            to="/health-info"
+            color="success"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <QuickAction
+            title="Review Submissions"
+            description="Review recent health form submissions"
+            icon={<AssignmentIcon />}
+            to="/forms/review"
+            color="secondary"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <QuickAction
+            title="User Management"
+            description="Manage users and roles"
+            icon={<PeopleIcon />}
+            to="/admin/users"
+            color="warning"
+          />
+        </Grid>
       </Grid>
     </>
   );
@@ -511,54 +575,55 @@ const Dashboard = ({ user }) => {
   return (
     <Box sx={{ p: 3 }}>
       <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <Paper 
-            sx={{ 
-              p: 3, 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              background: user?.role === 'ADMIN' || user?.role === 'STAFF'
-                ? 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)'
-                : 'linear-gradient(45deg, #388e3c 30%, #81c784 90%)',
-              color: 'white'
-            }}
-          >
-            <Box>
-              <Typography variant="h4" gutterBottom sx={{ color: 'white' }}>
-                Welcome, {user?.email?.split('@')[0]}
-              </Typography>
-              <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
-                Role: {user?.role || 'User'}
-              </Typography>
-            </Box>
-            <Box>
-              <Button
-                component={Link}
-                to="/profile"
-                variant="outlined"
-                sx={{ 
-                  mr: 2, 
-                  color: 'white', 
-                  borderColor: 'white',
-                  '&:hover': {
+        {/* Only show the main gradient header for non-admin/staff roles */}
+        {user?.role !== 'ADMIN' && user?.role !== 'STAFF' && (
+          <Grid item xs={12}>
+            <Paper 
+              sx={{ 
+                p: 3, 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                background: 'linear-gradient(45deg, #388e3c 30%, #81c784 90%)',
+                color: 'white'
+              }}
+            >
+              <Box>
+                <Typography variant="h4" gutterBottom sx={{ color: 'white' }}>
+                  Welcome, {user?.email?.split('@')[0]}
+                </Typography>
+                <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
+                  Role: {user?.role || 'User'}
+                </Typography>
+              </Box>
+              <Box>
+                <Button
+                  component={Link}
+                  to="/profile"
+                  variant="outlined"
+                  sx={{ 
+                    mr: 2, 
+                    color: 'white', 
                     borderColor: 'white',
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)'
-                  }
-                }}
-              >
-                Profile
-              </Button>
-              <Button
-                variant="contained"
-                color="error"
-                onClick={() => dispatch(logoutUser())}
-              >
-                Logout
-              </Button>
-            </Box>
-          </Paper>
-        </Grid>
+                    '&:hover': {
+                      borderColor: 'white',
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                    }
+                  }}
+                >
+                  Profile
+                </Button>
+                <Button
+                  variant="contained"
+                  color="error"
+                  onClick={() => dispatch(logoutUser())}
+                >
+                  Logout
+                </Button>
+              </Box>
+            </Paper>
+          </Grid>
+        )}
 
         {loading ? (
           <Grid item xs={12}>

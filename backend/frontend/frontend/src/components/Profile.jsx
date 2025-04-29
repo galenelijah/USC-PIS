@@ -17,8 +17,15 @@ const Profile = () => {
     const loadUserProfile = async () => {
         try {
             const response = await authService.getProfile();
-            setUser(response.data);
-            reset(response.data);
+            console.log('API Profile Response:', response);
+            if (response && response.data) {
+                console.log('API Profile Data:', response.data);
+                setUser(response.data);
+                reset(response.data);
+            } else {
+                console.error('Invalid profile response structure:', response);
+                setMessage({ type: 'error', text: 'Received invalid profile data from server' });
+            }
         } catch (error) {
             console.error('Error loading profile:', error);
             setMessage({ type: 'error', text: 'Failed to load profile' });
