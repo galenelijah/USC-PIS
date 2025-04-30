@@ -22,6 +22,9 @@ import DatabaseMonitor from './components/DatabaseMonitor';
 import HealthInfo from './components/HealthInfo/HealthInfo';
 import HealthRecords from './components/HealthRecords';
 import { patientService } from './services/api';
+import FeedbackForm from './components/FeedbackForm';
+import { useParams } from 'react-router-dom';
+import FeedbackSelector from './components/FeedbackSelector';
 
 const App = () => {
   const isAuthenticated = useSelector(selectIsAuthenticated);
@@ -81,6 +84,11 @@ const App = () => {
   const isDoctor = user && user.role === 'DOCTOR';
   const isNurse = user && user.role === 'NURSE';
   const isStudent = user && user.role === 'STUDENT';
+
+  function FeedbackFormWrapper() {
+    const { medicalRecordId } = useParams();
+    return <FeedbackForm medicalRecordId={medicalRecordId} />;
+  }
 
   return (
     <Router>
@@ -272,6 +280,33 @@ const App = () => {
               <RequireProfileSetup>
                 <Layout onSearch={handleSearch}>
                   <Profile />
+                </Layout>
+              </RequireProfileSetup>
+            </RequireAuth>
+          }
+        />
+        
+        {/* Feedback Selector Route - lists visits and general feedback option */}
+        <Route
+          path="/feedback"
+          element={
+            <RequireAuth isAuthenticated={isAuthenticated}>
+              <RequireProfileSetup>
+                <Layout onSearch={handleSearch}>
+                  <FeedbackSelector />
+                </Layout>
+              </RequireProfileSetup>
+            </RequireAuth>
+          }
+        />
+        {/* General Feedback Form Route */}
+        <Route
+          path="/feedback/general"
+          element={
+            <RequireAuth isAuthenticated={isAuthenticated}>
+              <RequireProfileSetup>
+                <Layout onSearch={handleSearch}>
+                  <FeedbackForm medicalRecordId="general" />
                 </Layout>
               </RequireProfileSetup>
             </RequireAuth>

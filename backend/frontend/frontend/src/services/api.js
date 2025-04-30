@@ -330,4 +330,15 @@ export const healthRecordsService = {
   },
 };
 
+export const feedbackService = {
+  submitFeedback: async ({ medical_record, rating, comments }) => {
+    try {
+      return await api.post('/feedback/', { medical_record, rating, comments });
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+  // Add more methods (analytics, etc.) as needed
+};
+
 export default api; 

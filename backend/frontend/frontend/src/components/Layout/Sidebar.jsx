@@ -16,6 +16,7 @@ import {
   ExitToApp as ExitToAppIcon,
   Storage as StorageIcon,
   HealthAndSafety as HealthInfoIcon,
+  Feedback as FeedbackIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -34,6 +35,7 @@ const Sidebar = () => {
     { text: 'Patients', icon: <PeopleIcon />, path: '/patients' },
     { text: 'Medical Records', icon: <LocalHospitalIcon />, path: '/records' },
     { text: 'Health Information', icon: <HealthInfoIcon />, path: '/health-info' },
+    { text: 'Feedback', icon: <FeedbackIcon />, path: '/feedback' },
     { text: 'Database Monitor', icon: <StorageIcon />, path: '/database-monitor' },
   ];
 

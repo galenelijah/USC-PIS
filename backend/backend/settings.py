@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     'patients',
     'authentication',  # New authentication app
     'health_info',     # Add the missing health_info app
+    'feedback',
 ]
 
 MIDDLEWARE = [
