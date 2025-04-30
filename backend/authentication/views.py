@@ -20,6 +20,7 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 from rest_framework.views import APIView
+from patients.models import Patient
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +77,13 @@ def register_user(request):
                     last_name='',   # Empty default
                     completeSetup=False
                 )
+                # Automatically create Patient profile for students
+                if role == User.Role.STUDENT:
+                    Patient.objects.get_or_create(user=user, defaults={
+                        'first_name': user.first_name,
+                        'last_name': user.last_name,
+                        'email': user.email,
+                    })
             
             logger.info(f"User created successfully: {user.email}")
             return Response(
@@ -331,7 +339,13 @@ def complete_profile_setup(request):
                 # Set completeSetup flag to True
                 user_serializer.validated_data['completeSetup'] = True
                 user_serializer.save()
-                
+                # Ensure Patient profile exists for students
+                if user.role == User.Role.STUDENT and not hasattr(user, 'patient_profile'):
+                    Patient.objects.get_or_create(user=user, defaults={
+                        'first_name': user.first_name,
+                        'last_name': user.last_name,
+                        'email': user.email,
+                    })
                 return Response({
                     'detail': 'Profile setup completed successfully',
                     'user': user_serializer.data

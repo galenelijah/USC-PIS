@@ -15,6 +15,12 @@ USC-PIS is a full-stack web application designed to manage patient information f
 - Role-based access control (Student, Doctor, Nurse, Staff, etc.)
 - Patient record management (CRUD)
 - Profile management and setup
+- **Automatic Patient Profile Creation:** When a user registers as a student and completes profile setup, a Patient profile is automatically created and linked to their user account.
+- **Patient Feedback Collection and Analysis:**
+  - Digital feedback forms for patients after consultations or treatments (including general feedback).
+  - Feedback form includes: star rating, comments, staff courtesy, recommendation, and improvement suggestions.
+  - Feedback is linked to a specific visit or can be general.
+  - Admin/staff can analyze feedback for quality improvement.
 - Dashboard with health statistics
 - Database health monitoring
 
@@ -135,6 +141,18 @@ USC-PIS/
 - created_at: DateTimeField (auto)
 - updated_at: DateTimeField (auto)
 - created_by: ForeignKey to User, nullable
+
+### Feedback (`feedback.Feedback`)
+- id: AutoField (PK)
+- patient: ForeignKey to Patient
+- medical_record: ForeignKey to MedicalRecord (nullable, if feedback is for a specific visit)
+- rating: IntegerField (1-5)
+- comments: TextField (optional)
+- courteous: CharField (yes/no, optional)
+- recommend: CharField (yes/no, optional)
+- improvement: TextField (optional)
+- created_at: DateTimeField (auto)
+- updated_at: DateTimeField (auto)
 
 ### HealthInformation (`health_info.HealthInformation`)
 - id: AutoField (PK)
