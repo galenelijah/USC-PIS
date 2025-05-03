@@ -331,9 +331,16 @@ export const healthRecordsService = {
 };
 
 export const feedbackService = {
-  submitFeedback: async ({ medical_record, rating, comments }) => {
+  submitFeedback: async ({ medical_record, rating, comments, courteous, recommend, improvement }) => {
     try {
-      return await api.post('/feedback/', { medical_record, rating, comments });
+      return await api.post('/feedback/', { medical_record, rating, comments, courteous, recommend, improvement });
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+  getAll: async () => {
+    try {
+      return await api.get('/feedback/');
     } catch (error) {
       handleApiError(error);
     }

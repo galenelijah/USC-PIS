@@ -19,11 +19,14 @@ import {
   Feedback as FeedbackIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
 const drawerWidth = 240;
 
 const Sidebar = () => {
   const navigate = useNavigate();
+  const user = useSelector(state => state.authentication && state.authentication.user);
+  const isAdminOrStaff = user && ['ADMIN', 'STAFF'].includes(user.role);
 
   const handleLogout = () => {
     localStorage.removeItem('Token');
@@ -35,9 +38,12 @@ const Sidebar = () => {
     { text: 'Patients', icon: <PeopleIcon />, path: '/patients' },
     { text: 'Medical Records', icon: <LocalHospitalIcon />, path: '/records' },
     { text: 'Health Information', icon: <HealthInfoIcon />, path: '/health-info' },
-    { text: 'Feedback', icon: <FeedbackIcon />, path: '/feedback' },
+    { text: 'Feedback', icon: <FeedbackIcon />, path: '/feedback', isFeedback: true },
     { text: 'Database Monitor', icon: <StorageIcon />, path: '/database-monitor' },
   ];
+  if (isAdminOrStaff) {
+    menuItems.push({ text: 'Admin Feedback', icon: <FeedbackIcon />, path: '/admin-feedback' });
+  }
 
   return (
     <Drawer
@@ -64,7 +70,13 @@ const Sidebar = () => {
           <ListItem
             button
             key={item.text}
-            onClick={() => navigate(item.path)}
+            onClick={() => {
+              if (item.isFeedback) {
+                navigate(isAdminOrStaff ? '/admin-feedback' : '/feedback');
+              } else {
+                navigate(item.path);
+              }
+            }}
             sx={{
               '&:hover': {
                 backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -82,20 +94,22 @@ const Sidebar = () => {
       <Box sx={{ flexGrow: 1 }} />
       <Divider sx={{ bgcolor: 'rgba(255, 255, 255, 0.12)' }} />
       <List>
-        <ListItem
-          button
-          onClick={handleLogout}
-          sx={{
-            '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            },
-          }}
-        >
-          <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
-            <ExitToAppIcon />
-          </ListItemIcon>
-          <ListItemText primary="Logout" />
-        </ListItem>
+        {user && (
+          <ListItem
+            button
+            onClick={handleLogout}
+            sx={{
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              },
+            }}
+          >
+            <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
+              <ExitToAppIcon />
+            </ListItemIcon>
+            <ListItemText primary="Logout" />
+          </ListItem>
+        )}
       </List>
     </Drawer>
   );

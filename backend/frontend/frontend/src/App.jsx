@@ -25,6 +25,7 @@ import { patientService } from './services/api';
 import FeedbackForm from './components/FeedbackForm';
 import { useParams } from 'react-router-dom';
 import FeedbackSelector from './components/FeedbackSelector';
+import AdminFeedbackList from './components/AdminFeedbackList';
 
 const App = () => {
   const isAuthenticated = useSelector(selectIsAuthenticated);
@@ -308,6 +309,24 @@ const App = () => {
                 <Layout onSearch={handleSearch}>
                   <FeedbackForm medicalRecordId="general" />
                 </Layout>
+              </RequireProfileSetup>
+            </RequireAuth>
+          }
+        />
+        
+        {/* Admin Feedback Route - only for admin/staff */}
+        <Route
+          path="/admin-feedback"
+          element={
+            <RequireAuth isAuthenticated={isAuthenticated}>
+              <RequireProfileSetup>
+                {isAdminOrStaff ? (
+                  <Layout onSearch={handleSearch}>
+                    <AdminFeedbackList />
+                  </Layout>
+                ) : (
+                  <Navigate to="/home" replace />
+                )}
               </RequireProfileSetup>
             </RequireAuth>
           }
