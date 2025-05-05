@@ -95,6 +95,10 @@ Welcome to the USC Patient Information System (USC-PIS). This comprehensive guid
 - Manage notification preferences
 - View activity history
 
+### Patient Feedback
+- Submit feedback about clinic visits or general experience.
+- Feedback helps improve clinic services.
+
 ## Common Tasks
 
 ### Scheduling an Appointment
@@ -116,6 +120,27 @@ Welcome to the USC Patient Information System (USC-PIS). This comprehensive guid
 2. Use filters to find specific records
 3. Click on a record to view details
 4. Use the print icon to generate a PDF
+
+### Submitting Feedback (Patient/Student)
+1. Click "Feedback" in the navigation sidebar.
+2. You will see options to provide general feedback or feedback for a specific recent visit (if applicable).
+3. Click "General Feedback" or the "Leave Feedback" button next to a specific visit.
+4. Fill out the feedback form:
+    - **Overall Experience:** Select a star rating (1-5).
+    - **Staff Courteous? / Recommend Service?:** Answer Yes/No.
+    - **Comments (optional):** Provide detailed comments about your experience.
+    - **What could we improve? (optional):** Offer specific suggestions.
+5. Click "Submit Feedback".
+
+### Viewing Feedback Analytics (Admin/Staff)
+1. Click "Feedback" in the navigation sidebar.
+2. You will be directed to the **Admin - Patient Feedback** page.
+3. At the top, you will see the **Feedback Analytics Summary**:
+    - **Total Feedback Entries:** The total number of feedback submissions.
+    - **Average Rating:** The average star rating across all feedback.
+    - **Rating Distribution Chart:** A bar chart showing the count for each star rating (1-5).
+    - **Staff Courteous? / Recommend Service?:** Cards showing the counts for Yes, No, and unanswered responses.
+4. Below the analytics, a table displays all individual feedback submissions.
 
 ### Changing Password
 1. Go to Profile Settings

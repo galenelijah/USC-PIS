@@ -1,6 +1,8 @@
 # USC Patient Information System (USC-PIS)
 
-A comprehensive patient information management system for the University of San Carlos Health Services.
+A full-stack web application for managing patient information at the University of San Carlos.
+
+> **For detailed project documentation, including technology stack, features, setup, database schema, API endpoints, and more, please see [USC-PIS.md](USC-PIS.md).**
 
 ## Project Structure
 

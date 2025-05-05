@@ -50,22 +50,66 @@ class FeedbackViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """
-        Ensure only users with a linked patient profile and completed setup can submit feedback.
+        Ensure the user can submit feedback, finding or creating Patient as needed.
+        Handles multiple cases for robust patient linking.
         """
         user = self.request.user
-        if user.completeSetup:
-            try:
-                patient = Patient.objects.get(user=user)
-                serializer.save(patient=patient)
-                return
-            except Patient.DoesNotExist:
-                pass  # Will fall through to error below
+        patient = None
 
-        print(f"Feedback submission denied for user: {user.email}, Role: {user.role}, Setup Complete: {user.completeSetup}")
-        if not user.completeSetup:
-            raise PermissionDenied('Please complete your profile setup before submitting feedback.')
-        else:
-            raise PermissionDenied('Feedback submission requires a valid patient profile linked to your account.')
+        # 1. Try to get patient directly linked to the user
+        try:
+            patient = Patient.objects.get(user=user)
+            print(f"Found patient directly linked to user {user.email}: {patient}")
+        except Patient.DoesNotExist:
+            print(f"No patient directly linked to user {user.email}. Trying lookup by email.")
+            # 2. If no direct link, try getting by email (handles cases where patient exists but link is missing)
+            try:
+                patient = Patient.objects.get(email=user.email)
+                print(f"Found patient by email {user.email}: {patient}")
+                # Link the found patient to this user if not already linked to someone
+                if patient.user is None:
+                    patient.user = user
+                    patient.save()
+                    print(f"Linked existing patient (ID: {patient.id}) to user {user.email}")
+                elif patient.user != user:
+                    # This case should ideally not happen if emails are unique per user
+                    # But log it if it does.
+                    print(f"Warning: Patient with email {user.email} found but linked to different user ({patient.user.email}). Using this patient anyway.")
+                # If patient.user == user, it means the get(user=user) failed but get(email=...) found the correct one - unusual case.
+
+            except Patient.DoesNotExist:
+                print(f"No patient found by email {user.email}. Creating a new patient.")
+                # 3. Create a new patient only if no patient exists with this email/user link
+                try:
+                    patient = Patient.objects.create(
+                        user=user,
+                        first_name=user.first_name or 'DefaultFirstName', # Use more specific defaults
+                        last_name=user.last_name or 'DefaultLastName',
+                        date_of_birth='2000-01-01', # Consider making this nullable or required during profile setup
+                        gender='O', # Consider making this nullable or required
+                        email=user.email,
+                        phone_number=user.phone or '0000000000', # Try user phone first
+                        address=user.address_present or 'Default Address' # Try user address first
+                    )
+                    print(f"Created new patient for user {user.email}: {patient}")
+                except Exception as e:
+                    # Catch potential integrity errors during creation
+                    print(f"Error creating patient for {user.email}: {str(e)}")
+                    raise PermissionDenied(f"Could not create or link patient profile. Error: {str(e)}")
+        
+        # Ensure we have a patient object before proceeding
+        if not patient:
+             # This should theoretically not be reached if the logic above is sound
+             print(f"Critical Error: Could not find or create patient for user {user.email} before saving feedback.")
+             raise PermissionDenied("Could not associate feedback with a patient profile.")
+
+        # Save the feedback, linked to the found/created patient
+        try:
+            serializer.save(patient=patient)
+            print(f"Successfully created feedback for patient: {patient.id} (User: {user.email})")
+        except Exception as e:
+            print(f"Error saving feedback for user {user.email}: {str(e)}")
+            raise PermissionDenied(f"Error submitting feedback: {str(e)}")
 
     @action(detail=False, methods=['get'], permission_classes=[IsAdminOrStaff], url_path='analytics')
     def analytics(self, request):

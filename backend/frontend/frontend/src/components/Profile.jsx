@@ -3,27 +3,30 @@ import { Box, Typography, Grid, Paper, Button, Snackbar, Alert } from '@mui/mate
 import MyTextField from './forms/MyTextField';
 import { useForm } from 'react-hook-form';
 import { authService } from '../services/api';
+import { useDispatch } from 'react-redux';
+import { setCredentials } from '../features/authentication/authSlice';
 
 const Profile = () => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState({ type: '', text: '' });
     const { handleSubmit, control, reset } = useForm();
+    const dispatch = useDispatch();
 
     useEffect(() => {
-        loadUserProfile();
+        fetchProfile();
     }, []);
 
-    const loadUserProfile = async () => {
+    const fetchProfile = async () => {
+        setLoading(true);
+        setMessage({ type: '', text: '' });
         try {
             const response = await authService.getProfile();
-            console.log('API Profile Response:', response);
             if (response && response.data) {
-                console.log('API Profile Data:', response.data);
                 setUser(response.data);
                 reset(response.data);
+                dispatch(setCredentials({ user: response.data, token: currentToken }));
             } else {
-                console.error('Invalid profile response structure:', response);
                 setMessage({ type: 'error', text: 'Received invalid profile data from server' });
             }
         } catch (error) {

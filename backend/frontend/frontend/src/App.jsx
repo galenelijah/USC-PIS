@@ -64,7 +64,10 @@ const App = () => {
   };
 
   const handleEdit = (patient) => {
-    console.log('Edit patient:', patient);
+    // console.log('Edit patient:', patient); // Removed log
+    // Implement actual edit logic, maybe navigate to an edit page?
+    // Example: navigate(`/patients/${patient.id}/edit`);
+    alert(`Edit functionality for patient ${patient.id} not yet implemented.`);
   };
 
   const handleDelete = async (id) => {

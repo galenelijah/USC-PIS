@@ -20,7 +20,8 @@ USC-PIS is a full-stack web application designed to manage patient information f
   - Digital feedback forms for patients after consultations or treatments (including general feedback).
   - Feedback form includes: star rating, comments, staff courtesy, recommendation, and improvement suggestions.
   - Feedback is linked to a specific visit or can be general.
-  - Admin/staff can analyze feedback for quality improvement.
+  - **Analytics Dashboard:** Admin/staff users have access to a dedicated feedback analytics dashboard showing statistics and visualizations (ratings distribution, courtesy/recommendation counts, etc.)
+  - **Role-Based Navigation:** The sidebar Feedback link intelligently redirects to the appropriate view based on user role (admin/staff → analytics, others → feedback form).
 - Dashboard with health statistics
 - Database health monitoring
 
@@ -201,9 +202,15 @@ USC-PIS/
 ## Frontend Components Notes
 
 - Key components are located in `backend/frontend/frontend/src/components/` and `backend/frontend/frontend/src/pages/`.
-- **FeedbackAnalytics.jsx:** Displays feedback summary statistics and charts. Used within the admin feedback view.
+- **FeedbackAnalytics.jsx:** Displays feedback summary statistics and charts, including average rating, rating distribution with chart visualization, and courtesy/recommendation counts. Used within the admin feedback view.
 - **AdminFeedbackList.jsx:** Displays a table of all feedback entries and integrates `FeedbackAnalytics.jsx`. Accessible to Admin/Staff.
 - **FeedbackForm.jsx / FeedbackSelector.jsx:** Handles feedback submission by patients.
+- **Sidebar.jsx:** Implements role-based navigation, redirecting users based on their role (e.g., Feedback link redirects admin/staff to analytics and regular users to the feedback form).
+
+## Known Limitations and Solutions
+
+- **Authentication State:** The application implements a hybrid approach to authentication state management, with both Redux and localStorage backup to ensure stable user recognition across refreshes.
+- **Patient Profile Linking:** Patient profiles are automatically created for student users, either during registration or on-demand when accessing patient-specific features.
 
 ---
 

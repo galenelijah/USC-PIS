@@ -285,13 +285,11 @@ const ProfileSetup = () => {
     setLoading(true);
     try {
       const formData = compileFormData();
-      console.log('Submitting profile data:', formData);
       const response = await authService.completeProfileSetup(formData);
       
       // Update user state in Redux after successful submission
       if (response && response.user && currentToken) {
-        dispatch(setCredentials({ user: response.user, token: currentToken })); 
-        console.log('Dispatched setCredentials with:', response.user, 'and token:', currentToken);
+        dispatch(setCredentials({ user: response.user, token: currentToken }));
       } else {
         console.warn('Could not update Redux state. Missing user data in response or token.');
         // Optionally refetch profile and token here if needed

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Drawer,
   List,
@@ -25,9 +25,31 @@ const drawerWidth = 240;
 
 const Sidebar = () => {
   const navigate = useNavigate();
-  const user = useSelector(state => state.authentication && state.authentication.user);
-  const isAdminOrStaff = user && ['ADMIN', 'STAFF'].includes(user.role);
+  const userFromRedux = useSelector(state => state.authentication && state.authentication.user);
+  
+  // NEW: Add state to track user data
+  const [user, setUser] = useState(null);
+  
+  // Use effect to load user data from Redux or localStorage
+  useEffect(() => {
+    if (userFromRedux) {
+      setUser(userFromRedux);
+    } else {
+      // Try to load from localStorage as fallback
+      try {
+        const storedUser = JSON.parse(localStorage.getItem('user'));
+        if (storedUser) {
+          setUser(storedUser);
+        }
+      } catch (error) {
+        console.error('Error loading user from localStorage:', error);
+      }
+    }
+  }, [userFromRedux]);
 
+  // Check for admin/staff role once we have valid user data
+  const isAdminOrStaff = user && ['ADMIN', 'STAFF'].includes(user.role);
+  
   const handleLogout = () => {
     localStorage.removeItem('Token');
     navigate('/');
@@ -41,9 +63,6 @@ const Sidebar = () => {
     { text: 'Feedback', icon: <FeedbackIcon />, path: '/feedback', isFeedback: true },
     { text: 'Database Monitor', icon: <StorageIcon />, path: '/database-monitor' },
   ];
-  if (isAdminOrStaff) {
-    menuItems.push({ text: 'Admin Feedback', icon: <FeedbackIcon />, path: '/admin-feedback' });
-  }
 
   return (
     <Drawer
@@ -72,7 +91,11 @@ const Sidebar = () => {
             key={item.text}
             onClick={() => {
               if (item.isFeedback) {
-                navigate(isAdminOrStaff ? '/admin-feedback' : '/feedback');
+                if (user && ['ADMIN', 'STAFF'].includes(user.role)) {
+                  navigate('/admin-feedback');
+                } else {
+                  navigate('/feedback');
+                }
               } else {
                 navigate(item.path);
               }

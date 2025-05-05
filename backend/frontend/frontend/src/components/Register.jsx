@@ -23,38 +23,30 @@ const Register = () =>{
         };
     }, [dispatch]);
 
-    const submission = async (data) => {
+    const onSubmit = async (data) => {
+        setServerError('');
+        const userData = { ...data }; 
+
         try {
-            const userData = {
-                email: data.email,
-                password: data.password,
-                password2: data.password2,
-                role: data.role,
-                username: data.email // Set username to email
-            };
-
-            console.log('Dispatching registerUser with data:', userData);
             const resultAction = await dispatch(registerUser(userData));
-
             if (registerUser.fulfilled.match(resultAction)) {
-                console.log('Registration successful');
-                alert('Registration successful! Please login.');
-                navigate('/', { replace: true });
-                return;
-            } 
-            let errorMessage = 'Registration failed. Please check your inputs.';
-            if (resultAction.payload) {
-                if (typeof resultAction.payload === 'string') {
-                    errorMessage = resultAction.payload;
-                } else if (resultAction.payload && typeof resultAction.payload === 'object') {
-                    const fieldErrors = Object.values(resultAction.payload).flat().filter(Boolean);
-                    if (fieldErrors.length > 0) {
-                        errorMessage = fieldErrors[0];
+                setSuccessMessage('Registration successful! Please log in.');
+                setTimeout(() => navigate('/'), 2000);
+            } else if (registerUser.rejected.match(resultAction)) {
+                let errorMessage = 'Registration failed. Please check your inputs.';
+                if (resultAction.payload) {
+                    if (typeof resultAction.payload === 'string') {
+                        errorMessage = resultAction.payload;
+                    } else if (resultAction.payload && typeof resultAction.payload === 'object') {
+                        const fieldErrors = Object.values(resultAction.payload).flat().filter(Boolean);
+                        if (fieldErrors.length > 0) {
+                            errorMessage = fieldErrors[0];
+                        }
                     }
                 }
+                console.error('Registration error:', resultAction.payload || 'Unknown error');
+                alert(errorMessage);
             }
-            console.error('Registration error:', resultAction.payload || 'Unknown error');
-            alert(errorMessage);
         } catch (error) {
             console.error('Unexpected error during registration:', error);
             alert('An unexpected error occurred. Please try again.');
@@ -63,7 +55,7 @@ const Register = () =>{
 
     return(
         <div className="myBackground">
-            <form onSubmit={handleSubmit(submission)}>
+            <form onSubmit={handleSubmit(onSubmit)}>
                 <Box className="registerBox">
                     <Box className="itemBox">
                        <Typography variant="h5" className="title">Register</Typography>

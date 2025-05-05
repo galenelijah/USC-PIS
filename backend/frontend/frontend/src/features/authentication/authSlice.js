@@ -29,23 +29,16 @@ export const registerUser = createAsyncThunk(
   async (userData, { rejectWithValue }) => {
     // userData contains all fields from the registration form
     try {
-      console.log('Sending registration data:', userData);
       const response = await authService.register(userData);
-      
-      // Safely handle the response
-      console.log('Registration response:', response);
       
       // Check if response exists and has data property
       if (!response || !response.data) {
-        console.error('Invalid response format:', response);
         return rejectWithValue('Server returned an invalid response');
       }
       
       // Return the data from the response
       return response.data;
     } catch (error) {
-      console.error('Registration error:', error);
-      
       // Handle validation errors (400) or other errors (500)
       let errorData;
       
@@ -74,8 +67,6 @@ export const logoutUser = createAsyncThunk(
     } catch (error) {
       // Even if backend logout fails, we still clear frontend state.
       // Log the error, but don't necessarily block logout.
-      console.error("Backend logout failed:", error);
-      // Optionally return error if needed elsewhere
       const errorData = error.response?.data?.detail || error.message || 'Logout failed on server';
       return rejectWithValue(errorData);
     }
@@ -97,7 +88,6 @@ const loadInitialState = () => {
       };
     }
   } catch (e) {
-    console.error("Could not load auth state from localStorage", e);
     // Fall through to default initial state
   }
   return {
@@ -194,7 +184,6 @@ const authSlice = createSlice({
           state.error = null;
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          console.log("Logout fulfilled, state cleared.")
       })
       .addCase(logoutUser.rejected, (state, action) => {
           // Still log out frontend even if backend call fails
@@ -205,7 +194,6 @@ const authSlice = createSlice({
           state.error = action.payload; // Store backend error if needed
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          console.error("Logout rejected but frontend state cleared. Error:", action.payload)
       })
       // Registration cases
       .addCase(registerUser.pending, (state) => {
@@ -216,13 +204,11 @@ const authSlice = createSlice({
           state.status = 'succeeded'; // Indicate success, but don't log in
           state.error = null;
           // We don't update user or token here as the user needs to login separately
-          console.log("Registration successful:", action.payload || 'No response data');
       })
       .addCase(registerUser.rejected, (state, action) => {
           state.status = 'failed';
           // Safely store error data
           state.error = action.payload || 'Registration failed';
-          console.error("Registration failed:", action.payload || 'Unknown error');
       });
   },
 });

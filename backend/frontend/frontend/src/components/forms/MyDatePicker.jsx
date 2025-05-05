@@ -20,7 +20,6 @@ const MyDatePicker = ({ name, control, label, required, error, helperText }) => 
             onChange={(newValue) => {
               if (newValue) {
                 const formattedDate = dayjs(newValue).format('YYYY-MM-DD');
-                console.log(`Setting ${name} to formatted date:`, formattedDate);
                 field.onChange(formattedDate);
               } else {
                 field.onChange(null);
