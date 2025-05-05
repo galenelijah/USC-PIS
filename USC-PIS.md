@@ -177,6 +177,34 @@ USC-PIS/
 - **Fields:** id, title, content, category, created_at, updated_at, author, author_email, author_role
 - **Permissions:** Patients/students can only read; staff/admins can create, update, and delete.
 
+## API Endpoints Documentation
+
+### Authentication (`/api/auth/`)
+// ... existing auth endpoints ...
+
+### Patient (`/api/patients/`)
+// ... existing patient endpoints ...
+
+### Health Information (`/api/health-info/health-information/`)
+// ... existing health info endpoints ...
+
+### Feedback (`/api/feedback/`)
+- **Base URL:** `/api/feedback/`
+- **Methods:**
+  - `GET` (list): Admin/Staff see all; Patients see their own.
+  - `POST` (create): Authenticated users with a linked Patient profile.
+  - `GET` (retrieve), `PUT`/`PATCH` (update), `DELETE` (destroy): Standard ModelViewSet, permissions may vary based on object/user.
+- **Analytics Sub-Endpoint:** `/api/feedback/analytics/`
+  - `GET`: Returns aggregated feedback statistics (total count, average rating, rating distribution, courteous counts, recommend counts).
+  - **Permissions:** Admin/Staff only.
+
+## Frontend Components Notes
+
+- Key components are located in `backend/frontend/frontend/src/components/` and `backend/frontend/frontend/src/pages/`.
+- **FeedbackAnalytics.jsx:** Displays feedback summary statistics and charts. Used within the admin feedback view.
+- **AdminFeedbackList.jsx:** Displays a table of all feedback entries and integrates `FeedbackAnalytics.jsx`. Accessible to Admin/Staff.
+- **FeedbackForm.jsx / FeedbackSelector.jsx:** Handles feedback submission by patients.
+
 ---
 
 For more details, see `USER_GUIDE.md`, `CONTRIBUTING.md`, and other documentation files. 

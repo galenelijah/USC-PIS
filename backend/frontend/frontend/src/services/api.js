@@ -345,7 +345,21 @@ export const feedbackService = {
       handleApiError(error);
     }
   },
-  // Add more methods (analytics, etc.) as needed
+  getAnalytics: async () => {
+    try {
+      // Use the configured api instance which includes auth
+      return await api.get('/feedback/analytics/');
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+  create: async (data) => {
+    try {
+      return await api.post('/feedback/', data);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
 };
 
 export default api; 
