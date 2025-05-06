@@ -164,6 +164,16 @@ USC-PIS/
 - updated_at: DateTimeField (auto)
 - author: ForeignKey to User (nullable, blank, on delete SET_NULL)
 
+### UploadedFile (`file_uploads.UploadedFile`)
+- id: AutoField (PK)
+- uploaded_by: ForeignKey to User (nullable)
+- file: FileField (upload_to='user_uploads/')
+- original_filename: CharField
+- description: TextField (nullable)
+- upload_date: DateTimeField (auto)
+- content_type: CharField
+- file_size: PositiveIntegerField (nullable)
+
 ## Migration & Documentation Rules
 - After adding a major feature or completing a milestone, update this file.
 - Document the entire database schema here.
@@ -198,6 +208,15 @@ USC-PIS/
 - **Analytics Sub-Endpoint:** `/api/feedback/analytics/`
   - `GET`: Returns aggregated feedback statistics (total count, average rating, rating distribution, courteous counts, recommend counts).
   - **Permissions:** Admin/Staff only.
+
+### File Uploads (`/api/files/`)
+- **Base URL:** `/api/files/uploads/`
+- **Methods:**
+  - `POST` (create): Upload a new file. Requires authentication. Associates file with the logged-in user. Expects multipart/form-data with 'file' and optionally 'description'.
+  - `GET` (list): List all uploaded files. Requires authentication.
+  - `GET` (retrieve): Retrieve details of a specific file by ID. Requires authentication.
+  - `DELETE` (destroy): Delete a file by ID. Requires authentication (permission might be restricted further, e.g., to owner or admin).
+- **Permissions:** `IsAuthenticated` for all methods currently.
 
 ## Frontend Components Notes
 

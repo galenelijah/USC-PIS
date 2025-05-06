@@ -81,6 +81,7 @@ INSTALLED_APPS = [
     'authentication',  # New authentication app
     'health_info',     # Add the missing health_info app
     'feedback',
+    'file_uploads', # Add the new app
 ]
 
 MIDDLEWARE = [
@@ -213,7 +214,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = '/static/'
+STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'frontend', 'frontend', 'dist'),  # Add the frontend build directory
@@ -221,6 +222,10 @@ STATICFILES_DIRS = [
 
 # Whitenoise settings
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Media files (User uploads)
+MEDIA_URL = '/media/' # URL prefix for user-uploaded files
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media') # Absolute filesystem path to the directory for user-uploaded files
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
