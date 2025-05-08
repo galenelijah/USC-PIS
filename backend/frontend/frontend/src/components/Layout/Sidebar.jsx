@@ -63,6 +63,7 @@ const Sidebar = () => {
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/home' },
     { text: 'Patients', icon: <PeopleIcon />, path: '/patients' },
     { text: 'Medical Records', icon: <LocalHospitalIcon />, path: '/health-records' },
+    { text: 'Consultations', icon: <LocalHospitalIcon />, path: '/consultations' },
     { text: 'Health Information', icon: <HealthInfoIcon />, path: '/health-info' },
     { text: 'Feedback', icon: <FeedbackIcon />, path: '/feedback', isFeedback: true },
     { text: 'File Uploads', icon: <UploadIcon />, path: '/uploads' },

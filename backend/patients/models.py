@@ -51,3 +51,19 @@ class MedicalRecord(models.Model):
 
     def __str__(self):
         return f"{self.patient} - {self.visit_date}"
+
+class Consultation(models.Model):
+    patient = models.ForeignKey(Patient, related_name='consultations', on_delete=models.CASCADE)
+    date_time = models.DateTimeField()
+    chief_complaints = models.TextField()
+    treatment_plan = models.TextField()
+    remarks = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+
+    class Meta:
+        ordering = ['-date_time']
+
+    def __str__(self):
+        return f"{self.patient} - {self.date_time}"

@@ -4,8 +4,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Count, Q
 from django.db.models.functions import TruncMonth
-from .models import Patient, MedicalRecord
-from .serializers import PatientSerializer, MedicalRecordSerializer
+from .models import Patient, MedicalRecord, Consultation
+from .serializers import PatientSerializer, MedicalRecordSerializer, ConsultationSerializer
 from authentication.models import User # Import User model
 
 # Create your views here.
@@ -81,6 +81,39 @@ class MedicalRecordViewSet(viewsets.ModelViewSet):
         # E.g., filter by date, diagnosis, etc.
 
         return queryset.order_by('-visit_date') # Order by visit date descending
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+class ConsultationViewSet(viewsets.ModelViewSet):
+    queryset = Consultation.objects.all()
+    serializer_class = ConsultationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """Filter consultations based on user role."""
+        user = self.request.user
+        queryset = Consultation.objects.select_related('patient', 'created_by').all()
+
+        if user.role == User.Role.STUDENT:
+            # Find the patient profile linked to the student user
+            try:
+                patient = Patient.objects.get(user=user)
+                queryset = queryset.filter(patient=patient)
+            except Patient.DoesNotExist:
+                # If student has no patient profile, return no consultations
+                queryset = Consultation.objects.none()
+        elif user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.NURSE]:
+            # Admin/Staff/Doctor/Nurse can see all consultations
+            pass
+        else:
+            # Unknown role, return no consultations
+            queryset = Consultation.objects.none()
+
+        return queryset.order_by('-date_time')  # Order by date_time descending
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)

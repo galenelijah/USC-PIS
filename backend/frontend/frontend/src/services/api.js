@@ -413,4 +413,42 @@ export const fileUploadService = {
   },
 };
 
+export const consultationService = {
+  getAll: async () => {
+    try {
+      return await api.get('/consultations/');
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+  getById: async (id) => {
+    try {
+      return await api.get(`/consultations/${id}/`);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+  create: async (data) => {
+    try {
+      return await api.post('/consultations/', data);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+  update: async (id, data) => {
+    try {
+      return await api.put(`/consultations/${id}/`, data);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+  delete: async (id) => {
+    try {
+      return await api.delete(`/consultations/${id}/`);
+    } catch (error) {
+      handleApiError(error);
+    }
+  }
+};
+
 export default api; 
