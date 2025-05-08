@@ -224,6 +224,13 @@ export const patientService = {
       handleApiError(error);
     }
   },
+  getMyMedicalRecords: async () => {
+    try {
+      return await api.get('/patients/medical-records/');
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
 };
 
 export const healthInfoService = {
@@ -356,6 +363,50 @@ export const feedbackService = {
   create: async (data) => {
     try {
       return await api.post('/feedback/', data);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+};
+
+// Add fileUploadService
+export const fileUploadService = {
+  getAll: async () => {
+    try {
+      return await api.get('/files/uploads/');
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+  upload: async (file, description = '') => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file); // The backend expects the file under the key 'file'
+      if (description) {
+        formData.append('description', description);
+      }
+      // Make sure headers indicate multipart/form-data
+      // Axios usually does this automatically with FormData, but specify if needed
+      return await api.post('/files/uploads/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        // Add onUploadProgress listener if needed for progress bars
+        /*
+        onUploadProgress: progressEvent => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          console.log(`Upload Progress: ${percentCompleted}%`);
+          // Update progress state here
+        }
+        */
+      });
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+  delete: async (id) => {
+    try {
+      return await api.delete(`/files/uploads/${id}/`);
     } catch (error) {
       handleApiError(error);
     }

@@ -17,6 +17,8 @@ import {
   Storage as StorageIcon,
   HealthAndSafety as HealthInfoIcon,
   Feedback as FeedbackIcon,
+  CloudUpload as UploadIcon,
+  Download as DownloadIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -49,6 +51,8 @@ const Sidebar = () => {
 
   // Check for admin/staff role once we have valid user data
   const isAdminOrStaff = user && ['ADMIN', 'STAFF'].includes(user.role);
+  const isDoctor = user && user.role === 'DOCTOR';
+  const isNurse = user && user.role === 'NURSE';
   
   const handleLogout = () => {
     localStorage.removeItem('Token');
@@ -58,10 +62,11 @@ const Sidebar = () => {
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/home' },
     { text: 'Patients', icon: <PeopleIcon />, path: '/patients' },
-    { text: 'Medical Records', icon: <LocalHospitalIcon />, path: '/records' },
+    { text: 'Medical Records', icon: <LocalHospitalIcon />, path: '/health-records' },
     { text: 'Health Information', icon: <HealthInfoIcon />, path: '/health-info' },
     { text: 'Feedback', icon: <FeedbackIcon />, path: '/feedback', isFeedback: true },
-    { text: 'Database Monitor', icon: <StorageIcon />, path: '/database-monitor' },
+    { text: 'File Uploads', icon: <UploadIcon />, path: '/uploads' },
+    { text: 'File Downloads', icon: <DownloadIcon />, path: '/downloads' },
   ];
 
   return (
@@ -85,34 +90,56 @@ const Sidebar = () => {
       </Box>
       <Divider sx={{ bgcolor: 'rgba(255, 255, 255, 0.12)' }} />
       <List>
-        {menuItems.map((item) => (
-          <ListItem
-            button
-            key={item.text}
-            onClick={() => {
-              if (item.isFeedback) {
-                if (user && ['ADMIN', 'STAFF'].includes(user.role)) {
-                  navigate('/admin-feedback');
+        {menuItems.map((item) => {
+          if (item.path === '/patients' && !(isAdminOrStaff || isDoctor || isNurse)) {
+             return null;
+          }
+          if (item.path === '/database-monitor' && !isAdminOrStaff) {
+            return null;
+          }
+          
+          return (
+            <ListItem
+              button
+              key={item.text}
+              onClick={() => {
+                if (item.isFeedback) {
+                  navigate(isAdminOrStaff ? '/admin-feedback' : '/feedback');
                 } else {
-                  navigate('/feedback');
+                  navigate(item.path);
                 }
-              } else {
-                navigate(item.path);
-              }
-            }}
-            sx={{
-              '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              },
-              mb: 1,
-            }}
-          >
-            <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
-              {item.icon}
-            </ListItemIcon>
-            <ListItemText primary={item.text} />
-          </ListItem>
-        ))}
+              }}
+              sx={{
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                },
+                mb: 1,
+              }}
+            >
+              <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText primary={item.text} />
+            </ListItem>
+          );
+        })}
+        {isAdminOrStaff && (
+             <ListItem
+                 button
+                 key="Database Monitor"
+                 onClick={() => navigate('/database-monitor')}
+                 sx={{
+                   '&:hover': {
+                     backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                   },
+                 }}
+             >
+                 <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
+                     <StorageIcon />
+                 </ListItemIcon>
+                 <ListItemText primary="Database Monitor" />
+             </ListItem>
+        )}
       </List>
       <Box sx={{ flexGrow: 1 }} />
       <Divider sx={{ bgcolor: 'rgba(255, 255, 255, 0.12)' }} />

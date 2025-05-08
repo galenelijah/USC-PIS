@@ -28,6 +28,8 @@ urlpatterns = [
     path('api/health-info/', include('health_info.urls')),
     path('api/feedback/', include('feedback.urls')),
     path('api/files/', include('file_uploads.urls')), # Add file_uploads URLs
+    # Add media URL pattern to serve uploaded files
+    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
     # Serve static files - Removed re_path, Whitenoise handles this via middleware/storage
     # re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
     # Serve React app - must be last

@@ -99,6 +99,10 @@ Welcome to the USC Patient Information System (USC-PIS). This comprehensive guid
 - Submit feedback about clinic visits or general experience.
 - Feedback helps improve clinic services.
 
+### File Uploads
+- Upload documents, images, or other files relevant to your health or clinic interactions.
+- View and manage your uploaded files.
+
 ## Common Tasks
 
 ### Scheduling an Appointment
@@ -148,6 +152,19 @@ Welcome to the USC Patient Information System (USC-PIS). This comprehensive guid
 3. Enter current password
 4. Enter and confirm new password
 5. Click "Update Password"
+
+### Uploading a File
+1. Click "File Uploads" in the navigation sidebar.
+2. Under "Upload New File", click the area to select a file or drag and drop a file onto it.
+3. Optionally, add a description for the file in the text box.
+4. Click "Upload File".
+5. A success message will appear, and the file will be added to the "Uploaded Files" list below.
+
+### Managing Uploaded Files
+1. Navigate to the "File Uploads" page from the sidebar.
+2. The list shows all files uploaded.
+3. Click the document icon (<DescriptionIcon />) next to a file name to open the file in a new tab.
+4. Click the delete icon (<DeleteIcon />) next to a file to permanently remove it. You will be asked for confirmation.
 
 ## Best Practices
 

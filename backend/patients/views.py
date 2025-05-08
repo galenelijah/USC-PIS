@@ -51,9 +51,36 @@ class PatientViewSet(viewsets.ModelViewSet):
         serializer.save()
 
 class MedicalRecordViewSet(viewsets.ModelViewSet):
-    queryset = MedicalRecord.objects.all()
+    queryset = MedicalRecord.objects.all() # Base queryset
     serializer_class = MedicalRecordSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """Filter records based on user role."""
+        user = self.request.user
+        queryset = MedicalRecord.objects.select_related('patient', 'created_by').all()
+
+        if user.role == User.Role.STUDENT:
+            # Find the patient profile linked to the student user
+            # Using try-except to handle cases where the patient link might be missing
+            try:
+                patient = Patient.objects.get(user=user)
+                queryset = queryset.filter(patient=patient)
+            except Patient.DoesNotExist:
+                # If student has no patient profile, return no records
+                queryset = MedicalRecord.objects.none()
+        elif user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.NURSE]:
+            # Admin/Staff/Doctor/Nurse can see all records (or apply other filters)
+            # No additional filtering needed for these roles to see all records
+            pass
+        else:
+            # Unknown role, return no records
+            queryset = MedicalRecord.objects.none()
+
+        # Optional: Add search/filtering based on query parameters if needed
+        # E.g., filter by date, diagnosis, etc.
+
+        return queryset.order_by('-visit_date') # Order by visit date descending
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)

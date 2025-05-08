@@ -26,6 +26,8 @@ import FeedbackForm from './components/FeedbackForm';
 import { useParams } from 'react-router-dom';
 import FeedbackSelector from './components/FeedbackSelector';
 import AdminFeedbackList from './components/AdminFeedbackList';
+import FileUploadPage from './pages/FileUploadPage';
+import FileDownloadPage from './pages/FileDownloadPage';
 
 const App = () => {
   const isAuthenticated = useSelector(selectIsAuthenticated);
@@ -83,11 +85,11 @@ const App = () => {
     dispatch(logout());
   };
 
-  // Check if user has admin/staff role
-  const isAdminOrStaff = user && ['ADMIN', 'STAFF'].includes(user.role);
-  const isDoctor = user && user.role === 'DOCTOR';
-  const isNurse = user && user.role === 'NURSE';
-  const isStudent = user && user.role === 'STUDENT';
+  // Check roles safely - ensure user exists before accessing role
+  const isAdminOrStaff = !!user && ['ADMIN', 'STAFF'].includes(user.role);
+  const isDoctor = !!user && user.role === 'DOCTOR';
+  const isNurse = !!user && user.role === 'NURSE';
+  const isStudent = !!user && user.role === 'STUDENT';
 
   function FeedbackFormWrapper() {
     const { medicalRecordId } = useParams();
@@ -330,6 +332,34 @@ const App = () => {
                 ) : (
                   <Navigate to="/home" replace />
                 )}
+              </RequireProfileSetup>
+            </RequireAuth>
+          }
+        />
+        
+        {/* File Upload Route - Available to all authenticated users with completed profile */}
+        <Route
+          path="/uploads"
+          element={
+            <RequireAuth isAuthenticated={isAuthenticated}>
+              <RequireProfileSetup>
+                <Layout>
+                  <FileUploadPage />
+                </Layout>
+              </RequireProfileSetup>
+            </RequireAuth>
+          }
+        />
+        
+        {/* File Download Route - Available to all authenticated users with completed profile */}
+        <Route
+          path="/downloads"
+          element={
+            <RequireAuth isAuthenticated={isAuthenticated}>
+              <RequireProfileSetup>
+                <Layout>
+                  <FileDownloadPage />
+                </Layout>
               </RequireProfileSetup>
             </RequireAuth>
           }

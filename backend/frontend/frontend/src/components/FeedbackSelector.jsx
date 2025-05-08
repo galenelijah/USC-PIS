@@ -14,11 +14,14 @@ const FeedbackSelector = () => {
       setLoading(true);
       setError('');
       try {
-        // Fetch the current patient's medical records
-        const response = await patientService.getAll();
-        setRecords(response.data || []);
+        // Fetch the current patient's medical records using the new service method
+        const response = await patientService.getMyMedicalRecords();
+        // Ensure response.data is always an array
+        setRecords(Array.isArray(response?.data) ? response.data : []);
       } catch (err) {
-        setError('Failed to load medical records.');
+        console.error("Error fetching user medical records:", err);
+        setError('Failed to load medical records for feedback selection.');
+        setRecords([]);
       } finally {
         setLoading(false);
       }

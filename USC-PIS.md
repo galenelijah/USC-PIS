@@ -22,6 +22,7 @@ USC-PIS is a full-stack web application designed to manage patient information f
   - Feedback is linked to a specific visit or can be general.
   - **Analytics Dashboard:** Admin/staff users have access to a dedicated feedback analytics dashboard showing statistics and visualizations (ratings distribution, courtesy/recommendation counts, etc.)
   - **Role-Based Navigation:** The sidebar Feedback link intelligently redirects to the appropriate view based on user role (admin/staff → analytics, others → feedback form).
+- **Universal File Upload:** Allows any authenticated user to upload files (e.g., documents, images) with descriptions.
 - Dashboard with health statistics
 - Database health monitoring
 
@@ -225,6 +226,7 @@ USC-PIS/
 - **AdminFeedbackList.jsx:** Displays a table of all feedback entries and integrates `FeedbackAnalytics.jsx`. Accessible to Admin/Staff.
 - **FeedbackForm.jsx / FeedbackSelector.jsx:** Handles feedback submission by patients.
 - **Sidebar.jsx:** Implements role-based navigation, redirecting users based on their role (e.g., Feedback link redirects admin/staff to analytics and regular users to the feedback form).
+- **FileUploadPage.jsx:** Provides an interface for users to upload new files and view/delete their existing uploads. Located at `/uploads`.
 
 ## Known Limitations and Solutions
 
