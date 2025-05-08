@@ -416,35 +416,35 @@ export const fileUploadService = {
 export const consultationService = {
   getAll: async () => {
     try {
-      return await api.get('/consultations/');
+      return await api.get('/patients/consultations/');
     } catch (error) {
       handleApiError(error);
     }
   },
   getById: async (id) => {
     try {
-      return await api.get(`/consultations/${id}/`);
+      return await api.get(`/patients/consultations/${id}/`);
     } catch (error) {
       handleApiError(error);
     }
   },
   create: async (data) => {
     try {
-      return await api.post('/consultations/', data);
+      return await api.post('/patients/consultations/', data);
     } catch (error) {
       handleApiError(error);
     }
   },
   update: async (id, data) => {
     try {
-      return await api.put(`/consultations/${id}/`, data);
+      return await api.put(`/patients/consultations/${id}/`, data);
     } catch (error) {
       handleApiError(error);
     }
   },
   delete: async (id) => {
     try {
-      return await api.delete(`/consultations/${id}/`);
+      return await api.delete(`/patients/consultations/${id}/`);
     } catch (error) {
       handleApiError(error);
     }

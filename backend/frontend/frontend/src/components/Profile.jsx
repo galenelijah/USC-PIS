@@ -3,8 +3,8 @@ import { Box, Typography, Grid, Paper, Button, Snackbar, Alert } from '@mui/mate
 import MyTextField from './forms/MyTextField';
 import { useForm } from 'react-hook-form';
 import { authService } from '../services/api';
-import { useDispatch } from 'react-redux';
-import { setCredentials } from '../features/authentication/authSlice';
+import { useDispatch, useSelector } from 'react-redux';
+import { setCredentials, selectAuthToken } from '../features/authentication/authSlice';
 
 const Profile = () => {
     const [user, setUser] = useState(null);
@@ -12,6 +12,7 @@ const Profile = () => {
     const [message, setMessage] = useState({ type: '', text: '' });
     const { handleSubmit, control, reset } = useForm();
     const dispatch = useDispatch();
+    const token = useSelector(selectAuthToken);
 
     useEffect(() => {
         fetchProfile();
@@ -25,7 +26,11 @@ const Profile = () => {
             if (response && response.data) {
                 setUser(response.data);
                 reset(response.data);
-                dispatch(setCredentials({ user: response.data, token: currentToken }));
+                if (token) {
+                    dispatch(setCredentials({ user: response.data, token: token }));
+                } else {
+                    console.warn('Profile.jsx: Auth token not found in Redux store when trying to set credentials.');
+                }
             } else {
                 setMessage({ type: 'error', text: 'Received invalid profile data from server' });
             }
@@ -42,6 +47,9 @@ const Profile = () => {
             const response = await authService.updateProfile(data);
             setUser(response.data);
             setMessage({ type: 'success', text: 'Profile updated successfully' });
+            if (token) {
+                dispatch(setCredentials({ user: response.data, token: token }));
+            }
         } catch (error) {
             console.error('Error updating profile:', error);
             setMessage({ type: 'error', text: error.response?.data?.detail || 'Failed to update profile' });
