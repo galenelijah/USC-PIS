@@ -326,29 +326,70 @@ def debug_register(request):
 def complete_profile_setup(request):
     if request.method == 'POST':
         try:
-            # Get the current user
             user = request.user
-            
-            # Log the received data for debugging
             print("Profile setup data:", request.data)
             
-            # Update the user profile with submitted data
             user_serializer = UserProfileSerializer(user, data=request.data, partial=True)
             
             if user_serializer.is_valid():
-                # Set completeSetup flag to True
-                user_serializer.validated_data['completeSetup'] = True
-                user_serializer.save()
-                # Ensure Patient profile exists for students
-                if user.role == User.Role.STUDENT and not hasattr(user, 'patient_profile'):
-                    Patient.objects.get_or_create(user=user, defaults={
-                        'first_name': user.first_name,
-                        'last_name': user.last_name,
-                        'email': user.email,
-                    })
+                # Set completeSetup flag to True before saving the User model
+                # The serializer data should already contain other user fields
+                user_data_to_save = user_serializer.validated_data.copy()
+                user_data_to_save['completeSetup'] = True
+                
+                # Re-initialize serializer with complete data for saving user
+                # This ensures 'completeSetup' is part of the instance data to be saved
+                user_save_serializer = UserProfileSerializer(user, data=user_data_to_save, partial=True)
+                if not user_save_serializer.is_valid(): # Should be valid if user_serializer was
+                    print("User save serializer errors:", user_save_serializer.errors) # Should not happen
+                    return Response({
+                        'detail': 'Error preparing user data for saving',
+                        'errors': user_save_serializer.errors
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                updated_user = user_save_serializer.save() # Save User model
+
+                # If the user is a STUDENT, update their Patient profile
+                if updated_user.role == User.Role.STUDENT:
+                    patient_profile, created = Patient.objects.get_or_create(user=updated_user)
+                    
+                    # Map fields from UserProfileSerializer (validated_data) to Patient model
+                    # Use .get() with a default to avoid errors if a field is missing,
+                    # and to keep existing patient data if not provided in this update.
+                    patient_profile.first_name = user_data_to_save.get('first_name', patient_profile.first_name)
+                    patient_profile.last_name = user_data_to_save.get('last_name', patient_profile.last_name)
+                    patient_profile.email = user_data_to_save.get('email', patient_profile.email) # User email should match Patient email
+                    
+                    # Handle date of birth (birthday in serializer)
+                    birthday = user_data_to_save.get('birthday')
+                    if birthday:
+                        patient_profile.date_of_birth = birthday
+                    
+                    # Handle gender (sex in serializer)
+                    sex = user_data_to_save.get('sex')
+                    if sex: # Assuming GENDER_CHOICES in Patient are 'M', 'F', 'O'
+                        patient_profile.gender = sex[0].upper() if sex else patient_profile.gender 
+                    
+                    # Handle phone number (phone in serializer)
+                    phone = user_data_to_save.get('phone')
+                    if phone:
+                        patient_profile.phone_number = phone
+                    
+                    # Handle address (e.g., address_present or address_permanent from serializer)
+                    # Choose one, or combine, or add logic based on your needs
+                    address = user_data_to_save.get('address_present') or user_data_to_save.get('address_permanent')
+                    if address:
+                        patient_profile.address = address
+                    
+                    # Add any other relevant Patient fields from UserProfileSerializer data
+                    # Example: patient_profile.id_number = user_data_to_save.get('id_number', patient_profile.id_number)
+                    # This depends on what fields are in UserProfileSerializer and Patient model
+
+                    patient_profile.save() # Save Patient model
+
                 return Response({
                     'detail': 'Profile setup completed successfully',
-                    'user': user_serializer.data
+                    'user': UserProfileSerializer(updated_user).data # Return the fully updated user data
                 }, status=status.HTTP_200_OK)
             else:
                 print("Serializer errors:", user_serializer.errors)

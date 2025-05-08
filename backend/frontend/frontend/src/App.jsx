@@ -47,9 +47,15 @@ const App = () => {
   const loadPatients = async () => {
     try {
       const response = await patientService.getAll();
-      setPatients(response.data);
+      if (response && response.data && Array.isArray(response.data)) {
+        setPatients(response.data);
+      } else {
+        console.warn('PatientService.getAll() did not return an array in response.data. Response:', response);
+        setPatients([]); // Default to an empty array
+      }
     } catch (error) {
       console.error('Error loading patients:', error);
+      setPatients([]); // Ensure patients is an array on error
       if (error.response?.status === 401) {
         dispatch(logout());
       }
@@ -60,9 +66,15 @@ const App = () => {
     setSearchQuery(query);
     try {
       const response = await patientService.search(query);
-      setPatients(response.data);
+      if (response && response.data && Array.isArray(response.data)) {
+        setPatients(response.data);
+      } else {
+        console.warn('PatientService.search() did not return an array in response.data. Response:', response);
+        setPatients([]); // Default to an empty array
+      }
     } catch (error) {
       console.error('Error searching patients:', error);
+      setPatients([]); // Ensure patients is an array on error
     }
   };
 
