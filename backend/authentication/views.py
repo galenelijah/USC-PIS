@@ -247,21 +247,20 @@ def logout_user(request):
 @permission_classes([IsAuthenticated])
 def database_health_check(request):
     try:
-        # Check database connection
         with connection.cursor() as cursor:
-            # Get table counts, column counts, and approximate row counts (PostgreSQL specific)
-            # Join information_schema.tables with pg_class to get reltuples
+            # Get table counts, column counts, and approximate row counts
+            # Use GREATEST(0, pc.reltuples) to show 0 instead of -1 if table not analyzed
             cursor.execute("""
                 SELECT
                     t.table_name,
                     COUNT(c.column_name) AS column_count,
-                    pc.reltuples::bigint AS approximate_row_count
+                    GREATEST(0, pc.reltuples)::bigint AS approximate_row_count
                 FROM information_schema.tables t
                 LEFT JOIN information_schema.columns c ON t.table_name = c.table_name AND t.table_schema = c.table_schema
                 LEFT JOIN pg_class pc ON pc.relname = t.table_name AND pc.relnamespace = (
                     SELECT oid FROM pg_namespace WHERE nspname = t.table_schema
                 )
-                WHERE t.table_schema = 'public'  -- Adjust schema if needed, e.g., current_schema()
+                WHERE t.table_schema = 'public'
                 GROUP BY t.table_name, pc.reltuples
                 ORDER BY t.table_name;
             """)
@@ -282,11 +281,10 @@ def database_health_check(request):
                 'tables': [{
                     'name': table[0],
                     'columns': table[1],
-                    'rows': table[2] # This now holds the approximate row count
+                    'rows': table[2]
                 } for table in tables]
             })
     except Exception as e:
-        # Log the full traceback for better debugging
         logger.error(f"Database health check failed: {str(e)}\n{traceback.format_exc()}") 
         return JsonResponse({
             'status': 'unhealthy',
