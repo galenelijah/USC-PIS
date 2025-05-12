@@ -1,225 +1,223 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { authService } from '../../services/api';
 
-// --- Async Thunk for Login ---
+// Consistent token key
+const TOKEN_KEY = 'Token';
+const USER_KEY = 'user';
+
+// Helper functions for localStorage
+const saveToken = (token) => {
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token);
+  } else {
+    localStorage.removeItem(TOKEN_KEY);
+  }
+};
+
+const saveUser = (user) => {
+  if (user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+  } else {
+    localStorage.removeItem(USER_KEY);
+  }
+};
+
+// Load initial state from localStorage
+const loadInitialState = () => {
+  try {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const userStr = localStorage.getItem(USER_KEY);
+    const user = userStr ? JSON.parse(userStr) : null;
+    
+    return {
+      token: token || null,
+      user: user || null,
+      isAuthenticated: !!token,
+      status: 'idle',
+      error: null
+    };
+  } catch (error) {
+    console.error('Error loading auth state from localStorage:', error);
+    return {
+      token: null,
+      user: null,
+      isAuthenticated: false,
+      status: 'idle',
+      error: null
+    };
+  }
+};
+
+// Create async thunks
+export const registerUser = createAsyncThunk(
+  'auth/register',
+  async (userData, { rejectWithValue }) => {
+    try {
+      const response = await authService.register(userData);
+      return response.data;
+    } catch (error) {
+      console.error('Registration error:', error);
+      return rejectWithValue(
+        error.response?.data?.detail || 
+        error.response?.data?.non_field_errors?.[0] || 
+        error.message || 
+        'Registration failed'
+      );
+    }
+  }
+);
+
 export const loginUser = createAsyncThunk(
-  'auth/loginUser',
+  'auth/login',
   async (credentials, { rejectWithValue }) => {
     try {
       const response = await authService.login(credentials);
-      return { 
-        token: response.data.token, 
-        user: {
-            id: response.data.user_id,
-            email: response.data.email,
-            role: response.data.role,
-            completeSetup: response.data.completeSetup
-        }
-      };
-    } catch (error) {
-      const errorData = error.response?.data?.detail || error.message || 'Login failed';
-      return rejectWithValue(errorData);
-    }
-  }
-);
-
-// --- Async Thunk for Registration ---
-export const registerUser = createAsyncThunk(
-  'auth/registerUser',
-  async (userData, { rejectWithValue }) => {
-    // userData contains all fields from the registration form
-    try {
-      const response = await authService.register(userData);
-      
-      // Check if response exists and has data property
-      if (!response || !response.data) {
-        return rejectWithValue('Server returned an invalid response');
-      }
-      
-      // Return the data from the response
       return response.data;
     } catch (error) {
-      // Handle validation errors (400) or other errors (500)
-      let errorData;
-      
-      if (error.response?.data) {
-        errorData = error.response.data;
-      } else if (error.message) {
-        errorData = { detail: error.message };
-      } else {
-        errorData = { detail: 'Registration failed' };
-      }
-      
-      return rejectWithValue(errorData);
+      console.error('Login error:', error);
+      return rejectWithValue(
+        error.response?.data?.detail || 
+        error.response?.data?.non_field_errors?.[0] || 
+        error.message || 
+        'Login failed'
+      );
     }
   }
 );
 
-// --- Async Thunk for Logout ---
 export const logoutUser = createAsyncThunk(
-  'auth/logoutUser',
+  'auth/logout',
   async (_, { rejectWithValue }) => {
-    // No arguments needed, token is sent via interceptor
     try {
       await authService.logout();
-      // No data needed on success, the reducer handles state clearing
-      return; 
+      return true;
     } catch (error) {
-      // Even if backend logout fails, we still clear frontend state.
-      // Log the error, but don't necessarily block logout.
-      const errorData = error.response?.data?.detail || error.message || 'Logout failed on server';
-      return rejectWithValue(errorData);
+      console.error('Logout error:', error);
+      return rejectWithValue(error.message || 'Logout failed');
     }
   }
 );
 
-// Attempt to load initial state from localStorage
-const loadInitialState = () => {
-  try {
-    const token = localStorage.getItem('token');
-    const user = JSON.parse(localStorage.getItem('user')); // Basic user info
-    if (token && user) {
-      return {
-        user: user,
-        token: token,
-        isAuthenticated: true,
-        status: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
-        error: null,
-      };
+export const getProfile = createAsyncThunk(
+  'auth/getProfile',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await authService.getProfile();
+      return response.data;
+    } catch (error) {
+      console.error('Get profile error:', error);
+      return rejectWithValue(error.message || 'Failed to get profile');
     }
-  } catch (e) {
-    // Fall through to default initial state
   }
-  return {
-    user: null,
-    token: null,
-    isAuthenticated: false,
-    status: 'idle',
-    error: null,
-  };
-};
+);
 
-const initialState = loadInitialState();
-
+// Create the auth slice
 const authSlice = createSlice({
-  name: 'auth',
-  initialState,
+  name: 'authentication',
+  initialState: loadInitialState(),
   reducers: {
-    setCredentials(state, action) {
-      const { user, token } = action.payload;
-      state.user = user;
-      state.token = token;
-      state.isAuthenticated = true;
-      state.status = 'succeeded';
+    resetAuthStatus: (state) => {
+      state.status = 'idle';
       state.error = null;
-      // Persist basic info to localStorage
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user)); // Store basic user info
     },
-    logout(state) {
-      state.user = null;
+    logout: (state) => {
       state.token = null;
+      state.user = null;
       state.isAuthenticated = false;
       state.status = 'idle';
       state.error = null;
-      // Clear from localStorage
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      
+      // Clear localStorage
+      saveToken(null);
+      saveUser(null);
     },
-    // Reducer for pending state (can be used by async thunks)
-    setLoading(state) {
-      state.status = 'loading';
-    },
-    // Reducer for error state (can be used by async thunks)
-    setError(state, action) {
-      state.status = 'failed';
-      state.error = action.payload;
-    },
-    resetAuthStatus(state) {
-        state.status = 'idle';
-        state.error = null;
+    updateUser: (state, action) => {
+      state.user = { ...state.user, ...action.payload };
+      saveUser(state.user);
     }
   },
-  // Handle actions dispatched by the async thunk
   extraReducers: (builder) => {
     builder
+      // Register cases
+      .addCase(registerUser.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(registerUser.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.token = action.payload.token;
+        state.user = action.payload.user;
+        state.isAuthenticated = true;
+        
+        // Save to localStorage
+        saveToken(action.payload.token);
+        saveUser(action.payload.user);
+      })
+      .addCase(registerUser.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload || 'Registration failed';
+        state.token = null;
+        state.user = null;
+        state.isAuthenticated = false;
+        
+        // Clear localStorage
+        saveToken(null);
+        saveUser(null);
+      })
+      
+      // Login cases
       .addCase(loginUser.pending, (state) => {
         state.status = 'loading';
         state.error = null;
       })
       .addCase(loginUser.fulfilled, (state, action) => {
-        const { user, token } = action.payload;
-        state.user = user;
-        state.token = token;
-        state.isAuthenticated = true;
         state.status = 'succeeded';
-        state.error = null;
-        // Persist to localStorage (could also be done in fulfilled action)
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
+        state.token = action.payload.token;
+        state.user = action.payload.user;
+        state.isAuthenticated = true;
+        
+        // Save to localStorage
+        saveToken(action.payload.token);
+        saveUser(action.payload.user);
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.status = 'failed';
-        state.error = action.payload;
-        state.user = null;
+        state.error = action.payload || 'Login failed';
         state.token = null;
+        state.user = null;
         state.isAuthenticated = false;
-        // Clear localStorage on failed login attempt?
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        
+        // Clear localStorage
+        saveToken(null);
+        saveUser(null);
       })
-      // Handle logout thunk lifecycle (optional, as main logic is sync)
-      .addCase(logoutUser.pending, (state) => {
-          // Optionally set status to loading during backend call
-          // state.status = 'loading'; 
-      })
+      
+      // Logout cases
       .addCase(logoutUser.fulfilled, (state) => {
-          // Clear state using the existing logout reducer logic
-          // Note: Calling reducers directly isn't standard, 
-          // better to duplicate the logic or rely on component dispatching sync logout
-          state.user = null;
-          state.token = null;
-          state.isAuthenticated = false;
-          state.status = 'idle';
-          state.error = null;
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
+        state.token = null;
+        state.user = null;
+        state.isAuthenticated = false;
+        
+        // Clear localStorage
+        saveToken(null);
+        saveUser(null);
       })
-      .addCase(logoutUser.rejected, (state, action) => {
-          // Still log out frontend even if backend call fails
-          state.user = null;
-          state.token = null;
-          state.isAuthenticated = false;
-          state.status = 'idle'; // Or 'failed' depending on desired UX
-          state.error = action.payload; // Store backend error if needed
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-      })
-      // Registration cases
-      .addCase(registerUser.pending, (state) => {
-          state.status = 'loading';
-          state.error = null;
-      })
-      .addCase(registerUser.fulfilled, (state, action) => {
-          state.status = 'succeeded'; // Indicate success, but don't log in
-          state.error = null;
-          // We don't update user or token here as the user needs to login separately
-      })
-      .addCase(registerUser.rejected, (state, action) => {
-          state.status = 'failed';
-          // Safely store error data
-          state.error = action.payload || 'Registration failed';
+      
+      // Get profile cases
+      .addCase(getProfile.fulfilled, (state, action) => {
+        state.user = action.payload;
+        saveUser(action.payload);
       });
-  },
+  }
 });
 
-export const { setCredentials, logout, setLoading, setError, resetAuthStatus } = authSlice.actions;
+// Export actions and selectors
+export const { resetAuthStatus, logout, updateUser: setCredentials } = authSlice.actions;
 
-// Selectors
 export const selectCurrentUser = (state) => state.auth.user;
 export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
-export const selectAuthToken = (state) => state.auth.token;
 export const selectAuthStatus = (state) => state.auth.status;
 export const selectAuthError = (state) => state.auth.error;
+export const selectAuthToken = (state) => state.auth.token;
 
 export default authSlice.reducer; 

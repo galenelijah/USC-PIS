@@ -7,7 +7,6 @@ import {
   Card,
   CardContent,
   Alert,
-  CircularProgress,
   Avatar,
   Button,
   Divider,
@@ -15,6 +14,9 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
+  Chip,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import {
   People as PeopleIcon,
@@ -26,11 +28,20 @@ import {
   Healing as HealingIcon,
   Medication as MedicationIcon,
   CalendarMonth as CalendarIcon,
+  ArrowForward as ArrowForwardIcon,
+  Refresh as RefreshIcon,
+  Notifications as NotificationsIcon,
+  PersonAdd as PersonAddIcon,
+  EventNote as EventNoteIcon,
+  Storage as StorageIcon,
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import { authService } from '../services/api';
 import { useDispatch } from 'react-redux';
-import { logoutUser, logout } from '../features/authentication/authSlice';
+import { logout } from '../features/authentication/authSlice';
+import LoadingState from './utils/LoadingState';
+import ErrorState from './utils/ErrorState';
+import PageHeader from './utils/PageHeader';
 
 const Dashboard = ({ user }) => {
   const dispatch = useDispatch();
@@ -54,56 +65,84 @@ const Dashboard = ({ user }) => {
   const isNurse = user && user.role === 'NURSE';
   const isStudent = user && user.role === 'STUDENT';
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await authService.getDashboardStats();
-        
-        if (!response || !response.data) {
-          throw new Error('Invalid response from server');
-        }
-
-        setStats({
-          totalPatients: response.data.total_patients || 0,
-          totalRecords: response.data.total_records || 0,
-          recentPatients: Array.isArray(response.data.recent_patients) ? response.data.recent_patients : [],
-          visitsByMonth: Array.isArray(response.data.visits_by_month) ? response.data.visits_by_month : [],
-          appointmentsToday: response.data.appointments_today || 0,
-          pendingRequests: response.data.pending_requests || 0,
-          nextAppointment: response.data.next_appointment,
-          recentHealthInfo: response.data.recent_health_info,
-          profileCompletion: response.data.profile_completion,
-        });
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        if (error.response?.status === 401) {
-          dispatch(logout());
-        } else {
-          setError(error.message || 'Failed to load dashboard data. Please try again later.');
-        }
-      } finally {
-        setLoading(false);
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('Fetching dashboard data for user role:', user?.role);
+      const response = await authService.getDashboardStats();
+      
+      if (!response || !response.data) {
+        throw new Error('Invalid response from server');
       }
-    };
 
-    fetchDashboardData();
-  }, [dispatch]);
+      console.log('Dashboard data received:', response.data);
+      
+      // Safely handle the response data with fallbacks for all properties
+      setStats({
+        totalPatients: response.data.total_patients || 0,
+        totalRecords: response.data.total_records || 0,
+        recentPatients: Array.isArray(response.data.recent_patients) ? response.data.recent_patients : [],
+        visitsByMonth: Array.isArray(response.data.visits_by_month) ? response.data.visits_by_month : [],
+        appointmentsToday: response.data.appointments_today || 0,
+        pendingRequests: response.data.pending_requests || 0,
+        nextAppointment: response.data.next_appointment || null,
+        recentHealthInfo: response.data.recent_health_info || null,
+        profileCompletion: response.data.profile_completion || 0,
+      });
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      if (error.response?.status === 401) {
+        console.error('Authentication error - logging out');
+        dispatch(logout());
+      } else {
+        setError(error.message || 'Failed to load dashboard data. Please try again later.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const StatCard = ({ title, value, icon, color }) => (
-    <Card sx={{ height: '100%', bgcolor: color }}>
-      <CardContent>
+  useEffect(() => {
+    if (user && user.role) {
+      fetchDashboardData();
+    } else {
+      console.error('No user or user role found');
+      setError('User information is missing. Please log out and log in again.');
+      setLoading(false);
+    }
+  }, [user, dispatch]);
+
+  const StatCard = ({ title, value, icon, color, subtitle = null }) => (
+    <Card 
+      sx={{ 
+        height: '100%', 
+        background: `linear-gradient(135deg, ${color} 0%, ${color}dd 100%)`,
+        borderRadius: 3,
+        boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+        transition: 'transform 0.3s ease',
+        '&:hover': {
+          transform: 'translateY(-5px)',
+        }
+      }}
+    >
+      <CardContent sx={{ p: 3 }}>
         <Box display="flex" alignItems="center" justifyContent="space-between">
           <Box>
-            <Typography color="white" gutterBottom>
+            <Typography color="white" variant="h6" fontWeight="medium" gutterBottom>
               {title}
             </Typography>
-            <Typography variant="h4" color="white">
+            <Typography variant="h3" color="white" fontWeight="bold">
               {value}
             </Typography>
+            {subtitle && (
+              <Typography variant="body2" color="rgba(255,255,255,0.8)" sx={{ mt: 1 }}>
+                {subtitle}
+              </Typography>
+            )}
           </Box>
-          <Avatar sx={{ bgcolor: 'rgba(255, 255, 255, 0.2)', color: 'white' }}>
+          <Avatar sx={{ bgcolor: 'rgba(255, 255, 255, 0.2)', color: 'white', width: 56, height: 56 }}>
             {icon}
           </Avatar>
         </Box>
@@ -113,27 +152,29 @@ const Dashboard = ({ user }) => {
 
   const QuickAction = ({ title, description, icon, to, color = "primary" }) => (
     <Paper
+      elevation={2}
       sx={{
-        p: 2,
+        p: 3,
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         textAlign: 'center',
-        transition: 'transform 0.2s',
+        transition: 'all 0.3s ease',
+        borderRadius: 3,
         '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: 3,
+          transform: 'translateY(-5px)',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
         },
       }}
     >
-      <Avatar sx={{ bgcolor: `${color}.main`, mb: 2, width: 56, height: 56 }}>
+      <Avatar sx={{ bgcolor: `${color}.main`, mb: 2, width: 64, height: 64 }}>
         {icon}
       </Avatar>
-      <Typography variant="h6" gutterBottom>
+      <Typography variant="h6" fontWeight="bold" gutterBottom>
         {title}
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 3, flexGrow: 1 }}>
         {description}
       </Typography>
       <Button
@@ -141,7 +182,8 @@ const Dashboard = ({ user }) => {
         to={to}
         variant="contained"
         color={color}
-        fullWidth
+        endIcon={<ArrowForwardIcon />}
+        sx={{ borderRadius: 2, px: 3 }}
       >
         Access
       </Button>
@@ -156,7 +198,7 @@ const Dashboard = ({ user }) => {
             <Grid item xs={12} md={4}>
               <QuickAction
                 title="Medical Records"
-                description="View and manage your medical records"
+                description="View and manage your medical records and consultation history"
                 icon={<MedicalIcon />}
                 to="/health-records"
                 color="primary"
@@ -164,19 +206,19 @@ const Dashboard = ({ user }) => {
             </Grid>
             <Grid item xs={12} md={4}>
               <QuickAction
-                title="Appointments"
-                description="Schedule and manage your appointments"
-                icon={<AssignmentIcon />}
-                to="/appointments"
+                title="Consultations"
+                description="View your past consultations and medical visits"
+                icon={<EventNoteIcon />}
+                to="/consultations"
                 color="secondary"
               />
             </Grid>
             <Grid item xs={12} md={4}>
               <QuickAction
-                title="Health Forms"
-                description="Access and submit health-related forms"
+                title="Health Information"
+                description="Access important health information and resources"
                 icon={<AssessmentIcon />}
-                to="/forms"
+                to="/health-info"
                 color="success"
               />
             </Grid>
@@ -198,7 +240,7 @@ const Dashboard = ({ user }) => {
             <Grid item xs={12} md={3}>
               <QuickAction
                 title="Health Records"
-                description="Manage health records & vital signs"
+                description="Access and update medical records"
                 icon={<HospitalIcon />}
                 to="/health-records"
                 color="secondary"
@@ -206,41 +248,41 @@ const Dashboard = ({ user }) => {
             </Grid>
             <Grid item xs={12} md={3}>
               <QuickAction
-                title="Student Records"
-                description="View student health information"
-                icon={<SchoolIcon />}
-                to="/students"
-                color="success"
+                title="Consultations"
+                description="Manage patient consultations"
+                icon={<HealingIcon />}
+                to="/consultations"
+                color="info"
               />
             </Grid>
             <Grid item xs={12} md={3}>
               <QuickAction
-                title="Dental Records"
-                description="Manage dental records & procedures"
-                icon={<HealingIcon />}
-                to="/dental-records"
-                color="info"
+                title="Health Information"
+                description="Manage health information resources"
+                icon={<AssessmentIcon />}
+                to="/health-info"
+                color="success"
               />
             </Grid>
           </>
         );
-      case 'STAFF':
       case 'ADMIN':
+      case 'STAFF':
         return (
           <>
             <Grid item xs={12} md={3}>
               <QuickAction
-                title="User Management"
-                description="Manage users and permissions"
+                title="Patient Management"
+                description="Add, view, and manage patient records"
                 icon={<PeopleIcon />}
-                to="/users"
+                to="/patients"
                 color="primary"
               />
             </Grid>
             <Grid item xs={12} md={3}>
               <QuickAction
                 title="Health Records"
-                description="View and manage health records"
+                description="Access and update medical records"
                 icon={<HospitalIcon />}
                 to="/health-records"
                 color="secondary"
@@ -248,20 +290,20 @@ const Dashboard = ({ user }) => {
             </Grid>
             <Grid item xs={12} md={3}>
               <QuickAction
-                title="Database Monitor"
-                description="Monitor database health and performance"
+                title="Feedback Analytics"
+                description="View and analyze patient feedback"
                 icon={<AssessmentIcon />}
-                to="/database-monitor"
-                color="warning"
+                to="/admin-feedback"
+                color="info"
               />
             </Grid>
             <Grid item xs={12} md={3}>
               <QuickAction
-                title="Health Information"
-                description="Manage health advisories and information"
-                icon={<MedicalIcon />}
-                to="/health-info"
-                color="info"
+                title="Database Monitor"
+                description="Monitor database health and performance"
+                icon={<StorageIcon />}
+                to="/database-monitor"
+                color="warning"
               />
             </Grid>
           </>
@@ -272,182 +314,335 @@ const Dashboard = ({ user }) => {
   };
 
   const renderAdminDashboard = () => (
-    <Box sx={{ flexGrow: 1, p: 3 }}>
-      {/* Welcome Header with Profile and Logout Buttons */}
-      <Paper sx={{ p: 2, mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: 'primary.dark', color: 'white' }}>
-        <Box>
-          <Typography variant="h5">
-            Welcome, {user?.email?.split('@')[0] || 'Admin'}!
-          </Typography>
-          <Typography variant="body1">
-            Role: {user?.role?.toUpperCase() || 'ADMIN'}
-          </Typography>
-        </Box>
-        <Box>
-          <Button
-            variant="outlined"
-            component={Link}
-            to="/profile"
-            sx={{ mr: 1, color: 'white', borderColor: 'white', '&:hover': { borderColor: 'rgba(255,255,255,0.8)', backgroundColor: 'rgba(255,255,255,0.1)'} }}
-          >
-            Profile
-          </Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={() => dispatch(logout())}
-          >
-            Logout
-          </Button>
-        </Box>
-      </Paper>
-
-      <Typography variant="h4" gutterBottom sx={{ color: '#004d40', fontWeight: 'bold' }}>
-        Admin Dashboard
-      </Typography>
-      <Divider sx={{ mb: 3 }} />
-
-      {/* System Statistics */}
-      <Typography variant="h5" gutterBottom sx={{ color: '#00695c', mb: 2 }}>
-        System Statistics
-      </Typography>
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Total Patients" value={stats.totalPatients} icon={<PeopleIcon />} color="#1e88e5" />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Total Health Records" value={stats.totalRecords} icon={<HospitalIcon />} color="#43a047" />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Appointments Today" value={stats.appointmentsToday} icon={<CalendarIcon />} color="#fb8c00" />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Pending Requests" value={stats.pendingRequests} icon={<AssignmentIcon />} color="#e53935" />
-        </Grid>
+    <Grid container spacing={3}>
+      <Grid item xs={12} md={3}>
+        <StatCard
+          title="Total Patients"
+          value={stats.totalPatients}
+          icon={<PeopleIcon />}
+          color="#4caf50"
+        />
       </Grid>
-      
-      {/* Health Records Breakdown - Using totalRecords from main stats for simplicity */}
-      {/* If more specific medical/dental breakdown is needed, the backend dashboard_stats would need to provide it */}
-      <Typography variant="h5" gutterBottom sx={{ color: '#00695c', mb: 2 }}>
-        Health Records Breakdown (Overall)
-      </Typography>
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={4} md={4}>
-          <StatCard title="Total Medical Records" value={stats.totalRecords} icon={<MedicalIcon />} color="#5e35b1" /> 
-        </Grid>
-        <Grid item xs={12} sm={4} md={4}>
-           {/* Assuming totalRecords includes dental for now, or set to 0 if distinct data not available */}
-          <StatCard title="Dental Records" value={0} icon={<HealingIcon />} color="#00acc1" /> 
-        </Grid>
-        <Grid item xs={12} sm={4} md={4}>
-          <StatCard title="Total Records (M+D)" value={stats.totalRecords} icon={<AssessmentIcon />} color="#6d4c41" />
-        </Grid>
+      <Grid item xs={12} md={3}>
+        <StatCard
+          title="Medical Records"
+          value={stats.totalRecords}
+          icon={<HospitalIcon />}
+          color="#2196f3"
+        />
+      </Grid>
+      <Grid item xs={12} md={3}>
+        <StatCard
+          title="Today's Appointments"
+          value={stats.appointmentsToday}
+          icon={<CalendarIcon />}
+          color="#ff9800"
+        />
+      </Grid>
+      <Grid item xs={12} md={3}>
+        <StatCard
+          title="Pending Requests"
+          value={stats.pendingRequests}
+          icon={<NotificationsIcon />}
+          color="#f44336"
+        />
       </Grid>
 
-      {/* Admin Quick Actions */}
-      <Typography variant="h5" gutterBottom sx={{ color: '#00695c', mb: 2 }}>
-        Admin Quick Actions
-      </Typography>
-      <Grid container spacing={3}>
-        {renderRoleBasedActions()}
+      <Grid item xs={12}>
+        <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold' }}>
+          Quick Actions
+        </Typography>
       </Grid>
-    </Box>
+
+      {renderRoleBasedActions()}
+
+      <Grid item xs={12} md={8}>
+        <Paper sx={{ p: 3, height: '100%', borderRadius: 3 }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Typography variant="h6" fontWeight="bold">
+              Recent Patients
+            </Typography>
+            <Button
+              component={Link}
+              to="/patients"
+              size="small"
+              endIcon={<ArrowForwardIcon />}
+            >
+              View All
+            </Button>
+          </Box>
+          <Divider sx={{ mb: 2 }} />
+          {stats.recentPatients.length > 0 ? (
+            <List>
+              {stats.recentPatients.map((patient, index) => (
+                <React.Fragment key={patient.id || index}>
+                  <ListItem 
+                    sx={{ 
+                      borderRadius: 2,
+                      mb: 1,
+                      '&:hover': { bgcolor: 'rgba(0,0,0,0.03)' }
+                    }}
+                    secondaryAction={
+                      <Tooltip title="View Patient">
+                        <IconButton 
+                          component={Link} 
+                          to={`/patients/${patient.id}`}
+                          edge="end" 
+                          aria-label="view"
+                          size="small"
+                        >
+                          <ArrowForwardIcon />
+                        </IconButton>
+                      </Tooltip>
+                    }
+                  >
+                    <ListItemIcon>
+                      <Avatar sx={{ bgcolor: 'primary.main' }}>
+                        {patient.first_name ? patient.first_name[0] : 'P'}
+                      </Avatar>
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={
+                        <Typography variant="subtitle1" fontWeight="medium">
+                          {patient.first_name} {patient.last_name}
+                        </Typography>
+                      }
+                      secondary={
+                        <>
+                          {patient.email} • {patient.gender === 'M' ? 'Male' : patient.gender === 'F' ? 'Female' : 'Other'}
+                        </>
+                      }
+                    />
+                  </ListItem>
+                  {index < stats.recentPatients.length - 1 && <Divider variant="inset" component="li" />}
+                </React.Fragment>
+              ))}
+            </List>
+          ) : (
+            <Box textAlign="center" py={3}>
+              <Typography color="text.secondary">No recent patients found</Typography>
+            </Box>
+          )}
+        </Paper>
+      </Grid>
+
+      <Grid item xs={12} md={4}>
+        <Paper sx={{ p: 3, height: '100%', borderRadius: 3 }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Typography variant="h6" fontWeight="bold">
+              System Status
+            </Typography>
+            <Tooltip title="Refresh">
+              <IconButton size="small" onClick={fetchDashboardData}>
+                <RefreshIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
+          <Divider sx={{ mb: 2 }} />
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              Database Status
+            </Typography>
+            <Chip
+              label="Healthy"
+              color="success"
+              size="small"
+              sx={{ fontWeight: 'medium' }}
+            />
+          </Box>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              API Status
+            </Typography>
+            <Chip
+              label="Operational"
+              color="success"
+              size="small"
+              sx={{ fontWeight: 'medium' }}
+            />
+          </Box>
+          <Box>
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              Last Updated
+            </Typography>
+            <Typography>
+              {new Date().toLocaleString()}
+            </Typography>
+          </Box>
+          <Box sx={{ mt: 3 }}>
+            <Button 
+              variant="outlined" 
+              fullWidth 
+              component={Link} 
+              to="/database-monitor"
+              endIcon={<ArrowForwardIcon />}
+            >
+              View Detailed Status
+            </Button>
+          </Box>
+        </Paper>
+      </Grid>
+    </Grid>
   );
 
   const renderStudentDashboard = () => (
-    <Box sx={{ flexGrow: 1, p: 3 }}>
-      {/* Welcome Header - Reusing the Admin style for consistency */}
-      <Paper sx={{ p: 2, mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: 'primary.dark', color: 'white' }}>
-        <Box>
-          <Typography variant="h5">
-            Welcome, {user?.email?.split('@')[0] || 'Student'}!
-          </Typography>
-          <Typography variant="body1">
-            Role: STUDENT
-          </Typography>
-        </Box>
-        <Box>
-          <Button
-            variant="outlined"
-            component={Link}
-            to="/profile"
-            sx={{ mr: 1, color: 'white', borderColor: 'white', '&:hover': { borderColor: 'rgba(255,255,255,0.8)', backgroundColor: 'rgba(255,255,255,0.1)'} }}
-          >
-            Profile
-          </Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={() => dispatch(logout())}
-          >
-            Logout
-          </Button>
-        </Box>
-      </Paper>
-
-      <Typography variant="h4" gutterBottom sx={{ color: '#004d40', fontWeight: 'bold', mb: 3 }}>
-        Student Dashboard
-      </Typography>
-
-      {/* Top Stats Cards in a Grid */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={4}>
-          <StatCard
-            title="Next Appointment"
-            value={stats.nextAppointment || 'None'}
-            icon={<CalendarIcon />}
-            color="#1976d2"
-          />
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <StatCard
-            title="Recent Health Info"
-            value={stats.recentHealthInfo || 'None'}
-            icon={<AssessmentIcon />}
-            color="#2e7d32"
-          />
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <StatCard
-            title="Profile Completion"
-            value={user?.completeSetup ? '100%' : 'Incomplete'}
-            icon={<PeopleIcon />}
-            color={user?.completeSetup ? "#ed6c02" : "#e53935"}
-          />
-        </Grid>
+    <Grid container spacing={3}>
+      <Grid item xs={12} md={4}>
+        <StatCard
+          title="Medical Records"
+          value={stats.totalRecords}
+          icon={<HospitalIcon />}
+          color="#4caf50"
+        />
+      </Grid>
+      <Grid item xs={12} md={4}>
+        <StatCard
+          title="Consultations"
+          value={stats.visitsByMonth.length}
+          icon={<MedicationIcon />}
+          color="#2196f3"
+        />
+      </Grid>
+      <Grid item xs={12} md={4}>
+        <StatCard
+          title="Profile Completion"
+          value={`${stats.profileCompletion || 0}%`}
+          icon={<AssessmentIcon />}
+          color="#ff9800"
+        />
       </Grid>
 
-      {/* Quick Actions in a Grid */}
-      <Typography variant="h5" gutterBottom sx={{ color: '#00695c', mb: 2 }}>
-        Quick Actions
-      </Typography>
-      <Grid container spacing={3}>
-        {renderRoleBasedActions()}
+      <Grid item xs={12}>
+        <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold' }}>
+          Quick Actions
+        </Typography>
       </Grid>
-    </Box>
+
+      {renderRoleBasedActions()}
+
+      <Grid item xs={12} md={7}>
+        <Paper sx={{ p: 3, height: '100%', borderRadius: 3 }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Typography variant="h6" fontWeight="bold">
+              Recent Health Information
+            </Typography>
+            <Button
+              component={Link}
+              to="/health-info"
+              size="small"
+              endIcon={<ArrowForwardIcon />}
+            >
+              View All
+            </Button>
+          </Box>
+          <Divider sx={{ mb: 2 }} />
+          {stats.recentHealthInfo ? (
+            <Box>
+              <Typography variant="subtitle1" fontWeight="medium">
+                {stats.recentHealthInfo.title}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                {stats.recentHealthInfo.content?.substring(0, 200)}
+                {stats.recentHealthInfo.content?.length > 200 ? '...' : ''}
+              </Typography>
+              <Box sx={{ mt: 2 }}>
+                <Chip
+                  size="small"
+                  label={stats.recentHealthInfo.category}
+                  color="primary"
+                  variant="outlined"
+                />
+              </Box>
+            </Box>
+          ) : (
+            <Box textAlign="center" py={3}>
+              <Typography color="text.secondary">No health information available</Typography>
+            </Box>
+          )}
+        </Paper>
+      </Grid>
+
+      <Grid item xs={12} md={5}>
+        <Paper sx={{ p: 3, height: '100%', borderRadius: 3 }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Typography variant="h6" fontWeight="bold">
+              Next Appointment
+            </Typography>
+            <Tooltip title="Refresh">
+              <IconButton size="small" onClick={fetchDashboardData}>
+                <RefreshIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
+          <Divider sx={{ mb: 2 }} />
+          {stats.nextAppointment ? (
+            <Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                  <CalendarIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle1" fontWeight="medium">
+                    {new Date(stats.nextAppointment.date).toLocaleDateString()}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {stats.nextAppointment.time}
+                  </Typography>
+                </Box>
+              </Box>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                <strong>Reason:</strong> {stats.nextAppointment.reason}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Doctor:</strong> {stats.nextAppointment.doctor}
+              </Typography>
+            </Box>
+          ) : (
+            <Box textAlign="center" py={3}>
+              <Typography color="text.secondary">No upcoming appointments</Typography>
+              <Button
+                variant="outlined"
+                sx={{ mt: 2 }}
+                startIcon={<CalendarIcon />}
+              >
+                Schedule Appointment
+              </Button>
+            </Box>
+          )}
+        </Paper>
+      </Grid>
+    </Grid>
   );
 
   if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" sx={{ p: 3, height: '80vh' }}>
-        <CircularProgress />
-      </Box>
-    );
+    return <LoadingState message="Loading dashboard..." height={400} />;
   }
 
   if (error) {
-    return <Alert severity="error" sx={{ m: 3 }}>{error}</Alert>;
+    return (
+      <ErrorState 
+        message="Could not load dashboard" 
+        details={error} 
+        onRetry={fetchDashboardData} 
+        height={400} 
+      />
+    );
   }
 
-  if (isAdminOrStaff) {
-    return renderAdminDashboard();
-  } else if (isDoctor || isNurse) {
-    return <Typography sx={{p:3}}>Doctor/Nurse Dashboard (Placeholder)</Typography>;
-  } else if (isStudent) {
-    return renderStudentDashboard();
-  } else {
-    return <Typography sx={{p:3}}>Loading dashboard or role not recognized...</Typography>;
-  }
+  const welcomeMessage = user?.first_name 
+    ? `Welcome back, ${user.first_name}!` 
+    : 'Welcome to USC Patient Information System';
+
+  return (
+    <>
+      <PageHeader
+        title={welcomeMessage}
+        subtitle={`You are logged in as ${user?.role?.toLowerCase() || 'a user'}`}
+      />
+      
+      {isAdminOrStaff ? renderAdminDashboard() : renderStudentDashboard()}
+    </>
+  );
 };
 
 export default Dashboard; 

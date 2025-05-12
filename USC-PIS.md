@@ -233,6 +233,34 @@ USC-PIS/
 - **Authentication State:** The application implements a hybrid approach to authentication state management, with both Redux and localStorage backup to ensure stable user recognition across refreshes.
 - **Patient Profile Linking:** Patient profiles are automatically created for student users, either during registration or on-demand when accessing patient-specific features.
 
+## UI/UX Improvements
+
+The USC Patient Information System has undergone significant UI/UX improvements to enhance user experience and visual appeal:
+
+### Global UI Enhancements
+- **Modern Theme**: Updated color palette with improved contrast and accessibility
+- **Consistent Typography**: Enhanced typography system with better readability and hierarchy
+- **Improved Shadows and Elevation**: Modern shadow system for better depth perception
+- **Responsive Design**: All components are fully responsive across different device sizes
+- **Animations and Transitions**: Subtle animations for better user feedback and engagement
+
+### Component Improvements
+- **Sidebar**: Enhanced with user avatar, role display, and better organization of navigation items
+- **Header**: Improved search functionality, user profile dropdown, and notification system
+- **Dashboard**: Redesigned with modern stat cards, quick actions, and better data visualization
+- **Login Page**: Complete redesign with split-panel layout, improved form validation, and better error handling
+- **Loading States**: Consistent loading indicators throughout the application
+- **Error States**: Standardized error handling with clear messages and recovery options
+- **Empty States**: Informative empty state displays when no data is available
+
+### New Utility Components
+- **PageHeader**: Consistent page headers with breadcrumbs, actions, and descriptions
+- **LoadingState**: Reusable loading component with customizable appearance
+- **ErrorState**: Standardized error display with retry functionality
+- **EmptyState**: Consistent empty state display with optional actions
+
+These improvements create a more cohesive, intuitive, and visually appealing user interface that enhances the overall user experience of the USC Patient Information System.
+
 ---
 
 For more details, see `USER_GUIDE.md`, `CONTRIBUTING.md`, and other documentation files. 

@@ -1,5 +1,19 @@
 import axios from 'axios';
 
+// Consistent token key
+const TOKEN_KEY = 'Token';
+const USER_KEY = 'user';
+
+// Helper functions for token handling
+const getToken = () => localStorage.getItem(TOKEN_KEY);
+const saveToken = (token) => {
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token);
+  } else {
+    localStorage.removeItem(TOKEN_KEY);
+  }
+};
+
 const api = axios.create({
   baseURL: '/api', // Always use relative path!
   headers: {
@@ -12,7 +26,8 @@ const api = axios.create({
 // Add request interceptor for debugging
 api.interceptors.request.use(request => {
   console.log('Starting Request:', request);
-  const token = localStorage.getItem('token');
+  // Use consistent token name - 'Token' instead of 'token'
+  const token = getToken();
   if (token) {
     request.headers.Authorization = `Token ${token}`;
     console.log('Using token:', token);
@@ -22,14 +37,39 @@ api.interceptors.request.use(request => {
   return request;
 });
 
-// Add response interceptor for debugging
+// Add response interceptor for debugging and handling HTML responses
 api.interceptors.response.use(
   response => {
     console.log('Response:', response);
+    
+    // Check if the response is HTML instead of JSON
+    const contentType = response.headers['content-type'];
+    if (contentType && contentType.includes('text/html') && !response.config.url.includes('download')) {
+      console.error('Received HTML response instead of JSON:', response);
+      // Create a more helpful error
+      const error = new Error('Received HTML response from server. You may need to log in again.');
+      error.response = response;
+      return Promise.reject(error);
+    }
+    
     return response;
   },
   error => {
     console.error('API Error:', error.response || error);
+    
+    // Check for HTML responses in error cases
+    if (error.response?.headers?.['content-type']?.includes('text/html')) {
+      console.error('Received HTML error response');
+      // This likely means the session expired or there's a server error
+      if (error.response.status === 401 || error.response.status === 403) {
+        // Clear token and redirect to login
+        saveToken(null);
+        localStorage.removeItem(USER_KEY);
+        window.location.href = '/';
+        return Promise.reject(new Error('Session expired. Please log in again.'));
+      }
+    }
+    
     return Promise.reject(error);
   }
 );
@@ -43,6 +83,20 @@ const handleApiError = (error) => {
     console.error('Error data:', error.response.data);
     console.error('Error status:', error.response.status);
     console.error('Error headers:', error.response.headers);
+    
+    // Check for HTML responses
+    const contentType = error.response.headers['content-type'];
+    if (contentType && contentType.includes('text/html')) {
+      console.error('Received HTML error response');
+      // This likely means the session expired or there's a server error
+      if (error.response.status === 401 || error.response.status === 403) {
+        // Clear token and redirect to login
+        saveToken(null);
+        localStorage.removeItem(USER_KEY);
+        window.location.href = '/';
+        return; // Stop execution
+      }
+    }
   } else if (error.request) {
     // The request was made but no response was received
     console.error('Error request:', error.request);
@@ -132,8 +186,18 @@ export const authService = {
   },
   getDashboardStats: async () => {
     try {
-      return await api.get('/dashboard/stats/');
+      console.log('Fetching dashboard stats...');
+      // Use the correct endpoint path
+      const response = await api.get('/patients/dashboard-stats/', {
+        // Explicitly include token in request
+        headers: {
+          'Authorization': `Token ${getToken()}`
+        }
+      });
+      console.log('Dashboard stats response:', response);
+      return response;
     } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
       handleApiError(error);
     }
   },
@@ -163,7 +227,7 @@ export const authService = {
   getDatabaseHealth: async () => {
     try {
       console.log('Fetching database health...');
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('Token');
       console.log('Current token:', token);
       
       const response = await api.get('/auth/database-health/', {

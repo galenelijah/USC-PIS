@@ -7,6 +7,7 @@ from django.db.models.functions import TruncMonth
 from .models import Patient, MedicalRecord, Consultation
 from .serializers import PatientSerializer, MedicalRecordSerializer, ConsultationSerializer
 from authentication.models import User # Import User model
+from django.utils import timezone
 
 # Create your views here.
 
@@ -135,6 +136,11 @@ def dashboard_stats(request):
             count=Count('id')
         ).order_by('month')
 
+        # Real logic for appointments_today and pending_requests
+        today = timezone.now().date()
+        appointments_today = Consultation.objects.filter(date_time__date=today).count()
+        pending_requests = Consultation.objects.filter(remarks__icontains='pending').count()
+
         # Role-based stats
         if user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.NURSE]:
             # Admin/Staff/Doctor/Nurse dashboard
@@ -143,14 +149,12 @@ def dashboard_stats(request):
                 'total_records': total_records,
                 'recent_patients': PatientSerializer(recent_patients, many=True).data,
                 'visits_by_month': list(visits_by_month),
-                'appointments_today': 5,  # Placeholder
-                'pending_requests': 2,    # Placeholder
+                'appointments_today': appointments_today,
+                'pending_requests': pending_requests,
             })
         elif user.role == User.Role.STUDENT:
             # Student/Patient dashboard
-            # Find the linked patient record
             patient = getattr(user, 'patient_profile', None)
-            # Placeholder logic for next appointment, recent health info, profile completion
             next_appointment = '2024-07-01 10:00'  # Placeholder
             recent_health_info = 'COVID-19 Vaccination Drive'  # Placeholder
             profile_completion = 80  # Placeholder percent

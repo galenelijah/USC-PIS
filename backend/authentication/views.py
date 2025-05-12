@@ -130,15 +130,10 @@ def login_user(request):
                 )
 
             token, _ = Token.objects.get_or_create(user=user)
-            
             return Response({
                 'token': token.key,
-                'user_id': user.pk,
-                'email': user.email,
-                'role': user.role,
-                'completeSetup': user.completeSetup
+                'user': UserProfileSerializer(user).data
             })
-            
         except Exception as e:
             logger.error(f"Login error: {str(e)}\n{traceback.format_exc()}")
             return Response(
