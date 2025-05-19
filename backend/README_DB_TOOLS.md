@@ -139,4 +139,14 @@ If you encounter issues connecting to the database:
 4. Check for database errors in logs:
    ```bash
    heroku logs --tail -a usc-pis
-   ``` 
+   ```
+
+## Running Tests with Coverage
+
+To run all backend tests and generate a coverage report:
+
+```sh
+coverage run --source=. manage.py test
+coverage report
+coverage html  # To generate an HTML report in htmlcov/
+``` 
