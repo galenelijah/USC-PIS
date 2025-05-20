@@ -22,6 +22,7 @@ import {
   CloudUpload as UploadIcon,
   Download as DownloadIcon,
   Person as PersonIcon,
+  MedicalInformation as MedicalInformationIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
@@ -81,6 +82,7 @@ const Sidebar = () => {
     { text: 'Patients', icon: <PeopleIcon />, path: '/patients', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'] },
     { text: 'Medical Records', icon: <LocalHospitalIcon />, path: '/health-records' },
     { text: 'Consultations', icon: <LocalHospitalIcon />, path: '/consultations' },
+    { text: 'Medical Certificates', icon: <MedicalInformationIcon />, path: '/medical-certificates', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'] },
   ];
 
   const infoItems = [

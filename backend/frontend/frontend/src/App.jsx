@@ -29,6 +29,7 @@ import FeedbackSelector from './components/FeedbackSelector';
 import AdminFeedbackList from './components/AdminFeedbackList';
 import FileUploadPage from './pages/FileUploadPage';
 import FileDownloadPage from './pages/FileDownloadPage';
+import MedicalCertificatesPage from './pages/MedicalCertificatesPage';
 
 const App = () => {
   const isAuthenticated = useSelector(selectIsAuthenticated);
@@ -387,6 +388,24 @@ const App = () => {
                 <Layout>
                   <FileDownloadPage />
                 </Layout>
+              </RequireProfileSetup>
+            </RequireAuth>
+          }
+        />
+        
+        {/* Medical Certificates Route */}
+        <Route
+          path="/medical-certificates"
+          element={
+            <RequireAuth isAuthenticated={isAuthenticated}>
+              <RequireProfileSetup>
+                {isAdminOrStaff || isDoctor || isNurse ? (
+                  <Layout onSearch={handleSearch}>
+                    <MedicalCertificatesPage />
+                  </Layout>
+                ) : (
+                  <Navigate to="/home" replace />
+                )}
               </RequireProfileSetup>
             </RequireAuth>
           }

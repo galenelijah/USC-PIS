@@ -14,7 +14,7 @@ const saveToken = (token) => {
   }
 };
 
-const api = axios.create({
+export const api = axios.create({
   baseURL: '/api', // Always use relative path!
   headers: {
     'Content-Type': 'application/json',
@@ -75,7 +75,7 @@ api.interceptors.response.use(
 );
 
 // Helper function to handle API errors
-const handleApiError = (error) => {
+export const handleApiError = (error) => {
   console.error('API Error:', error);
   if (error.response) {
     // The request was made and the server responded with a status code

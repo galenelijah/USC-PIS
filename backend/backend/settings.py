@@ -82,6 +82,7 @@ INSTALLED_APPS = [
     'health_info',     # Add the missing health_info app
     'feedback',
     'file_uploads', # Add the new app
+    'medical_certificates',  # Add this line
 ]
 
 MIDDLEWARE = [
