@@ -1,37 +1,39 @@
-import * as React from 'react';
-import TextField from '@mui/material/TextField';
+import React from 'react';
+import { TextField } from '@mui/material';
 import { Controller } from 'react-hook-form';
 
-export default function MyTextField(props) {
-    const { id, label, name, control, required, error, helperText, type = "text" } = props;
-    const uniqueId = id || name;
-    return (
-        <Controller
-            name={name}
-            control={control}
-            render={({
-                field: { onChange, value, ref },
-            }) => (
-                <TextField
-                    sx={{ 
-                        marginLeft: "10px", 
-                        marginRight: "10px",
-                        width: 'calc(100% - 20px)'
-                    }}
-                    id={uniqueId}
-                    onChange={onChange}
-                    value={value || ""}
-                    label={label}
-                    variant="outlined"
-                    className="myForm"
-                    error={!!error}
-                    helperText={helperText}
-                    autoComplete="off"
-                    required={required}
-                    type={type}
-                    inputRef={ref}
-                />
-            )}
+const MyTextField = ({
+  name,
+  label,
+  control,
+  required = false,
+  error = null,
+  type = 'text',
+  multiline = false,
+  rows = 1,
+  ...props
+}) => {
+  return (
+    <Controller
+      name={name}
+      control={control}
+      defaultValue=""
+      render={({ field, fieldState: { error: fieldError } }) => (
+        <TextField
+          {...field}
+          label={label}
+          required={required}
+          error={!!error || !!fieldError}
+          helperText={error?.message || fieldError?.message}
+          fullWidth
+          type={type}
+          multiline={multiline}
+          rows={rows}
+          {...props}
         />
-    );
-} 
+      )}
+    />
+  );
+};
+
+export default MyTextField; 

@@ -1,4 +1,4 @@
-import {Box, FormControl, InputLabel, MenuItem, Select, Typography} from '@mui/material'
+import {Box, FormControl, InputLabel, MenuItem, Select, Typography, Alert} from '@mui/material'
 import MyTextField from './forms/MyTextField'
 import MyPassField from './forms/MyPassField'
 import MyButton from './forms/MyButton'
@@ -6,7 +6,7 @@ import {Link, useNavigate} from 'react-router-dom'
 import {useForm, Controller} from 'react-hook-form'
 import { useDispatch, useSelector } from 'react-redux';
 import { registerUser, selectAuthStatus, selectAuthError, resetAuthStatus } from '../features/authentication/authSlice';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 const Register = () =>{
     const navigate = useNavigate()
@@ -14,6 +14,8 @@ const Register = () =>{
     const dispatch = useDispatch();
     const authStatus = useSelector(selectAuthStatus);
     const authError = useSelector(selectAuthError);
+    const [serverError, setServerError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
 
     const password = watch('password');
 
@@ -25,6 +27,7 @@ const Register = () =>{
 
     const onSubmit = async (data) => {
         setServerError('');
+        setSuccessMessage('');
         const userData = { ...data }; 
 
         try {
@@ -44,12 +47,12 @@ const Register = () =>{
                         }
                     }
                 }
+                setServerError(errorMessage);
                 console.error('Registration error:', resultAction.payload || 'Unknown error');
-                alert(errorMessage);
             }
         } catch (error) {
+            setServerError('An unexpected error occurred. Please try again.');
             console.error('Unexpected error during registration:', error);
-            alert('An unexpected error occurred. Please try again.');
         }
     }
 
@@ -126,6 +129,8 @@ const Register = () =>{
                             )}
                         />
                     </Box>
+                    {serverError && <Alert severity="error" sx={{ mt: 2 }}>{serverError}</Alert>}
+                    {successMessage && <Alert severity="success" sx={{ mt: 2 }}>{successMessage}</Alert>}
                     <MyButton
                         label="Register"
                         type="submit"

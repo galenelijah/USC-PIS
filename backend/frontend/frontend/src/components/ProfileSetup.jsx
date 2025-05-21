@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Button,
@@ -11,9 +11,10 @@ import {
   Checkbox,
   FormControlLabel,
   Grid,
-  CircularProgress
+  CircularProgress,
+  Alert
 } from '@mui/material';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useNavigate } from 'react-router-dom';
 import { Add, Remove, Check } from '@mui/icons-material';
@@ -21,19 +22,17 @@ import { Avatar } from '@mui/material';
 import MyTextField from './forms/MyTextField';
 import MyDatePicker from './forms/MyDatePicker';
 import MySelector from './forms/MySelector';
-import {CivilStatusChoices} from './static/choices';
-import {SexChoices} from './static/choices';
-import {ProgramsChoices} from './static/choices';
+import { CivilStatusChoices, SexChoices } from './static/choices';
+import { ProgramsChoices } from './static/choices';
 import dayjs from 'dayjs';
 import StepConnector, { stepConnectorClasses } from '@mui/material/StepConnector';
 import { styled } from '@mui/material/styles';
 import * as Yup from 'yup';
 import { authService } from '../services/api';
-import { Controller } from 'react-hook-form';
 import { useDispatch, useSelector } from 'react-redux';
 import { setCredentials, selectAuthToken } from '../features/authentication/authSlice';
 
-// Styled StepConnector for the Stepper component
+// Styled components for the stepper
 const ColorlibStepConnector = styled(StepConnector)(({ theme }) => ({
   [`&.${stepConnectorClasses.alternativeLabel}`]: {
     top: 22,
@@ -56,7 +55,6 @@ const ColorlibStepConnector = styled(StepConnector)(({ theme }) => ({
   },
 }));
 
-// Styled StepIcon for the Stepper component
 const ColorlibStepIconRoot = styled('div')(({ theme, ownerState }) => ({
   backgroundColor: ownerState.active || ownerState.completed ? 'rgb(104, 138, 124)' : '#ccc',
   zIndex: 1,
@@ -71,7 +69,6 @@ const ColorlibStepIconRoot = styled('div')(({ theme, ownerState }) => ({
 
 function ColorlibStepIcon(props) {
   const { active, completed, className } = props;
-
   return (
     <ColorlibStepIconRoot ownerState={{ completed, active }} className={className}>
       {completed ? <Check /> : props.icon}
@@ -111,81 +108,71 @@ const illnessesOptions = [
 
 // Basic validation schema
 const validationSchema = Yup.object().shape({
-  personal_first_name: Yup.string().required('First Name is required'),
-  personal_last_name: Yup.string().required('Last Name is required'),
-  academic_id_number: Yup.string().required('ID Number is required'),
-  academic_course: Yup.string().required('Course is required'),
-  academic_year_level: Yup.string().required('Year Level is required'),
-  // Add nullable/optional validations for fields that might cause submission issues
-  personal_sex: Yup.string().nullable().notRequired(),
-  personal_civil_status: Yup.string().nullable().notRequired(),
-  // Birthday can be a Date, null, or a string - make it very flexible
-  personal_birthday: Yup.mixed()
-    .nullable()
-    .notRequired()
-    .transform((value, originalValue) => {
-      // If empty or invalid, return null
-      if (!originalValue || originalValue === '') return null;
-      
-      // If already a Date object and valid, return it
-      if (originalValue instanceof Date && !isNaN(originalValue.getTime())) {
-        return originalValue;
-      }
-      
-      // If string, try to parse it
-      if (typeof originalValue === 'string') {
-        const date = new Date(originalValue);
-        if (!isNaN(date.getTime())) {
-          return date;
-        }
-      }
-      
-      // If we couldn't parse it, return null
-      return null;
-    }),
-  personal_nationality: Yup.string().nullable().notRequired(),
-  personal_religion: Yup.string().nullable().notRequired(),
-  contact_address_permanent: Yup.string().nullable().notRequired(),
-  contact_address_present: Yup.string().nullable().notRequired(),
-  contact_phone: Yup.string().nullable().notRequired(),
-  academic_weight: Yup.string().nullable().notRequired(),
-  academic_height: Yup.string().nullable().notRequired(),
+  first_name: Yup.string().required('First name is required'),
+  last_name: Yup.string().required('Last name is required'),
+  middle_name: Yup.string().nullable(),
+  sex: Yup.string().required('Sex is required'),
+  civil_status: Yup.string().required('Civil status is required'),
+  birthday: Yup.date().required('Birthday is required').nullable(),
+  nationality: Yup.string().required('Nationality is required'),
+  religion: Yup.string().nullable(),
+  address_permanent: Yup.string().required('Permanent address is required'),
+  address_present: Yup.string().required('Present address is required'),
+  phone: Yup.string().required('Phone number is required'),
+  email: Yup.string().email('Invalid email').required('Email is required'),
+  id_number: Yup.string().required('ID Number is required'),
+  course: Yup.string().required('Course is required'),
+  year_level: Yup.string().required('Year Level is required'),
+  school: Yup.string().nullable().notRequired(),
+  weight: Yup.string().nullable().notRequired(),
+  height: Yup.string().nullable().notRequired(),
   contact_father_name: Yup.string().nullable().notRequired(),
   contact_mother_name: Yup.string().nullable().notRequired(),
   contact_emergency_name: Yup.string().nullable().notRequired(),
   contact_emergency_number: Yup.string().nullable().notRequired()
 });
 
+const stepFields = [
+  ['first_name', 'last_name', 'sex', 'civil_status', 'birthday', 'nationality', 'religion'],
+  ['address_permanent', 'address_present', 'phone', 'email'],
+  ['id_number', 'course', 'year_level', 'school', 'weight', 'height'],
+  ['contact_father_name', 'contact_mother_name', 'contact_emergency_name', 'contact_emergency_number']
+];
+
 const ProfileSetup = () => {
   const dispatch = useDispatch();
   const currentToken = useSelector(selectAuthToken);
-  const { control, handleSubmit, formState: { errors }, setValue, getValues, watch } = useForm({
+  const [activeStep, setActiveStep] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+  const { control, handleSubmit, formState: { errors }, setValue, getValues, watch, trigger } = useForm({
     resolver: yupResolver(validationSchema),
     defaultValues: {
-      personal_first_name: '',
-      personal_last_name: '',
-      personal_middle_name: '',
-      personal_sex: '',
-      personal_civil_status: '',
-      personal_birthday: '',
-      personal_nationality: '',
-      personal_religion: '',
-      contact_address_permanent: '',
-      contact_address_present: '',
-      contact_phone: '',
+      first_name: '',
+      last_name: '',
+      middle_name: '',
+      sex: '',
+      civil_status: '',
+      birthday: '',
+      nationality: '',
+      religion: '',
+      address_permanent: '',
+      address_present: '',
+      phone: '',
+      email: '',
+      id_number: '',
+      course: '',
+      year_level: '',
+      school: '',
+      weight: '',
+      height: '',
       contact_father_name: '',
       contact_mother_name: '',
       contact_emergency_name: '',
       contact_emergency_number: '',
-      academic_id_number: '',
-      academic_course: '',
-      academic_year_level: '',
-      academic_school: '',
-      academic_weight: '',
-      academic_height: '',
     }
   });
-  const navigate = useNavigate();
   const [selectedIllnesses, setSelectedIllnesses] = React.useState([]);
   const [otherIllness, setOtherIllness] = React.useState('');
   const [selectedChildhoodDiseases, setSelectedChildhoodDiseases] = React.useState([]);
@@ -193,9 +180,7 @@ const ProfileSetup = () => {
   const [existingMedicalConditions, setExistingMedicalConditions] = React.useState([]);
   const [medications, setMedications] = React.useState([]);
   const [allergies, setAllergies] = React.useState([]);
-  const [loading, setLoading] = React.useState(false);
-  const [activeStep, setActiveStep] = React.useState(0);
-  
+
   // Functions to handle arrays
   const toggleSelection = (option, selectedList, setter) => {
     setter((prev) =>
@@ -217,40 +202,52 @@ const ProfileSetup = () => {
   };
 
   // Step navigation
-  const handleNext = () => setActiveStep((prev) => prev + 1);
-  const handleBack = () => setActiveStep((prev) => prev - 1);
+  const handleNext = async () => {
+    const fields = stepFields[activeStep];
+    const valid = await trigger(fields);
+    if (valid) {
+      setActiveStep((prev) => prev + 1);
+    }
+  };
+
+  const handleBack = () => {
+    setActiveStep((prevStep) => prevStep - 1);
+  };
 
   // Compile all form data for submission
   const compileFormData = () => {
     const data = getValues();
     // Map the prefixed fields back to their original names
     const mappedData = {
-      first_name: data.personal_first_name,
-      last_name: data.personal_last_name,
-      middle_name: data.personal_middle_name,
-      sex: data.personal_sex,
-      civil_status: data.personal_civil_status,
-      nationality: data.personal_nationality,
-      religion: data.personal_religion,
-      address_permanent: data.contact_address_permanent,
-      address_present: data.contact_address_present,
-      phone: data.contact_phone,
+      first_name: data.first_name,
+      last_name: data.last_name,
+      middle_name: data.middle_name,
+      sex: data.sex,
+      civil_status: data.civil_status,
+      birthday: data.birthday,
+      date_of_birth: data.birthday,
+      nationality: data.nationality,
+      religion: data.religion,
+      address_permanent: data.address_permanent,
+      address_present: data.address_present,
+      phone: data.phone,
+      email: data.email,
       father_name: data.contact_father_name,
       mother_name: data.contact_mother_name,
       emergency_contact: data.contact_emergency_name,
       emergency_contact_number: data.contact_emergency_number,
-      id_number: data.academic_id_number,
-      course: data.academic_course,
-      year_level: data.academic_year_level,
-      school: data.academic_school,
-      weight: data.academic_weight,
-      height: data.academic_height
+      id_number: data.id_number,
+      course: data.course,
+      year_level: data.year_level,
+      school: data.school,
+      weight: data.weight,
+      height: data.height
     };
     // Format the birthday to ISO format if it exists
     let formattedBirthday = '';
-    if (data.personal_birthday) {
+    if (data.birthday) {
       try {
-        const dateObj = new Date(data.personal_birthday);
+        const dateObj = new Date(data.birthday);
         if (!isNaN(dateObj.getTime())) {
           const year = dateObj.getFullYear();
           const month = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -264,6 +261,7 @@ const ProfileSetup = () => {
     return {
       ...mappedData,
       birthday: formattedBirthday,
+      date_of_birth: formattedBirthday,
       illness: selectedIllnesses.length > 0 
         ? selectedIllnesses.join(', ') + (otherIllness && selectedIllnesses.includes('Others (please specify)') ? `: ${otherIllness}` : '') 
         : '',
@@ -281,8 +279,9 @@ const ProfileSetup = () => {
   };
 
   // Handle form submission
-  const onSubmit = async () => {
+  const onSubmit = async (data) => {
     setLoading(true);
+    setError(null);
     try {
       const formData = compileFormData();
       const response = await authService.completeProfileSetup(formData);
@@ -297,22 +296,9 @@ const ProfileSetup = () => {
 
       alert('Profile setup completed successfully!');
       navigate('/home');
-    } catch (error) {
-      console.error('Profile setup error:', error);
-      if (error.response) {
-        if (error.response.data.errors) {
-          const errorMessages = Object.entries(error.response.data.errors)
-            .map(([field, errors]) => `${field}: ${errors.join(', ')}`)
-            .join('\n');
-          alert(`Failed to complete profile setup. Validation errors:\n${errorMessages}`);
-        } else {
-          alert(error.response.data.detail || 'Failed to complete profile setup. Please check the console for details.');
-        }
-      } else if (error.request) {
-        alert('Failed to receive response from server. Please check your connection.');
-      } else {
-        alert(`Failed to complete profile setup: ${error.message}`);
-      }
+    } catch (err) {
+      console.error('Profile setup error:', err);
+      setError(err.response?.data?.detail || 'Failed to complete profile setup');
     } finally {
       setLoading(false);
     }
@@ -327,27 +313,27 @@ const ProfileSetup = () => {
             <Grid item xs={12} sm={6}>
               <MyTextField
                 label="First Name"
-                name="personal_first_name"
+                name="first_name"
                 control={control}
-                error={!!errors.personal_first_name}
-                helperText={errors.personal_first_name?.message}
+                error={!!errors.first_name}
+                helperText={errors.first_name?.message}
                 required
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <MyTextField
                 label="Last Name"
-                name="personal_last_name"
+                name="last_name"
                 control={control}
-                error={!!errors.personal_last_name}
-                helperText={errors.personal_last_name?.message}
+                error={!!errors.last_name}
+                helperText={errors.last_name?.message}
                 required
               />
             </Grid>
             <Grid item xs={12}>
               <MyTextField
                 label="Middle Name"
-                name="personal_middle_name"
+                name="middle_name"
                 control={control}
               />
             </Grid>
@@ -356,7 +342,7 @@ const ProfileSetup = () => {
                 Sex
               </Typography>
               <Controller
-                name="personal_sex"
+                name="sex"
                 control={control}
                 render={({ field }) => (
                   <>
@@ -387,7 +373,7 @@ const ProfileSetup = () => {
                 Civil Status
               </Typography>
               <Controller
-                name="personal_civil_status"
+                name="civil_status"
                 control={control}
                 render={({ field }) => (
                   <>
@@ -407,21 +393,27 @@ const ProfileSetup = () => {
             <Grid item xs={12} sm={6}>
               <MyDatePicker
                 label="Birthday"
-                name="personal_birthday"
+                name="birthday"
                 control={control}
+                error={!!errors.birthday}
+                helperText={errors.birthday?.message}
+                required
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <MyTextField
                 label="Nationality"
-                name="personal_nationality"
+                name="nationality"
                 control={control}
+                error={!!errors.nationality}
+                helperText={errors.nationality?.message}
+                required
               />
             </Grid>
             <Grid item xs={12}>
               <MyTextField
                 label="Religion"
-                name="personal_religion"
+                name="religion"
                 control={control}
               />
             </Grid>
@@ -433,61 +425,43 @@ const ProfileSetup = () => {
             <Grid item xs={12}>
               <MyTextField
                 label="Permanent Address"
-                name="contact_address_permanent"
+                name="address_permanent"
                 control={control}
-                error={!!errors.contact_address_permanent}
-                helperText={errors.contact_address_permanent?.message}
+                error={!!errors.address_permanent}
+                helperText={errors.address_permanent?.message}
+                multiline
+                rows={2}
               />
             </Grid>
             <Grid item xs={12}>
               <MyTextField
                 label="Present Address"
-                name="contact_address_present"
+                name="address_present"
                 control={control}
-                error={!!errors.contact_address_present}
-                helperText={errors.contact_address_present?.message}
+                error={!!errors.address_present}
+                helperText={errors.address_present?.message}
+                multiline
+                rows={2}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <MyTextField
                 label="Phone Number"
-                name="contact_phone"
+                name="phone"
                 control={control}
-                error={!!errors.contact_phone}
-                helperText={errors.contact_phone?.message}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" gutterBottom>
-                Emergency Contact Information
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <MyTextField
-                label="Father's Name"
-                name="contact_father_name"
-                control={control}
+                error={!!errors.phone}
+                helperText={errors.phone?.message}
+                required
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <MyTextField
-                label="Mother's Name"
-                name="contact_mother_name"
+                label="Email"
+                name="email"
                 control={control}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <MyTextField
-                label="Emergency Contact Name"
-                name="contact_emergency_name"
-                control={control}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <MyTextField
-                label="Emergency Contact Number"
-                name="contact_emergency_number"
-                control={control}
+                error={!!errors.email}
+                helperText={errors.email?.message}
+                required
               />
             </Grid>
           </Grid>
@@ -498,10 +472,10 @@ const ProfileSetup = () => {
             <Grid item xs={12}>
               <MyTextField
                 label="Student ID"
-                name="academic_id_number"
+                name="id_number"
                 control={control}
-                error={!!errors.academic_id_number}
-                helperText={errors.academic_id_number?.message}
+                error={!!errors.id_number}
+                helperText={errors.id_number?.message}
                 required
               />
             </Grid>
@@ -509,34 +483,34 @@ const ProfileSetup = () => {
               <MySelector
                 options={ProgramsChoices}
                 label="Course/Program"
-                name="academic_course"
+                name="course"
                 control={control}
-                error={!!errors.academic_course}
-                helperText={errors.academic_course?.message}
+                error={!!errors.course}
+                helperText={errors.course?.message}
                 required
               />
             </Grid>
             <Grid item xs={12}>
               <MyTextField
                 label="Year Level"
-                name="academic_year_level"
+                name="year_level"
                 control={control}
-                error={!!errors.academic_year_level}
-                helperText={errors.academic_year_level?.message}
+                error={!!errors.year_level}
+                helperText={errors.year_level?.message}
                 required
               />
             </Grid>
             <Grid item xs={12}>
               <MyTextField
                 label="School"
-                name="academic_school"
+                name="school"
                 control={control}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <MyTextField
                 label="Weight (kg)"
-                name="academic_weight"
+                name="weight"
                 control={control}
                 type="number"
               />
@@ -544,7 +518,7 @@ const ProfileSetup = () => {
             <Grid item xs={12} sm={6}>
               <MyTextField
                 label="Height (cm)"
-                name="academic_height"
+                name="height"
                 control={control}
                 type="number"
               />
@@ -735,7 +709,7 @@ const ProfileSetup = () => {
           
           {activeStep === steps.length - 1 ? (
             <Button 
-              onClick={onSubmit}
+              onClick={handleSubmit(onSubmit)}
               variant="contained" 
               disabled={loading}
               sx={{ bgcolor: 'rgb(104, 138, 124)', '&:hover': { bgcolor: 'rgb(84, 118, 104)' } }}

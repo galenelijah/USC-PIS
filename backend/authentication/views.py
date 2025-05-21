@@ -21,6 +21,7 @@ from django.template.loader import render_to_string
 from django.conf import settings
 from rest_framework.views import APIView
 from patients.models import Patient
+import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -77,13 +78,6 @@ def register_user(request):
                     last_name='',   # Empty default
                     completeSetup=False
                 )
-                # Automatically create Patient profile for students
-                if role == User.Role.STUDENT:
-                    Patient.objects.get_or_create(user=user, defaults={
-                        'first_name': user.first_name,
-                        'last_name': user.last_name,
-                        'email': user.email,
-                    })
             
             logger.info(f"User created successfully: {user.email}")
             return Response(
@@ -337,63 +331,94 @@ def complete_profile_setup(request):
             
             if user_serializer.is_valid():
                 # Set completeSetup flag to True before saving the User model
-                # The serializer data should already contain other user fields
                 user_data_to_save = user_serializer.validated_data.copy()
                 user_data_to_save['completeSetup'] = True
                 
                 # Re-initialize serializer with complete data for saving user
-                # This ensures 'completeSetup' is part of the instance data to be saved
                 user_save_serializer = UserProfileSerializer(user, data=user_data_to_save, partial=True)
-                if not user_save_serializer.is_valid(): # Should be valid if user_serializer was
-                    print("User save serializer errors:", user_save_serializer.errors) # Should not happen
+                if not user_save_serializer.is_valid():
+                    print("User save serializer errors:", user_save_serializer.errors)
                     return Response({
                         'detail': 'Error preparing user data for saving',
                         'errors': user_save_serializer.errors
                     }, status=status.HTTP_400_BAD_REQUEST)
 
-                updated_user = user_save_serializer.save() # Save User model
+                updated_user = user_save_serializer.save()
 
                 # If the user is a STUDENT, update their Patient profile
                 if updated_user.role == User.Role.STUDENT:
-                    patient_profile, created = Patient.objects.get_or_create(user=updated_user)
-                    
-                    # Map fields from UserProfileSerializer (validated_data) to Patient model
-                    # Use .get() with a default to avoid errors if a field is missing,
-                    # and to keep existing patient data if not provided in this update.
-                    patient_profile.first_name = user_data_to_save.get('first_name', patient_profile.first_name)
-                    patient_profile.last_name = user_data_to_save.get('last_name', patient_profile.last_name)
-                    patient_profile.email = user_data_to_save.get('email', patient_profile.email) # User email should match Patient email
-                    
-                    # Handle date of birth (birthday in serializer)
-                    birthday = user_data_to_save.get('birthday')
-                    if birthday:
-                        patient_profile.date_of_birth = birthday
-                    
-                    # Handle gender (sex in serializer)
-                    sex = user_data_to_save.get('sex')
-                    if sex: # Assuming GENDER_CHOICES in Patient are 'M', 'F', 'O'
-                        patient_profile.gender = sex[0].upper() if sex else patient_profile.gender 
-                    
-                    # Handle phone number (phone in serializer)
-                    phone = user_data_to_save.get('phone')
-                    if phone:
-                        patient_profile.phone_number = phone
-                    
-                    # Handle address (e.g., address_present or address_permanent from serializer)
-                    # Choose one, or combine, or add logic based on your needs
-                    address = user_data_to_save.get('address_present') or user_data_to_save.get('address_permanent')
-                    if address:
-                        patient_profile.address = address
-                    
-                    # Add any other relevant Patient fields from UserProfileSerializer data
-                    # Example: patient_profile.id_number = user_data_to_save.get('id_number', patient_profile.id_number)
-                    # This depends on what fields are in UserProfileSerializer and Patient model
+                    # Accept both 'birthday' and 'date_of_birth' from frontend
+                    dob = request.data.get('date_of_birth') or request.data.get('birthday') or user_data_to_save.get('birthday')
+                    print(f"DEBUG: Received date_of_birth: {dob}")
+                    required_fields = {
+                        'first_name': user_data_to_save.get('first_name'),
+                        'last_name': user_data_to_save.get('last_name'),
+                        'date_of_birth': dob,
+                        'sex': user_data_to_save.get('sex'),
+                        'phone': user_data_to_save.get('phone'),
+                        'email': user_data_to_save.get('email', updated_user.email),
+                        'address': user_data_to_save.get('address_present') or user_data_to_save.get('address_permanent')
+                    }
 
-                    patient_profile.save() # Save Patient model
+                    # Convert date_of_birth string to Python date object
+                    dob_str = required_fields['date_of_birth']
+                    dob = None
+                    if isinstance(dob_str, str):
+                        try:
+                            dob = datetime.datetime.strptime(dob_str, '%Y-%m-%d').date()
+                        except Exception as e:
+                            print(f"DEBUG: Failed to parse date_of_birth: {dob_str} ({e})")
+                            dob = None
+                    else:
+                        dob = dob_str  # Already a date object
+                    required_fields['date_of_birth'] = dob
+                    print(f"DEBUG: Final date_of_birth value to save: {dob} (type: {type(dob)})")
+                    # Check for missing required fields again
+                    missing_fields = [field for field, value in required_fields.items() if not value]
+                    if missing_fields:
+                        print(f"Missing required fields for Patient: {missing_fields}")
+                        return Response({
+                            'detail': 'Missing or invalid required fields for patient profile',
+                            'missing_fields': missing_fields
+                        }, status=status.HTTP_400_BAD_REQUEST)
+
+                    try:
+                        patient_profile, created = Patient.objects.get_or_create(
+                            user=updated_user,
+                            defaults={
+                                'first_name': required_fields['first_name'],
+                                'last_name': required_fields['last_name'],
+                                'date_of_birth': required_fields['date_of_birth'],
+                                'gender': required_fields['sex'][0].upper(),
+                                'phone_number': required_fields['phone'],
+                                'email': required_fields['email'],
+                                'address': required_fields['address'],
+                            }
+                        )
+                        print(f"{'Created' if created else 'Updated'} patient profile for user {updated_user.email}")
+
+                        # Map fields from UserProfileSerializer to Patient model (for updates)
+                        patient_profile.first_name = required_fields['first_name']
+                        patient_profile.last_name = required_fields['last_name']
+                        patient_profile.date_of_birth = required_fields['date_of_birth']
+                        patient_profile.gender = required_fields['sex'][0].upper()
+                        patient_profile.phone_number = required_fields['phone']
+                        patient_profile.email = required_fields['email']
+                        patient_profile.address = required_fields['address']
+
+                        # Save the patient profile
+                        patient_profile.save()
+                        print(f"Successfully saved patient profile: {patient_profile}")
+
+                    except Exception as e:
+                        print(f"Error saving patient profile: {str(e)}")
+                        return Response({
+                            'detail': f'Error saving patient profile: {str(e)}'
+                        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
                 return Response({
                     'detail': 'Profile setup completed successfully',
-                    'user': UserProfileSerializer(updated_user).data # Return the fully updated user data
+                    'user': UserProfileSerializer(updated_user).data
                 }, status=status.HTTP_200_OK)
             else:
                 print("Serializer errors:", user_serializer.errors)
@@ -403,9 +428,11 @@ def complete_profile_setup(request):
                 }, status=status.HTTP_400_BAD_REQUEST)
                 
         except Exception as e:
-            logger.error(f"Profile setup error: {str(e)}\n{traceback.format_exc()}")
+            import traceback
+            error_msg = f"Profile setup error: {str(e)}"
+            print(f"{error_msg}\n{traceback.format_exc()}")
             return Response({
-                'detail': f'An error occurred during profile setup: {str(e)}'
+                'detail': error_msg
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class PasswordResetRequestView(APIView):
