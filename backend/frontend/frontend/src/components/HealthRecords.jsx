@@ -127,7 +127,14 @@ const HealthRecords = () => {
     setDialogMode('edit');
     setCurrentRecord({
       ...record,
-      visit_date: record.visit_date
+      visit_date: record.visit_date,
+      vital_signs: record.vital_signs || {
+        temperature: '',
+        blood_pressure: '',
+        heart_rate: '',
+        respiratory_rate: '',
+        oxygen_saturation: ''
+      }
     });
     setOpenDialog(true);
   };
@@ -181,7 +188,7 @@ const HealthRecords = () => {
     setCurrentRecord({
       ...currentRecord,
       vital_signs: {
-        ...currentRecord.vital_signs,
+        ...(currentRecord.vital_signs || {}),
         [name]: value
       }
     });
@@ -190,10 +197,10 @@ const HealthRecords = () => {
   // Filter records based on search term and selected date
   const filteredRecords = records.filter(record => {
     const searchMatch = 
-      record.patient.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.patient.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.patient.id_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.diagnosis.toLowerCase().includes(searchTerm.toLowerCase());
+      (record.patient?.first_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (record.patient?.last_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (record.patient?.id_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (record.diagnosis || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     const dateMatch = selectedDate ? record.visit_date === dayjs(selectedDate).format('YYYY-MM-DD') : true;
     
@@ -282,17 +289,17 @@ const HealthRecords = () => {
                 filteredRecords.map((record) => (
                   <TableRow key={record.id}>
                     <TableCell>{record.visit_date}</TableCell>
-                    <TableCell>{`${record.patient.first_name} ${record.patient.last_name}`}</TableCell>
-                    <TableCell>{record.patient.id_number}</TableCell>
+                    <TableCell>{record.patient ? `${record.patient.first_name || ''} ${record.patient.last_name || ''}`.trim() : 'Unknown Patient'}</TableCell>
+                    <TableCell>{record.patient?.id_number || 'N/A'}</TableCell>
                     <TableCell>
                       <Chip 
-                        label={record.record_type} 
+                        label={record.record_type || 'MEDICAL'} 
                         color={record.record_type === 'MEDICAL' ? 'primary' : 'secondary'} 
                         size="small" 
                       />
                     </TableCell>
-                    <TableCell>{record.diagnosis}</TableCell>
-                    <TableCell>{record.treatment}</TableCell>
+                    <TableCell>{record.diagnosis || 'No diagnosis'}</TableCell>
+                    <TableCell>{record.treatment || 'No treatment'}</TableCell>
                     <TableCell align="right">
                       {record.record_type === 'MEDICAL' && (
                         <Button size="small" onClick={() => { setSelectedMedicalRecordId(record.id); setOpenMedicalRecordModal(true); }}>
@@ -398,7 +405,7 @@ const HealthRecords = () => {
                   fullWidth
                   label="Temperature (°C)"
                   name="temperature"
-                  value={currentRecord.vital_signs.temperature}
+                  value={currentRecord.vital_signs?.temperature || ''}
                   onChange={handleVitalSignChange}
                   margin="normal"
                 />
@@ -408,7 +415,7 @@ const HealthRecords = () => {
                   fullWidth
                   label="Blood Pressure (mmHg)"
                   name="blood_pressure"
-                  value={currentRecord.vital_signs.blood_pressure}
+                  value={currentRecord.vital_signs?.blood_pressure || ''}
                   onChange={handleVitalSignChange}
                   margin="normal"
                   placeholder="e.g. 120/80"
@@ -419,7 +426,7 @@ const HealthRecords = () => {
                   fullWidth
                   label="Heart Rate (bpm)"
                   name="heart_rate"
-                  value={currentRecord.vital_signs.heart_rate}
+                  value={currentRecord.vital_signs?.heart_rate || ''}
                   onChange={handleVitalSignChange}
                   margin="normal"
                 />
@@ -429,7 +436,7 @@ const HealthRecords = () => {
                   fullWidth
                   label="Respiratory Rate (breaths/min)"
                   name="respiratory_rate"
-                  value={currentRecord.vital_signs.respiratory_rate}
+                  value={currentRecord.vital_signs?.respiratory_rate || ''}
                   onChange={handleVitalSignChange}
                   margin="normal"
                 />
@@ -439,7 +446,7 @@ const HealthRecords = () => {
                   fullWidth
                   label="Oxygen Saturation (%)"
                   name="oxygen_saturation"
-                  value={currentRecord.vital_signs.oxygen_saturation}
+                  value={currentRecord.vital_signs?.oxygen_saturation || ''}
                   onChange={handleVitalSignChange}
                   margin="normal"
                 />
