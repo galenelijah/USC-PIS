@@ -5,7 +5,7 @@ import MyButton from './forms/MyButton'
 import {Link, useNavigate} from 'react-router-dom'
 import {useForm, Controller} from 'react-hook-form'
 import { useDispatch, useSelector } from 'react-redux';
-import { registerUser, selectAuthStatus, selectAuthError, resetAuthStatus } from '../features/authentication/authSlice';
+import { registerUser, loginUser, selectAuthStatus, selectAuthError, resetAuthStatus } from '../features/authentication/authSlice';
 import { useEffect, useState } from 'react';
 
 const Register = () =>{
@@ -31,24 +31,45 @@ const Register = () =>{
         const userData = { ...data }; 
 
         try {
-            const resultAction = await dispatch(registerUser(userData));
-            if (registerUser.fulfilled.match(resultAction)) {
-                setSuccessMessage('Registration successful! Please log in.');
-                setTimeout(() => navigate('/'), 2000);
-            } else if (registerUser.rejected.match(resultAction)) {
+            // First, register the user
+            const registerAction = await dispatch(registerUser(userData));
+            
+            if (registerUser.fulfilled.match(registerAction)) {
+                setSuccessMessage('Registration successful! Logging you in...');
+                
+                // After successful registration, automatically log in
+                const loginAction = await dispatch(loginUser({
+                    email: userData.email,
+                    password: userData.password
+                }));
+                
+                if (loginUser.fulfilled.match(loginAction)) {
+                    const user = loginAction.payload.user;
+                    // Check if profile setup is needed
+                    if (user && user.completeSetup === false) {
+                        navigate('/profile-setup');
+                    } else {
+                        navigate('/home');
+                    }
+                } else {
+                    // If login fails after registration
+                    setServerError('Registration successful but login failed. Please try logging in manually.');
+                    setTimeout(() => navigate('/'), 2000);
+                }
+            } else if (registerUser.rejected.match(registerAction)) {
                 let errorMessage = 'Registration failed. Please check your inputs.';
-                if (resultAction.payload) {
-                    if (typeof resultAction.payload === 'string') {
-                        errorMessage = resultAction.payload;
-                    } else if (resultAction.payload && typeof resultAction.payload === 'object') {
-                        const fieldErrors = Object.values(resultAction.payload).flat().filter(Boolean);
+                if (registerAction.payload) {
+                    if (typeof registerAction.payload === 'string') {
+                        errorMessage = registerAction.payload;
+                    } else if (registerAction.payload && typeof registerAction.payload === 'object') {
+                        const fieldErrors = Object.values(registerAction.payload).flat().filter(Boolean);
                         if (fieldErrors.length > 0) {
                             errorMessage = fieldErrors[0];
                         }
                     }
                 }
                 setServerError(errorMessage);
-                console.error('Registration error:', resultAction.payload || 'Unknown error');
+                console.error('Registration error:', registerAction.payload || 'Unknown error');
             }
         } catch (error) {
             setServerError('An unexpected error occurred. Please try again.');

@@ -28,9 +28,8 @@ import dayjs from 'dayjs';
 import StepConnector, { stepConnectorClasses } from '@mui/material/StepConnector';
 import { styled } from '@mui/material/styles';
 import * as Yup from 'yup';
-import { authService } from '../services/api';
 import { useDispatch, useSelector } from 'react-redux';
-import { setCredentials, selectAuthToken } from '../features/authentication/authSlice';
+import { completeProfileSetup, selectAuthToken, selectAuthStatus } from '../features/authentication/authSlice';
 
 // Styled components for the stepper
 const ColorlibStepConnector = styled(StepConnector)(({ theme }) => ({
@@ -142,6 +141,7 @@ const stepFields = [
 const ProfileSetup = () => {
   const dispatch = useDispatch();
   const currentToken = useSelector(selectAuthToken);
+  const authStatus = useSelector(selectAuthStatus);
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -284,21 +284,20 @@ const ProfileSetup = () => {
     setError(null);
     try {
       const formData = compileFormData();
-      const response = await authService.completeProfileSetup(formData);
+      console.log('Submitting profile setup data:', formData);
       
-      // Update user state in Redux after successful submission
-      if (response && response.user && currentToken) {
-        dispatch(setCredentials({ user: response.user, token: currentToken }));
-      } else {
-        console.warn('Could not update Redux state. Missing user data in response or token.');
-        // Optionally refetch profile and token here if needed
+      const resultAction = await dispatch(completeProfileSetup(formData));
+      
+      if (completeProfileSetup.fulfilled.match(resultAction)) {
+        console.log('Profile setup successful:', resultAction.payload);
+        navigate('/home');
+      } else if (completeProfileSetup.rejected.match(resultAction)) {
+        console.error('Profile setup failed:', resultAction.error);
+        setError(resultAction.payload || 'Failed to complete profile setup. Please try again.');
       }
-
-      alert('Profile setup completed successfully!');
-      navigate('/home');
     } catch (err) {
       console.error('Profile setup error:', err);
-      setError(err.response?.data?.detail || 'Failed to complete profile setup');
+      setError(err.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }

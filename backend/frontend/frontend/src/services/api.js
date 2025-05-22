@@ -35,6 +35,9 @@ api.interceptors.request.use(request => {
     console.log('No token found in localStorage');
   }
   return request;
+}, error => {
+  console.error('Request interceptor error:', error);
+  return Promise.reject(error);
 });
 
 // Add response interceptor for debugging and handling HTML responses
@@ -42,11 +45,16 @@ api.interceptors.response.use(
   response => {
     console.log('Response:', response);
     
+    // Check if response contains a token and save it
+    if (response.data && response.data.token) {
+      saveToken(response.data.token);
+      console.log('Saved new token from response');
+    }
+    
     // Check if the response is HTML instead of JSON
     const contentType = response.headers['content-type'];
     if (contentType && contentType.includes('text/html') && !response.config.url.includes('download')) {
       console.error('Received HTML response instead of JSON:', response);
-      // Create a more helpful error
       const error = new Error('Received HTML response from server. You may need to log in again.');
       error.response = response;
       return Promise.reject(error);
@@ -60,13 +68,14 @@ api.interceptors.response.use(
     // Check for HTML responses in error cases
     if (error.response?.headers?.['content-type']?.includes('text/html')) {
       console.error('Received HTML error response');
-      // This likely means the session expired or there's a server error
       if (error.response.status === 401 || error.response.status === 403) {
-        // Clear token and redirect to login
-        saveToken(null);
-        localStorage.removeItem(USER_KEY);
-        window.location.href = '/';
-        return Promise.reject(new Error('Session expired. Please log in again.'));
+        // Clear token and redirect to login only if not trying to login/register
+        if (!error.config.url.includes('/auth/login/') && !error.config.url.includes('/auth/register/')) {
+          saveToken(null);
+          localStorage.removeItem(USER_KEY);
+          window.location.href = '/';
+          return Promise.reject(new Error('Session expired. Please log in again.'));
+        }
       }
     }
     
@@ -113,6 +122,12 @@ export const authService = {
       console.log('Register API call with data:', data);
       const response = await api.post('/auth/register/', data);
       console.log('Register API response:', response);
+      
+      // If registration returns a token, save it
+      if (response.data && response.data.token) {
+        saveToken(response.data.token);
+      }
+      
       return response;
     } catch (error) {
       console.error('Register API error:', error);
@@ -121,8 +136,6 @@ export const authService = {
         // The request was made and the server responded with a status code outside of 2xx
         console.error('Error status:', error.response.status);
         console.error('Error data:', error.response.data);
-        
-        // Return a structured error that can be handled by the thunk
         throw error;
       } else if (error.request) {
         // The request was made but no response was received

@@ -53,16 +53,23 @@ export const registerUser = createAsyncThunk(
   'auth/register',
   async (userData, { rejectWithValue }) => {
     try {
+      console.log('Register API call with data:', userData);
       const response = await authService.register(userData);
-      return response.data;
+      console.log('Register API response:', response);
+      
+      // Ensure we return both token and user data if available
+      return {
+        token: response.data.token,
+        user: response.data.user || response.data
+      };
     } catch (error) {
-      console.error('Registration error:', error);
-      return rejectWithValue(
-        error.response?.data?.detail || 
-        error.response?.data?.non_field_errors?.[0] || 
-        error.message || 
-        'Registration failed'
-      );
+      console.error('Register API error:', error);
+      if (error.response) {
+        console.error('Error status:', error.response.status);
+        console.error('Error data:', error.response.data);
+        return rejectWithValue(error.response.data);
+      }
+      return rejectWithValue(error.message || 'Registration failed');
     }
   }
 );
@@ -111,6 +118,42 @@ export const getProfile = createAsyncThunk(
   }
 );
 
+// Update completeProfileSetup thunk to be more robust
+export const completeProfileSetup = createAsyncThunk(
+  'auth/completeProfileSetup',
+  async (profileData, { rejectWithValue }) => {
+    try {
+      console.log('Completing profile setup with data:', profileData);
+      const response = await authService.completeProfileSetup(profileData);
+      console.log('Profile setup response:', response);
+      // Accept any successful response
+      let user = response.data?.user;
+      // If user is missing, fetch profile as fallback
+      if (!user) {
+        try {
+          const profileResponse = await authService.getProfile();
+          user = profileResponse.data;
+        } catch (profileErr) {
+          // If fetching profile fails, just continue
+          user = null;
+        }
+      }
+      // Always return an object with user and detail
+      return {
+        ...response.data,
+        user: user ? { ...user, completeSetup: true } : undefined,
+      };
+    } catch (error) {
+      console.error('Profile setup error:', error);
+      return rejectWithValue(
+        error.response?.data?.detail || 
+        error.message || 
+        'Profile setup failed'
+      );
+    }
+  }
+);
+
 // Create the auth slice
 const authSlice = createSlice({
   name: 'authentication',
@@ -134,6 +177,13 @@ const authSlice = createSlice({
     updateUser: (state, action) => {
       state.user = { ...state.user, ...action.payload };
       saveUser(state.user);
+    },
+    // Add new reducer for directly updating completeSetup status
+    setProfileComplete: (state, action) => {
+      if (state.user) {
+        state.user.completeSetup = true;
+        saveUser(state.user);
+      }
     }
   },
   extraReducers: (builder) => {
@@ -144,14 +194,9 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(registerUser.fulfilled, (state, action) => {
+        // Don't set auth state on registration - we'll do that after auto-login
         state.status = 'succeeded';
-        state.token = action.payload.token;
-        state.user = action.payload.user;
-        state.isAuthenticated = true;
-        
-        // Save to localStorage
-        saveToken(action.payload.token);
-        saveUser(action.payload.user);
+        state.error = null;
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.status = 'failed';
@@ -175,6 +220,7 @@ const authSlice = createSlice({
         state.token = action.payload.token;
         state.user = action.payload.user;
         state.isAuthenticated = true;
+        state.error = null;
         
         // Save to localStorage
         saveToken(action.payload.token);
@@ -203,16 +249,44 @@ const authSlice = createSlice({
         saveUser(null);
       })
       
-      // Get profile cases
+      // Profile setup cases
+      .addCase(completeProfileSetup.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(completeProfileSetup.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        if (action.payload.user) {
+          state.user = {
+            ...action.payload.user,
+            completeSetup: true
+          };
+          saveUser(state.user);
+        } else if (state.user) {
+          // If no user returned, just set completeSetup flag
+          state.user.completeSetup = true;
+          saveUser(state.user);
+        }
+        state.error = null;
+      })
+      .addCase(completeProfileSetup.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload || 'Profile setup failed';
+      })
+      
+      // Update the getProfile case to ensure completeSetup is preserved
       .addCase(getProfile.fulfilled, (state, action) => {
-        state.user = action.payload;
-        saveUser(action.payload);
+        state.user = {
+          ...action.payload,
+          completeSetup: action.payload.completeSetup ?? state.user?.completeSetup
+        };
+        saveUser(state.user);
       });
   }
 });
 
 // Export actions and selectors
-export const { resetAuthStatus, logout, updateUser: setCredentials } = authSlice.actions;
+export const { resetAuthStatus, logout, updateUser: setCredentials, setProfileComplete } = authSlice.actions;
 
 export const selectCurrentUser = (state) => state.auth.user;
 export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
