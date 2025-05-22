@@ -42,6 +42,8 @@ class MedicalRecord(models.Model):
     diagnosis = models.TextField()
     treatment = models.TextField()
     notes = models.TextField(blank=True)
+    vital_signs = models.JSONField(default=dict, blank=True, help_text="Vital signs data (temperature, blood pressure, etc.)")
+    physical_examination = models.JSONField(default=dict, blank=True, help_text="Physical examination findings")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)

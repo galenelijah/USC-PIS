@@ -8,6 +8,7 @@ from .models import Patient, MedicalRecord, Consultation
 from .serializers import PatientSerializer, MedicalRecordSerializer, ConsultationSerializer
 from authentication.models import User # Import User model
 from django.utils import timezone
+from .permissions import MedicalRecordPermission
 
 # Create your views here.
 
@@ -52,9 +53,9 @@ class PatientViewSet(viewsets.ModelViewSet):
         serializer.save()
 
 class MedicalRecordViewSet(viewsets.ModelViewSet):
-    queryset = MedicalRecord.objects.all() # Base queryset
+    queryset = MedicalRecord.objects.all()
     serializer_class = MedicalRecordSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [MedicalRecordPermission]
 
     def get_queryset(self):
         """Filter records based on user role."""
