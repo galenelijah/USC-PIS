@@ -29,10 +29,12 @@ Welcome to the USC Patient Information System (USC-PIS). This comprehensive guid
 5. Click "Sign In"
 
 ### First-Time Setup
-1. Upon first login, you'll be prompted to complete your profile
-2. Fill in all required information marked with an asterisk (*)
-3. Upload a profile photo (optional)
-4. Click "Save" to complete setup
+1. Upon first login, you'll be prompted to complete your profile using a multi-step form.
+2. Fill in all required information marked with an asterisk (*).
+3. Patient records are created only after you complete the profile setup, not at registration.
+4. Upload a profile photo (optional).
+5. Click "Save" to complete setup.
+6. After successful setup, you will be redirected to the dashboard.
 
 ## User Roles
 
@@ -94,6 +96,7 @@ Welcome to the USC Patient Information System (USC-PIS). This comprehensive guid
 - Change password
 - Manage notification preferences
 - View activity history
+- **Note:** If you have not completed your profile setup, you will be prompted to do so before accessing other features.
 
 ### Patient Feedback
 - Submit feedback about clinic visits or general experience.

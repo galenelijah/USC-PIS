@@ -4,6 +4,22 @@ A full-stack web application for managing patient information at the University 
 
 > **For detailed project documentation, including technology stack, features, setup, database schema, API endpoints, and more, please see [USC-PIS.md](USC-PIS.md).**
 
+---
+
+## Recent Fixes (May 2025)
+- Patient records are now created after profile setup, not at registration.
+- Multi-step profile setup form validates only the current step.
+- After profile setup, users are redirected to the dashboard and Redux state is updated.
+- The frontend fetches patient lists from `/api/patients/patients/` (not `/api/patients/`).
+
+---
+
+## Registration & Profile Setup Flow
+- Register as a user (student, staff, etc.)
+- Complete the multi-step profile setup form after registration
+- Patient record is created only after profile setup is complete
+- After setup, you are redirected to the dashboard
+
 ## Project Structure
 
 ```

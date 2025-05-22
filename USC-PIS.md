@@ -3,6 +3,25 @@
 ## Overview
 USC-PIS is a full-stack web application designed to manage patient information for the University of San Carlos. It provides secure, role-based access for students, doctors, nurses, and staff to manage, view, and update patient records, profiles, and health information. The system is built for scalability, maintainability, and ease of use, supporting both clinical workflows and administrative oversight.
 
+---
+
+## Recent Fixes (May 2025)
+- **Patient creation moved to profile setup:** Patient records are now created only after the user completes the multi-step profile setup, ensuring all required fields are present.
+- **Multi-step profile setup validation:** Validation now only applies to the current step, improving user experience and preventing form errors.
+- **Date handling and required fields:** Backend now properly converts date strings to Python date objects, and frontend sends the correct fields for patient creation.
+- **Post-setup navigation:** After successful profile setup, Redux state is updated and users are redirected to the dashboard (`/home`).
+- **API endpoint correction:** The frontend now fetches patient lists from `/api/patients/patients/` instead of `/api/patients/` to get actual patient data.
+- **General debugging:** Console and network tab were used to verify API responses and check for errors. Redux and navigation were checked to ensure state and routing were correct after profile setup.
+
+---
+
+## Registration & Profile Setup Flow
+- Users register via `/api/auth/register/`.
+- After registration, users are prompted to complete a multi-step profile setup form.
+- Patient records are created only after profile setup is completed, not at registration.
+- After successful profile setup, the frontend updates Redux state and redirects the user to `/home` (dashboard).
+- The frontend fetches patient lists from `/api/patients/patients/`.
+
 ## Technology Stack
 - **Backend:** Django, Django REST Framework (DRF)
 - **Frontend:** React (Vite, Material UI, React Router, Axios)
