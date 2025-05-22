@@ -285,17 +285,43 @@ const ProfileSetup = () => {
     try {
       const formData = compileFormData();
       const response = await authService.completeProfileSetup(formData);
-      
-      // Update user state in Redux after successful submission
-      if (response && response.user && currentToken) {
-        dispatch(setCredentials({ user: response.user, token: currentToken }));
-      } else {
-        console.warn('Could not update Redux state. Missing user data in response or token.');
-        // Optionally refetch profile and token here if needed
+      let userToSet = response && response.user;
+      // If user is missing from response, fetch profile as fallback
+      if (!userToSet) {
+        try {
+          const profileResponse = await authService.getProfile();
+          userToSet = profileResponse.data;
+        } catch (profileErr) {
+          console.warn('Could not fetch user profile after setup:', profileErr);
+        }
       }
-
-      alert('Profile setup completed successfully!');
-      navigate('/home');
+      // Update user state in Redux after successful submission
+      if (userToSet && currentToken) {
+        dispatch(setCredentials({ user: { ...userToSet, completeSetup: true }, token: currentToken }));
+        setTimeout(async () => {
+          const reduxState = window.store ? window.store.getState() : null;
+          console.log('Redux user after setup:', reduxState?.authentication?.user);
+          console.log('localStorage user after setup:', localStorage.getItem('user'));
+          // Force a profile refetch and update Redux
+          try {
+            const profileResponse = await authService.getProfile();
+            if (profileResponse.data) {
+              dispatch(setCredentials({ user: { ...profileResponse.data, completeSetup: true }, token: currentToken }));
+              console.log('Redux user after refetch:', window.store?.getState()?.authentication?.user);
+              console.log('localStorage user after refetch:', localStorage.getItem('user'));
+            }
+          } catch (e) {
+            console.warn('Profile refetch after setup failed:', e);
+          }
+          // Set localStorage flag to allow dashboard access
+          localStorage.setItem('profileJustCompleted', 'true');
+          alert('Profile setup completed successfully!');
+          navigate('/home');
+        }, 100);
+      } else {
+        alert('Profile setup completed, but could not update user state. Please log in again if redirected.');
+        navigate('/home');
+      }
     } catch (err) {
       console.error('Profile setup error:', err);
       setError(err.response?.data?.detail || 'Failed to complete profile setup');

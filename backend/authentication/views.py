@@ -330,34 +330,27 @@ def complete_profile_setup(request):
             user_serializer = UserProfileSerializer(user, data=request.data, partial=True)
             
             if user_serializer.is_valid():
-                # Set completeSetup flag to True before saving the User model
-                user_data_to_save = user_serializer.validated_data.copy()
-                user_data_to_save['completeSetup'] = True
-                
-                # Re-initialize serializer with complete data for saving user
-                user_save_serializer = UserProfileSerializer(user, data=user_data_to_save, partial=True)
-                if not user_save_serializer.is_valid():
-                    print("User save serializer errors:", user_save_serializer.errors)
-                    return Response({
-                        'detail': 'Error preparing user data for saving',
-                        'errors': user_save_serializer.errors
-                    }, status=status.HTTP_400_BAD_REQUEST)
+                # Set completeSetup flag to True directly on the user model and save
+                for attr, value in user_serializer.validated_data.items():
+                    setattr(user, attr, value)
+                user.completeSetup = True
+                user.save()
 
-                updated_user = user_save_serializer.save()
+                updated_user = user  # Use the updated user instance
 
                 # If the user is a STUDENT, update their Patient profile
                 if updated_user.role == User.Role.STUDENT:
                     # Accept both 'birthday' and 'date_of_birth' from frontend
-                    dob = request.data.get('date_of_birth') or request.data.get('birthday') or user_data_to_save.get('birthday')
+                    dob = request.data.get('date_of_birth') or request.data.get('birthday') or user_serializer.validated_data.get('birthday')
                     print(f"DEBUG: Received date_of_birth: {dob}")
                     required_fields = {
-                        'first_name': user_data_to_save.get('first_name'),
-                        'last_name': user_data_to_save.get('last_name'),
+                        'first_name': user_serializer.validated_data.get('first_name'),
+                        'last_name': user_serializer.validated_data.get('last_name'),
                         'date_of_birth': dob,
-                        'sex': user_data_to_save.get('sex'),
-                        'phone': user_data_to_save.get('phone'),
-                        'email': user_data_to_save.get('email', updated_user.email),
-                        'address': user_data_to_save.get('address_present') or user_data_to_save.get('address_permanent')
+                        'sex': user_serializer.validated_data.get('sex'),
+                        'phone': user_serializer.validated_data.get('phone'),
+                        'email': user_serializer.validated_data.get('email', updated_user.email),
+                        'address': user_serializer.validated_data.get('address_present') or user_serializer.validated_data.get('address_permanent')
                     }
 
                     # Convert date_of_birth string to Python date object

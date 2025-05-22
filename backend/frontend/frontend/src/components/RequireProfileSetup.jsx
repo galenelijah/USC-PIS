@@ -100,6 +100,12 @@ const RequireProfileSetup = ({ children }) => {
     }
 
     // Redirect to profile setup if user hasn't completed setup
+    const profileJustCompleted = localStorage.getItem('profileJustCompleted') === 'true';
+    if (profileJustCompleted) {
+        localStorage.removeItem('profileJustCompleted');
+        return children;
+    }
+    console.log('RequireProfileSetup: completeSetup =', completeSetup, 'user =', user);
     return completeSetup ? children : <Navigate to="/profile-setup" replace />;
 };
 

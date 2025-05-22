@@ -98,6 +98,12 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             raise  # Re-raise to let the view handle it
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    completeSetup = serializers.SerializerMethodField()
+
+    def get_completeSetup(self, obj):
+        # Always return a boolean, defaulting to False if not set
+        return bool(getattr(obj, 'completeSetup', False))
+
     class Meta:
         model = User
         fields = (
