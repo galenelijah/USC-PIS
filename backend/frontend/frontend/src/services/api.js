@@ -261,42 +261,42 @@ export const authService = {
 export const patientService = {
   getAll: async () => {
     try {
-      return await api.get('/patients/');
+      return await api.get('/patients/patients/');
     } catch (error) {
       handleApiError(error);
     }
   },
   getById: async (id) => {
     try {
-      return await api.get(`/patients/${id}/`);
+      return await api.get(`/patients/patients/${id}/`);
     } catch (error) {
       handleApiError(error);
     }
   },
   create: async (data) => {
     try {
-      return await api.post('/patients/', data);
+      return await api.post('/patients/patients/', data);
     } catch (error) {
       handleApiError(error);
     }
   },
   update: async (id, data) => {
     try {
-      return await api.put(`/patients/${id}/`, data);
+      return await api.put(`/patients/patients/${id}/`, data);
     } catch (error) {
       handleApiError(error);
     }
   },
   delete: async (id) => {
     try {
-      return await api.delete(`/patients/${id}/`);
+      return await api.delete(`/patients/patients/${id}/`);
     } catch (error) {
       handleApiError(error);
     }
   },
   search: async (query) => {
     try {
-      return await api.get(`/patients/?search=${query}`);
+      return await api.get(`/patients/patients/?search=${query}`);
     } catch (error) {
       handleApiError(error);
     }
