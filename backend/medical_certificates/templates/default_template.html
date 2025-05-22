@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Medical Certificate</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 40px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            max-width: 100px;
+            margin-bottom: 10px;
+        }
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .subtitle {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        .content {
+            margin: 20px 0;
+        }
+        .footer {
+            margin-top: 50px;
+        }
+        .signature {
+            margin-top: 30px;
+            text-align: right;
+        }
+        .signature-line {
+            width: 200px;
+            border-top: 1px solid black;
+            margin-left: auto;
+            margin-right: 50px;
+        }
+        .doctor-name {
+            margin-top: 5px;
+            text-align: right;
+            margin-right: 50px;
+        }
+        .doctor-title {
+            font-style: italic;
+            text-align: right;
+            margin-right: 50px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="{{ STATIC_URL }}images/usc-logo.png" alt="USC Logo" class="logo">
+        <div class="title">University of San Carlos</div>
+        <div class="subtitle">Health Services Department</div>
+    </div>
+
+    <div class="content">
+        <p>This is to certify that {{ patient_name }}, {{ patient_age }} years old, 
+        {% if patient.student_id %}with Student ID {{ patient.student_id }}{% endif %}
+        {% if patient.employee_id %}with Employee ID {{ patient.employee_id }}{% endif %},
+        was examined at the University of San Carlos Health Services Department on {{ visit_date }}.</p>
+
+        <p><strong>Diagnosis:</strong><br>
+        {{ diagnosis }}</p>
+
+        <p><strong>Recommendations:</strong><br>
+        {{ recommendations }}</p>
+
+        <p>This certificate is valid from {{ valid_from }} to {{ valid_until }}.</p>
+
+        {% if additional_notes %}
+        <p><strong>Additional Notes:</strong><br>
+        {{ additional_notes }}</p>
+        {% endif %}
+    </div>
+
+    <div class="footer">
+        <p>This medical certificate is issued upon the request of the patient for whatever legal purpose it may serve.</p>
+        
+        <div class="signature">
+            <div class="signature-line"></div>
+            <div class="doctor-name">{{ doctor_name }}</div>
+            <div class="doctor-title">{{ doctor_title }}</div>
+            <div class="doctor-title">License No: {{ doctor_license }}</div>
+        </div>
+    </div>
+</body>
+</html> 

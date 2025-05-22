@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from .models import MedicalCertificate, CertificateTemplate
 from patients.serializers import PatientSerializer
+from dateutil import parser as date_parser
+from datetime import date
 
 class CertificateTemplateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -28,6 +30,19 @@ class MedicalCertificateSerializer(serializers.ModelSerializer):
             'issued_by', 'approved_by', 'created_at', 'updated_at',
             'issued_at', 'approved_at'
         ]
+
+    def to_internal_value(self, data):
+        # Parse valid_from and valid_until with flexible formats
+        for field in ['valid_from', 'valid_until']:
+            value = data.get(field)
+            if value and not isinstance(value, date):
+                try:
+                    # Try to parse using dateutil
+                    parsed = date_parser.parse(value).date()
+                    data[field] = parsed.isoformat()
+                except Exception:
+                    pass  # Let DRF handle the error if parsing fails
+        return super().to_internal_value(data)
 
     def validate(self, data):
         if data.get('valid_until') and data.get('valid_from'):

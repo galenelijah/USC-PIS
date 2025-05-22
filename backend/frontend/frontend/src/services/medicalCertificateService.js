@@ -122,5 +122,14 @@ export const medicalCertificateService = {
     } catch (error) {
       handleApiError(error);
     }
+  },
+
+  // Certificate rendering
+  renderCertificate: async (id) => {
+    try {
+      return await api.get(`/medical-certificates/certificates/${id}/render/`);
+    } catch (error) {
+      handleApiError(error);
+    }
   }
 }; 
