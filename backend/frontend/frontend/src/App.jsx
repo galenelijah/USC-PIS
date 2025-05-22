@@ -152,23 +152,19 @@ const App = () => {
           path="/profile-setup" 
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <RequireIncompleteSetup>
-                <ProfileSetup />
-              </RequireIncompleteSetup>
+              <ProfileSetup />
             </RequireAuth>
           } 
         />
         
-        {/* Protected Routes - Require completed profile */}
+        {/* Protected Routes - No profile setup enforcement */}
         <Route
           path="/home"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <RequireProfileSetup>
-                <Layout onSearch={handleSearch}>
-                  <Dashboard user={user} />
-                </Layout>
-              </RequireProfileSetup>
+              <Layout onSearch={handleSearch}>
+                <Dashboard user={user} />
+              </Layout>
             </RequireAuth>
           }
         />
@@ -178,15 +174,13 @@ const App = () => {
           path="/database-monitor"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <RequireProfileSetup>
-                {isAdminOrStaff ? (
-                  <Layout onSearch={handleSearch}>
-                    <DatabaseMonitor />
-                  </Layout>
-                ) : (
-                  <Navigate to="/home" replace />
-                )}
-              </RequireProfileSetup>
+              {isAdminOrStaff ? (
+                <Layout onSearch={handleSearch}>
+                  <DatabaseMonitor />
+                </Layout>
+              ) : (
+                <Navigate to="/home" replace />
+              )}
             </RequireAuth>
           }
         />

@@ -243,7 +243,7 @@ def database_health_check(request):
                 SELECT
                     t.table_name,
                     COUNT(c.column_name) AS column_count,
-                    GREATEST(0, pc.reltuples)::bigint AS approximate_row_count
+                    GREATEST(0, pc.reltuples) AS approximate_row_count
                 FROM information_schema.tables t
                 LEFT JOIN information_schema.columns c ON t.table_name = c.table_name AND t.table_schema = c.table_schema
                 LEFT JOIN pg_class pc ON pc.relname = t.table_name AND pc.relnamespace = (
@@ -330,9 +330,10 @@ def complete_profile_setup(request):
             user_serializer = UserProfileSerializer(user, data=request.data, partial=True)
             
             if user_serializer.is_valid():
-                # Set completeSetup flag to True directly on the user model and save
+                # Set all validated fields on the user
                 for attr, value in user_serializer.validated_data.items():
                     setattr(user, attr, value)
+                # Ensure completeSetup is set to True and saved
                 user.completeSetup = True
                 user.save()
 

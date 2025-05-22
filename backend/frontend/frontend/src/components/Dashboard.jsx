@@ -114,6 +114,11 @@ const Dashboard = ({ user }) => {
     }
   }, [user, dispatch]);
 
+  useEffect(() => {
+    // Mark that the user has visited the dashboard
+    localStorage.setItem('hasVisitedDashboard', 'true');
+  }, []);
+
   const StatCard = ({ title, value, icon, color, subtitle = null }) => (
     <Card 
       sx={{ 
@@ -639,6 +644,13 @@ const Dashboard = ({ user }) => {
         title={welcomeMessage}
         subtitle={`You are logged in as ${user?.role?.toLowerCase() || 'a user'}`}
       />
+      
+      {/* Show warning if profile setup is not complete */}
+      {user && user.completeSetup === false && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Your profile setup is not complete. Please complete your profile for full access.
+        </Alert>
+      )}
       
       {isAdminOrStaff ? renderAdminDashboard() : renderStudentDashboard()}
     </>

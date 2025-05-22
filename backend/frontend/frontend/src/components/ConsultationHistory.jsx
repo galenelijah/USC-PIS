@@ -129,25 +129,27 @@ const ConsultationHistory = () => {
         )}
       </Box>
       
-      {consultations.length === 0 ? (
-        <Typography variant="body2" color="textSecondary">
-          No consultation records found.
-        </Typography>
-      ) : (
-        <TableContainer component={Paper} sx={{ maxHeight: 440 }}>
-          <Table stickyHeader aria-label="consultation history table">
-            <TableHead>
+      <TableContainer component={Paper} sx={{ maxHeight: 440 }}>
+        <Table stickyHeader>
+          <TableHead>
+            <TableRow>
+              {isAdmin && <TableCell sx={{ fontWeight: 'bold' }}>Patient ID</TableCell>}
+              <TableCell sx={{ fontWeight: 'bold' }}>Date/Time</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Chief Complaints</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Treatment Plan</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Remarks/Results</TableCell>
+              {isAdmin && <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {consultations.length === 0 ? (
               <TableRow>
-                {isAdmin && <TableCell sx={{ fontWeight: 'bold' }}>Patient ID</TableCell>}
-                <TableCell sx={{ fontWeight: 'bold' }}>Date/Time</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Chief Complaints</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Treatment Plan</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Remarks/Results</TableCell>
-                {isAdmin && <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>}
+                <TableCell colSpan={isAdmin ? 6 : 5} align="center">
+                  No consultation records found.
+                </TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
-              {consultations.map((consultation) => (
+            ) : (
+              consultations.map((consultation) => (
                 <TableRow key={consultation.id} hover>
                   {isAdmin && <TableCell>{consultation.patient}</TableCell>}
                   <TableCell>{formatDateTime(consultation.date_time)}</TableCell>
@@ -165,11 +167,11 @@ const ConsultationHistory = () => {
                     </TableCell>
                   )}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
       {isAdmin && (
         <ConsultationFormModal

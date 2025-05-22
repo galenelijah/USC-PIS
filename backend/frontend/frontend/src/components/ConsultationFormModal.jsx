@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogActions,
@@ -8,10 +8,11 @@ import {
   Button,
   CircularProgress,
   Box,
-  Grid
+  Grid,
+  MenuItem
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
-import { consultationService } from '../services/api';
+import { consultationService, patientService } from '../services/api';
 
 const ConsultationFormModal = ({ open, onClose, consultationData, onSave }) => {
   const {
@@ -31,6 +32,24 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave }) => {
   });
 
   const isEditMode = Boolean(consultationData && consultationData.id);
+  const [patients, setPatients] = useState([]);
+  const [patientsLoading, setPatientsLoading] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setPatientsLoading(true);
+      patientService.getAll()
+        .then((response) => {
+          if (response && response.data && Array.isArray(response.data)) {
+            setPatients(response.data);
+          } else {
+            setPatients([]);
+          }
+        })
+        .catch(() => setPatients([]))
+        .finally(() => setPatientsLoading(false));
+    }
+  }, [open]);
 
   useEffect(() => {
     if (isEditMode && consultationData) {
@@ -82,18 +101,30 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave }) => {
               <Controller
                 name="patient"
                 control={control}
-                rules={{ required: 'Patient ID is required' }}
+                rules={{ required: 'Patient is required' }}
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Patient ID"
-                    type="number"
+                    select
+                    label="Patient"
                     fullWidth
                     margin="dense"
                     error={!!errors.patient}
                     helperText={errors.patient?.message}
-                    disabled={isEditMode} // Patient ID might not be editable in edit mode
-                  />
+                    disabled={isEditMode || patientsLoading}
+                  >
+                    {patientsLoading ? (
+                      <MenuItem value="" disabled>Loading patients...</MenuItem>
+                    ) : patients.length === 0 ? (
+                      <MenuItem value="" disabled>No patients found</MenuItem>
+                    ) : (
+                      patients.map((p) => (
+                        <MenuItem key={p.id} value={p.id}>
+                          {p.first_name} {p.last_name} (ID: {p.id})
+                        </MenuItem>
+                      ))
+                    )}
+                  </TextField>
                 )}
               />
             </Grid>
