@@ -30,6 +30,7 @@ import AdminFeedbackList from './components/AdminFeedbackList';
 import FileUploadPage from './pages/FileUploadPage';
 import FileDownloadPage from './pages/FileDownloadPage';
 import MedicalCertificatesPage from './pages/MedicalCertificatesPage';
+import MedicalRecordsPage from './components/MedicalRecordsPage';
 
 const App = () => {
   const isAuthenticated = useSelector(selectIsAuthenticated);
@@ -393,13 +394,27 @@ const App = () => {
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
-                {isAdminOrStaff || isDoctor || isNurse ? (
+                {isAdminOrStaff || isDoctor || isNurse || isStudent ? (
                   <Layout onSearch={handleSearch}>
                     <MedicalCertificatesPage />
                   </Layout>
                 ) : (
                   <Navigate to="/home" replace />
                 )}
+              </RequireProfileSetup>
+            </RequireAuth>
+          }
+        />
+        
+        {/* Medical Records Route */}
+        <Route
+          path="/medical-records"
+          element={
+            <RequireAuth isAuthenticated={isAuthenticated}>
+              <RequireProfileSetup>
+                <Layout onSearch={handleSearch}>
+                  <MedicalRecordsPage />
+                </Layout>
               </RequireProfileSetup>
             </RequireAuth>
           }

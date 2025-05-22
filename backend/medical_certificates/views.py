@@ -10,6 +10,7 @@ from xhtml2pdf import pisa
 from io import BytesIO
 from django.http import HttpResponse
 from datetime import date
+from rest_framework.permissions import IsAuthenticated
 
 # Create your views here.
 
@@ -28,18 +29,27 @@ class CertificateTemplateViewSet(viewsets.ModelViewSet):
 class MedicalCertificateViewSet(viewsets.ModelViewSet):
     queryset = MedicalCertificate.objects.all()
     serializer_class = MedicalCertificateSerializer
-    permission_classes = [IsStaffOrMedicalPersonnel]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        user = self.request.user
         queryset = super().get_queryset()
-        # Filter by patient if specified
+        # If student, only show their own certificates
+        if hasattr(user, 'role') and user.role == 'STUDENT':
+            # Find the patient profile linked to the student user
+            try:
+                patient = user.patient_profile
+                queryset = queryset.filter(patient=patient)
+            except Exception:
+                queryset = queryset.none()
+        # Staff, doctor, nurse, admin see all certificates
+        # Optionally, filter by patient or status if provided
         patient_id = self.request.query_params.get('patient', None)
         if patient_id:
             queryset = queryset.filter(patient_id=patient_id)
-        # Filter by status if specified
-        status = self.request.query_params.get('status', None)
-        if status:
-            queryset = queryset.filter(status=status)
+        status_param = self.request.query_params.get('status', None)
+        if status_param:
+            queryset = queryset.filter(status=status_param)
         return queryset
 
     def perform_create(self, serializer):

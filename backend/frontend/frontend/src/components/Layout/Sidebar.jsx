@@ -81,8 +81,9 @@ const Sidebar = () => {
   const patientItems = [
     { text: 'Patients', icon: <PeopleIcon />, path: '/patients', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'] },
     { text: 'Medical Records', icon: <LocalHospitalIcon />, path: '/health-records' },
+    { text: 'Medical Records (New)', icon: <LocalHospitalIcon />, path: '/medical-records' },
     { text: 'Consultations', icon: <LocalHospitalIcon />, path: '/consultations' },
-    { text: 'Medical Certificates', icon: <MedicalInformationIcon />, path: '/medical-certificates', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'] },
+    { text: 'Medical Certificates', icon: <MedicalInformationIcon />, path: '/medical-certificates', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE', 'STUDENT'] },
   ];
 
   const infoItems = [

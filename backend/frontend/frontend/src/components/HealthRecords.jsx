@@ -47,6 +47,7 @@ import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../features/authentication/authSlice';
 import dayjs from 'dayjs';
 import { healthRecordsService } from '../services/api';
+import MedicalRecord from './MedicalRecord';
 
 // Tab panel component for different record types
 function TabPanel(props) {
@@ -79,6 +80,8 @@ const HealthRecords = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [tabValue, setTabValue] = useState(0);
   const user = useSelector(selectCurrentUser);
+  const [selectedMedicalRecordId, setSelectedMedicalRecordId] = useState(null);
+  const [openMedicalRecordModal, setOpenMedicalRecordModal] = useState(false);
 
   // Check if user can edit records (not a student)
   const canEditRecords = user && user.role !== 'STUDENT';
@@ -291,6 +294,11 @@ const HealthRecords = () => {
                     <TableCell>{record.diagnosis}</TableCell>
                     <TableCell>{record.treatment}</TableCell>
                     <TableCell align="right">
+                      {record.record_type === 'MEDICAL' && (
+                        <Button size="small" onClick={() => { setSelectedMedicalRecordId(record.id); setOpenMedicalRecordModal(true); }}>
+                          View
+                        </Button>
+                      )}
                       <IconButton onClick={() => handleOpenEditDialog(record)} disabled={!canEditRecords}>
                         <EditIcon />
                       </IconButton>
@@ -464,6 +472,17 @@ const HealthRecords = () => {
           >
             Save
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Medical Record View Modal */}
+      <Dialog open={openMedicalRecordModal} onClose={() => setOpenMedicalRecordModal(false)} maxWidth="lg" fullWidth>
+        <DialogTitle>Medical Record</DialogTitle>
+        <DialogContent dividers>
+          <MedicalRecord medicalRecordId={selectedMedicalRecordId} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenMedicalRecordModal(false)}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>
