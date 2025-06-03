@@ -11,6 +11,11 @@ USC-PIS is a full-stack web application designed to manage patient information f
 - **Date handling and required fields:** Backend now properly converts date strings to Python date objects, and frontend sends the correct fields for patient creation.
 - **Post-setup navigation:** After successful profile setup, Redux state is updated and users are redirected to the dashboard (`/home`).
 - **API endpoint correction:** The frontend now fetches patient lists from `/api/patients/patients/` instead of `/api/patients/` to get actual patient data.
+- **Registration authentication fix:** Registration now automatically logs users in after successful registration, eliminating 401 errors on subsequent API calls.
+- **Profile setup completion handling:** Enhanced profile setup with proper state management and navigation flow, ensuring users are correctly redirected to dashboard after completion.
+- **HealthRecords patient selection:** Added missing patient selection functionality to HealthRecords component, allowing proper creation of health records with patient assignment.
+- **Medical certificate service consolidation:** Consolidated medical certificate service into main api.js file for better organization and consistency.
+- **Default template confirmation:** Verified that default medical certificate template exists in database for template-based certificate generation.
 - **General debugging:** Console and network tab were used to verify API responses and check for errors. Redux and navigation were checked to ensure state and routing were correct after profile setup.
 
 ---
@@ -35,6 +40,12 @@ USC-PIS is a full-stack web application designed to manage patient information f
 - Patient record management (CRUD)
 - Profile management and setup
 - **Automatic Patient Profile Creation:** When a user registers as a student and completes profile setup, a Patient profile is automatically created and linked to their user account.
+- **Medical Certificate Management:**
+  - Template-based medical certificate generation with customizable HTML templates
+  - Workflow-based certificate approval system (draft → pending → approved/rejected)
+  - Role-based permissions for certificate creation, approval, and viewing
+  - PDF generation and download functionality for approved certificates
+  - Default template provided for standard USC Health Services medical certificates
 - **Patient Feedback Collection and Analysis:**
   - Digital feedback forms for patients after consultations or treatments (including general feedback).
   - Feedback form includes: star rating, comments, staff courtesy, recommendation, and improvement suggestions.
@@ -194,6 +205,45 @@ USC-PIS/
 - content_type: CharField
 - file_size: PositiveIntegerField (nullable)
 
+### CertificateTemplate (`medical_certificates.CertificateTemplate`)
+- id: AutoField (PK)
+- name: CharField (max_length=100)
+- description: TextField (blank)
+- content: TextField (HTML template with placeholders)
+- created_at: DateTimeField (auto)
+- updated_at: DateTimeField (auto)
+
+### MedicalCertificate (`medical_certificates.MedicalCertificate`)
+- id: AutoField (PK)
+- patient: ForeignKey to Patient (medical_certificates reverse relation)
+- template: ForeignKey to CertificateTemplate
+- diagnosis: TextField
+- recommendations: TextField
+- valid_from: DateField
+- valid_until: DateField
+- additional_notes: TextField (blank)
+- status: CharField (choices: draft, pending, approved, rejected, default: draft)
+- issued_by: ForeignKey to User (issued_certificates reverse relation)
+- approved_by: ForeignKey to User (approved_certificates reverse relation, nullable)
+- created_at: DateTimeField (auto)
+- updated_at: DateTimeField (auto)
+- issued_at: DateTimeField (nullable)
+- approved_at: DateTimeField (nullable)
+
+### Consultation (`patients.Consultation`)
+- id: AutoField (PK)
+- patient: ForeignKey to Patient (consultations reverse relation)
+- consultation_date: DateTimeField
+- chief_complaint: TextField
+- history_of_present_illness: TextField (blank)
+- physical_examination: TextField (blank)
+- assessment: TextField (blank)
+- plan: TextField (blank)
+- notes: TextField (blank)
+- created_at: DateTimeField (auto)
+- updated_at: DateTimeField (auto)
+- created_by: ForeignKey to User (nullable)
+
 ## Migration & Documentation Rules
 - After adding a major feature or completing a milestone, update this file.
 - Document the entire database schema here.
@@ -237,6 +287,27 @@ USC-PIS/
   - `GET` (retrieve): Retrieve details of a specific file by ID. Requires authentication.
   - `DELETE` (destroy): Delete a file by ID. Requires authentication (permission might be restricted further, e.g., to owner or admin).
 - **Permissions:** `IsAuthenticated` for all methods currently.
+
+### Medical Certificates (`/api/medical-certificates/`)
+- **Base URL:** `/api/medical-certificates/certificates/`
+- **Methods:**
+  - `GET` (list): List all medical certificates. Requires authentication.
+  - `POST` (create): Create a new medical certificate. Requires authentication and staff/medical personnel permissions.
+  - `GET` (retrieve): Retrieve details of a specific certificate by ID.
+  - `PUT`/`PATCH` (update): Update a certificate (only for draft status).
+  - `DELETE` (destroy): Delete a certificate (only for draft status).
+- **Workflow Actions:**
+  - `POST` `/api/medical-certificates/certificates/{id}/submit/`: Submit certificate for approval.
+  - `POST` `/api/medical-certificates/certificates/{id}/approve/`: Approve a pending certificate.
+  - `POST` `/api/medical-certificates/certificates/{id}/reject/`: Reject a pending certificate.
+- **Templates:**
+  - `GET` `/api/medical-certificates/templates/`: List all certificate templates.
+  - `POST` `/api/medical-certificates/templates/`: Create a new template.
+  - `GET`/`PUT`/`DELETE` `/api/medical-certificates/templates/{id}/`: Template CRUD operations.
+- **Rendering:**
+  - `GET` `/api/medical-certificates/certificates/{id}/render/`: Generate HTML preview of certificate.
+  - `GET` `/api/medical-certificates/certificates/{id}/render_pdf/`: Download certificate as PDF.
+- **Permissions:** Staff/medical personnel for creation and approval actions; patients can view their own certificates.
 
 ## Frontend Components Notes
 

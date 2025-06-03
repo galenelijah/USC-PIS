@@ -14,7 +14,7 @@ import {
   Stack,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { medicalCertificateService } from '../../services/medicalCertificateService';
+import { medicalCertificateService } from '../../services/api';
 import { patientService } from '../../services/api';
 
 const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel }) => {

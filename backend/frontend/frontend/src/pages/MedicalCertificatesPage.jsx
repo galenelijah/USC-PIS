@@ -12,7 +12,7 @@ import {
   Alert,
 } from '@mui/material';
 import { Add as AddIcon, Close as CloseIcon } from '@mui/icons-material';
-import { medicalCertificateService } from '../services/medicalCertificateService';
+import { medicalCertificateService } from '../services/api';
 import MedicalCertificateList from '../components/MedicalCertificates/MedicalCertificateList';
 import MedicalCertificateForm from '../components/MedicalCertificates/MedicalCertificateForm';
 import MedicalCertificateDetail from '../components/MedicalCertificates/MedicalCertificateDetail';

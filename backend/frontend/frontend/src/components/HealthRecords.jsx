@@ -26,7 +26,8 @@ import {
   Tabs,
   Tab,
   Chip,
-  Divider
+  Divider,
+  Autocomplete
 } from '@mui/material';
 import { 
   Add as AddIcon, 
@@ -46,7 +47,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../features/authentication/authSlice';
 import dayjs from 'dayjs';
-import { healthRecordsService } from '../services/api';
+import { healthRecordsService, patientService } from '../services/api';
 import MedicalRecord from './MedicalRecord';
 
 // Tab panel component for different record types
@@ -72,6 +73,7 @@ function TabPanel(props) {
 
 const HealthRecords = () => {
   const [records, setRecords] = useState([]);
+  const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [currentRecord, setCurrentRecord] = useState(null);
@@ -88,6 +90,7 @@ const HealthRecords = () => {
 
   useEffect(() => {
     fetchHealthRecords();
+    fetchPatients();
   }, []);
 
   const fetchHealthRecords = async () => {
@@ -102,9 +105,19 @@ const HealthRecords = () => {
     }
   };
 
+  const fetchPatients = async () => {
+    try {
+      const response = await patientService.getAll();
+      setPatients(response.data || []);
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+    }
+  };
+
   const handleOpenCreateDialog = () => {
     setDialogMode('create');
     setCurrentRecord({
+      patient: null,
       visit_date: dayjs().format('YYYY-MM-DD'),
       record_type: 'MEDICAL',
       chief_complaint: '',
@@ -146,6 +159,17 @@ const HealthRecords = () => {
 
   const handleSaveRecord = async () => {
     try {
+      // Validate required fields
+      if (dialogMode === 'create' && !currentRecord.patient) {
+        alert('Please select a patient.');
+        return;
+      }
+
+      if (!currentRecord.diagnosis.trim()) {
+        alert('Please enter a diagnosis.');
+        return;
+      }
+
       if (dialogMode === 'create') {
         const response = await healthRecordsService.create(currentRecord);
         const newRecord = response.data;
@@ -158,7 +182,14 @@ const HealthRecords = () => {
       handleCloseDialog();
     } catch (error) {
       console.error('Error saving health record:', error);
-      alert('An error occurred while saving the record.');
+      if (error.response && error.response.data) {
+        const errorMessage = typeof error.response.data === 'string' 
+          ? error.response.data 
+          : JSON.stringify(error.response.data);
+        alert(`Error saving record: ${errorMessage}`);
+      } else {
+        alert('An error occurred while saving the record.');
+      }
     }
   };
 
@@ -181,6 +212,13 @@ const HealthRecords = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setCurrentRecord({ ...currentRecord, [name]: value });
+  };
+
+  const handlePatientChange = (event, newValue) => {
+    setCurrentRecord({ 
+      ...currentRecord, 
+      patient: newValue ? newValue.id : null 
+    });
   };
 
   const handleVitalSignChange = (e) => {
@@ -335,6 +373,38 @@ const HealthRecords = () => {
         <DialogContent dividers>
           {currentRecord && (
             <Grid container spacing={2}>
+              {dialogMode === 'create' && (
+                <Grid item xs={12}>
+                  <Autocomplete
+                    options={patients}
+                    getOptionLabel={(option) => `${option.first_name} ${option.last_name} (${option.id_number || 'No ID'})`}
+                    value={patients.find(p => p.id === currentRecord.patient) || null}
+                    onChange={handlePatientChange}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Select Patient"
+                        required
+                        margin="normal"
+                        helperText="Search by name or ID number"
+                      />
+                    )}
+                    isOptionEqualToValue={(option, value) => option.id === value?.id}
+                  />
+                </Grid>
+              )}
+              {dialogMode === 'edit' && currentRecord.patient && (
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Patient"
+                    value={`${currentRecord.patient.first_name || ''} ${currentRecord.patient.last_name || ''} (${currentRecord.patient.id_number || 'No ID'})`}
+                    disabled
+                    margin="normal"
+                    helperText="Patient cannot be changed when editing records"
+                  />
+                </Grid>
+              )}
               <Grid item xs={12} sm={6}>
                 <LocalizationProvider dateAdapter={AdapterDayjs}>
                   <DatePicker

@@ -22,7 +22,7 @@ import {
   Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
-import { medicalCertificateService } from '../../services/medicalCertificateService';
+import { medicalCertificateService } from '../../services/api';
 
 const statusColors = {
   draft: 'default',
