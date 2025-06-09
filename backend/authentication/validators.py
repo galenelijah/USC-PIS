@@ -131,6 +131,16 @@ class EnhancedEmailValidator:
         if local.startswith('.') or local.endswith('.'):
             return True
         
+        # Allow USC student ID formats (8-digit numbers are common USC student IDs)
+        if len(local) == 8 and local.isdigit():
+            # This is likely a USC student ID - allow it
+            return False
+        
+        # Allow other common USC ID formats (7-9 digit numbers)
+        if 7 <= len(local) <= 9 and local.isdigit():
+            # This is likely a USC student/employee ID - allow it
+            return False
+        
         # Too many numbers (likely generated) - more lenient for existing users
         digit_count = sum(1 for c in local if c.isdigit())
         threshold = 0.8 if lenient else 0.7
