@@ -503,6 +503,10 @@ def complete_profile_setup(request):
                 if not request.data.get(field):
                     validation_errors.append(f'{field.replace("_", " ").title()} is required')
             
+            print(f"DEBUG: Required fields check - {len(validation_errors)} errors found")
+            if validation_errors:
+                print(f"DEBUG: Validation errors: {validation_errors}")
+            
             # Validate date formats
             date_fields = ['birthday']
             for field in date_fields:
@@ -511,6 +515,7 @@ def complete_profile_setup(request):
                         # Validate date format and range
                         date_str = request.data[field]
                         parsed_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+                        print(f"DEBUG: Date parsing successful for {field}: {parsed_date}")
                         
                         # Check if date is reasonable (not in future, not too old)
                         today = datetime.date.today()
@@ -526,7 +531,8 @@ def complete_profile_setup(request):
                             elif age > 65:
                                 validation_errors.append('Student age seems unrealistic')
                                 
-                    except ValueError:
+                    except ValueError as date_error:
+                        print(f"DEBUG: Date parsing failed for {field}: {date_error}")
                         validation_errors.append(f'{field.replace("_", " ").title()} must be in YYYY-MM-DD format')
             
             # Validate phone number
@@ -575,21 +581,27 @@ def complete_profile_setup(request):
                     'errors': validation_errors
                 }, status=status.HTTP_400_BAD_REQUEST)
             
+            print("DEBUG: Starting transaction for profile setup")
+            
             # Begin atomic transaction for data consistency
             with transaction.atomic():
                 # Create a savepoint for rollback if needed
                 savepoint = transaction.savepoint()
                 
                 try:
+                    print("DEBUG: Creating user serializer")
                     user_serializer = UserProfileSerializer(user, data=request.data, partial=True)
                     
                     if not user_serializer.is_valid():
+                        print(f"DEBUG: Serializer validation failed: {user_serializer.errors}")
                         logger.error(f"Serializer validation failed: {user_serializer.errors}")
                         rate_limiter.record_attempt(f"{user.id}:profile_setup", 'profile_setup', success=False)
                         return Response({
                             'detail': 'Invalid data provided',
                             'errors': user_serializer.errors
                         }, status=status.HTTP_400_BAD_REQUEST)
+                    
+                    print("DEBUG: User serializer is valid, updating user fields")
                     
                     # Update user fields
                     for attr, value in user_serializer.validated_data.items():
@@ -598,37 +610,80 @@ def complete_profile_setup(request):
                     
                     # Set completion flag
                     user.completeSetup = True
+                    print("DEBUG: Saving user with updated profile")
                     user.save()
                     
                     logger.info(f"User profile updated for {user.email}")
                     
                     # Handle student-specific patient profile creation
                     if user.role == User.Role.STUDENT:
+                        print("DEBUG: User is student, preparing patient data")
                         patient_data = _prepare_patient_data(user, user_serializer.validated_data, request.data)
                         
                         if not patient_data:
+                            print("DEBUG: Patient data preparation failed")
                             transaction.savepoint_rollback(savepoint)
                             return Response({
                                 'detail': 'Failed to prepare patient data',
                                 'error_code': 'PATIENT_DATA_ERROR'
                             }, status=status.HTTP_400_BAD_REQUEST)
                         
+                        print(f"DEBUG: Patient data prepared: {patient_data}")
+                        
                         # Create or update patient profile
                         try:
-                            patient_profile, created = Patient.objects.get_or_create(
-                                user=user,
-                                defaults=patient_data
-                            )
+                            print("DEBUG: Attempting to create/update patient profile")
                             
-                            if not created:
-                                # Update existing patient profile
-                                for field, value in patient_data.items():
-                                    setattr(patient_profile, field, value)
-                                patient_profile.save()
+                            # Check if a patient with this email already exists
+                            existing_patient_by_email = Patient.objects.filter(email=patient_data['email']).first()
+                            
+                            if existing_patient_by_email:
+                                print(f"DEBUG: Found existing patient with email {patient_data['email']}")
+                                print(f"DEBUG: Existing patient linked to user: {existing_patient_by_email.user.email if existing_patient_by_email.user else 'None'}")
+                                
+                                # If the existing patient is linked to a different user or no user,
+                                # we need to update it to link to the current user
+                                if not existing_patient_by_email.user or existing_patient_by_email.user != user:
+                                    print(f"DEBUG: Updating existing patient to link to current user")
+                                    # Update the existing patient record
+                                    for field, value in patient_data.items():
+                                        if field != 'created_by':  # Don't overwrite created_by
+                                            setattr(existing_patient_by_email, field, value)
+                                    existing_patient_by_email.user = user  # Link to current user
+                                    existing_patient_by_email.save()
+                                    
+                                    patient_profile = existing_patient_by_email
+                                    created = False
+                                    print(f"DEBUG: Successfully updated existing patient record")
+                                else:
+                                    # Patient already correctly linked to this user
+                                    patient_profile = existing_patient_by_email
+                                    created = False
+                                    print(f"DEBUG: Patient already correctly linked to this user")
+                            else:
+                                # No existing patient with this email, try get_or_create by user
+                                print("DEBUG: No existing patient with this email, using get_or_create by user")
+                                patient_profile, created = Patient.objects.get_or_create(
+                                    user=user,
+                                    defaults=patient_data
+                                )
+                                
+                                if not created:
+                                    print("DEBUG: Updating existing patient profile linked to user")
+                                    # Update existing patient profile
+                                    for field, value in patient_data.items():
+                                        setattr(patient_profile, field, value)
+                                    patient_profile.save()
+                                else:
+                                    print("DEBUG: Created new patient profile")
                             
                             logger.info(f"{'Created' if created else 'Updated'} patient profile for user {user.email}")
                             
                         except Exception as patient_error:
+                            print(f"DEBUG: Patient profile creation failed: {str(patient_error)}")
+                            print(f"DEBUG: Patient error type: {type(patient_error).__name__}")
+                            import traceback
+                            print(f"DEBUG: Patient error traceback: {traceback.format_exc()}")
                             logger.error(f"Patient profile creation failed: {str(patient_error)}")
                             transaction.savepoint_rollback(savepoint)
                             return Response({
@@ -636,6 +691,7 @@ def complete_profile_setup(request):
                                 'error_code': 'PATIENT_CREATION_ERROR'
                             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
                     
+                    print("DEBUG: Committing transaction")
                     # Commit the transaction
                     transaction.savepoint_commit(savepoint)
                     
@@ -852,4 +908,36 @@ class PasswordResetConfirmView(APIView):
             else:
                 logger.warning(f"Password reset failed for token {token} or uid {uidb64}")
                 return Response({'detail': 'Invalid token or user ID.'}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def debug_current_user(request):
+    """Debug endpoint to check current authenticated user."""
+    user = request.user
+    
+    try:
+        patient_profile = user.patient_profile
+        patient_info = {
+            'id': patient_profile.id,
+            'email': patient_profile.email,
+            'name': f"{patient_profile.first_name} {patient_profile.last_name}"
+        }
+    except:
+        patient_info = None
+    
+    return Response({
+        'user': {
+            'id': user.id,
+            'email': user.email,
+            'role': user.role,
+            'completeSetup': user.completeSetup,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+        },
+        'patient_profile': patient_info,
+        'token_info': {
+            'user_id': request.user.id,
+            'is_authenticated': request.user.is_authenticated,
+        }
+    }) 
