@@ -22,7 +22,7 @@ from django.conf import settings
 from rest_framework.views import APIView
 from patients.models import Patient
 import datetime
-from .validators import email_validator, password_validator, rate_limiter, SessionManager
+from .validators import email_validator, strict_email_validator, password_validator, rate_limiter, SessionManager
 from django.utils import timezone
 from django.core.exceptions import ValidationError as DjangoValidationError
 
@@ -50,8 +50,8 @@ def check_email(request):
                 'error': 'Email is required'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Enhanced email validation
-        validation_error = email_validator(email)
+        # Use lenient validation for email checking (allows existing users)
+        validation_error = email_validator(email, check_existing=True)
         if validation_error:
             return Response({
                 'exists': False,
@@ -100,11 +100,11 @@ def register_user(request):
             # Input validation
             validation_errors = []
             
-            # Email validation
+            # Strict email validation for new registrations (USC domain required)
             if not email:
                 validation_errors.append('Email is required')
             else:
-                email_error = email_validator(email)
+                email_error = strict_email_validator(email)
                 if email_error:
                     validation_errors.append(email_error)
             
@@ -239,8 +239,8 @@ def login_user(request):
                     'locked_out': True
                 }, status=status.HTTP_429_TOO_MANY_REQUESTS)
             
-            # Enhanced email validation
-            email_error = email_validator(email)
+            # Lenient email validation for login (allows existing users)
+            email_error = email_validator(email, check_existing=True)
             if email_error:
                 rate_limiter.record_attempt(client_ip, 'login', success=False)
                 rate_limiter.record_attempt(email, 'login', success=False)
@@ -821,8 +821,8 @@ class PasswordResetRequestView(APIView):
                 'field': 'email'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Enhanced email validation with USC domain requirement
-        email_error = email_validator(email)
+        # Enhanced email validation with lenient checking for existing users
+        email_error = email_validator(email, check_existing=True)
         if email_error:
             return Response({
                 'detail': email_error,

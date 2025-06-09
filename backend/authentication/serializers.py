@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import User
 from patients.models import Patient
-from .validators import email_validator, password_validator
+from .validators import email_validator, strict_email_validator, password_validator
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(write_only=True)
@@ -63,12 +63,12 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         }
     
     def validate_email(self, value):
-        """Validate email with USC domain requirement."""
+        """Validate email with strict USC domain requirement for new registrations."""
         if not value:
             raise serializers.ValidationError("Email is required")
         
-        # Use enhanced email validator
-        error_message = email_validator(value)
+        # Use strict email validator for new registrations
+        error_message = strict_email_validator(value)
         if error_message:
             raise serializers.ValidationError(error_message)
         
@@ -182,12 +182,12 @@ class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     
     def validate_email(self, value):
-        """Validate email with USC domain requirement."""
+        """Validate email with lenient checking for existing users."""
         if not value:
             raise serializers.ValidationError("Email is required")
         
-        # Use enhanced email validator
-        error_message = email_validator(value)
+        # Use lenient email validator for password reset (allows existing users)
+        error_message = email_validator(value, check_existing=True)
         if error_message:
             raise serializers.ValidationError(error_message)
         

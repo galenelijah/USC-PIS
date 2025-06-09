@@ -39,14 +39,21 @@ class EnhancedEmailValidator:
         'usc.educ.ph': 'usc.edu.ph'
     }
     
-    def __init__(self, require_usc_domain=True):
+    def __init__(self, require_usc_domain=True, allow_existing_users=True):
         self.require_usc_domain = require_usc_domain
+        self.allow_existing_users = allow_existing_users
         self.base_validator = EmailValidator()
     
-    def __call__(self, email: str) -> Optional[str]:
+    def __call__(self, email: str, check_existing=False) -> Optional[str]:
         """
         Validate email with USC domain requirement.
-        Returns None if valid, error message if invalid.
+        
+        Args:
+            email: Email address to validate
+            check_existing: If True, allows existing users to bypass USC domain requirement
+            
+        Returns:
+            None if valid, error message if invalid.
         """
         if not email:
             return "Email is required"
@@ -72,12 +79,18 @@ class EnhancedEmailValidator:
         except ValueError:
             return "Invalid email format"
         
+        # Check if user already exists (for login scenarios)
+        if check_existing and self.allow_existing_users:
+            if self._user_exists(email):
+                # Existing user - only validate format, not domain
+                return self._validate_existing_user_email(local, domain)
+        
         # Check for common typos in USC domain
         if domain in self.DOMAIN_TYPOS:
             suggested = self.DOMAIN_TYPOS[domain]
             return f"Did you mean {local}@{suggested}?"
         
-        # USC domain requirement
+        # USC domain requirement (only for new users or when explicitly required)
         if self.require_usc_domain and domain != self.REQUIRED_DOMAIN:
             return f"Only USC email addresses (@{self.REQUIRED_DOMAIN}) are allowed"
         
@@ -87,10 +100,27 @@ class EnhancedEmailValidator:
         
         return None
     
-    def _is_suspicious_local_part(self, local: str) -> bool:
+    def _user_exists(self, email: str) -> bool:
+        """Check if user with this email already exists in database."""
+        try:
+            from .models import User
+            return User.objects.filter(email=email).exists()
+        except Exception as e:
+            logger.error(f"Error checking if user exists: {e}")
+            return False
+    
+    def _validate_existing_user_email(self, local: str, domain: str) -> Optional[str]:
+        """Validate email for existing users (more lenient validation)."""
+        # Basic validation for existing users
+        if self._is_suspicious_local_part(local, lenient=True):
+            return "Email address appears to be invalid"
+        return None
+    
+    def _is_suspicious_local_part(self, local: str, lenient: bool = False) -> bool:
         """Check for suspicious email local part patterns."""
         # Too many dots
-        if local.count('.') > 3:
+        max_dots = 5 if lenient else 3
+        if local.count('.') > max_dots:
             return True
         
         # Consecutive dots
@@ -101,24 +131,20 @@ class EnhancedEmailValidator:
         if local.startswith('.') or local.endswith('.'):
             return True
         
-        # Too many numbers (likely generated)
+        # Too many numbers (likely generated) - more lenient for existing users
         digit_count = sum(1 for c in local if c.isdigit())
-        if digit_count > len(local) * 0.7:
+        threshold = 0.8 if lenient else 0.7
+        if digit_count > len(local) * threshold:
             return True
         
-        # Check for valid USC email patterns
-        # USC emails typically follow patterns like:
-        # - firstname.lastname@usc.edu.ph
-        # - lastname@usc.edu.ph  
-        # - initials.lastname@usc.edu.ph
-        # - studentnumber@usc.edu.ph (for students)
-        
-        # Allow alphanumeric, dots, hyphens, underscores
-        if not re.match(r'^[a-zA-Z0-9._-]+$', local):
+        # Allow more characters for existing users
+        allowed_pattern = r'^[a-zA-Z0-9._+-]+$' if lenient else r'^[a-zA-Z0-9._-]+$'
+        if not re.match(allowed_pattern, local):
             return True
         
         # Local part too short or too long
-        if len(local) < 2 or len(local) > 30:
+        max_length = 50 if lenient else 30
+        if len(local) < 2 or len(local) > max_length:
             return True
         
         return False
@@ -359,6 +385,9 @@ class SessionManager:
         return count
 
 # Validation instances with USC domain requirement
-email_validator = EnhancedEmailValidator(require_usc_domain=True)
+email_validator = EnhancedEmailValidator(require_usc_domain=True, allow_existing_users=True)
 password_validator = PasswordSecurityValidator(min_length=8, require_special=True, check_breaches=True)
-rate_limiter = RateLimiter(max_attempts=5, window_minutes=15, lockout_minutes=30) 
+rate_limiter = RateLimiter(max_attempts=5, window_minutes=15, lockout_minutes=30)
+
+# Separate validator for strict USC-only validation (for new registrations)
+strict_email_validator = EnhancedEmailValidator(require_usc_domain=True, allow_existing_users=False) 

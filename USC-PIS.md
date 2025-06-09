@@ -4,13 +4,21 @@ A comprehensive clinic management system for the University of Southern Californ
 
 ## 🏫 USC DOMAIN REQUIREMENT
 
-**IMPORTANT**: This system exclusively serves the USC community. All user accounts must use USC email addresses with the domain `@usc.edu.ph`. 
+**IMPORTANT**: This system primarily serves the USC community with special provisions for existing users.
 
-### Email Validation Features:
-- ✅ **Only USC emails accepted**: `@usc.edu.ph` domain required
+### Email Validation Strategy:
+
+#### 🔒 **New User Registration**
+- ✅ **Strict USC Domain**: Only `@usc.edu.ph` emails accepted
 - 🔍 **Typo Detection**: Suggests corrections (e.g., `@usc.edu` → `@usc.edu.ph`)
 - 🛡️ **Security Validation**: Prevents suspicious email patterns
 - 🚫 **External domains blocked**: Gmail, Yahoo, Outlook, etc. are not allowed
+
+#### 🔓 **Existing User Login**
+- ✅ **Legacy Support**: Existing users with non-USC emails can continue to login
+- ✅ **USC Emails Welcome**: USC users can login normally
+- 🔍 **Format Validation**: Basic email format validation still applies
+- 📧 **Database Check**: System verifies if user already exists before applying domain restrictions
 
 ### Accepted USC Email Examples:
 - `john.doe@usc.edu.ph` ✅
@@ -18,10 +26,16 @@ A comprehensive clinic management system for the University of Southern Californ
 - `faculty.member@usc.edu.ph` ✅
 - `admin@usc.edu.ph` ✅
 
-### Rejected Examples:
-- `user@gmail.com` ❌ (Non-USC domain)
-- `student@usc.edu` ❌ (Missing .ph, suggests correct domain)
-- `faculty@usc.com` ❌ (Typo, suggests correct domain)
+### Implementation Details:
+```python
+# For new registrations (strict)
+result = strict_email_validator(email)  # Requires USC domain
+
+# For login (lenient for existing users)
+result = email_validator(email, check_existing=True)  # Allows existing users
+```
+
+This ensures backward compatibility while transitioning to USC-only registration.
 
 ## Project Overview
 
