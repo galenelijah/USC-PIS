@@ -9,7 +9,7 @@ from .serializers import UserRegistrationSerializer, UserProfileSerializer, Chan
 import logging
 import traceback
 from django.http import JsonResponse
-from django.db import connection
+from django.db import connection, transaction, IntegrityError
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 import json
@@ -22,118 +22,312 @@ from django.conf import settings
 from rest_framework.views import APIView
 from patients.models import Patient
 import datetime
+from .validators import email_validator, password_validator, rate_limiter, SessionManager
+from django.utils import timezone
+from django.core.exceptions import ValidationError as DjangoValidationError
 
 logger = logging.getLogger(__name__)
+
+def get_client_ip(request):
+    """Get client IP address from request."""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def check_email(request):
-    email = request.data.get('email', '')
-    exists = User.objects.filter(email=email).exists()
-    return Response({'exists': exists})
+    """Enhanced email checking with validation."""
+    try:
+        email = request.data.get('email', '').strip()
+        
+        if not email:
+            return Response({
+                'exists': False,
+                'error': 'Email is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Enhanced email validation
+        validation_error = email_validator(email)
+        if validation_error:
+            return Response({
+                'exists': False,
+                'error': validation_error,
+                'suggestion': validation_error if 'Did you mean' in validation_error else None
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Check if email exists
+        exists = User.objects.filter(email=email.lower()).exists()
+        
+        return Response({
+            'exists': exists,
+            'email': email.lower()
+        })
+        
+    except Exception as e:
+        logger.error(f"Email check error: {str(e)}\n{traceback.format_exc()}")
+        return Response({
+            'exists': False,
+            'error': 'An error occurred while checking email'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register_user(request):
+    """Enhanced user registration with comprehensive validation."""
     if request.method == 'POST':
         try:
-            # Log the received data
-            print("Registration request data:", request.data)
+            # Get client IP for rate limiting
+            client_ip = get_client_ip(request)
             
-            # Get required fields from the request
-            email = request.data.get('email')
-            password = request.data.get('password')
-            password2 = request.data.get('password2')
-            role = request.data.get('role', 'STUDENT')
+            # Check rate limiting
+            is_limited, time_remaining = rate_limiter.is_rate_limited(client_ip, 'register')
+            if is_limited:
+                return Response({
+                    'detail': f'Too many registration attempts. Try again in {time_remaining // 60} minutes.',
+                    'retry_after': time_remaining
+                }, status=status.HTTP_429_TOO_MANY_REQUESTS)
             
-            # Basic validation
-            if not email or not password or not password2:
-                return Response(
-                    {'detail': 'Email, password, and password confirmation are required.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            # Get and validate required fields
+            email = request.data.get('email', '').strip().lower()
+            password = request.data.get('password', '')
+            password2 = request.data.get('password2', '')
+            role = request.data.get('role', 'STUDENT').upper()
+            
+            # Input validation
+            validation_errors = []
+            
+            # Email validation
+            if not email:
+                validation_errors.append('Email is required')
+            else:
+                email_error = email_validator(email)
+                if email_error:
+                    validation_errors.append(email_error)
+            
+            # Password validation
+            if not password:
+                validation_errors.append('Password is required')
+            elif not password2:
+                validation_errors.append('Password confirmation is required')
+            elif password != password2:
+                validation_errors.append("Passwords don't match")
+            else:
+                # Enhanced password validation
+                password_errors = password_validator.validate(password, {
+                    'email': email,
+                    'username': email
+                })
+                validation_errors.extend(password_errors)
+            
+            # Role validation
+            valid_roles = [choice[0] for choice in User.Role.choices]
+            if role not in valid_roles:
+                validation_errors.append(f'Invalid role. Must be one of: {", ".join(valid_roles)}')
+            
+            if validation_errors:
+                rate_limiter.record_attempt(client_ip, 'register', success=False)
+                return Response({
+                    'detail': 'Validation failed',
+                    'errors': validation_errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Check for existing user with enhanced checking
+            existing_checks = [
+                User.objects.filter(email=email).exists(),
+                User.objects.filter(username=email).exists(),
+                User.objects.filter(email__iexact=email).exists()  # Case-insensitive check
+            ]
+            
+            if any(existing_checks):
+                rate_limiter.record_attempt(client_ip, 'register', success=False)
+                return Response({
+                    'detail': 'A user with this email already exists.',
+                    'field': 'email'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Create user with transaction safety
+            try:
+                with transaction.atomic():
+                    user = User.objects.create_user(
+                        username=email,
+                        email=email,
+                        password=password,
+                        role=role,
+                        first_name='',
+                        last_name='',
+                        completeSetup=False,
+                        date_joined=timezone.now()
+                    )
+                    
+                    # Create initial token
+                    token, created = Token.objects.get_or_create(user=user)
+                    
+                    # Log successful registration
+                    logger.info(f"User registered successfully: {user.email} with role {role}")
+                    
+                    # Record successful attempt
+                    rate_limiter.record_attempt(client_ip, 'register', success=True)
+                    
+                    return Response({
+                        'detail': 'User created successfully',
+                        'user_id': user.id,
+                        'token': token.key,
+                        'user': {
+                            'id': user.id,
+                            'email': user.email,
+                            'role': user.role,
+                            'completeSetup': user.completeSetup
+                        }
+                    }, status=status.HTTP_201_CREATED)
+                    
+            except IntegrityError as e:
+                logger.error(f"Database integrity error during registration: {str(e)}")
+                rate_limiter.record_attempt(client_ip, 'register', success=False)
+                return Response({
+                    'detail': 'Registration failed due to database conflict. Email may already exist.',
+                    'field': 'email'
+                }, status=status.HTTP_400_BAD_REQUEST)
                 
-            if password != password2:
-                return Response(
-                    {'detail': "Passwords don't match"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # Check if user already exists
-            if User.objects.filter(email=email).exists():
-                return Response(
-                    {'detail': 'A user with this email already exists.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # Create user directly
-            from django.db import transaction
-            with transaction.atomic():
-                user = User.objects.create_user(
-                    username=email,
-                    email=email,
-                    password=password,
-                    role=role,
-                    first_name='',  # Empty default
-                    last_name='',   # Empty default
-                    completeSetup=False
-                )
-            
-            logger.info(f"User created successfully: {user.email}")
-            return Response(
-                {'detail': 'User created successfully'},
-                status=status.HTTP_201_CREATED
-            )
         except Exception as e:
-            import traceback
             error_msg = f"Registration error: {str(e)}"
-            print(error_msg)
-            print(traceback.format_exc())
             logger.error(f"{error_msg}\n{traceback.format_exc()}")
-            return Response(
-                {'detail': f'Registration failed: {str(e)}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            
+            # Record failed attempt
+            try:
+                client_ip = get_client_ip(request)
+                rate_limiter.record_attempt(client_ip, 'register', success=False)
+            except:
+                pass
+            
+            return Response({
+                'detail': 'Registration failed due to server error. Please try again.',
+                'error_code': 'INTERNAL_ERROR'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_user(request):
+    """Enhanced login with rate limiting and security checks."""
     if request.method == 'POST':
         try:
-            email = request.data.get('email')
-            password = request.data.get('password')
-
+            # Get client IP for rate limiting
+            client_ip = get_client_ip(request)
+            email = request.data.get('email', '').strip().lower()
+            password = request.data.get('password', '')
+            
+            # Input validation
             if not email or not password:
-                return Response(
-                    {'detail': 'Please provide both email and password'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
+                rate_limiter.record_attempt(client_ip, 'login', success=False)
+                return Response({
+                    'detail': 'Please provide both email and password',
+                    'fields': ['email', 'password']
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Check rate limiting (by IP and email)
+            ip_limited, ip_time = rate_limiter.is_rate_limited(client_ip, 'login')
+            email_limited, email_time = rate_limiter.is_rate_limited(email, 'login')
+            
+            if ip_limited or email_limited:
+                max_time = max(ip_time, email_time)
+                return Response({
+                    'detail': f'Too many login attempts. Try again in {max_time // 60} minutes.',
+                    'retry_after': max_time,
+                    'locked_out': True
+                }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+            
+            # Enhanced email validation
+            email_error = email_validator(email)
+            if email_error:
+                rate_limiter.record_attempt(client_ip, 'login', success=False)
+                rate_limiter.record_attempt(email, 'login', success=False)
+                return Response({
+                    'detail': 'Invalid email format',
+                    'field': 'email'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Authenticate user
             user = authenticate(request, username=email, password=password)
             
             if user is None:
-                return Response(
-                    {'detail': 'Invalid credentials'},
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
-
+                # Record failed attempt
+                rate_limiter.record_attempt(client_ip, 'login', success=False)
+                rate_limiter.record_attempt(email, 'login', success=False)
+                
+                # Check if user exists to provide appropriate message
+                user_exists = User.objects.filter(email=email).exists()
+                if user_exists:
+                    detail = 'Invalid password'
+                    field = 'password'
+                else:
+                    detail = 'No account found with this email'
+                    field = 'email'
+                
+                return Response({
+                    'detail': detail,
+                    'field': field
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            
             if not user.is_active:
-                return Response(
-                    {'detail': 'Account is disabled'},
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
-
-            token, _ = Token.objects.get_or_create(user=user)
+                rate_limiter.record_attempt(client_ip, 'login', success=False)
+                rate_limiter.record_attempt(email, 'login', success=False)
+                return Response({
+                    'detail': 'Account is disabled. Please contact support.',
+                    'account_status': 'disabled'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            
+            # Handle concurrent sessions
+            SessionManager.handle_concurrent_logins(user, max_sessions=3)
+            
+            # Create or get token
+            token, created = Token.objects.get_or_create(user=user)
+            
+            # Check if token is expired
+            if not created and SessionManager.is_token_expired(token):
+                token.delete()
+                token = Token.objects.create(user=user)
+                logger.info(f"Refreshed expired token for user {user.email}")
+            
+            # Record successful attempt
+            rate_limiter.record_attempt(client_ip, 'login', success=True)
+            rate_limiter.record_attempt(email, 'login', success=True)
+            
+            # Update last login
+            user.last_login = timezone.now()
+            user.save(update_fields=['last_login'])
+            
+            logger.info(f"Successful login for user {user.email}")
+            
             return Response({
                 'token': token.key,
-                'user': UserProfileSerializer(user).data
+                'user': UserProfileSerializer(user).data,
+                'login_time': timezone.now().isoformat(),
+                'session_info': {
+                    'token_created': created,
+                    'expires_in_hours': 24
+                }
             })
+            
         except Exception as e:
             logger.error(f"Login error: {str(e)}\n{traceback.format_exc()}")
-            return Response(
-                {'detail': 'An error occurred during login'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            
+            # Record failed attempt on exception
+            try:
+                client_ip = get_client_ip(request)
+                email = request.data.get('email', '').strip().lower()
+                rate_limiter.record_attempt(client_ip, 'login', success=False)
+                if email:
+                    rate_limiter.record_attempt(email, 'login', success=False)
+            except:
+                pass
+            
+            return Response({
+                'detail': 'An error occurred during login. Please try again.',
+                'error_code': 'LOGIN_ERROR'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class ProfileViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
@@ -322,112 +516,295 @@ def debug_register(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def complete_profile_setup(request):
+    """Enhanced profile setup with comprehensive edge case handling."""
     if request.method == 'POST':
         try:
             user = request.user
+            client_ip = get_client_ip(request)
+            
+            # Check if user already completed setup
+            if user.completeSetup:
+                logger.warning(f"User {user.email} attempted to complete already completed profile setup")
+                return Response({
+                    'detail': 'Profile setup already completed',
+                    'user': UserProfileSerializer(user).data
+                }, status=status.HTTP_200_OK)
+            
+            # Rate limiting for profile setup (prevent spam)
+            is_limited, time_remaining = rate_limiter.is_rate_limited(
+                f"{user.id}:profile_setup", 'profile_setup'
+            )
+            if is_limited:
+                return Response({
+                    'detail': f'Too many profile setup attempts. Try again in {time_remaining // 60} minutes.',
+                    'retry_after': time_remaining
+                }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+            
+            logger.info(f"Profile setup attempt for user {user.email}")
             print("Profile setup data:", request.data)
             
-            user_serializer = UserProfileSerializer(user, data=request.data, partial=True)
+            # Validate required fields based on role
+            validation_errors = []
+            required_fields = ['first_name', 'last_name', 'sex', 'phone']
             
-            if user_serializer.is_valid():
-                # Set all validated fields on the user
-                for attr, value in user_serializer.validated_data.items():
-                    setattr(user, attr, value)
-                # Ensure completeSetup is set to True and saved
-                user.completeSetup = True
-                user.save()
-
-                updated_user = user  # Use the updated user instance
-
-                # If the user is a STUDENT, update their Patient profile
-                if updated_user.role == User.Role.STUDENT:
-                    # Accept both 'birthday' and 'date_of_birth' from frontend
-                    dob = request.data.get('date_of_birth') or request.data.get('birthday') or user_serializer.validated_data.get('birthday')
-                    print(f"DEBUG: Received date_of_birth: {dob}")
-                    required_fields = {
-                        'first_name': user_serializer.validated_data.get('first_name'),
-                        'last_name': user_serializer.validated_data.get('last_name'),
-                        'date_of_birth': dob,
-                        'sex': user_serializer.validated_data.get('sex'),
-                        'phone': user_serializer.validated_data.get('phone'),
-                        'email': user_serializer.validated_data.get('email', updated_user.email),
-                        'address': user_serializer.validated_data.get('address_present') or user_serializer.validated_data.get('address_permanent')
-                    }
-
-                    # Convert date_of_birth string to Python date object
-                    dob_str = required_fields['date_of_birth']
-                    dob = None
-                    if isinstance(dob_str, str):
-                        try:
-                            dob = datetime.datetime.strptime(dob_str, '%Y-%m-%d').date()
-                        except Exception as e:
-                            print(f"DEBUG: Failed to parse date_of_birth: {dob_str} ({e})")
-                            dob = None
-                    else:
-                        dob = dob_str  # Already a date object
-                    required_fields['date_of_birth'] = dob
-                    print(f"DEBUG: Final date_of_birth value to save: {dob} (type: {type(dob)})")
-                    # Check for missing required fields again
-                    missing_fields = [field for field, value in required_fields.items() if not value]
-                    if missing_fields:
-                        print(f"Missing required fields for Patient: {missing_fields}")
-                        return Response({
-                            'detail': 'Missing or invalid required fields for patient profile',
-                            'missing_fields': missing_fields
-                        }, status=status.HTTP_400_BAD_REQUEST)
-
+            if user.role == User.Role.STUDENT:
+                required_fields.extend(['birthday', 'course', 'year_level', 'school', 'id_number'])
+                # Address is required (either permanent or present)
+                if not request.data.get('address_permanent') and not request.data.get('address_present'):
+                    validation_errors.append('Either permanent or present address is required')
+            
+            # Check for missing required fields
+            for field in required_fields:
+                if not request.data.get(field):
+                    validation_errors.append(f'{field.replace("_", " ").title()} is required')
+            
+            # Validate date formats
+            date_fields = ['birthday']
+            for field in date_fields:
+                if request.data.get(field):
                     try:
-                        patient_profile, created = Patient.objects.get_or_create(
-                            user=updated_user,
-                            defaults={
-                                'first_name': required_fields['first_name'],
-                                'last_name': required_fields['last_name'],
-                                'date_of_birth': required_fields['date_of_birth'],
-                                'gender': required_fields['sex'][0].upper(),
-                                'phone_number': required_fields['phone'],
-                                'email': required_fields['email'],
-                                'address': required_fields['address'],
-                            }
-                        )
-                        print(f"{'Created' if created else 'Updated'} patient profile for user {updated_user.email}")
-
-                        # Map fields from UserProfileSerializer to Patient model (for updates)
-                        patient_profile.first_name = required_fields['first_name']
-                        patient_profile.last_name = required_fields['last_name']
-                        patient_profile.date_of_birth = required_fields['date_of_birth']
-                        patient_profile.gender = required_fields['sex'][0].upper()
-                        patient_profile.phone_number = required_fields['phone']
-                        patient_profile.email = required_fields['email']
-                        patient_profile.address = required_fields['address']
-
-                        # Save the patient profile
-                        patient_profile.save()
-                        print(f"Successfully saved patient profile: {patient_profile}")
-
-                    except Exception as e:
-                        print(f"Error saving patient profile: {str(e)}")
-                        return Response({
-                            'detail': f'Error saving patient profile: {str(e)}'
-                        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+                        # Validate date format and range
+                        date_str = request.data[field]
+                        parsed_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+                        
+                        # Check if date is reasonable (not in future, not too old)
+                        today = datetime.date.today()
+                        if parsed_date > today:
+                            validation_errors.append(f'{field.replace("_", " ").title()} cannot be in the future')
+                        elif parsed_date < datetime.date(1900, 1, 1):
+                            validation_errors.append(f'{field.replace("_", " ").title()} is too far in the past')
+                        elif user.role == User.Role.STUDENT:
+                            # Additional age validation for students
+                            age = today.year - parsed_date.year - ((today.month, today.day) < (parsed_date.month, parsed_date.day))
+                            if age < 16:
+                                validation_errors.append('Students must be at least 16 years old')
+                            elif age > 65:
+                                validation_errors.append('Student age seems unrealistic')
+                                
+                    except ValueError:
+                        validation_errors.append(f'{field.replace("_", " ").title()} must be in YYYY-MM-DD format')
+            
+            # Validate phone number
+            phone = request.data.get('phone', '').strip()
+            if phone:
+                # Remove common formatting characters
+                clean_phone = ''.join(c for c in phone if c.isdigit() or c == '+')
+                if len(clean_phone) < 10 or len(clean_phone) > 15:
+                    validation_errors.append('Phone number must be between 10 and 15 digits')
+                elif not clean_phone.replace('+', '').isdigit():
+                    validation_errors.append('Phone number can only contain digits and optional +')
+            
+            # Validate email if provided (different from user's email)
+            profile_email = request.data.get('email', '').strip()
+            if profile_email and profile_email.lower() != user.email.lower():
+                email_error = email_validator(profile_email)
+                if email_error:
+                    validation_errors.append(f'Profile email: {email_error}')
+                # Check if email is already used by another user
+                elif User.objects.filter(email=profile_email.lower()).exclude(id=user.id).exists():
+                    validation_errors.append('This email is already used by another account')
+            
+            # Validate ID number uniqueness for students
+            if user.role == User.Role.STUDENT:
+                id_number = request.data.get('id_number', '').strip()
+                if id_number:
+                    existing_user = User.objects.filter(id_number=id_number).exclude(id=user.id).first()
+                    if existing_user:
+                        validation_errors.append('This ID number is already registered')
+            
+            # Validate text fields length
+            text_fields = ['first_name', 'last_name', 'middle_name', 'course', 'school']
+            for field in text_fields:
+                value = request.data.get(field, '').strip()
+                if value:
+                    if len(value) > 100:
+                        validation_errors.append(f'{field.replace("_", " ").title()} cannot exceed 100 characters')
+                    # Check for suspicious characters
+                    if any(char in value for char in '<>{}[]|\\'):
+                        validation_errors.append(f'{field.replace("_", " ").title()} contains invalid characters')
+            
+            if validation_errors:
+                rate_limiter.record_attempt(f"{user.id}:profile_setup", 'profile_setup', success=False)
                 return Response({
-                    'detail': 'Profile setup completed successfully',
-                    'user': UserProfileSerializer(updated_user).data
-                }, status=status.HTTP_200_OK)
-            else:
-                print("Serializer errors:", user_serializer.errors)
-                return Response({
-                    'detail': 'Invalid data provided',
-                    'errors': user_serializer.errors
+                    'detail': 'Validation failed',
+                    'errors': validation_errors
                 }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Begin atomic transaction for data consistency
+            with transaction.atomic():
+                # Create a savepoint for rollback if needed
+                savepoint = transaction.savepoint()
                 
+                try:
+                    user_serializer = UserProfileSerializer(user, data=request.data, partial=True)
+                    
+                    if not user_serializer.is_valid():
+                        logger.error(f"Serializer validation failed: {user_serializer.errors}")
+                        rate_limiter.record_attempt(f"{user.id}:profile_setup", 'profile_setup', success=False)
+                        return Response({
+                            'detail': 'Invalid data provided',
+                            'errors': user_serializer.errors
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                    
+                    # Update user fields
+                    for attr, value in user_serializer.validated_data.items():
+                        if hasattr(user, attr):
+                            setattr(user, attr, value)
+                    
+                    # Set completion flag
+                    user.completeSetup = True
+                    user.save()
+                    
+                    logger.info(f"User profile updated for {user.email}")
+                    
+                    # Handle student-specific patient profile creation
+                    if user.role == User.Role.STUDENT:
+                        patient_data = _prepare_patient_data(user, user_serializer.validated_data, request.data)
+                        
+                        if not patient_data:
+                            transaction.savepoint_rollback(savepoint)
+                            return Response({
+                                'detail': 'Failed to prepare patient data',
+                                'error_code': 'PATIENT_DATA_ERROR'
+                            }, status=status.HTTP_400_BAD_REQUEST)
+                        
+                        # Create or update patient profile
+                        try:
+                            patient_profile, created = Patient.objects.get_or_create(
+                                user=user,
+                                defaults=patient_data
+                            )
+                            
+                            if not created:
+                                # Update existing patient profile
+                                for field, value in patient_data.items():
+                                    setattr(patient_profile, field, value)
+                                patient_profile.save()
+                            
+                            logger.info(f"{'Created' if created else 'Updated'} patient profile for user {user.email}")
+                            
+                        except Exception as patient_error:
+                            logger.error(f"Patient profile creation failed: {str(patient_error)}")
+                            transaction.savepoint_rollback(savepoint)
+                            return Response({
+                                'detail': f'Error creating patient profile: {str(patient_error)}',
+                                'error_code': 'PATIENT_CREATION_ERROR'
+                            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    
+                    # Commit the transaction
+                    transaction.savepoint_commit(savepoint)
+                    
+                    # Record successful attempt
+                    rate_limiter.record_attempt(f"{user.id}:profile_setup", 'profile_setup', success=True)
+                    
+                    # Clear any existing tokens and create new one for security
+                    Token.objects.filter(user=user).delete()
+                    new_token = Token.objects.create(user=user)
+                    
+                    logger.info(f"Profile setup completed successfully for user {user.email}")
+                    
+                    return Response({
+                        'detail': 'Profile setup completed successfully',
+                        'user': UserProfileSerializer(user).data,
+                        'token': new_token.key,
+                        'setup_completed_at': timezone.now().isoformat()
+                    }, status=status.HTTP_200_OK)
+                    
+                except Exception as setup_error:
+                    logger.error(f"Profile setup transaction failed: {str(setup_error)}")
+                    transaction.savepoint_rollback(savepoint)
+                    raise setup_error
+                    
         except Exception as e:
-            import traceback
             error_msg = f"Profile setup error: {str(e)}"
-            print(f"{error_msg}\n{traceback.format_exc()}")
+            logger.error(f"{error_msg}\n{traceback.format_exc()}")
+            
+            # Record failed attempt
+            try:
+                rate_limiter.record_attempt(f"{user.id}:profile_setup", 'profile_setup', success=False)
+            except:
+                pass
+            
             return Response({
-                'detail': error_msg
+                'detail': 'Profile setup failed due to server error. Please try again.',
+                'error_code': 'SETUP_ERROR'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+def _prepare_patient_data(user, validated_data, raw_data):
+    """Prepare patient data with enhanced validation and edge case handling."""
+    try:
+        # Accept both 'birthday' and 'date_of_birth' from frontend
+        dob = raw_data.get('date_of_birth') or raw_data.get('birthday') or validated_data.get('birthday')
+        
+        if not dob:
+            logger.error("No date of birth provided for patient creation")
+            return None
+        
+        # Parse date with multiple format support
+        parsed_date = None
+        date_formats = ['%Y-%m-%d', '%m/%d/%Y', '%d/%m/%Y', '%Y-%m-%d %H:%M:%S']
+        
+        for date_format in date_formats:
+            try:
+                if isinstance(dob, str):
+                    parsed_date = datetime.datetime.strptime(dob.split()[0], date_format).date()
+                    break
+                elif hasattr(dob, 'date'):
+                    parsed_date = dob.date()
+                    break
+                elif isinstance(dob, datetime.date):
+                    parsed_date = dob
+                    break
+            except ValueError:
+                continue
+        
+        if not parsed_date:
+            logger.error(f"Failed to parse date of birth: {dob}")
+            return None
+        
+        # Validate required fields
+        required_fields = {
+            'first_name': validated_data.get('first_name'),
+            'last_name': validated_data.get('last_name'),
+            'sex': validated_data.get('sex'),
+            'phone': validated_data.get('phone'),
+            'email': validated_data.get('email', user.email),
+        }
+        
+        # Address handling (prefer present, fall back to permanent)
+        address = (validated_data.get('address_present') or 
+                  validated_data.get('address_permanent') or 
+                  raw_data.get('address_present') or 
+                  raw_data.get('address_permanent'))
+        
+        if not address:
+            logger.error("No address provided for patient creation")
+            return None
+        
+        # Check for missing required fields
+        missing_fields = [field for field, value in required_fields.items() if not value]
+        if missing_fields:
+            logger.error(f"Missing required fields for Patient: {missing_fields}")
+            return None
+        
+        # Prepare patient data
+        patient_data = {
+            'first_name': required_fields['first_name'].strip(),
+            'last_name': required_fields['last_name'].strip(),
+            'date_of_birth': parsed_date,
+            'gender': required_fields['sex'][0].upper() if required_fields['sex'] else 'O',
+            'phone_number': required_fields['phone'].strip(),
+            'email': required_fields['email'].strip().lower(),
+            'address': address.strip(),
+            'created_by': user
+        }
+        
+        logger.info(f"Prepared patient data for user {user.email}: {patient_data}")
+        return patient_data
+        
+    except Exception as e:
+        logger.error(f"Error preparing patient data: {str(e)}")
+        return None
 
 class PasswordResetRequestView(APIView):
     permission_classes = [AllowAny]

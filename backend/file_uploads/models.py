@@ -16,6 +16,7 @@ class UploadedFile(models.Model):
     upload_date = models.DateTimeField(auto_now_add=True)
     content_type = models.CharField(max_length=100, blank=True)
     file_size = models.PositiveIntegerField(null=True, blank=True) # Size in bytes
+    checksum = models.CharField(max_length=64, blank=True, null=True, help_text="SHA-256 checksum for duplicate detection")
 
     def save(self, *args, **kwargs):
         # Automatically set original_filename if not provided
@@ -35,3 +36,10 @@ class UploadedFile(models.Model):
 
     def __str__(self):
         return f"{self.original_filename} (Uploaded by: {self.uploaded_by.email if self.uploaded_by else 'Unknown'})"
+
+    class Meta:
+        ordering = ['-upload_date']
+        indexes = [
+            models.Index(fields=['uploaded_by', '-upload_date']),
+            models.Index(fields=['checksum']),
+        ]

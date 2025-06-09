@@ -1,356 +1,455 @@
 # USC Patient Information System (USC-PIS)
 
-## Overview
-USC-PIS is a full-stack web application designed to manage patient information for the University of San Carlos. It provides secure, role-based access for students, doctors, nurses, and staff to manage, view, and update patient records, profiles, and health information. The system is built for scalability, maintainability, and ease of use, supporting both clinical workflows and administrative oversight.
+A comprehensive clinic management system for the University of Southern California, built with Django REST Framework and React.
 
----
+## Project Overview
 
-## Recent Fixes (May 2025)
-- **Patient creation moved to profile setup:** Patient records are now created only after the user completes the multi-step profile setup, ensuring all required fields are present.
-- **Multi-step profile setup validation:** Validation now only applies to the current step, improving user experience and preventing form errors.
-- **Date handling and required fields:** Backend now properly converts date strings to Python date objects, and frontend sends the correct fields for patient creation.
-- **Post-setup navigation:** After successful profile setup, Redux state is updated and users are redirected to the dashboard (`/home`).
-- **API endpoint correction:** The frontend now fetches patient lists from `/api/patients/patients/` instead of `/api/patients/` to get actual patient data.
-- **Registration authentication fix:** Registration now automatically logs users in after successful registration, eliminating 401 errors on subsequent API calls.
-- **Profile setup completion handling:** Enhanced profile setup with proper state management and navigation flow, ensuring users are correctly redirected to dashboard after completion.
-- **HealthRecords patient selection:** Added missing patient selection functionality to HealthRecords component, allowing proper creation of health records with patient assignment.
-- **Medical certificate service consolidation:** Consolidated medical certificate service into main api.js file for better organization and consistency.
-- **Default template confirmation:** Verified that default medical certificate template exists in database for template-based certificate generation.
-- **General debugging:** Console and network tab were used to verify API responses and check for errors. Redux and navigation were checked to ensure state and routing were correct after profile setup.
+USC-PIS is a full-featured patient information system designed for university clinic management. It provides role-based access control, patient management, medical records, certificate generation, and comprehensive health information management.
 
----
-
-## Registration & Profile Setup Flow
-- Users register via `/api/auth/register/`.
-- After registration, users are prompted to complete a multi-step profile setup form.
-- Patient records are created only after profile setup is completed, not at registration.
-- After successful profile setup, the frontend updates Redux state and redirects the user to `/home` (dashboard).
-- The frontend fetches patient lists from `/api/patients/patients/`.
+### Key Features
+- **Multi-role Authentication System** (Student, Doctor, Nurse, Staff, Admin)
+- **Patient Management** with automatic profile creation for students
+- **Medical Records Management** with medical and dental record types
+- **Medical Certificate System** with template-based generation and workflow approval
+- **File Upload System** with comprehensive security validation
+- **Feedback Collection** and analytics
+- **Health Information Management**
+- **Real-time Dashboard** with health statistics
+- **Comprehensive Edge Case Handling** (NEW)
+- **System Monitoring & Recovery** (NEW)
 
 ## Technology Stack
-- **Backend:** Django, Django REST Framework (DRF)
-- **Frontend:** React (Vite, Material UI, React Router, Axios)
-- **State Management:** Redux Toolkit
-- **Database:** Managed by Django ORM (default: SQLite, can be configured for PostgreSQL, etc.)
-- **Deployment:** Procfile for Heroku or similar PaaS; frontend is built and served by Django in production
 
-## Key Features
-- User authentication (login, registration, password reset)
-- Role-based access control (Student, Doctor, Nurse, Staff, etc.)
-- Patient record management (CRUD)
-- Profile management and setup
-- **Automatic Patient Profile Creation:** When a user registers as a student and completes profile setup, a Patient profile is automatically created and linked to their user account.
-- **Medical Certificate Management:**
-  - Template-based medical certificate generation with customizable HTML templates
-  - Workflow-based certificate approval system (draft → pending → approved/rejected)
-  - Role-based permissions for certificate creation, approval, and viewing
-  - PDF generation and download functionality for approved certificates
-  - Default template provided for standard USC Health Services medical certificates
-- **Patient Feedback Collection and Analysis:**
-  - Digital feedback forms for patients after consultations or treatments (including general feedback).
-  - Feedback form includes: star rating, comments, staff courtesy, recommendation, and improvement suggestions.
-  - Feedback is linked to a specific visit or can be general.
-  - **Analytics Dashboard:** Admin/staff users have access to a dedicated feedback analytics dashboard showing statistics and visualizations (ratings distribution, courtesy/recommendation counts, etc.)
-  - **Role-Based Navigation:** The sidebar Feedback link intelligently redirects to the appropriate view based on user role (admin/staff → analytics, others → feedback form).
-- **Universal File Upload:** Allows any authenticated user to upload files (e.g., documents, images) with descriptions.
-- Dashboard with health statistics
-- Database health monitoring
-
-## Project Structure
-```
-USC-PIS/
-├── backend/                # Django backend (API, models, migrations, etc.)
-│   └── frontend/frontend/  # React frontend (Vite, src/, etc.)
-├── requirements.txt        # Python dependencies
-├── package.json            # Node dependencies for frontend
-├── Procfile                # Deployment process file
-├── README.md               # Basic project info
-├── USC-PIS.md              # (This file) Main project documentation
-└── ...
-```
-
-## Setup & Development Workflow
 ### Backend
-1. Install Python dependencies:
-   ```sh
-   pip install -r requirements.txt
-   ```
-2. Run migrations:
-   ```sh
-   python manage.py migrate
-   ```
-3. Start the backend server:
-   ```sh
-   python manage.py runserver
-   ```
+- **Django 4.2+**
+- **Django REST Framework** - API development
+- **PostgreSQL/SQLite** - Database
+- **Python 3.8+**
 
 ### Frontend
-1. Install Node dependencies:
-   ```sh
-   cd backend/frontend/frontend
-   npm install
-   ```
-2. Build the frontend for production (required before running Django server):
-   ```sh
-   npm run build
-   ```
+- **React 18** (Vite)
+- **Material UI** - Component library
+- **Redux Toolkit** - State management
+- **React Router** - Navigation
+- **Axios** - HTTP client
 
-### Development Notes
-- The Django backend serves the built frontend assets in production.
-- For local development, always rebuild the frontend after making changes to React code.
-- Use Redux DevTools for debugging state in development.
+### Deployment
+- **Heroku** ready configuration
+- **WhiteNoise** for static file serving
+- **Gunicorn** WSGI server
 
-## Deployment
-- Use the `Procfile` for deployment to Heroku or similar platforms.
-- Ensure all environment variables and database settings are configured for production.
-- The frontend should be built (`npm run build`) before deploying.
+## Enhanced Security & Edge Case Handling
+
+### Authentication Security (NEW)
+- **Rate Limiting**: Protection against brute force attacks
+- **Enhanced Email Validation**: Disposable email detection, typo suggestions
+- **Password Security**: Breach checking, complexity validation, sequential character detection
+- **Session Management**: Concurrent login handling, token expiration
+- **Account Lockout**: Automatic lockout after failed attempts
+
+### Data Validation & Consistency (NEW)
+- **Patient Data Validation**: Comprehensive name, date, phone, email validation
+- **Duplicate Detection**: Fuzzy matching algorithm for patient duplicates
+- **Data Consistency Checks**: User-Patient profile synchronization
+- **Medical Record Validation**: Date ranges, content validation, duplicate prevention
+
+### File Upload Security (NEW)
+- **Malware Detection**: File signature analysis, suspicious content detection
+- **File Type Validation**: MIME type verification, extension validation
+- **Size Limits**: Category-specific file size limits
+- **Filename Security**: Path traversal prevention, reserved name handling
+- **Content Validation**: Image verification, document integrity checks
+
+### System Monitoring (NEW)
+- **Database Health Monitoring**: Connection pools, query performance, locks
+- **Resource Monitoring**: CPU, memory, disk usage with automated recovery
+- **Performance Tracking**: Request times, error rates, endpoint analytics
+- **Automated Alerts**: Email notifications for critical issues
+
+### Frontend Error Handling (NEW)
+- **Network Recovery**: Offline detection, request retry queuing
+- **Comprehensive Error Parsing**: Detailed error categorization and messaging
+- **User-Friendly Notifications**: Toast notifications with retry options
+- **Form Validation**: Real-time field validation with server error handling
 
 ## Database Schema
-> **IMPORTANT:**
-> - Document all models and migrations here.
-> - Update this section after every major schema change or migration.
 
-### User (`authentication.User`)
-- id: AutoField (PK)
-- email: EmailField, unique, required (used as username)
-- username: CharField, unique, required (set to email by default)
-- role: CharField, choices: ADMIN, DOCTOR, NURSE, STAFF, STUDENT (default: STUDENT)
-- completeSetup: BooleanField (default: False)
-- middle_name: CharField, optional
-- id_number: CharField, optional
-- course: CharField, optional
-- year_level: CharField, optional
-- school: CharField, optional
-- sex: CharField, optional
-- civil_status: CharField, optional
-- birthday: DateField, optional
-- nationality: CharField, optional
-- religion: CharField, optional
-- address_permanent: CharField, optional
-- address_present: CharField, optional
-- phone: CharField, optional
-- weight: CharField, optional
-- height: CharField, optional
-- bmi: CharField, optional
-- father_name: CharField, optional
-- mother_name: CharField, optional
-- emergency_contact: CharField, optional
-- emergency_contact_number: CharField, optional
-- illness: CharField, optional
-- childhood_diseases: CharField, optional
-- special_needs: CharField, optional
-- existing_medical_condition: CharField, optional
-- medications: CharField, optional
-- allergies: CharField, optional
-- hospitalization_history: CharField, optional
-- surgical_procedures: CharField, optional
-- department: CharField, optional
-- phone_number: CharField, optional
-- created_at: DateTimeField (auto)
-- updated_at: DateTimeField (auto)
+### Core Models
 
-### Patient (`patients.Patient`)
-- id: AutoField (PK)
-- user: OneToOneField to User, nullable, blank, (patient_profile reverse relation)
-- first_name: CharField
-- last_name: CharField
-- date_of_birth: DateField
-- gender: CharField, choices: M, F, O
-- email: EmailField, unique
-- phone_number: CharField
-- address: TextField
-- created_at: DateTimeField (auto)
-- updated_at: DateTimeField (auto)
-- created_by: ForeignKey to User, nullable
+#### User (Authentication)
+```python
+class User(AbstractUser):
+    email = EmailField(unique=True)
+    role = CharField(choices=Role.choices)
+    first_name = CharField(max_length=30)
+    last_name = CharField(max_length=30)
+    middle_name = CharField(max_length=30, blank=True)
+    sex = CharField(max_length=10, choices=SEX_CHOICES)
+    birthday = DateField(null=True, blank=True)
+    phone = CharField(max_length=15)
+    address_permanent = TextField(blank=True)
+    address_present = TextField(blank=True)
+    course = CharField(max_length=100, blank=True)
+    year_level = CharField(max_length=20, blank=True)
+    school = CharField(max_length=100, blank=True)
+    id_number = CharField(max_length=20, blank=True)
+    completeSetup = BooleanField(default=False)
+```
 
-### MedicalRecord (`patients.MedicalRecord`)
-- id: AutoField (PK)
-- patient: ForeignKey to Patient (medical_records reverse relation)
-- visit_date: DateField
-- diagnosis: TextField
-- treatment: TextField
-- notes: TextField, blank
-- created_at: DateTimeField (auto)
-- updated_at: DateTimeField (auto)
-- created_by: ForeignKey to User, nullable
+#### Patient
+```python
+class Patient(models.Model):
+    user = OneToOneField(User, related_name='patient_profile')
+    first_name = CharField(max_length=100)
+    last_name = CharField(max_length=100)
+    date_of_birth = DateField()
+    gender = CharField(max_length=1, choices=GENDER_CHOICES)
+    phone_number = CharField(max_length=15)
+    email = EmailField()
+    address = TextField()
+    created_at = DateTimeField(auto_now_add=True)
+    created_by = ForeignKey(User, on_delete=SET_NULL)
+```
 
-### Feedback (`feedback.Feedback`)
-- id: AutoField (PK)
-- patient: ForeignKey to Patient
-- medical_record: ForeignKey to MedicalRecord (nullable, if feedback is for a specific visit)
-- rating: IntegerField (1-5)
-- comments: TextField (optional)
-- courteous: CharField (yes/no, optional)
-- recommend: CharField (yes/no, optional)
-- improvement: TextField (optional)
-- created_at: DateTimeField (auto)
-- updated_at: DateTimeField (auto)
+#### MedicalRecord
+```python
+class MedicalRecord(models.Model):
+    patient = ForeignKey(Patient, on_delete=CASCADE)
+    visit_date = DateField()
+    diagnosis = TextField()
+    treatment = TextField()
+    notes = TextField(blank=True)
+    record_type = CharField(choices=RECORD_TYPE_CHOICES)
+    created_by = ForeignKey(User, on_delete=SET_NULL)
+    created_at = DateTimeField(auto_now_add=True)
+```
 
-### HealthInformation (`health_info.HealthInformation`)
-- id: AutoField (PK)
-- title: CharField (max_length=200)
-- content: TextField
-- category: CharField (max_length=100)
-- created_at: DateTimeField (auto)
-- updated_at: DateTimeField (auto)
-- author: ForeignKey to User (nullable, blank, on delete SET_NULL)
+#### MedicalCertificate
+```python
+class MedicalCertificate(models.Model):
+    patient = ForeignKey(Patient, on_delete=CASCADE)
+    template = ForeignKey(CertificateTemplate, on_delete=CASCADE)
+    status = CharField(choices=STATUS_CHOICES, default='DRAFT')
+    content = JSONField()
+    issued_date = DateField(null=True, blank=True)
+    valid_until = DateField(null=True, blank=True)
+    created_by = ForeignKey(User, on_delete=SET_NULL)
+    approved_by = ForeignKey(User, on_delete=SET_NULL)
+```
 
-### UploadedFile (`file_uploads.UploadedFile`)
-- id: AutoField (PK)
-- uploaded_by: ForeignKey to User (nullable)
-- file: FileField (upload_to='user_uploads/')
-- original_filename: CharField
-- description: TextField (nullable)
-- upload_date: DateTimeField (auto)
-- content_type: CharField
-- file_size: PositiveIntegerField (nullable)
+#### UploadedFile (Enhanced)
+```python
+class UploadedFile(models.Model):
+    file = FileField(upload_to='uploads/')
+    original_filename = CharField(max_length=255)
+    file_size = PositiveIntegerField()
+    content_type = CharField(max_length=100)
+    checksum = CharField(max_length=64)  # SHA-256 hash
+    uploaded_by = ForeignKey(User, on_delete=CASCADE)
+    upload_date = DateTimeField(auto_now_add=True)
+    is_secure = BooleanField(default=True)
+    scan_result = JSONField(null=True, blank=True)
+```
 
-### CertificateTemplate (`medical_certificates.CertificateTemplate`)
-- id: AutoField (PK)
-- name: CharField (max_length=100)
-- description: TextField (blank)
-- content: TextField (HTML template with placeholders)
-- created_at: DateTimeField (auto)
-- updated_at: DateTimeField (auto)
+## API Endpoints
 
-### MedicalCertificate (`medical_certificates.MedicalCertificate`)
-- id: AutoField (PK)
-- patient: ForeignKey to Patient (medical_certificates reverse relation)
-- template: ForeignKey to CertificateTemplate
-- diagnosis: TextField
-- recommendations: TextField
-- valid_from: DateField
-- valid_until: DateField
-- additional_notes: TextField (blank)
-- status: CharField (choices: draft, pending, approved, rejected, default: draft)
-- issued_by: ForeignKey to User (issued_certificates reverse relation)
-- approved_by: ForeignKey to User (approved_certificates reverse relation, nullable)
-- created_at: DateTimeField (auto)
-- updated_at: DateTimeField (auto)
-- issued_at: DateTimeField (nullable)
-- approved_at: DateTimeField (nullable)
+### Authentication
+- `POST /api/auth/register/` - Enhanced user registration with validation
+- `POST /api/auth/login/` - Enhanced login with rate limiting
+- `POST /api/auth/logout/` - Secure logout
+- `POST /api/auth/check-email/` - Email validation with typo detection
+- `POST /api/auth/complete-profile/` - Profile setup with edge case handling
 
-### Consultation (`patients.Consultation`)
-- id: AutoField (PK)
-- patient: ForeignKey to Patient (consultations reverse relation)
-- consultation_date: DateTimeField
-- chief_complaint: TextField
-- history_of_present_illness: TextField (blank)
-- physical_examination: TextField (blank)
-- assessment: TextField (blank)
-- plan: TextField (blank)
-- notes: TextField (blank)
-- created_at: DateTimeField (auto)
-- updated_at: DateTimeField (auto)
-- created_by: ForeignKey to User (nullable)
+### Patients
+- `GET /api/patients/patients/` - List patients with role-based filtering
+- `POST /api/patients/patients/` - Create patient with duplicate detection
+- `GET /api/patients/patients/{id}/` - Get patient details
+- `PUT /api/patients/patients/{id}/` - Update patient with validation
+- `GET /api/patients/patients/{id}/check-duplicates/` - Check for duplicates
 
-## Migration & Documentation Rules
-- After adding a major feature or completing a milestone, update this file.
-- Document the entire database schema here.
-- For new migrations, add them to this file.
+### Medical Records
+- `GET /api/patients/medical-records/` - List medical records
+- `POST /api/patients/medical-records/` - Create medical record with validation
+- `GET /api/patients/medical-records/{id}/` - Get medical record
+- `PUT /api/patients/medical-records/{id}/` - Update medical record
 
-### Health Information API
+### File Uploads (Enhanced)
+- `POST /api/file-uploads/upload/` - Secure file upload with validation
+- `GET /api/file-uploads/files/` - List user files
+- `GET /api/file-uploads/files/{id}/download/` - Secure file download
 
-- **Base URL:** `/api/health-info/health-information/`
-- **Methods:**
-  - `GET` (list, retrieve): All users (patients/students: read-only)
-  - `POST`, `PUT`, `PATCH`, `DELETE`: Only staff/admins
-- **Fields:** id, title, content, category, created_at, updated_at, author, author_email, author_role
-- **Permissions:** Patients/students can only read; staff/admins can create, update, and delete.
+### System Health (NEW)
+- `GET /api/system/health/` - Comprehensive system health check
+- `GET /api/system/database-health/` - Database-specific health metrics
+- `GET /api/system/performance/` - Performance statistics
 
-## API Endpoints Documentation
+## Installation & Setup
 
-### Authentication (`/api/auth/`)
-// ... existing auth endpoints ...
+### Prerequisites
+- Python 3.8+
+- Node.js 16+
+- PostgreSQL (recommended) or SQLite (development)
 
-### Patient (`/api/patients/`)
-// ... existing patient endpoints ...
+### Backend Setup
+```bash
+cd USC-PIS/backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
+```
 
-### Health Information (`/api/health-info/health-information/`)
-// ... existing health info endpoints ...
+### Frontend Setup
+```bash
+cd USC-PIS/backend/frontend/frontend
+npm install
+npm run dev  # Development
+npm run build  # Production
+```
 
-### Feedback (`/api/feedback/`)
-- **Base URL:** `/api/feedback/`
-- **Methods:**
-  - `GET` (list): Admin/Staff see all; Patients see their own.
-  - `POST` (create): Authenticated users with a linked Patient profile.
-  - `GET` (retrieve), `PUT`/`PATCH` (update), `DELETE` (destroy): Standard ModelViewSet, permissions may vary based on object/user.
-- **Analytics Sub-Endpoint:** `/api/feedback/analytics/`
-  - `GET`: Returns aggregated feedback statistics (total count, average rating, rating distribution, courteous counts, recommend counts).
-  - **Permissions:** Admin/Staff only.
+### Environment Variables
+```bash
+# .env file
+DEBUG=True
+SECRET_KEY=your_secret_key
+DATABASE_URL=postgresql://user:password@localhost/uscpis
+FRONTEND_URL=http://localhost:3000
+DEFAULT_FROM_EMAIL=noreply@uscpis.com
 
-### File Uploads (`/api/files/`)
-- **Base URL:** `/api/files/uploads/`
-- **Methods:**
-  - `POST` (create): Upload a new file. Requires authentication. Associates file with the logged-in user. Expects multipart/form-data with 'file' and optionally 'description'.
-  - `GET` (list): List all uploaded files. Requires authentication.
-  - `GET` (retrieve): Retrieve details of a specific file by ID. Requires authentication.
-  - `DELETE` (destroy): Delete a file by ID. Requires authentication (permission might be restricted further, e.g., to owner or admin).
-- **Permissions:** `IsAuthenticated` for all methods currently.
+# Security Settings (NEW)
+RATE_LIMIT_ENABLED=True
+PASSWORD_BREACH_CHECK=True
+FILE_SCAN_ENABLED=True
+SYSTEM_MONITORING=True
+```
 
-### Medical Certificates (`/api/medical-certificates/`)
-- **Base URL:** `/api/medical-certificates/certificates/`
-- **Methods:**
-  - `GET` (list): List all medical certificates. Requires authentication.
-  - `POST` (create): Create a new medical certificate. Requires authentication and staff/medical personnel permissions.
-  - `GET` (retrieve): Retrieve details of a specific certificate by ID.
-  - `PUT`/`PATCH` (update): Update a certificate (only for draft status).
-  - `DELETE` (destroy): Delete a certificate (only for draft status).
-- **Workflow Actions:**
-  - `POST` `/api/medical-certificates/certificates/{id}/submit/`: Submit certificate for approval.
-  - `POST` `/api/medical-certificates/certificates/{id}/approve/`: Approve a pending certificate.
-  - `POST` `/api/medical-certificates/certificates/{id}/reject/`: Reject a pending certificate.
-- **Templates:**
-  - `GET` `/api/medical-certificates/templates/`: List all certificate templates.
-  - `POST` `/api/medical-certificates/templates/`: Create a new template.
-  - `GET`/`PUT`/`DELETE` `/api/medical-certificates/templates/{id}/`: Template CRUD operations.
-- **Rendering:**
-  - `GET` `/api/medical-certificates/certificates/{id}/render/`: Generate HTML preview of certificate.
-  - `GET` `/api/medical-certificates/certificates/{id}/render_pdf/`: Download certificate as PDF.
-- **Permissions:** Staff/medical personnel for creation and approval actions; patients can view their own certificates.
+## Edge Case Handling Implementation
 
-## Frontend Components Notes
+### 1. Authentication Edge Cases
+```python
+# Rate limiting
+from authentication.validators import rate_limiter
+is_limited, time_remaining = rate_limiter.is_rate_limited(client_ip, 'login')
 
-- Key components are located in `backend/frontend/frontend/src/components/` and `backend/frontend/frontend/src/pages/`.
-- **FeedbackAnalytics.jsx:** Displays feedback summary statistics and charts, including average rating, rating distribution with chart visualization, and courtesy/recommendation counts. Used within the admin feedback view.
-- **AdminFeedbackList.jsx:** Displays a table of all feedback entries and integrates `FeedbackAnalytics.jsx`. Accessible to Admin/Staff.
-- **FeedbackForm.jsx / FeedbackSelector.jsx:** Handles feedback submission by patients.
-- **Sidebar.jsx:** Implements role-based navigation, redirecting users based on their role (e.g., Feedback link redirects admin/staff to analytics and regular users to the feedback form).
-- **FileUploadPage.jsx:** Provides an interface for users to upload new files and view/delete their existing uploads. Located at `/uploads`.
+# Email validation with typo detection
+from authentication.validators import email_validator
+validation_error = email_validator(email)
+if 'Did you mean' in validation_error:
+    # Suggest correction to user
 
-## Known Limitations and Solutions
+# Password breach checking
+from authentication.validators import password_validator
+password_errors = password_validator.validate(password, user_data)
+```
 
-- **Authentication State:** The application implements a hybrid approach to authentication state management, with both Redux and localStorage backup to ensure stable user recognition across refreshes.
-- **Patient Profile Linking:** Patient profiles are automatically created for student users, either during registration or on-demand when accessing patient-specific features.
+### 2. Patient Data Edge Cases
+```python
+# Duplicate detection
+from patients.validators import duplicate_detector
+potential_duplicates = duplicate_detector.find_potential_duplicates(patient_data)
 
-## UI/UX Improvements
+# Data validation
+from patients.validators import patient_validator
+validation_errors = patient_validator.validate_patient_data(data)
 
-The USC Patient Information System has undergone significant UI/UX improvements to enhance user experience and visual appeal:
+# Consistency checking
+from patients.validators import consistency_checker
+consistency_errors = consistency_checker.check_user_patient_consistency(user, patient_data)
+```
 
-### Global UI Enhancements
-- **Modern Theme**: Updated color palette with improved contrast and accessibility
-- **Consistent Typography**: Enhanced typography system with better readability and hierarchy
-- **Improved Shadows and Elevation**: Modern shadow system for better depth perception
-- **Responsive Design**: All components are fully responsive across different device sizes
-- **Animations and Transitions**: Subtle animations for better user feedback and engagement
+### 3. File Upload Edge Cases
+```python
+# Comprehensive file validation
+from file_uploads.validators import file_security_validator
+validation_errors = file_security_validator.validate_file(uploaded_file)
 
-### Component Improvements
-- **Sidebar**: Enhanced with user avatar, role display, and better organization of navigation items
-- **Header**: Improved search functionality, user profile dropdown, and notification system
-- **Dashboard**: Redesigned with modern stat cards, quick actions, and better data visualization
-- **Login Page**: Complete redesign with split-panel layout, improved form validation, and better error handling
-- **Loading States**: Consistent loading indicators throughout the application
-- **Error States**: Standardized error handling with clear messages and recovery options
-- **Empty States**: Informative empty state displays when no data is available
+# Malware detection
+if any(sig in file_content for sig in SUSPICIOUS_SIGNATURES):
+    raise ValidationError("File contains suspicious content")
 
-### New Utility Components
-- **PageHeader**: Consistent page headers with breadcrumbs, actions, and descriptions
-- **LoadingState**: Reusable loading component with customizable appearance
-- **ErrorState**: Standardized error display with retry functionality
-- **EmptyState**: Consistent empty state display with optional actions
+# Duplicate file detection
+from file_uploads.validators import file_integrity_checker
+existing_file_id = file_integrity_checker.check_duplicate_file(uploaded_file, user)
+```
 
-These improvements create a more cohesive, intuitive, and visually appealing user interface that enhances the overall user experience of the USC Patient Information System.
+### 4. System Monitoring
+```python
+# Database health monitoring
+from utils.system_monitors import db_monitor
+db_monitor.start_monitoring()
+
+# Resource monitoring with recovery
+from utils.system_monitors import resource_monitor
+resource_monitor.start_monitoring()
+
+# Performance tracking
+from utils.system_monitors import performance_monitor
+performance_monitor.record_request(request_time, endpoint, status_code)
+```
+
+### 5. Frontend Error Handling
+```javascript
+// Comprehensive error handling
+import { useErrorHandler, networkRecovery } from './utils/errorHandling';
+
+const { errors, handleError, executeAsync } = useErrorHandler();
+
+// Network recovery
+if (errorInfo.retryable) {
+    networkRecovery.addToRetryQueue(requestFunction, context);
+}
+
+// User-friendly notifications
+ErrorNotificationManager.show(errorInfo, { showRetryButton: true });
+```
+
+## Deployment
+
+### Heroku Deployment
+```bash
+# Install Heroku CLI
+heroku create usc-pis-app
+heroku addons:create heroku-postgresql:hobby-dev
+heroku config:set SECRET_KEY=your_secret_key
+heroku config:set DEBUG=False
+git push heroku main
+heroku run python manage.py migrate
+heroku run python manage.py createsuperuser
+```
+
+### Production Configuration
+```python
+# settings/production.py
+SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+
+# Enhanced security settings
+RATELIMIT_ENABLE = True
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+```
+
+## Security Features
+
+### Authentication Security
+- JWT-based authentication with secure token handling
+- Rate limiting on login attempts (5 attempts per 15 minutes)
+- Account lockout after excessive failed attempts
+- Password breach checking against known compromised passwords
+- Email validation with disposable email detection
+
+### Data Protection
+- Input sanitization and validation on all endpoints
+- SQL injection prevention through ORM usage
+- XSS protection with Content Security Policy
+- CSRF protection for all state-changing operations
+- Duplicate patient detection with fuzzy matching
+
+### File Upload Security
+- Comprehensive file type validation (MIME + extension)
+- Malware signature detection
+- File size limits (10MB images, 50MB documents)
+- Filename sanitization and path traversal prevention
+- Content verification for images and documents
+
+### System Security
+- Database connection monitoring and leak detection
+- Resource usage monitoring with automated recovery
+- Performance tracking and anomaly detection
+- Automated alert system for critical issues
+- Comprehensive logging and error tracking
+
+## Testing
+
+### Backend Tests
+```bash
+cd USC-PIS/backend
+python manage.py test
+python manage.py test authentication.tests.test_edge_cases
+python manage.py test patients.tests.test_validation
+python manage.py test file_uploads.tests.test_security
+```
+
+### Frontend Tests
+```bash
+cd USC-PIS/backend/frontend/frontend
+npm test
+npm run test:coverage
+```
+
+### Security Testing
+```bash
+# Rate limiting tests
+python manage.py test authentication.tests.test_rate_limiting
+
+# File upload security tests
+python manage.py test file_uploads.tests.test_malware_detection
+
+# Data validation tests
+python manage.py test patients.tests.test_duplicate_detection
+```
+
+## Monitoring & Maintenance
+
+### System Health Monitoring
+- Database connection health and performance monitoring
+- System resource usage tracking (CPU, memory, disk)
+- Application performance metrics and error tracking
+- Automated recovery mechanisms for common issues
+
+### Maintenance Tasks
+```bash
+# Database maintenance
+python manage.py cleanup_expired_tokens
+python manage.py optimize_database_indexes
+python manage.py check_data_consistency
+
+# System cleanup
+python manage.py clean_temporary_files
+python manage.py archive_old_records
+python manage.py generate_health_report
+```
+
+### Performance Optimization
+- Database query optimization with select_related/prefetch_related
+- File upload streaming for large files
+- Caching for frequently accessed data
+- Background task processing for heavy operations
+
+## Contributing
+
+### Development Guidelines
+1. Follow Django and React best practices
+2. Implement comprehensive edge case handling for all new features
+3. Add appropriate validation and security checks
+4. Include unit tests for all new functionality
+5. Update documentation for any changes
+
+### Code Quality
+- Use type hints in Python code
+- Follow PEP 8 styling guidelines
+- Use ESLint and Prettier for JavaScript formatting
+- Implement proper error handling and logging
+- Add comprehensive docstrings and comments
+
+## License
+
+This project is proprietary software developed for the University of Southern California.
+
+## Support
+
+For technical support or questions about the system:
+- Create an issue in the project repository
+- Contact the development team
+- Check the system health dashboard for real-time status
 
 ---
 
-For more details, see `USER_GUIDE.md`, `CONTRIBUTING.md`, and other documentation files. 
+**Last Updated**: December 2024
+**Version**: 2.0.0 (Enhanced with comprehensive edge case handling)
+**Maintainer**: USC IT Development Team 

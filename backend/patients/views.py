@@ -1,14 +1,23 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Count, Q
 from django.db.models.functions import TruncMonth
+from django.db import transaction, IntegrityError
+from django.utils import timezone
+from django.core.exceptions import ObjectDoesNotExist
 from .models import Patient, MedicalRecord, Consultation
 from .serializers import PatientSerializer, MedicalRecordSerializer, ConsultationSerializer
-from authentication.models import User # Import User model
-from django.utils import timezone
+from authentication.models import User
 from .permissions import MedicalRecordPermission
+from .validators import (
+    patient_validator, duplicate_detector, record_validator, consistency_checker
+)
+import logging
+import traceback
+
+logger = logging.getLogger(__name__)
 
 # Create your views here.
 
@@ -46,6 +55,226 @@ class PatientViewSet(viewsets.ModelViewSet):
             
         return queryset
 
+    def create(self, request, *args, **kwargs):
+        """Enhanced patient creation with comprehensive validation."""
+        try:
+            user = request.user
+            
+            # Check permissions - only admin/staff can create patients manually
+            if user.role not in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.NURSE]:
+                return Response({
+                    'detail': 'Only medical staff can create patient records manually.',
+                    'error_code': 'PERMISSION_DENIED'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Validate patient data
+            validation_errors = patient_validator.validate_patient_data(request.data)
+            if validation_errors:
+                return Response({
+                    'detail': 'Patient data validation failed',
+                    'errors': validation_errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Check for potential duplicates
+            potential_duplicates = duplicate_detector.find_potential_duplicates(request.data)
+            if potential_duplicates:
+                # If high similarity duplicates found, require confirmation
+                high_similarity = [d for d in potential_duplicates if d['similarity_score'] > 0.9]
+                if high_similarity:
+                    return Response({
+                        'detail': 'Potential duplicate patients found',
+                        'duplicates': [{
+                            'patient_id': dup['patient'].id,
+                            'patient_name': f"{dup['patient'].first_name} {dup['patient'].last_name}",
+                            'similarity_score': dup['similarity_score'],
+                            'matching_fields': dup['matching_fields']
+                        } for dup in high_similarity],
+                        'confirmation_required': True,
+                        'error_code': 'DUPLICATE_PATIENT'
+                    }, status=status.HTTP_409_CONFLICT)
+            
+            # If user is specified, check consistency
+            if 'user' in request.data or 'user_id' in request.data:
+                try:
+                    linked_user_id = request.data.get('user') or request.data.get('user_id')
+                    linked_user = User.objects.get(id=linked_user_id)
+                    
+                    # Check if user already has a patient profile
+                    if hasattr(linked_user, 'patient_profile'):
+                        return Response({
+                            'detail': 'User already has a patient profile',
+                            'existing_patient_id': linked_user.patient_profile.id
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                    
+                    # Check data consistency
+                    consistency_errors = consistency_checker.check_user_patient_consistency(
+                        linked_user, request.data
+                    )
+                    if consistency_errors:
+                        return Response({
+                            'detail': 'Data consistency issues found',
+                            'errors': consistency_errors,
+                            'warning': True
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                        
+                except User.DoesNotExist:
+                    return Response({
+                        'detail': 'Specified user does not exist'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Create patient with transaction safety
+            with transaction.atomic():
+                serializer = self.get_serializer(data=request.data)
+                if serializer.is_valid():
+                    # Set created_by field
+                    patient = serializer.save(created_by=user)
+                    
+                    logger.info(f"Patient created: {patient.id} by user {user.email}")
+                    
+                    return Response({
+                        'detail': 'Patient created successfully',
+                        'patient': PatientSerializer(patient).data
+                    }, status=status.HTTP_201_CREATED)
+                else:
+                    return Response({
+                        'detail': 'Invalid patient data',
+                        'errors': serializer.errors
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                    
+        except IntegrityError as e:
+            logger.error(f"Patient creation integrity error: {str(e)}")
+            return Response({
+                'detail': 'Database integrity error. Patient may already exist.',
+                'error_code': 'INTEGRITY_ERROR'
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            logger.error(f"Patient creation error: {str(e)}\n{traceback.format_exc()}")
+            return Response({
+                'detail': 'An error occurred while creating patient',
+                'error_code': 'CREATION_ERROR'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def update(self, request, *args, **kwargs):
+        """Enhanced patient update with validation."""
+        try:
+            instance = self.get_object()
+            user = request.user
+            
+            # Check permissions
+            if user.role == User.Role.STUDENT and instance.user != user:
+                return Response({
+                    'detail': 'Students can only update their own patient profile'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Validate updated data
+            validation_errors = patient_validator.validate_patient_data(request.data)
+            if validation_errors:
+                return Response({
+                    'detail': 'Patient data validation failed',
+                    'errors': validation_errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Check for potential duplicates (excluding current patient)
+            potential_duplicates = duplicate_detector.find_potential_duplicates(
+                request.data, exclude_id=instance.id
+            )
+            if potential_duplicates:
+                high_similarity = [d for d in potential_duplicates if d['similarity_score'] > 0.9]
+                if high_similarity and not request.data.get('force_update'):
+                    return Response({
+                        'detail': 'Update would create potential duplicate',
+                        'duplicates': [{
+                            'patient_id': dup['patient'].id,
+                            'patient_name': f"{dup['patient'].first_name} {dup['patient'].last_name}",
+                            'similarity_score': dup['similarity_score'],
+                            'matching_fields': dup['matching_fields']
+                        } for dup in high_similarity],
+                        'confirmation_required': True,
+                        'error_code': 'DUPLICATE_PATIENT'
+                    }, status=status.HTTP_409_CONFLICT)
+            
+            # If linked user exists, check consistency
+            if instance.user:
+                consistency_errors = consistency_checker.check_user_patient_consistency(
+                    instance.user, request.data
+                )
+                if consistency_errors:
+                    logger.warning(f"Consistency warnings for patient {instance.id}: {consistency_errors}")
+            
+            # Perform update
+            partial = kwargs.pop('partial', False)
+            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+            
+            if serializer.is_valid():
+                with transaction.atomic():
+                    patient = serializer.save()
+                    
+                    logger.info(f"Patient updated: {patient.id} by user {user.email}")
+                    
+                    return Response({
+                        'detail': 'Patient updated successfully',
+                        'patient': PatientSerializer(patient).data
+                    })
+            else:
+                return Response({
+                    'detail': 'Invalid patient data',
+                    'errors': serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except ObjectDoesNotExist:
+            return Response({
+                'detail': 'Patient not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+            
+        except Exception as e:
+            logger.error(f"Patient update error: {str(e)}\n{traceback.format_exc()}")
+            return Response({
+                'detail': 'An error occurred while updating patient',
+                'error_code': 'UPDATE_ERROR'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['get'])
+    def check_duplicates(self, request, pk=None):
+        """Check for potential duplicate patients."""
+        try:
+            patient = self.get_object()
+            
+            # Check permissions
+            if request.user.role not in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.NURSE]:
+                return Response({
+                    'detail': 'Permission denied'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            patient_data = {
+                'first_name': patient.first_name,
+                'last_name': patient.last_name,
+                'date_of_birth': patient.date_of_birth,
+                'email': patient.email,
+                'phone_number': patient.phone_number
+            }
+            
+            duplicates = duplicate_detector.find_potential_duplicates(
+                patient_data, exclude_id=patient.id
+            )
+            
+            return Response({
+                'patient_id': patient.id,
+                'potential_duplicates': [{
+                    'patient_id': dup['patient'].id,
+                    'patient_name': f"{dup['patient'].first_name} {dup['patient'].last_name}",
+                    'similarity_score': dup['similarity_score'],
+                    'matching_fields': dup['matching_fields'],
+                    'created_at': dup['patient'].created_at
+                } for dup in duplicates]
+            })
+            
+        except Exception as e:
+            logger.error(f"Duplicate check error: {str(e)}")
+            return Response({
+                'detail': 'Error checking for duplicates'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
@@ -58,31 +287,112 @@ class MedicalRecordViewSet(viewsets.ModelViewSet):
     permission_classes = [MedicalRecordPermission]
 
     def get_queryset(self):
-        """Filter records based on user role."""
-        user = self.request.user
-        queryset = MedicalRecord.objects.select_related('patient', 'created_by').all()
+        """Filter records based on user role with enhanced error handling."""
+        try:
+            user = self.request.user
+            queryset = MedicalRecord.objects.select_related('patient', 'created_by').all()
 
-        if user.role == User.Role.STUDENT:
-            # Find the patient profile linked to the student user
-            # Using try-except to handle cases where the patient link might be missing
-            try:
-                patient = Patient.objects.get(user=user)
-                queryset = queryset.filter(patient=patient)
-            except Patient.DoesNotExist:
-                # If student has no patient profile, return no records
+            if user.role == User.Role.STUDENT:
+                # Find the patient profile linked to the student user
+                try:
+                    patient = Patient.objects.get(user=user)
+                    queryset = queryset.filter(patient=patient)
+                except Patient.DoesNotExist:
+                    logger.warning(f"Student user {user.email} has no patient profile")
+                    queryset = MedicalRecord.objects.none()
+                except Patient.MultipleObjectsReturned:
+                    logger.error(f"Student user {user.email} has multiple patient profiles")
+                    # Return all records for this user's patients as fallback
+                    patients = Patient.objects.filter(user=user)
+                    queryset = queryset.filter(patient__in=patients)
+                    
+            elif user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.NURSE]:
+                # Medical staff can see all records
+                pass
+            else:
+                # Unknown role, return no records
+                logger.warning(f"User {user.email} has unknown role: {user.role}")
                 queryset = MedicalRecord.objects.none()
-        elif user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.NURSE]:
-            # Admin/Staff/Doctor/Nurse can see all records (or apply other filters)
-            # No additional filtering needed for these roles to see all records
-            pass
-        else:
-            # Unknown role, return no records
-            queryset = MedicalRecord.objects.none()
 
-        # Optional: Add search/filtering based on query parameters if needed
-        # E.g., filter by date, diagnosis, etc.
+            return queryset.order_by('-visit_date')
+            
+        except Exception as e:
+            logger.error(f"Error in get_queryset: {str(e)}")
+            return MedicalRecord.objects.none()
 
-        return queryset.order_by('-visit_date') # Order by visit date descending
+    def create(self, request, *args, **kwargs):
+        """Enhanced medical record creation with validation."""
+        try:
+            user = request.user
+            
+            # Validate medical record data
+            validation_errors = record_validator.validate_medical_record(request.data)
+            if validation_errors:
+                return Response({
+                    'detail': 'Medical record validation failed',
+                    'errors': validation_errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Get patient and validate access
+            patient_id = request.data.get('patient')
+            if not patient_id:
+                return Response({
+                    'detail': 'Patient ID is required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            try:
+                patient = Patient.objects.get(id=patient_id)
+            except Patient.DoesNotExist:
+                return Response({
+                    'detail': 'Patient not found'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Check permissions
+            if user.role == User.Role.STUDENT:
+                if not hasattr(user, 'patient_profile') or user.patient_profile != patient:
+                    return Response({
+                        'detail': 'Students cannot create medical records'
+                    }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Check for duplicate records on same date
+            visit_date = request.data.get('visit_date')
+            if visit_date:
+                existing_record = MedicalRecord.objects.filter(
+                    patient=patient, 
+                    visit_date=visit_date
+                ).first()
+                
+                if existing_record:
+                    return Response({
+                        'detail': f'Medical record already exists for {visit_date}',
+                        'existing_record_id': existing_record.id,
+                        'suggestion': 'Update the existing record or choose a different date'
+                    }, status=status.HTTP_409_CONFLICT)
+            
+            # Create record with transaction safety
+            with transaction.atomic():
+                serializer = self.get_serializer(data=request.data)
+                if serializer.is_valid():
+                    record = serializer.save(created_by=user)
+                    
+                    logger.info(f"Medical record created: {record.id} for patient {patient.id} by {user.email}")
+                    
+                    return Response({
+                        'detail': 'Medical record created successfully',
+                        'record': MedicalRecordSerializer(record).data
+                    }, status=status.HTTP_201_CREATED)
+                else:
+                    return Response({
+                        'detail': 'Invalid medical record data',
+                        'errors': serializer.errors
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                    
+        except Exception as e:
+            logger.error(f"Medical record creation error: {str(e)}\n{traceback.format_exc()}")
+            return Response({
+                'detail': 'An error occurred while creating medical record',
+                'error_code': 'CREATION_ERROR'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
