@@ -2,12 +2,34 @@
 
 A comprehensive clinic management system for the University of Southern California, built with Django REST Framework and React.
 
+## 🏫 USC DOMAIN REQUIREMENT
+
+**IMPORTANT**: This system exclusively serves the USC community. All user accounts must use USC email addresses with the domain `@usc.edu.ph`. 
+
+### Email Validation Features:
+- ✅ **Only USC emails accepted**: `@usc.edu.ph` domain required
+- 🔍 **Typo Detection**: Suggests corrections (e.g., `@usc.edu` → `@usc.edu.ph`)
+- 🛡️ **Security Validation**: Prevents suspicious email patterns
+- 🚫 **External domains blocked**: Gmail, Yahoo, Outlook, etc. are not allowed
+
+### Accepted USC Email Examples:
+- `john.doe@usc.edu.ph` ✅
+- `student123@usc.edu.ph` ✅
+- `faculty.member@usc.edu.ph` ✅
+- `admin@usc.edu.ph` ✅
+
+### Rejected Examples:
+- `user@gmail.com` ❌ (Non-USC domain)
+- `student@usc.edu` ❌ (Missing .ph, suggests correct domain)
+- `faculty@usc.com` ❌ (Typo, suggests correct domain)
+
 ## Project Overview
 
 USC-PIS is a full-featured patient information system designed for university clinic management. It provides role-based access control, patient management, medical records, certificate generation, and comprehensive health information management.
 
 ### Key Features
 - **Multi-role Authentication System** (Student, Doctor, Nurse, Staff, Admin)
+- **USC Email Verification** - Exclusive access for USC community
 - **Patient Management** with automatic profile creation for students
 - **Medical Records Management** with medical and dental record types
 - **Medical Certificate System** with template-based generation and workflow approval
@@ -41,8 +63,9 @@ USC-PIS is a full-featured patient information system designed for university cl
 ## Enhanced Security & Edge Case Handling
 
 ### Authentication Security (NEW)
+- **USC Domain Enforcement**: Only `@usc.edu.ph` emails allowed with typo detection
 - **Rate Limiting**: Protection against brute force attacks
-- **Enhanced Email Validation**: Disposable email detection, typo suggestions
+- **Enhanced Email Validation**: USC domain verification, typo suggestions, suspicious pattern detection
 - **Password Security**: Breach checking, complexity validation, sequential character detection
 - **Session Management**: Concurrent login handling, token expiration
 - **Account Lockout**: Automatic lockout after failed attempts

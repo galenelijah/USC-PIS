@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Patient, MedicalRecord, Consultation
+from authentication.validators import email_validator
 
 class MedicalRecordSerializer(serializers.ModelSerializer):
     patient_name = serializers.SerializerMethodField()
@@ -31,4 +32,16 @@ class PatientSerializer(serializers.ModelSerializer):
             'gender', 'email', 'phone_number', 'address',
             'created_at', 'updated_at', 'medical_records', 'consultations'
         ]
-        read_only_fields = ['created_at', 'updated_at'] 
+        read_only_fields = ['created_at', 'updated_at']
+    
+    def validate_email(self, value):
+        """Validate email with USC domain requirement."""
+        if not value:
+            raise serializers.ValidationError("Email is required")
+        
+        # Use enhanced email validator
+        error_message = email_validator(value)
+        if error_message:
+            raise serializers.ValidationError(error_message)
+        
+        return value.lower().strip() 

@@ -20,32 +20,32 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 class EnhancedEmailValidator:
-    """Enhanced email validation with edge case handling."""
+    """Enhanced email validation with USC domain requirement."""
     
-    # Common disposable email domains
-    DISPOSABLE_DOMAINS = {
-        '10minutemail.com', 'tempmail.org', 'guerrillamail.com',
-        'mailinator.com', 'yopmail.com', 'temp-mail.org',
-        'throwaway.email', 'getnada.com', 'maildrop.cc'
-    }
+    # Required USC domain
+    REQUIRED_DOMAIN = 'usc.edu.ph'
     
-    # Common typos in email domains
+    # Common typos in USC email domain
     DOMAIN_TYPOS = {
-        'gmial.com': 'gmail.com',
-        'gmai.com': 'gmail.com',
-        'yahooo.com': 'yahoo.com',
-        'hotmial.com': 'hotmail.com',
-        'outlok.com': 'outlook.com'
+        'usc.edu': 'usc.edu.ph',
+        'usc.edu.com': 'usc.edu.ph',
+        'usc.com': 'usc.edu.ph',
+        'usc.org': 'usc.edu.ph',
+        'usc.ph': 'usc.edu.ph',
+        'usc.education.ph': 'usc.edu.ph',
+        'usc.edu.philippines': 'usc.edu.ph',
+        'uc.edu.ph': 'usc.edu.ph',
+        'usec.edu.ph': 'usc.edu.ph',
+        'usc.educ.ph': 'usc.edu.ph'
     }
     
-    def __init__(self, allow_disposable=False, check_mx=False):
-        self.allow_disposable = allow_disposable
-        self.check_mx = check_mx
+    def __init__(self, require_usc_domain=True):
+        self.require_usc_domain = require_usc_domain
         self.base_validator = EmailValidator()
     
     def __call__(self, email: str) -> Optional[str]:
         """
-        Validate email with comprehensive edge case handling.
+        Validate email with USC domain requirement.
         Returns None if valid, error message if invalid.
         """
         if not email:
@@ -72,29 +72,23 @@ class EnhancedEmailValidator:
         except ValueError:
             return "Invalid email format"
         
-        # Check for common typos
+        # Check for common typos in USC domain
         if domain in self.DOMAIN_TYPOS:
             suggested = self.DOMAIN_TYPOS[domain]
             return f"Did you mean {local}@{suggested}?"
         
-        # Check for disposable email domains
-        if not self.allow_disposable and domain in self.DISPOSABLE_DOMAINS:
-            return "Disposable email addresses are not allowed"
+        # USC domain requirement
+        if self.require_usc_domain and domain != self.REQUIRED_DOMAIN:
+            return f"Only USC email addresses (@{self.REQUIRED_DOMAIN}) are allowed"
         
-        # Check for suspicious patterns
-        if self._is_suspicious_email(email):
+        # Check for suspicious patterns in local part
+        if self._is_suspicious_local_part(local):
             return "Email address appears to be invalid"
-        
-        # MX record validation (optional)
-        if self.check_mx and not self._check_mx_record(domain):
-            return "Email domain does not exist"
         
         return None
     
-    def _is_suspicious_email(self, email: str) -> bool:
-        """Check for suspicious email patterns."""
-        local, domain = email.rsplit('@', 1)
-        
+    def _is_suspicious_local_part(self, local: str) -> bool:
+        """Check for suspicious email local part patterns."""
         # Too many dots
         if local.count('.') > 3:
             return True
@@ -112,20 +106,22 @@ class EnhancedEmailValidator:
         if digit_count > len(local) * 0.7:
             return True
         
-        return False
-    
-    def _check_mx_record(self, domain: str) -> bool:
-        """Check if domain has MX record."""
-        try:
-            import dns.resolver
-            dns.resolver.resolve(domain, 'MX')
+        # Check for valid USC email patterns
+        # USC emails typically follow patterns like:
+        # - firstname.lastname@usc.edu.ph
+        # - lastname@usc.edu.ph  
+        # - initials.lastname@usc.edu.ph
+        # - studentnumber@usc.edu.ph (for students)
+        
+        # Allow alphanumeric, dots, hyphens, underscores
+        if not re.match(r'^[a-zA-Z0-9._-]+$', local):
             return True
-        except ImportError:
-            # dnspython not available - skip MX check
-            logger.warning("dnspython not available - skipping MX record validation")
-            return True  # Assume valid if can't check
-        except:
-            return False
+        
+        # Local part too short or too long
+        if len(local) < 2 or len(local) > 30:
+            return True
+        
+        return False
 
 class PasswordSecurityValidator:
     """Enhanced password validation with security edge cases."""
@@ -362,7 +358,7 @@ class SessionManager:
         logger.info(f"Cleaned up {count} expired tokens")
         return count
 
-# Validation instances
-email_validator = EnhancedEmailValidator(allow_disposable=False, check_mx=False)
+# Validation instances with USC domain requirement
+email_validator = EnhancedEmailValidator(require_usc_domain=True)
 password_validator = PasswordSecurityValidator(min_length=8, require_special=True, check_breaches=True)
 rate_limiter = RateLimiter(max_attempts=5, window_minutes=15, lockout_minutes=30) 

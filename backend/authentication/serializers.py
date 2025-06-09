@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import User
 from patients.models import Patient
+from .validators import email_validator, password_validator
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(write_only=True)
@@ -60,6 +61,31 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             'phone_number': {'required': False},
             # All other fields are not required
         }
+    
+    def validate_email(self, value):
+        """Validate email with USC domain requirement."""
+        if not value:
+            raise serializers.ValidationError("Email is required")
+        
+        # Use enhanced email validator
+        error_message = email_validator(value)
+        if error_message:
+            raise serializers.ValidationError(error_message)
+        
+        return value.lower().strip()
+    
+    def validate_password(self, value):
+        """Validate password with enhanced security checks."""
+        if not value:
+            raise serializers.ValidationError("Password is required")
+        
+        # Use enhanced password validator
+        error_messages = password_validator.validate(value)
+        if error_messages:
+            # Join multiple error messages
+            raise serializers.ValidationError(' '.join(error_messages))
+        
+        return value
 
     def validate(self, data):
         if data['password'] != data['password2']:
@@ -133,6 +159,19 @@ class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True)
     new_password2 = serializers.CharField(required=True)
+    
+    def validate_new_password(self, value):
+        """Validate new password with enhanced security checks."""
+        if not value:
+            raise serializers.ValidationError("New password is required")
+        
+        # Use enhanced password validator
+        error_messages = password_validator.validate(value)
+        if error_messages:
+            # Join multiple error messages
+            raise serializers.ValidationError(' '.join(error_messages))
+        
+        return value
 
     def validate(self, data):
         if data['new_password'] != data['new_password2']:
@@ -141,12 +180,37 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
+    
+    def validate_email(self, value):
+        """Validate email with USC domain requirement."""
+        if not value:
+            raise serializers.ValidationError("Email is required")
+        
+        # Use enhanced email validator
+        error_message = email_validator(value)
+        if error_message:
+            raise serializers.ValidationError(error_message)
+        
+        return value.lower().strip()
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
     uidb64 = serializers.CharField(required=True)
     token = serializers.CharField(required=True)
     password = serializers.CharField(write_only=True, required=True, min_length=8)
     # password2 = serializers.CharField(write_only=True, required=True)
+    
+    def validate_password(self, value):
+        """Validate password with enhanced security checks."""
+        if not value:
+            raise serializers.ValidationError("Password is required")
+        
+        # Use enhanced password validator
+        error_messages = password_validator.validate(value)
+        if error_messages:
+            # Join multiple error messages
+            raise serializers.ValidationError(' '.join(error_messages))
+        
+        return value
 
     # def validate(self, data):
     #     if data['password'] != data['password2']:

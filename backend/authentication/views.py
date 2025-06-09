@@ -811,6 +811,24 @@ class PasswordResetRequestView(APIView):
 
     def post(self, request, *args, **kwargs):
         print("--- PasswordResetRequestView START ---") # DEBUG
+        
+        # Get and validate email first
+        email = request.data.get('email', '').strip().lower()
+        
+        if not email:
+            return Response({
+                'detail': 'Email is required',
+                'field': 'email'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Enhanced email validation with USC domain requirement
+        email_error = email_validator(email)
+        if email_error:
+            return Response({
+                'detail': email_error,
+                'field': 'email'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
         serializer = PasswordResetRequestSerializer(data=request.data)
         if serializer.is_valid():
             email = serializer.validated_data['email']
@@ -834,7 +852,7 @@ class PasswordResetRequestView(APIView):
             print(f"DEBUG: Constructed reset URL: {reset_url}") # DEBUG
 
             # Send email
-            subject = 'Password Reset Request'
+            subject = 'USC-PIS Password Reset Request'
             message = render_to_string('emails/password_reset_email.html', {
                 'user': user,
                 'reset_url': reset_url,
