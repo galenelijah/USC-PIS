@@ -82,8 +82,8 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         # Use enhanced password validator
         error_messages = password_validator.validate(value)
         if error_messages:
-            # Join multiple error messages
-            raise serializers.ValidationError(' '.join(error_messages))
+            # Return the first error message for better UX
+            raise serializers.ValidationError(error_messages[0])
         
         return value
 
@@ -168,8 +168,8 @@ class ChangePasswordSerializer(serializers.Serializer):
         # Use enhanced password validator
         error_messages = password_validator.validate(value)
         if error_messages:
-            # Join multiple error messages
-            raise serializers.ValidationError(' '.join(error_messages))
+            # Return the first error message for better UX
+            raise serializers.ValidationError(error_messages[0])
         
         return value
 
@@ -207,8 +207,8 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         # Use enhanced password validator
         error_messages = password_validator.validate(value)
         if error_messages:
-            # Join multiple error messages
-            raise serializers.ValidationError(' '.join(error_messages))
+            # Return the first error message for better UX
+            raise serializers.ValidationError(error_messages[0])
         
         return value
 

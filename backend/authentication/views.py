@@ -91,83 +91,19 @@ def register_user(request):
                     'retry_after': time_remaining
                 }, status=status.HTTP_429_TOO_MANY_REQUESTS)
             
-            # Get and validate required fields
-            email = request.data.get('email', '').strip().lower()
-            password = request.data.get('password', '')
-            password2 = request.data.get('password2', '')
-            role = request.data.get('role', 'STUDENT').upper()
+            # Use the serializer for validation and creation
+            serializer = UserRegistrationSerializer(data=request.data)
             
-            # Input validation
-            validation_errors = []
-            
-            # Strict email validation for new registrations (USC domain required)
-            if not email:
-                validation_errors.append('Email is required')
-            else:
-                email_error = strict_email_validator(email)
-                if email_error:
-                    validation_errors.append(email_error)
-            
-            # Password validation
-            if not password:
-                validation_errors.append('Password is required')
-            elif not password2:
-                validation_errors.append('Password confirmation is required')
-            elif password != password2:
-                validation_errors.append("Passwords don't match")
-            else:
-                # Enhanced password validation
-                password_errors = password_validator.validate(password, {
-                    'email': email,
-                    'username': email
-                })
-                validation_errors.extend(password_errors)
-            
-            # Role validation
-            valid_roles = [choice[0] for choice in User.Role.choices]
-            if role not in valid_roles:
-                validation_errors.append(f'Invalid role. Must be one of: {", ".join(valid_roles)}')
-            
-            if validation_errors:
-                rate_limiter.record_attempt(client_ip, 'register', success=False)
-                return Response({
-                    'detail': 'Validation failed',
-                    'errors': validation_errors
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Check for existing user with enhanced checking
-            existing_checks = [
-                User.objects.filter(email=email).exists(),
-                User.objects.filter(username=email).exists(),
-                User.objects.filter(email__iexact=email).exists()  # Case-insensitive check
-            ]
-            
-            if any(existing_checks):
-                rate_limiter.record_attempt(client_ip, 'register', success=False)
-                return Response({
-                    'detail': 'A user with this email already exists.',
-                    'field': 'email'
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Create user with transaction safety
-            try:
-                with transaction.atomic():
-                    user = User.objects.create_user(
-                        username=email,
-                        email=email,
-                        password=password,
-                        role=role,
-                        first_name='',
-                        last_name='',
-                        completeSetup=False,
-                        date_joined=timezone.now()
-                    )
+            if serializer.is_valid():
+                try:
+                    # Create user using serializer
+                    user = serializer.save()
                     
                     # Create initial token
                     token, created = Token.objects.get_or_create(user=user)
                     
                     # Log successful registration
-                    logger.info(f"User registered successfully: {user.email} with role {role}")
+                    logger.info(f"User registered successfully: {user.email} with role {user.role}")
                     
                     # Record successful attempt
                     rate_limiter.record_attempt(client_ip, 'register', success=True)
@@ -184,12 +120,21 @@ def register_user(request):
                         }
                     }, status=status.HTTP_201_CREATED)
                     
-            except IntegrityError as e:
-                logger.error(f"Database integrity error during registration: {str(e)}")
+                except IntegrityError as e:
+                    logger.error(f"Database integrity error during registration: {str(e)}")
+                    rate_limiter.record_attempt(client_ip, 'register', success=False)
+                    return Response({
+                        'detail': 'Registration failed due to database conflict. Email may already exist.',
+                        'field': 'email'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                # Record failed attempt
                 rate_limiter.record_attempt(client_ip, 'register', success=False)
+                
+                # Return serializer validation errors
                 return Response({
-                    'detail': 'Registration failed due to database conflict. Email may already exist.',
-                    'field': 'email'
+                    'detail': 'Validation failed',
+                    'errors': serializer.errors
                 }, status=status.HTTP_400_BAD_REQUEST)
                 
         except Exception as e:

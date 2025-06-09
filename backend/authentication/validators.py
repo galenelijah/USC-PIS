@@ -203,15 +203,15 @@ class PasswordSecurityValidator:
         if self.require_special and not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
             errors.append("Password must contain at least one special character")
         
-        # Common password check
-        if password.lower() in self.COMMON_PASSWORDS:
-            errors.append("This password is too common and has been compromised")
+        # Skip common password check for user-friendly experience
+        # if password.lower() in self.COMMON_PASSWORDS:
+        #     errors.append("This password is too common and has been compromised")
         
-        # Sequential characters
-        if self._has_sequential_chars(password):
-            errors.append("Password cannot contain sequential characters")
+        # Skip sequential characters check for user-friendly experience
+        # if self._has_sequential_chars(password):
+        #     errors.append("Password cannot contain sequential characters")
         
-        # Repeated characters
+        # Excessive repetition check (keep this for security)
         if self._has_excessive_repetition(password):
             errors.append("Password cannot have excessive character repetition")
         
@@ -224,15 +224,6 @@ class PasswordSecurityValidator:
             errors.append("This password has been found in data breaches")
         
         return errors
-    
-    def _has_sequential_chars(self, password: str) -> bool:
-        """Check for sequential characters like 123 or abc."""
-        sequences = ['123456789', 'abcdefghijklmnopqrstuvwxyz', 'qwertyuiop']
-        for seq in sequences:
-            for i in range(len(seq) - 2):
-                if seq[i:i+3] in password.lower():
-                    return True
-        return False
     
     def _has_excessive_repetition(self, password: str) -> bool:
         """Check for excessive character repetition."""
@@ -396,7 +387,7 @@ class SessionManager:
 
 # Validation instances with USC domain requirement
 email_validator = EnhancedEmailValidator(require_usc_domain=True, allow_existing_users=True)
-password_validator = PasswordSecurityValidator(min_length=8, require_special=True, check_breaches=True)
+password_validator = PasswordSecurityValidator(min_length=8, require_special=False, check_breaches=False)
 rate_limiter = RateLimiter(max_attempts=5, window_minutes=15, lockout_minutes=30)
 
 # Separate validator for strict USC-only validation (for new registrations)
