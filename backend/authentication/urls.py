@@ -14,7 +14,7 @@ urlpatterns = [
     path('check-email/', views.check_email, name='check-email'),
     path('change-password/', views.change_password, name='change-password'),
     path('database-health/', views.database_health_check, name='database-health'),
-    path('complete-profile/', views.complete_profile_setup, name='complete-profile'),
+    path('complete-profile/', views.CompleteProfileSetupView.as_view(), name='complete-profile'),
     
     # Password Reset URLs
     path('password-reset-request/', views.PasswordResetRequestView.as_view(), name='password-reset-request'),

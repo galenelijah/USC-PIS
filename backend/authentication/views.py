@@ -2,7 +2,9 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.exceptions import AuthenticationFailed
 from django.contrib.auth import authenticate
 from .models import User
 from .serializers import UserRegistrationSerializer, UserProfileSerializer, ChangePasswordSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer
@@ -458,13 +460,70 @@ def debug_register(request):
         print(traceback.format_exc())
         return Response({'detail': error_msg}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def complete_profile_setup(request):
-    """Enhanced profile setup with comprehensive edge case handling."""
-    if request.method == 'POST':
+class CompleteProfileSetupView(APIView):
+    """Enhanced profile setup with comprehensive error handling for authentication issues."""
+    
+    def post(self, request):
         try:
-            user = request.user
+            # Log the incoming request for debugging
+            logger.info(f"Profile setup request received from IP: {get_client_ip(request)}")
+            logger.info(f"Request headers: {dict(request.META.items()) if hasattr(request, 'META') else 'No META'}")
+            
+            # Manual authentication check with better error handling
+            auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+            
+            if not auth_header.startswith('Token '):
+                logger.warning(f"Profile setup request without proper auth header: '{auth_header[:20]}...'")
+                return Response({
+                    'detail': 'Authentication credentials were not provided',
+                    'error_code': 'NO_AUTH_HEADER'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            
+            token_key = auth_header.split(' ')[1] if len(auth_header.split(' ')) > 1 else ''
+            
+            if not token_key:
+                logger.warning("Profile setup request with empty token")
+                return Response({
+                    'detail': 'Invalid authentication token format',
+                    'error_code': 'INVALID_TOKEN_FORMAT'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            
+            logger.info(f"Profile setup request with token: {token_key[:10]}...")
+            
+            # Check if token exists
+            try:
+                token = Token.objects.select_related('user').get(key=token_key)
+                user = token.user
+                logger.info(f"Token found for user: {user.email}")
+            except Token.DoesNotExist:
+                logger.warning(f"Profile setup request with non-existent token: {token_key[:10]}...")
+                return Response({
+                    'detail': 'Invalid authentication token. Please log in again.',
+                    'error_code': 'TOKEN_NOT_FOUND'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            
+            # Check if user exists and is active
+            if not user.is_active:
+                logger.warning(f"Profile setup request for inactive user: {user.email}")
+                return Response({
+                    'detail': 'User account is disabled',
+                    'error_code': 'USER_DISABLED'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            
+            # Verify user exists in database (additional safety check)
+            try:
+                user = User.objects.get(id=user.id)
+                logger.info(f"User verification successful: {user.email} (ID: {user.id})")
+            except User.DoesNotExist:
+                logger.error(f"Profile setup request for non-existent user ID: {user.id}")
+                return Response({
+                    'detail': 'User account not found. Please log in again.',
+                    'error_code': 'USER_NOT_FOUND'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            
+            # Set request.user for consistency
+            request.user = user
+            
             client_ip = get_client_ip(request)
             
             # Check if user already completed setup
@@ -485,7 +544,7 @@ def complete_profile_setup(request):
                     'retry_after': time_remaining
                 }, status=status.HTTP_429_TOO_MANY_REQUESTS)
             
-            logger.info(f"Profile setup attempt for user {user.email}")
+            logger.info(f"Profile setup validation passed for user {user.email}")
             print("Profile setup data:", request.data)
             
             # Validate required fields based on role
@@ -600,7 +659,7 @@ def complete_profile_setup(request):
                             'detail': 'Invalid data provided',
                             'errors': user_serializer.errors
                         }, status=status.HTTP_400_BAD_REQUEST)
-                    
+
                     print("DEBUG: User serializer is valid, updating user fields")
                     
                     # Update user fields
@@ -690,7 +749,7 @@ def complete_profile_setup(request):
                                 'detail': f'Error creating patient profile: {str(patient_error)}',
                                 'error_code': 'PATIENT_CREATION_ERROR'
                             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                    
+
                     print("DEBUG: Committing transaction")
                     # Commit the transaction
                     transaction.savepoint_commit(savepoint)
@@ -715,16 +774,10 @@ def complete_profile_setup(request):
                     logger.error(f"Profile setup transaction failed: {str(setup_error)}")
                     transaction.savepoint_rollback(savepoint)
                     raise setup_error
-                    
+                
         except Exception as e:
             error_msg = f"Profile setup error: {str(e)}"
             logger.error(f"{error_msg}\n{traceback.format_exc()}")
-            
-            # Record failed attempt
-            try:
-                rate_limiter.record_attempt(f"{user.id}:profile_setup", 'profile_setup', success=False)
-            except:
-                pass
             
             return Response({
                 'detail': 'Profile setup failed due to server error. Please try again.',
@@ -940,4 +993,46 @@ def debug_current_user(request):
             'user_id': request.user.id,
             'is_authenticated': request.user.is_authenticated,
         }
-    }) 
+    })
+
+class SafeTokenAuthentication(TokenAuthentication):
+    """Custom token authentication that handles invalid tokens gracefully."""
+    
+    def authenticate_credentials(self, key):
+        try:
+            token = self.get_model().objects.select_related('user').get(key=key)
+        except self.get_model().DoesNotExist:
+            raise AuthenticationFailed({
+                'detail': 'Invalid token. Please log in again.',
+                'error_code': 'INVALID_TOKEN'
+            })
+
+        if not token.user.is_active:
+            raise AuthenticationFailed({
+                'detail': 'User account is disabled.',
+                'error_code': 'USER_DISABLED'
+            })
+
+        return (token.user, token)
+
+class SafeIsAuthenticated(BasePermission):
+    """Custom permission that provides better error messages for authentication failures."""
+    
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        
+        # Additional check to ensure user exists in database
+        try:
+            User.objects.get(id=request.user.id)
+            return True
+        except User.DoesNotExist:
+            return False 
+
+# Backup function-based view for compatibility
+@api_view(['POST'])
+@permission_classes([SafeIsAuthenticated])
+def complete_profile_setup(request):
+    """Backup function-based view that redirects to the class-based view."""
+    view = CompleteProfileSetupView()
+    return view.post(request) 
