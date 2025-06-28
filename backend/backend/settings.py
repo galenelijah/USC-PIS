@@ -83,6 +83,7 @@ INSTALLED_APPS = [
     'feedback',
     'file_uploads', # Add the new app
     'medical_certificates',  # Add this line
+    'utils',  # Add utils app for system monitoring and management commands
 ]
 
 MIDDLEWARE = [
@@ -270,7 +271,19 @@ SYSTEM_MONITORING = os.environ.get('SYSTEM_MONITORING', 'True') == 'True'
 # File upload settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
-FILE_UPLOAD_TEMP_DIR = os.path.join(BASE_DIR, 'temp_uploads')
+
+# Create temp uploads directory if it doesn't exist
+import os
+temp_uploads_dir = os.path.join(BASE_DIR, 'temp_uploads')
+if not os.path.exists(temp_uploads_dir):
+    try:
+        os.makedirs(temp_uploads_dir, exist_ok=True)
+    except Exception as e:
+        # If we can't create the directory, use system temp directory
+        import tempfile
+        temp_uploads_dir = tempfile.gettempdir()
+
+FILE_UPLOAD_TEMP_DIR = temp_uploads_dir
 
 # Rate limiting settings
 RATELIMIT_ENABLE = RATE_LIMIT_ENABLED
