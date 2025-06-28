@@ -39,6 +39,24 @@ export const ERROR_CODES = {
   RATE_LIMITED: 'RATE_LIMITED'
 };
 
+// Error categories for better handling
+const ERROR_CATEGORIES = {
+  NETWORK: 'network',
+  VALIDATION: 'validation',
+  AUTHENTICATION: 'authentication',
+  AUTHORIZATION: 'authorization',
+  SERVER: 'server',
+  UNKNOWN: 'unknown'
+};
+
+// Error severity levels
+const ERROR_SEVERITY = {
+  LOW: 'low',
+  MEDIUM: 'medium',
+  HIGH: 'high',
+  CRITICAL: 'critical'
+};
+
 /**
  * Enhanced error parser that extracts meaningful information from different error formats
  */
@@ -284,6 +302,33 @@ export class ErrorNotificationManager {
       draggable: true,
       ...options
     });
+  }
+
+  static showValidationErrors(errors) {
+    if (Array.isArray(errors)) {
+      errors.forEach(error => {
+        toast.error(error, {
+          position: "top-right",
+          autoClose: 4000,
+        });
+      });
+    } else if (typeof errors === 'object') {
+      Object.entries(errors).forEach(([field, fieldErrors]) => {
+        if (Array.isArray(fieldErrors)) {
+          fieldErrors.forEach(error => {
+            toast.error(`${field}: ${error}`, {
+              position: "top-right",
+              autoClose: 4000,
+            });
+          });
+        } else {
+          toast.error(`${field}: ${fieldErrors}`, {
+            position: "top-right",
+            autoClose: 4000,
+          });
+        }
+      });
+    }
   }
 }
 
@@ -593,4 +638,232 @@ export const useErrorHandler = () => {
     executeAsync,
     hasErrors: Object.keys(errors).length > 0
   };
-}; 
+};
+
+// Network recovery queue
+class NetworkRecoveryQueue {
+  constructor() {
+    this.queue = [];
+    this.isProcessing = false;
+    this.maxRetries = 3;
+    this.baseDelay = 1000; // 1 second
+  }
+
+  addToRetryQueue(requestFunction, context, retryCount = 0) {
+    this.queue.push({
+      requestFunction,
+      context,
+      retryCount,
+      timestamp: Date.now()
+    });
+
+    if (!this.isProcessing) {
+      this.processQueue();
+    }
+  }
+
+  async processQueue() {
+    if (this.isProcessing || this.queue.length === 0) {
+      return;
+    }
+
+    this.isProcessing = true;
+
+    while (this.queue.length > 0) {
+      const item = this.queue.shift();
+      
+      try {
+        await this.executeWithRetry(item);
+      } catch (error) {
+        console.error('Retry queue execution failed:', error);
+        
+        // If still has retries left, add back to queue
+        if (item.retryCount < this.maxRetries) {
+          item.retryCount++;
+          this.queue.push(item);
+        } else {
+          // Max retries reached, show error
+          this.showRetryError(item.context);
+        }
+      }
+    }
+
+    this.isProcessing = false;
+  }
+
+  async executeWithRetry(item) {
+    const delay = this.calculateDelay(item.retryCount);
+    
+    // Wait before retrying
+    await new Promise(resolve => setTimeout(resolve, delay));
+    
+    // Execute the request
+    await item.requestFunction();
+  }
+
+  calculateDelay(retryCount) {
+    // Exponential backoff with jitter
+    const exponentialDelay = this.baseDelay * Math.pow(2, retryCount);
+    const jitter = Math.random() * 0.1 * exponentialDelay; // 10% jitter
+    return exponentialDelay + jitter;
+  }
+
+  showRetryError(context) {
+    toast.error(`Failed to ${context} after multiple attempts. Please try again later.`, {
+      position: "top-right",
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+    });
+  }
+
+  clear() {
+    this.queue = [];
+    this.isProcessing = false;
+  }
+}
+
+// Global network recovery instance
+export const networkRecoveryQueue = new NetworkRecoveryQueue();
+
+// Error parser utility
+export const parseError = (error) => {
+  if (!error) {
+    return {
+      message: 'An unknown error occurred',
+      category: ERROR_CATEGORIES.UNKNOWN,
+      severity: ERROR_SEVERITY.MEDIUM,
+      retryable: false
+    };
+  }
+
+  // Handle different error types
+  if (error.response) {
+    // Server response error
+    const status = error.response.status;
+    const data = error.response.data;
+
+    let category = ERROR_CATEGORIES.SERVER;
+    let severity = ERROR_SEVERITY.MEDIUM;
+    let retryable = false;
+
+    // Categorize by status code
+    if (status >= 500) {
+      category = ERROR_CATEGORIES.SERVER;
+      severity = ERROR_SEVERITY.HIGH;
+      retryable = true;
+    } else if (status === 401) {
+      category = ERROR_CATEGORIES.AUTHENTICATION;
+      severity = ERROR_SEVERITY.HIGH;
+      retryable = false;
+    } else if (status === 403) {
+      category = ERROR_CATEGORIES.AUTHORIZATION;
+      severity = ERROR_SEVERITY.HIGH;
+      retryable = false;
+    } else if (status === 422) {
+      category = ERROR_CATEGORIES.VALIDATION;
+      severity = ERROR_SEVERITY.MEDIUM;
+      retryable = false;
+    } else if (status >= 400) {
+      category = ERROR_CATEGORIES.VALIDATION;
+      severity = ERROR_SEVERITY.MEDIUM;
+      retryable = false;
+    }
+
+    return {
+      message: data?.detail || data?.message || `Server error (${status})`,
+      category,
+      severity,
+      retryable,
+      status,
+      data,
+      errors: data?.errors || null
+    };
+  } else if (error.request) {
+    // Network error
+    return {
+      message: 'Network error - please check your connection',
+      category: ERROR_CATEGORIES.NETWORK,
+      severity: ERROR_SEVERITY.HIGH,
+      retryable: true,
+      originalError: error
+    };
+  } else {
+    // Other error
+    return {
+      message: error.message || 'An unexpected error occurred',
+      category: ERROR_CATEGORIES.UNKNOWN,
+      severity: ERROR_SEVERITY.MEDIUM,
+      retryable: false,
+      originalError: error
+    };
+  }
+};
+
+// Global error boundary component
+export class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    this.setState({
+      error: error,
+      errorInfo: errorInfo
+    });
+
+    // Log error
+    console.error('Error boundary caught an error:', error, errorInfo);
+
+    // Show notification
+    ErrorNotificationManager.show({
+      message: 'Something went wrong. Please refresh the page.',
+      category: ERROR_CATEGORIES.UNKNOWN,
+      severity: ERROR_SEVERITY.CRITICAL,
+      retryable: false
+    });
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          padding: '20px',
+          textAlign: 'center',
+          margin: '20px',
+          border: '1px solid #ff6b6b',
+          borderRadius: '8px',
+          backgroundColor: '#fff5f5'
+        }}>
+          <h2>Something went wrong</h2>
+          <p>We're sorry, but something unexpected happened.</p>
+          <button 
+            onClick={() => window.location.reload()}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#8B0000',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Refresh Page
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// Export constants
+export { ERROR_CATEGORIES, ERROR_SEVERITY }; 

@@ -95,6 +95,11 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Enhanced middleware for monitoring and security
+    'utils.middleware.SystemMonitoringMiddleware',
+    'utils.middleware.SecurityHeadersMiddleware',
+    'utils.middleware.RequestLoggingMiddleware',
+    'utils.middleware.DatabaseConnectionMiddleware',
 ]
 
 # CORS settings
@@ -255,6 +260,32 @@ CSRF_COOKIE_SECURE = not DEBUG
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+# Enhanced security settings (NEW)
+RATE_LIMIT_ENABLED = os.environ.get('RATE_LIMIT_ENABLED', 'True') == 'True'
+PASSWORD_BREACH_CHECK = os.environ.get('PASSWORD_BREACH_CHECK', 'True') == 'True'
+FILE_SCAN_ENABLED = os.environ.get('FILE_SCAN_ENABLED', 'True') == 'True'
+SYSTEM_MONITORING = os.environ.get('SYSTEM_MONITORING', 'True') == 'True'
+
+# File upload settings
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+FILE_UPLOAD_TEMP_DIR = os.path.join(BASE_DIR, 'temp_uploads')
+
+# Rate limiting settings
+RATELIMIT_ENABLE = RATE_LIMIT_ENABLED
+RATELIMIT_USE_CACHE = 'default'
+RATELIMIT_KEY_PREFIX = 'rl'
+
+# Session security
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# CSRF settings
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_USE_SESSIONS = True
 
 # Email Settings
 if DEBUG:
