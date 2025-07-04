@@ -7,8 +7,8 @@ from django.db.models.functions import TruncMonth
 from django.db import transaction, IntegrityError
 from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist
-from .models import Patient, MedicalRecord, Consultation
-from .serializers import PatientSerializer, MedicalRecordSerializer, ConsultationSerializer
+from .models import Patient, MedicalRecord, Consultation, DentalRecord
+from .serializers import PatientSerializer, MedicalRecordSerializer, ConsultationSerializer, DentalRecordSerializer
 from authentication.models import User
 from .permissions import MedicalRecordPermission
 from .validators import (
@@ -29,7 +29,7 @@ class PatientViewSet(viewsets.ModelViewSet):
         user = self.request.user
         
         # Base queryset with prefetch
-        queryset = Patient.objects.prefetch_related('medical_records')
+        queryset = Patient.objects.prefetch_related('medical_records', 'dental_records')
 
         # Filter based on user role
         if user.role == User.Role.STUDENT:
@@ -400,6 +400,202 @@ class MedicalRecordViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         serializer.save()
 
+class DentalRecordViewSet(viewsets.ModelViewSet):
+    queryset = DentalRecord.objects.all()
+    serializer_class = DentalRecordSerializer
+    permission_classes = [MedicalRecordPermission]  # Use same permission as medical records
+
+    def get_queryset(self):
+        """Filter dental records based on user role with enhanced error handling."""
+        try:
+            user = self.request.user
+            queryset = DentalRecord.objects.select_related('patient', 'created_by').all()
+
+            if user.role == User.Role.STUDENT:
+                # Find the patient profile linked to the student user
+                try:
+                    patient = Patient.objects.get(user=user)
+                    queryset = queryset.filter(patient=patient)
+                except Patient.DoesNotExist:
+                    logger.warning(f"Student user {user.email} has no patient profile")
+                    queryset = DentalRecord.objects.none()
+                except Patient.MultipleObjectsReturned:
+                    logger.error(f"Student user {user.email} has multiple patient profiles")
+                    # Return all records for this user's patients as fallback
+                    patients = Patient.objects.filter(user=user)
+                    queryset = queryset.filter(patient__in=patients)
+                    
+            elif user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.NURSE]:
+                # Medical staff can see all records
+                pass
+            else:
+                # Unknown role, return no records
+                logger.warning(f"User {user.email} has unknown role: {user.role}")
+                queryset = DentalRecord.objects.none()
+
+            # Apply filters from query parameters
+            procedure = self.request.query_params.get('procedure', None)
+            if procedure:
+                queryset = queryset.filter(procedure_performed=procedure)
+            
+            priority = self.request.query_params.get('priority', None)
+            if priority:
+                queryset = queryset.filter(priority=priority)
+            
+            date_from = self.request.query_params.get('date_from', None)
+            if date_from:
+                queryset = queryset.filter(visit_date__gte=date_from)
+            
+            date_to = self.request.query_params.get('date_to', None)
+            if date_to:
+                queryset = queryset.filter(visit_date__lte=date_to)
+
+            return queryset.order_by('-visit_date')
+            
+        except Exception as e:
+            logger.error(f"Error in dental records get_queryset: {str(e)}")
+            return DentalRecord.objects.none()
+
+    def create(self, request, *args, **kwargs):
+        """Enhanced dental record creation with validation."""
+        try:
+            user = request.user
+            
+            # Get patient and validate access
+            patient_id = request.data.get('patient')
+            if not patient_id:
+                return Response({
+                    'detail': 'Patient ID is required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            try:
+                patient = Patient.objects.get(id=patient_id)
+            except Patient.DoesNotExist:
+                return Response({
+                    'detail': 'Patient not found'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Check permissions
+            if user.role == User.Role.STUDENT:
+                return Response({
+                    'detail': 'Students cannot create dental records'
+                }, status=status.HTTP_403_FORBIDDEN)
+            elif user.role not in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.NURSE]:
+                return Response({
+                    'detail': 'Insufficient permissions to create dental records'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Validate required fields
+            required_fields = ['visit_date', 'procedure_performed', 'diagnosis', 'treatment_performed']
+            missing_fields = [field for field in required_fields if not request.data.get(field)]
+            if missing_fields:
+                return Response({
+                    'detail': 'Missing required fields',
+                    'missing_fields': missing_fields
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Check for duplicate records on same date and procedure
+            visit_date = request.data.get('visit_date')
+            procedure = request.data.get('procedure_performed')
+            if visit_date and procedure:
+                existing_record = DentalRecord.objects.filter(
+                    patient=patient, 
+                    visit_date=visit_date,
+                    procedure_performed=procedure
+                ).first()
+                
+                if existing_record:
+                    return Response({
+                        'detail': f'Dental record for {procedure} already exists for {visit_date}',
+                        'existing_record_id': existing_record.id,
+                        'suggestion': 'Update the existing record, choose a different date, or use a different procedure type'
+                    }, status=status.HTTP_409_CONFLICT)
+            
+            # Validate tooth numbers if provided
+            tooth_numbers = request.data.get('tooth_numbers', '')
+            if tooth_numbers:
+                try:
+                    # Parse and validate tooth numbers
+                    tooth_nums = [num.strip() for num in tooth_numbers.split(',') if num.strip()]
+                    for num in tooth_nums:
+                        tooth_num = int(num)
+                        if tooth_num < 11 or tooth_num > 48:
+                            return Response({
+                                'detail': f'Invalid tooth number: {num}. Must be between 11-48 (FDI notation)'
+                            }, status=status.HTTP_400_BAD_REQUEST)
+                except ValueError:
+                    return Response({
+                        'detail': 'Invalid tooth number format. Use comma-separated numbers (e.g., 11,12,21)'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Create record with transaction safety
+            with transaction.atomic():
+                serializer = self.get_serializer(data=request.data)
+                if serializer.is_valid():
+                    record = serializer.save(created_by=user)
+                    
+                    logger.info(f"Dental record created: {record.id} for patient {patient.id} by {user.email}")
+                    
+                    return Response({
+                        'detail': 'Dental record created successfully',
+                        'record': DentalRecordSerializer(record).data
+                    }, status=status.HTTP_201_CREATED)
+                else:
+                    return Response({
+                        'detail': 'Invalid dental record data',
+                        'errors': serializer.errors
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                    
+        except Exception as e:
+            logger.error(f"Dental record creation error: {str(e)}\n{traceback.format_exc()}")
+            return Response({
+                'detail': 'An error occurred while creating dental record',
+                'error_code': 'CREATION_ERROR'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'])
+    def procedures(self, request):
+        """Get list of available dental procedures."""
+        procedures = [{'value': choice[0], 'label': choice[1]} for choice in DentalRecord.PROCEDURE_CHOICES]
+        return Response({'procedures': procedures})
+
+    @action(detail=False, methods=['get'])
+    def tooth_conditions(self, request):
+        """Get list of available tooth conditions."""
+        conditions = [{'value': choice[0], 'label': choice[1]} for choice in DentalRecord.TOOTH_CONDITION_CHOICES]
+        return Response({'tooth_conditions': conditions})
+
+    @action(detail=True, methods=['get'])
+    def treatment_history(self, request, pk=None):
+        """Get complete dental treatment history for a patient."""
+        try:
+            record = self.get_object()
+            patient = record.patient
+            
+            # Get all dental records for this patient
+            all_records = DentalRecord.objects.filter(patient=patient).order_by('-visit_date')
+            
+            serializer = DentalRecordSerializer(all_records, many=True)
+            
+            return Response({
+                'patient_id': patient.id,
+                'patient_name': f"{patient.first_name} {patient.last_name}",
+                'total_visits': all_records.count(),
+                'treatment_history': serializer.data
+            })
+            
+        except Exception as e:
+            logger.error(f"Error getting treatment history: {str(e)}")
+            return Response({
+                'detail': 'Error retrieving treatment history'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save()
+
 class ConsultationViewSet(viewsets.ModelViewSet):
     queryset = Consultation.objects.all()
     serializer_class = ConsultationSerializer
@@ -440,8 +636,16 @@ def dashboard_stats(request):
         user = request.user
         total_patients = Patient.objects.count()
         total_records = MedicalRecord.objects.count()
-        recent_patients = Patient.objects.prefetch_related('medical_records').order_by('-created_at')[:5]
+        total_dental_records = DentalRecord.objects.count()
+        recent_patients = Patient.objects.prefetch_related('medical_records', 'dental_records').order_by('-created_at')[:5]
         visits_by_month = MedicalRecord.objects.annotate(
+            month=TruncMonth('visit_date')
+        ).values('month').annotate(
+            count=Count('id')
+        ).order_by('month')
+
+        # Add dental visits to monthly stats
+        dental_visits_by_month = DentalRecord.objects.annotate(
             month=TruncMonth('visit_date')
         ).values('month').annotate(
             count=Count('id')
@@ -458,8 +662,10 @@ def dashboard_stats(request):
             return Response({
                 'total_patients': total_patients,
                 'total_records': total_records,
+                'total_dental_records': total_dental_records,
                 'recent_patients': PatientSerializer(recent_patients, many=True).data,
                 'visits_by_month': list(visits_by_month),
+                'dental_visits_by_month': list(dental_visits_by_month),
                 'appointments_today': appointments_today,
                 'pending_requests': pending_requests,
             })

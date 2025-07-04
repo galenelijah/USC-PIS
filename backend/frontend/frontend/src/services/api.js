@@ -647,4 +647,121 @@ export const medicalCertificateService = {
   }
 };
 
+// Dental Records Service
+const dentalRecordService = {
+  // Get all dental records
+  getAll: async (params = {}) => {
+    try {
+      const response = await api.get('/patients/dental-records/', { params });
+      return response;
+    } catch (error) {
+      console.error('Error fetching dental records:', error);
+      throw error;
+    }
+  },
+
+  // Get dental record by ID
+  getById: async (id) => {
+    try {
+      const response = await api.get(`/patients/dental-records/${id}/`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching dental record:', error);
+      throw error;
+    }
+  },
+
+  // Create new dental record
+  create: async (data) => {
+    try {
+      const response = await api.post('/patients/dental-records/', data);
+      return response;
+    } catch (error) {
+      console.error('Error creating dental record:', error);
+      throw error;
+    }
+  },
+
+  // Update dental record
+  update: async (id, data) => {
+    try {
+      const response = await api.put(`/patients/dental-records/${id}/`, data);
+      return response;
+    } catch (error) {
+      console.error('Error updating dental record:', error);
+      throw error;
+    }
+  },
+
+  // Partially update dental record
+  partialUpdate: async (id, data) => {
+    try {
+      const response = await api.patch(`/patients/dental-records/${id}/`, data);
+      return response;
+    } catch (error) {
+      console.error('Error updating dental record:', error);
+      throw error;
+    }
+  },
+
+  // Delete dental record
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`/patients/dental-records/${id}/`);
+      return response;
+    } catch (error) {
+      console.error('Error deleting dental record:', error);
+      throw error;
+    }
+  },
+
+  // Get available dental procedures
+  getProcedures: async () => {
+    try {
+      const response = await api.get('/patients/dental-records/procedures/');
+      return response;
+    } catch (error) {
+      console.error('Error fetching dental procedures:', error);
+      throw error;
+    }
+  },
+
+  // Get available tooth conditions
+  getToothConditions: async () => {
+    try {
+      const response = await api.get('/patients/dental-records/tooth_conditions/');
+      return response;
+    } catch (error) {
+      console.error('Error fetching tooth conditions:', error);
+      throw error;
+    }
+  },
+
+  // Get treatment history for a patient
+  getTreatmentHistory: async (recordId) => {
+    try {
+      const response = await api.get(`/patients/dental-records/${recordId}/treatment_history/`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching treatment history:', error);
+      throw error;
+    }
+  },
+
+  // Search dental records with advanced filters
+  search: async (searchParams) => {
+    try {
+      const response = await api.get('/patients/dental-records/', { 
+        params: searchParams 
+      });
+      return response;
+    } catch (error) {
+      console.error('Error searching dental records:', error);
+      throw error;
+    }
+  }
+};
+
+export { dentalRecordService };
+
 export default api; 

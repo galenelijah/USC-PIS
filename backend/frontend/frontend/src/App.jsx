@@ -252,6 +252,20 @@ const App = () => {
           }
         />
         
+        {/* Dental Records Route */}
+        <Route
+          path="/dental-records"
+          element={
+            <RequireAuth isAuthenticated={isAuthenticated}>
+              <RequireProfileSetup>
+                <Layout onSearch={handleSearch}>
+                  <Dental />
+                </Layout>
+              </RequireProfileSetup>
+            </RequireAuth>
+          }
+        />
+        
         {/* Consultations Route */}
         <Route
           path="/consultations"
