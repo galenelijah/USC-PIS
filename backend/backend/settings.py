@@ -77,12 +77,14 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',  # Add token authentication
     'corsheaders',
+    'django_filters',  # Add django-filter for API filtering
     'patients',
     'authentication',  # New authentication app
     'health_info',     # Add the missing health_info app
     'feedback',
     'file_uploads', # Add the new app
     'medical_certificates',  # Add this line
+    'notifications',  # Add notifications app
     'utils',  # Add utils app for system monitoring and management commands
 ]
 

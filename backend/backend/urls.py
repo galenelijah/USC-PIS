@@ -29,6 +29,7 @@ urlpatterns = [
     path('api/feedback/', include('feedback.urls')),
     path('api/files/', include('file_uploads.urls')), # Add file_uploads URLs
     path('api/medical-certificates/', include('medical_certificates.urls')),
+    # path('api/notifications/', include('notifications.urls')),  # Add notifications URLs
     path('api/system/', include('utils.urls')),  # Add system monitoring URLs
     # Add media URL pattern to serve uploaded files
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
