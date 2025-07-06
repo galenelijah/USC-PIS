@@ -23,6 +23,7 @@ import HealthInfo from './components/HealthInfo/HealthInfo';
 import HealthRecords from './components/HealthRecords';
 import ConsultationHistory from './components/ConsultationHistory';
 import Notifications from './components/Notifications';
+import ErrorBoundary from './components/ErrorBoundary';
 import { patientService } from './services/api';
 import FeedbackForm from './components/FeedbackForm';
 import { useParams } from 'react-router-dom';
@@ -336,9 +337,11 @@ const App = () => {
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
-                <Layout onSearch={handleSearch}>
-                  <Notifications />
-                </Layout>
+                <ErrorBoundary>
+                  <Layout onSearch={handleSearch}>
+                    <Notifications />
+                  </Layout>
+                </ErrorBoundary>
               </RequireProfileSetup>
             </RequireAuth>
           }

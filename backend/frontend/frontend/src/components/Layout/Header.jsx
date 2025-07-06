@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -27,6 +27,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout, logoutUser } from '../../features/authentication/authSlice';
+import { notificationService } from '../../services/api';
 
 const Header = ({ onSearch }) => {
   const navigate = useNavigate();
@@ -35,8 +36,28 @@ const Header = ({ onSearch }) => {
   
   const [searchValue, setSearchValue] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const open = Boolean(anchorEl);
   
+  // Load unread notification count
+  useEffect(() => {
+    if (user) {
+      loadUnreadCount();
+      // Refresh count every 30 seconds
+      const interval = setInterval(loadUnreadCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  const loadUnreadCount = async () => {
+    try {
+      const response = await notificationService.getUnreadNotifications();
+      setUnreadCount(response.data?.length || 0);
+    } catch (error) {
+      console.error('Error loading unread count:', error);
+    }
+  };
+
   const handleProfileMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
   };
@@ -126,7 +147,7 @@ const Header = ({ onSearch }) => {
               sx={{ mr: 2 }}
               onClick={() => navigate('/notifications')}
             >
-              <Badge badgeContent={3} color="error">
+              <Badge badgeContent={unreadCount} color="error">
                 <NotificationsIcon />
               </Badge>
             </IconButton>

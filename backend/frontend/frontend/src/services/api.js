@@ -661,7 +661,7 @@ export const notificationService = {
   // Get unread notifications
   getUnreadNotifications: async () => {
     try {
-      return await api.get('/notifications/notifications/?status=DELIVERED&status=SENT');
+      return await api.get('/notifications/notifications/unread/');
     } catch (error) {
       handleApiError(error);
     }

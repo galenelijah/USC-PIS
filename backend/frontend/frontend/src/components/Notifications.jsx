@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Box,
     Card,
@@ -83,17 +83,45 @@ const Notifications = () => {
     const [typeFilter, setTypeFilter] = useState('');
     const [priorityFilter, setPriorityFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
-
-    // Load data
+    
+    // Ref to track component mount status
+    const isMountedRef = useRef(true);
+    
+    // Cleanup on unmount
     useEffect(() => {
-        loadNotifications();
-        loadUnreadNotifications();
-        loadStats();
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
+
+    // Debounced search function
+    const debouncedSearch = useCallback(
+        debounce((term) => {
+            if (isMountedRef.current) {
+                setSearchTerm(term);
+            }
+        }, 300),
+        []
+    );
+
+    // Load data with dependency on filters
+    useEffect(() => {
+        if (isMountedRef.current) {
+            loadNotifications();
+        }
+    }, [searchTerm, typeFilter, priorityFilter, statusFilter]);
+
+    useEffect(() => {
+        if (isMountedRef.current) {
+            loadUnreadNotifications();
+            loadStats();
+        }
     }, []);
 
     const loadNotifications = async () => {
         try {
             setLoading(true);
+            setError(''); // Clear previous errors
             const response = await notificationService.getNotifications({
                 search: searchTerm,
                 notification_type: typeFilter,
@@ -103,7 +131,7 @@ const Notifications = () => {
             setNotifications(response.data.results || response.data);
         } catch (err) {
             console.error('Error loading notifications:', err);
-            setError('Failed to load notifications');
+            setError('Failed to load notifications. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -129,23 +157,43 @@ const Notifications = () => {
 
     const handleMarkAsRead = async (notificationId) => {
         try {
+            setLoading(true);
             await notificationService.markAsRead(notificationId);
             setSuccess('Notification marked as read');
-            loadNotifications();
-            loadUnreadNotifications();
+            
+            // Optimistic update - immediately update the notification in the list
+            setNotifications(prev => prev.map(n => 
+                n.id === notificationId ? { ...n, is_read: true, status: 'READ' } : n
+            ));
+            setUnreadNotifications(prev => prev.filter(n => n.id !== notificationId));
+            
+            // Reload data to ensure consistency
+            await Promise.all([loadNotifications(), loadUnreadNotifications(), loadStats()]);
         } catch (err) {
-            setError('Failed to mark notification as read');
+            console.error('Error marking notification as read:', err);
+            setError('Failed to mark notification as read. Please try again.');
+        } finally {
+            setLoading(false);
         }
     };
 
     const handleMarkAllAsRead = async () => {
         try {
+            setLoading(true);
             await notificationService.markAllAsRead();
             setSuccess('All notifications marked as read');
-            loadNotifications();
-            loadUnreadNotifications();
+            
+            // Optimistic update
+            setNotifications(prev => prev.map(n => ({ ...n, is_read: true, status: 'READ' })));
+            setUnreadNotifications([]);
+            
+            // Reload data to ensure consistency
+            await Promise.all([loadNotifications(), loadUnreadNotifications(), loadStats()]);
         } catch (err) {
-            setError('Failed to mark all notifications as read');
+            console.error('Error marking all notifications as read:', err);
+            setError('Failed to mark all notifications as read. Please try again.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -168,12 +216,12 @@ const Notifications = () => {
     };
 
     const getStatusColor = (status) => {
-        switch (status) {
+        switch (status?.toUpperCase()) {
             case 'READ': return 'success';
-            case 'delivered': return 'info';
-            case 'sent': return 'primary';
-            case 'pending': return 'warning';
-            case 'failed': return 'error';
+            case 'DELIVERED': return 'info';
+            case 'SENT': return 'primary';
+            case 'PENDING': return 'warning';
+            case 'FAILED': return 'error';
             default: return 'default';
         }
     };
@@ -191,14 +239,32 @@ const Notifications = () => {
         }
     };
 
+    const formatDate = (dateString) => {
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) {
+                return 'Invalid date';
+            }
+            return format(date, 'PPp');
+        } catch (error) {
+            console.error('Date formatting error:', error);
+            return 'Invalid date';
+        }
+    };
+
     const filteredNotifications = notifications.filter(notification => {
-        const matchesSearch = notification.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            notification.message.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesType = !typeFilter || notification.notification_type === typeFilter;
-        const matchesPriority = !priorityFilter || notification.priority === priorityFilter;
-        const matchesStatus = !statusFilter || notification.status === statusFilter;
-        
-        return matchesSearch && matchesType && matchesPriority && matchesStatus;
+        try {
+            const matchesSearch = notification.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                notification.message?.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesType = !typeFilter || notification.notification_type === typeFilter;
+            const matchesPriority = !priorityFilter || notification.priority === priorityFilter;
+            const matchesStatus = !statusFilter || notification.status === statusFilter;
+            
+            return matchesSearch && matchesType && matchesPriority && matchesStatus;
+        } catch (error) {
+            console.error('Filter error:', error);
+            return false;
+        }
     });
 
     // Notification types for filters
@@ -310,7 +376,7 @@ const Notifications = () => {
                                     size="small"
                                     placeholder="Search notifications..."
                                     value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onChange={(e) => debouncedSearch(e.target.value)}
                                     InputProps={{
                                         startAdornment: <Search sx={{ color: 'action.active', mr: 1 }} />
                                     }}
@@ -449,7 +515,7 @@ const Notifications = () => {
                                                                     {notification.message}
                                                                 </Typography>
                                                                 <Typography variant="caption" color="textSecondary">
-                                                                    {format(new Date(notification.created_at), 'PPp')}
+                                                                    {formatDate(notification.created_at)}
                                                                 </Typography>
                                                             </Box>
                                                         }
@@ -510,7 +576,7 @@ const Notifications = () => {
                                                                     {notification.message}
                                                                 </Typography>
                                                                 <Typography variant="caption" color="textSecondary">
-                                                                    {format(new Date(notification.created_at), 'PPp')}
+                                                                    {formatDate(notification.created_at)}
                                                                 </Typography>
                                                             </Box>
                                                         }
@@ -584,7 +650,7 @@ const Notifications = () => {
                                         Created
                                     </Typography>
                                     <Typography variant="body2">
-                                        {format(new Date(selectedNotification.created_at), 'PPp')}
+                                        {formatDate(selectedNotification.created_at)}
                                     </Typography>
                                 </Grid>
                                 
@@ -594,7 +660,7 @@ const Notifications = () => {
                                             Sent
                                         </Typography>
                                         <Typography variant="body2">
-                                            {format(new Date(selectedNotification.sent_at), 'PPp')}
+                                            {formatDate(selectedNotification.sent_at)}
                                         </Typography>
                                     </Grid>
                                 )}
@@ -605,7 +671,7 @@ const Notifications = () => {
                                             Read
                                         </Typography>
                                         <Typography variant="body2">
-                                            {format(new Date(selectedNotification.read_at), 'PPp')}
+                                            {formatDate(selectedNotification.read_at)}
                                         </Typography>
                                     </Grid>
                                 )}
@@ -693,3 +759,16 @@ const Notifications = () => {
 };
 
 export default Notifications;
+
+// Debounce utility function
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
