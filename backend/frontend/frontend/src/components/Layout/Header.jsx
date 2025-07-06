@@ -121,7 +121,11 @@ const Header = ({ onSearch }) => {
           </Tooltip>
           
           <Tooltip title="Notifications">
-            <IconButton color="inherit" sx={{ mr: 2 }}>
+            <IconButton 
+              color="inherit" 
+              sx={{ mr: 2 }}
+              onClick={() => navigate('/notifications')}
+            >
               <Badge badgeContent={3} color="error">
                 <NotificationsIcon />
               </Badge>

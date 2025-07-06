@@ -647,6 +647,180 @@ export const medicalCertificateService = {
   }
 };
 
+// Notification Service
+export const notificationService = {
+  // Get all notifications for current user
+  getNotifications: async (params = {}) => {
+    try {
+      return await api.get('/notifications/notifications/', { params });
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Get unread notifications
+  getUnreadNotifications: async () => {
+    try {
+      return await api.get('/notifications/notifications/?status=DELIVERED&status=SENT');
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Get notification statistics
+  getStats: async () => {
+    try {
+      return await api.get('/notifications/notifications/stats/');
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Get notification by ID
+  getById: async (id) => {
+    try {
+      return await api.get(`/notifications/notifications/${id}/`);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Mark notification as read
+  markAsRead: async (id) => {
+    try {
+      return await api.post(`/notifications/notifications/${id}/mark_as_read/`);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Mark all notifications as read
+  markAllAsRead: async () => {
+    try {
+      return await api.post('/notifications/notifications/mark_all_as_read/');
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Get notification preferences
+  getPreferences: async () => {
+    try {
+      return await api.get('/notifications/preferences/me/');
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Update notification preferences
+  updatePreferences: async (data) => {
+    try {
+      return await api.put('/notifications/preferences/me/', data);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Create notification (for medical staff)
+  create: async (data) => {
+    try {
+      return await api.post('/notifications/notifications/', data);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Bulk create notifications
+  bulkCreate: async (data) => {
+    try {
+      return await api.post('/notifications/notifications/bulk_create/', data);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Send test notification
+  sendTest: async (data) => {
+    try {
+      return await api.post('/notifications/notifications/send_test/', data);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Get notification templates
+  getTemplates: async () => {
+    try {
+      return await api.get('/notifications/templates/');
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Test template rendering
+  testTemplate: async (id, context) => {
+    try {
+      return await api.post(`/notifications/templates/${id}/test/`, { context });
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Get campaigns (for medical staff)
+  getCampaigns: async () => {
+    try {
+      return await api.get('/notifications/campaigns/');
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Create campaign
+  createCampaign: async (data) => {
+    try {
+      return await api.post('/notifications/campaigns/', data);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Activate campaign
+  activateCampaign: async (id) => {
+    try {
+      return await api.post(`/notifications/campaigns/${id}/activate/`);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Pause campaign
+  pauseCampaign: async (id) => {
+    try {
+      return await api.post(`/notifications/campaigns/${id}/pause/`);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Resume campaign
+  resumeCampaign: async (id) => {
+    try {
+      return await api.post(`/notifications/campaigns/${id}/resume/`);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Get notification logs (for medical staff)
+  getLogs: async (params = {}) => {
+    try {
+      return await api.get('/notifications/logs/', { params });
+    } catch (error) {
+      handleApiError(error);
+    }
+  }
+};
+
 // Dental Records Service
 const dentalRecordService = {
   // Get all dental records

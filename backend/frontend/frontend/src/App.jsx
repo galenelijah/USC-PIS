@@ -22,6 +22,7 @@ import DatabaseMonitor from './components/DatabaseMonitor';
 import HealthInfo from './components/HealthInfo/HealthInfo';
 import HealthRecords from './components/HealthRecords';
 import ConsultationHistory from './components/ConsultationHistory';
+import Notifications from './components/Notifications';
 import { patientService } from './services/api';
 import FeedbackForm from './components/FeedbackForm';
 import { useParams } from 'react-router-dom';
@@ -323,6 +324,20 @@ const App = () => {
               <RequireProfileSetup>
                 <Layout onSearch={handleSearch}>
                   <Profile />
+                </Layout>
+              </RequireProfileSetup>
+            </RequireAuth>
+          }
+        />
+        
+        {/* Notifications Route - Available to all authenticated users */}
+        <Route
+          path="/notifications"
+          element={
+            <RequireAuth isAuthenticated={isAuthenticated}>
+              <RequireProfileSetup>
+                <Layout onSearch={handleSearch}>
+                  <Notifications />
                 </Layout>
               </RequireProfileSetup>
             </RequireAuth>

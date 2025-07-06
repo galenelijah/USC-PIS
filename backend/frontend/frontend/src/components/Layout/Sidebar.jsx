@@ -23,6 +23,7 @@ import {
   Download as DownloadIcon,
   Person as PersonIcon,
   MedicalInformation as MedicalInformationIcon,
+  Notifications as NotificationsIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
@@ -96,6 +97,7 @@ const Sidebar = () => {
 
   const infoItems = [
     { text: 'Health Information', icon: <HealthInfoIcon />, path: '/health-info' },
+    { text: 'Notifications', icon: <NotificationsIcon />, path: '/notifications' },
     { text: 'Feedback', icon: <FeedbackIcon />, path: '/feedback', isFeedback: true },
   ];
 
