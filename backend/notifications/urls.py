@@ -13,8 +13,8 @@ router.register(r'campaigns', views.NotificationCampaignViewSet, basename='notif
 app_name = 'notifications'
 
 urlpatterns = [
-    # API endpoints
-    path('api/', include(router.urls)),
+    # API endpoints - include router URLs directly
+    path('', include(router.urls)),
     
     # Additional custom endpoints can be added here
 ] 

@@ -61,7 +61,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-q0=r7vwj)6n3rfwu6tcdz
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['usc-pis-5f030223f7a8.herokuapp.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['usc-pis-5f030223f7a8.herokuapp.com', 'localhost', '127.0.0.1', 'testserver']
 
 
 # Application definition
@@ -92,20 +92,13 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Add whitenoise middleware
-    'backend.middleware.HealthCheckMiddleware',  # Add health check middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
-    'backend.middleware.APIResponseMiddleware',  # Add API response middleware
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # Enhanced middleware for monitoring and security
-    'utils.middleware.SystemMonitoringMiddleware',
-    'utils.middleware.SecurityHeadersMiddleware',
-    'utils.middleware.RequestLoggingMiddleware',
-    'utils.middleware.DatabaseConnectionMiddleware',
 ]
 
 # CORS settings - Production ready
