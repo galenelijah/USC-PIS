@@ -92,8 +92,10 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Add whitenoise middleware
+    'backend.middleware.HealthCheckMiddleware',  # Add health check middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'backend.middleware.APIResponseMiddleware',  # Add API response middleware
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -106,13 +108,13 @@ MIDDLEWARE = [
     'utils.middleware.DatabaseConnectionMiddleware',
 ]
 
-# CORS settings
+# CORS settings - Production ready
 CORS_ALLOWED_ORIGINS = [
+    "https://usc-pis-5f030223f7a8.herokuapp.com",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
-    "https://usc-pis-5f030223f7a8.herokuapp.com",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -126,13 +128,13 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:8000",
 ]
 
-# For development only - don't use in production
+# CORS settings for production
 if DEBUG:
-    CORS_ALLOW_ALL_ORIGINS = True  # This will override CORS_ALLOWED_ORIGINS
+    CORS_ALLOW_ALL_ORIGINS = True  # Development only
 else:
-    CORS_ALLOW_ALL_ORIGINS = False  # Disable in production
+    CORS_ALLOW_ALL_ORIGINS = False  # Production - use specific origins only
 
-# Additional CORS settings
+# Additional CORS settings for better API support
 CORS_ALLOW_METHODS = [
     'DELETE',
     'GET',
@@ -152,7 +154,14 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'cache-control',
 ]
+
+# Ensure CORS preflight requests are handled properly
+CORS_PREFLIGHT_MAX_AGE = 86400
+
+# Allow credentials for authentication
+CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = 'backend.urls'
 
@@ -245,16 +254,37 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Custom user model
 AUTH_USER_MODEL = 'authentication.User'
 
-# REST Framework settings
+# REST Framework settings - Production optimized
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
-        # Add SessionAuthentication if needed for browsable API or other uses
-        # 'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.SessionAuthentication',  # Enable for browsable API
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',  # Enable for API browsing
+    ],
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
+    # Error handling
+    'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
+    # API versioning
+    'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.AcceptHeaderVersioning',
+    'DEFAULT_VERSION': 'v1',
+    'ALLOWED_VERSIONS': ['v1'],
 }
 
 # Security Settings

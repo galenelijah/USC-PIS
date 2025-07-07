@@ -27,6 +27,7 @@ import datetime
 from .validators import email_validator, strict_email_validator, password_validator, rate_limiter, SessionManager
 from django.utils import timezone
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.views.decorators.http import require_http_methods
 
 logger = logging.getLogger(__name__)
 
@@ -1009,4 +1010,16 @@ def complete_profile_setup(request):
                 'Clear browser data and try logging in again',
                 'Contact support if the issue persists'
             ]
-        }, status=status.HTTP_503_SERVICE_UNAVAILABLE) 
+        }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_test(request):
+    """Simple API test endpoint to verify API is working"""
+    return JsonResponse({
+        'status': 'success',
+        'message': 'API is working correctly',
+        'user_authenticated': request.user.is_authenticated,
+        'user_role': getattr(request.user, 'role', None) if request.user.is_authenticated else None,
+        'timestamp': timezone.now().isoformat()
+    }) 
