@@ -17,6 +17,7 @@ class FeedbackViewSet(viewsets.ModelViewSet):
     serializer_class = FeedbackSerializer
     # Keep default IsAuthenticated for most actions, override for specific ones
     permission_classes = [IsAuthenticated]
+    pagination_class = None  # Disable pagination to return data as array
 
     def get_queryset(self):
         user = self.request.user

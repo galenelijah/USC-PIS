@@ -42,6 +42,7 @@ class HealthInformationViewSet(viewsets.ModelViewSet):
     queryset = HealthInformation.objects.all()
     serializer_class = HealthInformationSerializer
     permission_classes = [IsStaffOrReadOnly]
+    pagination_class = None  # Disable pagination to return data as array
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['category']
     search_fields = ['title', 'content']
@@ -268,6 +269,7 @@ class CampaignResourceViewSet(viewsets.ModelViewSet):
     queryset = CampaignResource.objects.all()
     serializer_class = CampaignResourceSerializer
     permission_classes = [IsStaffOrReadOnly]
+    pagination_class = None  # Disable pagination to return data as array
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['resource_type', 'campaign']
     search_fields = ['title', 'description']
@@ -297,6 +299,7 @@ class CampaignFeedbackViewSet(viewsets.ModelViewSet):
     queryset = CampaignFeedback.objects.all()
     serializer_class = CampaignFeedbackSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None  # Disable pagination to return data as array
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['campaign', 'rating']
     ordering_fields = ['created_at', 'rating']

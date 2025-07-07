@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 class PatientViewSet(viewsets.ModelViewSet):
     serializer_class = PatientSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None  # Disable pagination to return data as array
     
     def get_queryset(self):
         user = self.request.user
@@ -285,6 +286,7 @@ class MedicalRecordViewSet(viewsets.ModelViewSet):
     queryset = MedicalRecord.objects.all()
     serializer_class = MedicalRecordSerializer
     permission_classes = [MedicalRecordPermission]
+    pagination_class = None  # Disable pagination to return data as array
 
     def get_queryset(self):
         """Filter records based on user role with enhanced error handling."""
@@ -404,6 +406,7 @@ class DentalRecordViewSet(viewsets.ModelViewSet):
     queryset = DentalRecord.objects.all()
     serializer_class = DentalRecordSerializer
     permission_classes = [MedicalRecordPermission]  # Use same permission as medical records
+    pagination_class = None  # Disable pagination to return data as array
 
     def get_queryset(self):
         """Filter dental records based on user role with enhanced error handling."""
@@ -600,6 +603,7 @@ class ConsultationViewSet(viewsets.ModelViewSet):
     queryset = Consultation.objects.all()
     serializer_class = ConsultationSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None  # Disable pagination to return data as array
 
     def get_queryset(self):
         """Filter consultations based on user role."""
