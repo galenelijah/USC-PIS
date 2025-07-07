@@ -23,6 +23,8 @@ import HealthInfo from './components/HealthInfo/HealthInfo';
 import HealthRecords from './components/HealthRecords';
 import ConsultationHistory from './components/ConsultationHistory';
 import Notifications from './components/Notifications';
+import Campaigns from './components/Campaigns';
+import Reports from './components/Reports';
 import ErrorBoundary from './components/ErrorBoundary';
 import { patientService } from './services/api';
 import FeedbackForm from './components/FeedbackForm';
@@ -216,7 +218,20 @@ const App = () => {
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
                 <Layout onSearch={handleSearch}>
-                  <HealthInfo canEdit={isAdminOrStaff || isDoctor || isNurse} />
+                  <HealthInfo />
+                </Layout>
+              </RequireProfileSetup>
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/campaigns"
+          element={
+            <RequireAuth isAuthenticated={isAuthenticated}>
+              <RequireProfileSetup>
+                <Layout onSearch={handleSearch}>
+                  <Campaigns />
                 </Layout>
               </RequireProfileSetup>
             </RequireAuth>
@@ -447,6 +462,24 @@ const App = () => {
                 <Layout onSearch={handleSearch}>
                   <MedicalRecordsPage />
                 </Layout>
+              </RequireProfileSetup>
+            </RequireAuth>
+          }
+        />
+        
+        {/* Reports */}
+        <Route
+          path="/reports"
+          element={
+            <RequireAuth isAuthenticated={isAuthenticated}>
+              <RequireProfileSetup>
+                {isAdminOrStaff || isDoctor || isNurse ? (
+                  <Layout onSearch={handleSearch}>
+                    <Reports />
+                  </Layout>
+                ) : (
+                  <Navigate to="/home" replace />
+                )}
               </RequireProfileSetup>
             </RequireAuth>
           }

@@ -938,4 +938,173 @@ const dentalRecordService = {
 
 export { dentalRecordService };
 
+// Campaign Services
+export const campaignService = {
+  // Get all campaigns
+  getCampaigns: (params = {}) => {
+    return api.get('/health-info/campaigns/', { params });
+  },
+
+  // Get campaign by ID
+  getCampaign: (id) => {
+    return api.get(`/health-info/campaigns/${id}/`);
+  },
+
+  // Create campaign
+  createCampaign: (data) => {
+    return api.post('/health-info/campaigns/', data, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+
+  // Update campaign
+  updateCampaign: (id, data) => {
+    return api.put(`/health-info/campaigns/${id}/`, data, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+
+  // Delete campaign
+  deleteCampaign: (id) => {
+    return api.delete(`/health-info/campaigns/${id}/`);
+  },
+
+  // Track engagement
+  trackEngagement: (id) => {
+    return api.post(`/health-info/campaigns/${id}/engage/`);
+  },
+
+  // Get campaign resources
+  getCampaignResources: (id) => {
+    return api.get(`/health-info/campaigns/${id}/resources/`);
+  },
+
+  // Upload campaign resource
+  uploadCampaignResource: (id, data) => {
+    return api.post(`/health-info/campaigns/${id}/upload_resource/`, data, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+
+  // Get campaign feedback
+  getCampaignFeedback: (id) => {
+    return api.get(`/health-info/campaigns/${id}/feedback/`);
+  },
+
+  // Submit campaign feedback
+  submitFeedback: (id, data) => {
+    return api.post(`/health-info/campaigns/${id}/feedback/`, data);
+  },
+
+  // Get campaign analytics
+  getAnalytics: () => {
+    return api.get('/health-info/campaigns/analytics/');
+  },
+
+  // Get featured campaigns
+  getFeaturedCampaigns: () => {
+    return api.get('/health-info/campaigns/featured/');
+  }
+};
+
+// Report Services
+export const reportService = {
+  // Get report templates
+  getTemplates: (params = {}) => {
+    return api.get('/reports/templates/', { params });
+  },
+
+  // Get template by ID
+  getTemplate: (id) => {
+    return api.get(`/reports/templates/${id}/`);
+  },
+
+  // Generate report from template
+  generateReport: (templateId, data) => {
+    return api.post(`/reports/templates/${templateId}/generate/`, data);
+  },
+
+  // Get generated reports
+  getReports: (params = {}) => {
+    return api.get('/reports/generated/', { params });
+  },
+
+  // Get report by ID
+  getReport: (id) => {
+    return api.get(`/reports/generated/${id}/`);
+  },
+
+  // Download report
+  downloadReport: (id) => {
+    return api.get(`/reports/generated/${id}/download/`, {
+      responseType: 'blob'
+    });
+  },
+
+  // Get report status
+  getReportStatus: (id) => {
+    return api.get(`/reports/generated/${id}/status/`);
+  },
+
+  // Get report dashboard
+  getDashboard: () => {
+    return api.get('/reports/generated/dashboard/');
+  },
+
+  // Report schedules
+  getSchedules: (params = {}) => {
+    return api.get('/reports/schedules/', { params });
+  },
+
+  // Create schedule
+  createSchedule: (data) => {
+    return api.post('/reports/schedules/', data);
+  },
+
+  // Update schedule
+  updateSchedule: (id, data) => {
+    return api.put(`/reports/schedules/${id}/`, data);
+  },
+
+  // Delete schedule
+  deleteSchedule: (id) => {
+    return api.delete(`/reports/schedules/${id}/`);
+  },
+
+  // Run schedule now
+  runScheduleNow: (id) => {
+    return api.post(`/reports/schedules/${id}/run_now/`);
+  },
+
+  // Report bookmarks
+  getBookmarks: (params = {}) => {
+    return api.get('/reports/bookmarks/', { params });
+  },
+
+  // Create bookmark
+  createBookmark: (data) => {
+    return api.post('/reports/bookmarks/', data);
+  },
+
+  // Update bookmark
+  updateBookmark: (id, data) => {
+    return api.put(`/reports/bookmarks/${id}/`, data);
+  },
+
+  // Delete bookmark
+  deleteBookmark: (id) => {
+    return api.delete(`/reports/bookmarks/${id}/`);
+  },
+
+  // Use bookmark
+  useBookmark: (id) => {
+    return api.post(`/reports/bookmarks/${id}/use/`);
+  },
+
+  // Get report analytics
+  getReportAnalytics: (params = {}) => {
+    return api.get('/reports/analytics/', { params });
+  }
+};
+
 export default api; 

@@ -24,6 +24,8 @@ import {
   Person as PersonIcon,
   MedicalInformation as MedicalInformationIcon,
   Notifications as NotificationsIcon,
+  Campaign as CampaignIcon,
+  Assessment as ReportsIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
@@ -97,8 +99,13 @@ const Sidebar = () => {
 
   const infoItems = [
     { text: 'Health Information', icon: <HealthInfoIcon />, path: '/health-info' },
+    { text: 'Campaigns', icon: <CampaignIcon />, path: '/campaigns' },
     { text: 'Notifications', icon: <NotificationsIcon />, path: '/notifications' },
     { text: 'Feedback', icon: <FeedbackIcon />, path: '/feedback', isFeedback: true },
+  ];
+
+  const reportItems = [
+    { text: 'Reports', icon: <ReportsIcon />, path: '/reports', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'] },
   ];
 
   const fileItems = [
@@ -218,6 +225,9 @@ const Sidebar = () => {
       {renderMenuSection(dashboardItems, "MAIN")}
       {renderMenuSection(patientItems, "PATIENTS")}
       {renderMenuSection(infoItems, "INFORMATION")}
+      <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', my: 1 }} />
+      {renderMenuSection(reportItems, 'ANALYTICS')}
+      <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', my: 1 }} />
       {renderMenuSection(fileItems, "FILES")}
       {isAdminOrStaff && renderMenuSection(adminItems, "ADMINISTRATION")}
       

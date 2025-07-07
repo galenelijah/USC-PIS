@@ -85,6 +85,7 @@ INSTALLED_APPS = [
     'file_uploads', # Add the new app
     'medical_certificates',  # Add this line
     'notifications',  # Add notifications app
+    'reports',  # Add comprehensive reports app
     'utils',  # Add utils app for system monitoring and management commands
 ]
 
