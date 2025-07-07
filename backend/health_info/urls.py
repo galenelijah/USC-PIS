@@ -8,7 +8,7 @@ from .views import (
 )
 
 router = DefaultRouter()
-router.register(r'health-info', HealthInformationViewSet)
+router.register(r'health-information', HealthInformationViewSet)
 router.register(r'campaigns', HealthCampaignViewSet)
 router.register(r'campaign-resources', CampaignResourceViewSet)
 router.register(r'campaign-feedback', CampaignFeedbackViewSet)
