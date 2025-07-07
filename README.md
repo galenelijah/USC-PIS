@@ -1,135 +1,86 @@
 # USC Patient Information System (USC-PIS)
 
-A full-stack web application for managing patient information at the University of San Carlos.
+A comprehensive clinic management system for the University of Southern California designed as an undergraduate thesis project.
 
-> **For detailed project documentation, including technology stack, features, setup, database schema, API endpoints, and more, please see [USC-PIS.md](USC-PIS.md).**
-
----
-
-## Recent Fixes (May 2025)
-- Patient records are now created after profile setup, not at registration.
-- Multi-step profile setup form validates only the current step.
-- After profile setup, users are redirected to the dashboard and Redux state is updated.
-- The frontend fetches patient lists from `/api/patients/patients/` (not `/api/patients/`).
-
----
-
-## Registration & Profile Setup Flow
-- Register as a user (student, staff, etc.)
-- Complete the multi-step profile setup form after registration
-- Patient record is created only after profile setup is complete
-- After setup, you are redirected to the dashboard
-
-## Project Structure
-
-```
-USC-PIS/
-├── src/                    # Source code
-│   ├── backend/           # Django backend
-│   │   ├── authentication/  # User authentication
-│   │   ├── patients/       # Patient management
-│   │   └── api/           # API endpoints
-│   └── frontend/          # React frontend
-│       ├── public/        # Static files
-│       └── src/           # React components
-├── docs/                  # Documentation
-│   ├── api/              # API documentation
-│   ├── setup/            # Setup guides
-│   └── user/             # User guides
-├── tests/                # Test files
-│   ├── backend/         # Backend tests
-│   └── frontend/        # Frontend tests
-├── config/               # Configuration files
-│   ├── nginx/           # Nginx configuration
-│   └── settings/        # Environment settings
-├── scripts/             # Utility scripts
-│   ├── setup.sh        # Setup script
-│   └── deploy.sh       # Deployment script
-├── requirements/        # Python requirements
-│   ├── base.txt       # Base requirements
-│   ├── dev.txt        # Development requirements
-│   └── prod.txt       # Production requirements
-└── manage.py           # Django management script
+## Recent Updates (2024)
+- ✅ Fixed health-info API routing issues
+- ✅ Implemented comprehensive report generation system  
+- ✅ Added campaign management with image uploads
+- ✅ Enhanced dashboard with role-based statistics
 
 ## Features
 
-- User Authentication (Students, Doctors, Nurses, Staff)
-- Patient Records Management
-- Medical Records Management
-- Appointment Scheduling
-- Role-based Access Control
-- Responsive Dashboard
-- Secure Data Storage
+### Patient Management
+- Patient registration and profile management
+- Medical and dental records management
+- Role-based access control (Admin, Staff, Doctor, Nurse, Student)
+
+### Health Information System
+- Health information dissemination
+- Campaign management with visual content
+- Feedback collection and analytics
+
+### Reporting System
+- Patient summary reports
+- Visit trends analysis
+- Treatment outcomes tracking
+- Feedback analysis
+- Multiple export formats (PDF, Excel, CSV, JSON)
+
+### System Monitoring
+- Database health monitoring
+- User activity tracking
+- System performance metrics
 
 ## Technology Stack
+- **Backend**: Django REST Framework
+- **Frontend**: React with Material-UI
+- **Database**: PostgreSQL (Production) / SQLite (Development)
+- **Deployment**: Heroku
+- **Authentication**: Token-based authentication
 
-- Backend: Django + Django REST Framework
-- Frontend: React + Material-UI
-- Database: PostgreSQL (Production) / SQLite (Development)
-- Authentication: Token-based Authentication
-- Deployment: Heroku
+## Installation and Setup
 
-## Setup
+### Local Development
+1. Clone the repository
+2. Set up virtual environment
+3. Install dependencies: `pip install -r requirements.txt`
+4. Run migrations: `python manage.py migrate`
+5. Create superuser: `python manage.py createsuperuser`
+6. Start Django server: `python manage.py runserver`
+7. Start React dev server: `npm run dev`
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/USC-PIS.git
-   cd USC-PIS
-   ```
+### Production Deployment
+- Deployed on Heroku with automatic builds
+- PostgreSQL database
+- Static files served via WhiteNoise
 
-2. Set up the backend:
-   ```bash
-   cd src/backend
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   pip install -r requirements/dev.txt
-   python manage.py migrate
-   python manage.py create_testusers  # Creates test users
-   python manage.py runserver
-   ```
+## API Endpoints
 
-3. Set up the frontend:
-   ```bash
-   cd src/frontend
-   npm install
-   npm run dev
-   ```
+### Authentication
+- `/api/auth/login/` - User login
+- `/api/auth/register/` - User registration
+- `/api/auth/profile/me/` - User profile
 
-4. Access the application:
-   - Frontend: http://localhost:5173
-   - Backend API: http://localhost:8000/api/
+### Patients
+- `/api/patients/patients/` - Patient management
+- `/api/patients/medical-records/` - Medical records
+- `/api/patients/dental-records/` - Dental records
+- `/api/patients/dashboard-stats/` - Dashboard statistics
 
-## Test Users
+### Health Information
+- `/api/health-info/health-information/` - Health information management
+- `/api/health-info/campaigns/` - Campaign management
 
-1. Doctor:
-   - Email: doctor@test.com
-   - Password: testpass123
+### Reports
+- `/api/reports/templates/` - Report templates
+- `/api/reports/generated/` - Generated reports
 
-2. Nurse:
-   - Email: nurse@test.com
-   - Password: testpass123
-
-## Development
-
-1. Follow the coding standards in `docs/development/standards.md`
-2. Write tests for new features
-3. Update documentation as needed
-
-## Deployment
-
-1. Set up environment variables (see `config/settings/.env.example`)
-2. Run deployment script: `./scripts/deploy.sh`
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
+## User Roles
+- **Admin**: Full system access
+- **Staff**: Administrative functions
+- **Doctor/Nurse**: Medical record management
+- **Student**: Limited access to own records
 
 ## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For support, please contact the development team or create an issue in the repository.
+This project is developed as part of an undergraduate thesis at USC.
