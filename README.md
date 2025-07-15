@@ -1,4 +1,4 @@
-# USC Patient Information System (USC-PIS)
+# USC Patient Information System (USC-PIS) (July 15, 2025)
 
 A comprehensive clinic management system for the University of Southern California designed as an undergraduate thesis project.
 
