@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from patients.models import Patient
 
 User = get_user_model()
@@ -54,3 +56,51 @@ class MedicalCertificate(models.Model):
 
     def __str__(self):
         return f"Certificate for {self.patient} - {self.get_status_display()}"
+
+
+@receiver(post_save, sender=MedicalCertificate)
+def medical_certificate_notification(sender, instance, created, **kwargs):
+    """
+    Send notifications when medical certificate status changes
+    """
+    from notifications.models import Notification
+    
+    if created:
+        # Notify patient when certificate is created
+        if instance.patient.user:
+            Notification.objects.create(
+                user=instance.patient.user,
+                title="Medical Certificate Created",
+                message=f"A new medical certificate has been created for you by {instance.issued_by.get_full_name()}.",
+                notification_type="certificate_created"
+            )
+    else:
+        # Check if status changed
+        if instance.status == 'approved' and instance.approved_by:
+            # Notify patient when certificate is approved
+            if instance.patient.user:
+                Notification.objects.create(
+                    user=instance.patient.user,
+                    title="Medical Certificate Approved",
+                    message=f"Your medical certificate has been approved by {instance.approved_by.get_full_name()}. You can now download it.",
+                    notification_type="certificate_approved"
+                )
+        elif instance.status == 'rejected' and instance.approved_by:
+            # Notify patient when certificate is rejected
+            if instance.patient.user:
+                Notification.objects.create(
+                    user=instance.patient.user,
+                    title="Medical Certificate Rejected",
+                    message=f"Your medical certificate has been rejected by {instance.approved_by.get_full_name()}. Please contact the clinic for more information.",
+                    notification_type="certificate_rejected"
+                )
+        elif instance.status == 'pending':
+            # Notify doctors when certificate is submitted for approval
+            doctors = User.objects.filter(role__in=['DOCTOR', 'ADMIN'])
+            for doctor in doctors:
+                Notification.objects.create(
+                    user=doctor,
+                    title="Medical Certificate Pending Approval",
+                    message=f"A medical certificate for {instance.patient.get_full_name()} is pending your approval.",
+                    notification_type="certificate_pending"
+                )
