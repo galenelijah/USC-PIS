@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -13,7 +13,32 @@ import {
 } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 
-const PatientList = ({ patients, onEdit, onDelete }) => {
+const PatientRow = memo(({ patient, onEdit, onDelete }) => (
+  <TableRow key={patient.id}>
+    <TableCell>{`${patient.first_name} ${patient.last_name}`}</TableCell>
+    <TableCell>{patient.date_of_birth}</TableCell>
+    <TableCell>{patient.gender}</TableCell>
+    <TableCell>{patient.email}</TableCell>
+    <TableCell>{patient.phone_number}</TableCell>
+    <TableCell>
+      <IconButton onClick={() => onEdit(patient)}>
+        <EditIcon />
+      </IconButton>
+      <IconButton onClick={() => onDelete(patient.id)}>
+        <DeleteIcon />
+      </IconButton>
+    </TableCell>
+  </TableRow>
+));
+
+PatientRow.displayName = 'PatientRow';
+
+const PatientList = memo(({ patients, onEdit, onDelete }) => {
+  const sortedPatients = useMemo(() => {
+    return [...(patients || [])].sort((a, b) => 
+      new Date(b.created_at) - new Date(a.created_at)
+    );
+  }, [patients]);
   return (
     <Box>
       <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
@@ -34,28 +59,21 @@ const PatientList = ({ patients, onEdit, onDelete }) => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {patients?.map((patient) => (
-              <TableRow key={patient.id}>
-                <TableCell>{`${patient.first_name} ${patient.last_name}`}</TableCell>
-                <TableCell>{patient.date_of_birth}</TableCell>
-                <TableCell>{patient.gender}</TableCell>
-                <TableCell>{patient.email}</TableCell>
-                <TableCell>{patient.phone_number}</TableCell>
-                <TableCell>
-                  <IconButton onClick={() => onEdit(patient)}>
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton onClick={() => onDelete(patient.id)}>
-                    <DeleteIcon />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
+            {sortedPatients.map((patient) => (
+              <PatientRow 
+                key={patient.id} 
+                patient={patient} 
+                onEdit={onEdit} 
+                onDelete={onDelete} 
+              />
             ))}
           </TableBody>
         </Table>
       </TableContainer>
     </Box>
   );
-};
+});
+
+PatientList.displayName = 'PatientList';
 
 export default PatientList; 

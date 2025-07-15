@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo, useCallback } from 'react';
 import {
   Box,
   Grid,
@@ -43,7 +43,7 @@ import LoadingState from './utils/LoadingState';
 import ErrorState from './utils/ErrorState';
 import PageHeader from './utils/PageHeader';
 
-const Dashboard = ({ user }) => {
+const Dashboard = memo(({ user }) => {
   const dispatch = useDispatch();
   const [stats, setStats] = useState({
     totalPatients: 0,
@@ -65,7 +65,7 @@ const Dashboard = ({ user }) => {
   const isNurse = user && user.role === 'NURSE';
   const isStudent = user && user.role === 'STUDENT';
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -102,7 +102,7 @@ const Dashboard = ({ user }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.role, dispatch]);
 
   useEffect(() => {
     if (user && user.role) {
@@ -119,7 +119,7 @@ const Dashboard = ({ user }) => {
     localStorage.setItem('hasVisitedDashboard', 'true');
   }, []);
 
-  const StatCard = ({ title, value, icon, color, subtitle = null }) => (
+  const StatCard = memo(({ title, value, icon, color, subtitle = null }) => (
     <Card 
       sx={{ 
         height: '100%', 
@@ -153,9 +153,9 @@ const Dashboard = ({ user }) => {
         </Box>
       </CardContent>
     </Card>
-  );
+  ));
 
-  const QuickAction = ({ title, description, icon, to, color = "primary" }) => (
+  const QuickAction = memo(({ title, description, icon, to, color = "primary" }) => (
     <Paper
       elevation={2}
       sx={{
@@ -193,7 +193,7 @@ const Dashboard = ({ user }) => {
         Access
       </Button>
     </Paper>
-  );
+  ));
 
   const renderRoleBasedActions = () => {
     switch (user?.role) {
@@ -655,6 +655,8 @@ const Dashboard = ({ user }) => {
       {isAdminOrStaff ? renderAdminDashboard() : renderStudentDashboard()}
     </>
   );
-};
+});
+
+Dashboard.displayName = 'Dashboard';
 
 export default Dashboard; 

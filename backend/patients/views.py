@@ -29,29 +29,32 @@ class PatientViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         
-        # Base queryset with prefetch
-        queryset = Patient.objects.prefetch_related('medical_records', 'dental_records')
+        # Base queryset with optimized prefetch and select_related
+        queryset = Patient.objects.select_related('user', 'created_by').prefetch_related(
+            'medical_records__created_by',
+            'dental_records__created_by',
+            'consultations__created_by'
+        )
 
         # Filter based on user role
         if user.role == User.Role.STUDENT:
             # Students see only their own linked patient record
             queryset = queryset.filter(user=user)
         elif user.role in [User.Role.DOCTOR, User.Role.NURSE, User.Role.STAFF, User.Role.ADMIN]:
-            # Staff/Admin/Doctor/Nurse can see all patients (or apply other filters)
-            # Add select_related if user info is often needed in list display for staff
-            queryset = queryset.select_related('user').all()
+            # Staff/Admin/Doctor/Nurse can see all patients
+            pass
         else:
             # If user role is undefined or unexpected, return empty queryset
             queryset = Patient.objects.none()
 
         # Apply search filter if provided
         search = self.request.query_params.get('search', None)
-        if search and queryset.exists(): # Only apply search if queryset is not empty
+        if search and queryset.exists():
             queryset = queryset.filter(
                 Q(first_name__icontains=search) |
                 Q(last_name__icontains=search) |
                 Q(email__icontains=search) |
-                Q(user__email__icontains=search) # Also search by linked user email if needed
+                Q(user__email__icontains=search)
             )
             
         return queryset
@@ -638,24 +641,33 @@ class ConsultationViewSet(viewsets.ModelViewSet):
 def dashboard_stats(request):
     try:
         user = request.user
+        
+        # Optimized queries with select_related and prefetch_related
         total_patients = Patient.objects.count()
         total_records = MedicalRecord.objects.count()
         total_dental_records = DentalRecord.objects.count()
-        recent_patients = Patient.objects.prefetch_related('medical_records', 'dental_records').order_by('-created_at')[:5]
+        
+        # Optimized recent patients query with related data
+        recent_patients = Patient.objects.select_related('user', 'created_by').prefetch_related(
+            'medical_records__created_by',
+            'dental_records__created_by'
+        ).order_by('-created_at')[:5]
+        
+        # Optimized monthly visits aggregation
         visits_by_month = MedicalRecord.objects.annotate(
             month=TruncMonth('visit_date')
         ).values('month').annotate(
             count=Count('id')
         ).order_by('month')
 
-        # Add dental visits to monthly stats
+        # Optimized dental visits aggregation
         dental_visits_by_month = DentalRecord.objects.annotate(
             month=TruncMonth('visit_date')
         ).values('month').annotate(
             count=Count('id')
         ).order_by('month')
 
-        # Real logic for appointments_today and pending_requests
+        # Optimized today's appointments and pending requests
         today = timezone.now().date()
         appointments_today = Consultation.objects.filter(date_time__date=today).count()
         pending_requests = Consultation.objects.filter(remarks__icontains='pending').count()
@@ -674,20 +686,76 @@ def dashboard_stats(request):
                 'pending_requests': pending_requests,
             })
         elif user.role == User.Role.STUDENT:
-            # Student/Patient dashboard
+            # Student/Patient dashboard - optimized for single patient
             patient = getattr(user, 'patient_profile', None)
-            next_appointment = '2024-07-01 10:00'  # Placeholder
-            recent_health_info = 'COVID-19 Vaccination Drive'  # Placeholder
-            profile_completion = 80  # Placeholder percent
-            return Response({
-                'next_appointment': next_appointment,
-                'recent_health_info': recent_health_info,
-                'profile_completion': profile_completion,
-            })
+            if patient:
+                # Get patient's next appointment and recent records
+                next_consultation = Consultation.objects.filter(
+                    patient=patient,
+                    date_time__gt=timezone.now()
+                ).order_by('date_time').first()
+                
+                recent_medical_record = MedicalRecord.objects.filter(
+                    patient=patient
+                ).order_by('-visit_date').first()
+                
+                recent_dental_record = DentalRecord.objects.filter(
+                    patient=patient
+                ).order_by('-visit_date').first()
+                
+                next_appointment = next_consultation.date_time if next_consultation else None
+                profile_completion = calculate_profile_completion(user, patient)
+                
+                return Response({
+                    'next_appointment': next_appointment,
+                    'recent_medical_record': recent_medical_record.diagnosis if recent_medical_record else None,
+                    'recent_dental_record': recent_dental_record.diagnosis if recent_dental_record else None,
+                    'profile_completion': profile_completion,
+                    'patient_id': patient.id,
+                })
+            else:
+                return Response({
+                    'next_appointment': None,
+                    'recent_medical_record': None,
+                    'recent_dental_record': None,
+                    'profile_completion': 0,
+                    'patient_id': None,
+                })
         else:
             return Response({'error': 'Unknown user role'}, status=400)
     except Exception as e:
+        logger.error(f"Dashboard stats error: {str(e)}")
         return Response(
             {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+def calculate_profile_completion(user, patient):
+    """Calculate profile completion percentage for a user and patient."""
+    total_fields = 0
+    completed_fields = 0
+    
+    # User fields to check
+    user_fields = [
+        'first_name', 'last_name', 'email', 'phone', 'birthday',
+        'address_present', 'emergency_contact', 'emergency_contact_number'
+    ]
+    
+    for field in user_fields:
+        total_fields += 1
+        if getattr(user, field, None):
+            completed_fields += 1
+    
+    # Patient fields to check
+    patient_fields = [
+        'first_name', 'last_name', 'email', 'phone_number', 'date_of_birth',
+        'gender', 'address'
+    ]
+    
+    for field in patient_fields:
+        total_fields += 1
+        if getattr(patient, field, None):
+            completed_fields += 1
+    
+    return int((completed_fields / total_fields) * 100) if total_fields > 0 else 0
