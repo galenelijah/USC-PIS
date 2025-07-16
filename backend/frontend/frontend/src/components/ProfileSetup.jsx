@@ -46,7 +46,7 @@ import { useNavigate } from 'react-router-dom';
 import MyTextField from './forms/MyTextField';
 import MyDatePicker from './forms/MyDatePicker';
 import MySelector from './forms/MySelector';
-import { CivilStatusChoices, SexChoices, ProgramsChoices } from './static/choices';
+import { CivilStatusChoices, SexChoices, ProgramsChoices } from './static/choices.jsx';
 import dayjs from 'dayjs';
 import StepConnector, { stepConnectorClasses } from '@mui/material/StepConnector';
 import { styled } from '@mui/material/styles';
@@ -602,7 +602,7 @@ const ProfileSetup = () => {
                       Childhood Diseases (Check all that apply)
                     </Typography>
                     <Grid container spacing={1}>
-                      {childhoodDiseasesOptions.map((disease) => (
+                      {(childhoodDiseasesOptions || []).map((disease) => (
                         <Grid item xs={12} sm={6} key={disease}>
                           <FormControlLabel
                             control={
@@ -625,7 +625,7 @@ const ProfileSetup = () => {
                       Special Needs (Check all that apply)
                     </Typography>
                     <Grid container spacing={1}>
-                      {specialNeedsOptions.map((need) => (
+                      {(specialNeedsOptions || []).map((need) => (
                         <Grid item xs={12} sm={6} key={need}>
                           <FormControlLabel
                             control={
@@ -648,7 +648,7 @@ const ProfileSetup = () => {
                       Current Illnesses (Check all that apply)
                     </Typography>
                     <Grid container spacing={1}>
-                      {illnessesOptions.map((illness) => (
+                      {(illnessesOptions || []).map((illness) => (
                         <Grid item xs={12} sm={6} key={illness}>
                           <FormControlLabel
                             control={
@@ -678,9 +678,9 @@ const ProfileSetup = () => {
 
                   {/* Dynamic Lists */}
                   {[
-                    { title: 'Existing Medical Conditions', state: existingMedicalConditions, setter: setExistingMedicalConditions },
-                    { title: 'Current Medications', state: medications, setter: setMedications },
-                    { title: 'Known Allergies', state: allergies, setter: setAllergies }
+                    { title: 'Existing Medical Conditions', state: existingMedicalConditions || [], setter: setExistingMedicalConditions },
+                    { title: 'Current Medications', state: medications || [], setter: setMedications },
+                    { title: 'Known Allergies', state: allergies || [], setter: setAllergies }
                   ].map(({ title, state, setter }) => (
                     <Box key={title} sx={{ mb: 3 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -694,7 +694,7 @@ const ProfileSetup = () => {
                           Add
                         </Button>
                       </Box>
-                      {state.map((item, index) => (
+                      {(state || []).map((item, index) => (
                         <Box key={index} sx={{ display: 'flex', gap: 1, mb: 1 }}>
                           <TextField
                             fullWidth
@@ -763,15 +763,15 @@ const ProfileSetup = () => {
             <Box sx={{ mt: 3, px: 4 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography variant="body2">
-                  Step {activeStep + 1} of {steps.length}
+                  Step {activeStep + 1} of {(steps || []).length || 4}
                 </Typography>
                 <Typography variant="body2">
-                  {Math.round(((activeStep + 1) / steps.length) * 100)}% Complete
+                  {Math.round(((activeStep + 1) / ((steps || []).length || 4)) * 100)}% Complete
                 </Typography>
               </Box>
               <LinearProgress
                 variant="determinate"
-                value={((activeStep + 1) / steps.length) * 100}
+                value={((activeStep + 1) / ((steps || []).length || 4)) * 100}
                 sx={{
                   height: 8,
                   borderRadius: 4,
@@ -792,8 +792,8 @@ const ProfileSetup = () => {
               connector={<ModernStepConnector />}
               alternativeLabel
             >
-              {steps.map((step, index) => (
-                <Step key={step.label}>
+              {(steps || []).map((step, index) => (
+                <Step key={step?.label || index}>
                   <StepLabel
                     StepIconComponent={ModernStepIcon}
                     sx={{
@@ -803,7 +803,7 @@ const ProfileSetup = () => {
                       }
                     }}
                   >
-                    {step.label}
+                    {step?.label || `Step ${index + 1}`}
                   </StepLabel>
                 </Step>
               ))}
@@ -838,7 +838,7 @@ const ProfileSetup = () => {
                   Back
                 </Button>
                 
-                {activeStep === steps.length - 1 ? (
+                {activeStep === ((steps || []).length - 1) ? (
                   <Button
                     type="submit"
                     variant="contained"
