@@ -1,4 +1,30 @@
-import {Box, FormControl, InputLabel, MenuItem, Select, Typography, Alert, CircularProgress} from '@mui/material'
+import {
+  Box,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  Typography,
+  Alert,
+  CircularProgress,
+  Container,
+  Paper,
+  Grid,
+  Card,
+  CardContent,
+  Divider,
+  Button,
+  Stack,
+  alpha
+} from '@mui/material'
+import {
+  PersonAdd,
+  Email,
+  Lock,
+  Badge,
+  CheckCircle,
+  ArrowBack
+} from '@mui/icons-material'
 import MyTextField from './forms/MyTextField'
 import MyPassField from './forms/MyPassField'
 import MyButton from './forms/MyButton'
@@ -77,114 +103,285 @@ const Register = () =>{
         }
     }
 
-    return(
-        <div className="myBackground">
-            <form onSubmit={handleSubmit(onSubmit)}>
-                <Box className="registerBox">
-                    <Box className="itemBox">
-                       <Typography variant="h5" className="title">Register</Typography>
-                    </Box>
-                    <Box className="itemBox">
-                        <MyTextField
-                            label="Email"
-                            name="email"
-                            control={control}
-                            required
-                            error={!!errors?.email}
-                            helperText={errors?.email?.message}
-                            rules={{
-                                required: 'Email is required',
-                                pattern: {
-                                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                    message: 'Invalid email address'
-                                }
-                            }}
-                        />
-                    </Box>
-                    <Box className="itemBox">
-                        <MyPassField
-                            label="Password"
-                            name="password"
-                            control={control}
-                            required
-                            error={!!errors?.password}
-                            helperText={errors?.password?.message}
-                            rules={{
-                                required: 'Password is required',
-                                minLength: {
-                                    value: 8,
-                                    message: 'Password must be at least 8 characters'
-                                }
-                            }}
-                        />
-                    </Box>
-                    <Box className="itemBox">
-                        <MyPassField
-                            label="Confirm Password"
-                            name="password2"
-                            control={control}
-                            required
-                            error={!!errors?.password2}
-                            helperText={errors?.password2?.message}
-                            rules={{
-                                required: 'Please confirm your password',
-                                validate: value => value === password || 'Passwords do not match'
-                            }}
-                        />
-                    </Box>
-                    <Box className="itemBox">
-                        <Controller
-                            name="role"
-                            control={control}
-                            defaultValue="STUDENT"
-                            render={({ field }) => (
-                                <FormControl fullWidth>
-                                    <InputLabel>Role</InputLabel>
-                                    <Select {...field} label="Role">
-                                        <MenuItem value="STUDENT">Student</MenuItem>
-                                        <MenuItem value="DOCTOR">Doctor</MenuItem>
-                                        <MenuItem value="NURSE">Nurse</MenuItem>
-                                        <MenuItem value="STAFF">Staff</MenuItem>
-                                    </Select>
-                                </FormControl>
-                            )}
-                        />
-                    </Box>
-                    {serverError && (
-                        <Alert severity="error" sx={{ mt: 2, mb: 1 }}>
-                            {serverError}
-                        </Alert>
-                    )}
-                    {successMessage && (
-                        <Alert severity="success" sx={{ mt: 2, mb: 1 }}>
-                            {successMessage}
-                        </Alert>
-                    )}
-                    <Box className="itemBox">
-                        <MyButton
-                            label={authStatus === 'loading' ? '' : 'Register'}
-                            type="submit"
-                            disabled={authStatus === 'loading'}
-                            startIcon={authStatus === 'loading' ? 
-                                <CircularProgress size={20} color="inherit" /> : null
-                            }
-                        />
-                        {authStatus === 'loading' && (
-                            <Typography 
-                                variant="body2" 
-                                color="text.secondary" 
-                                sx={{ mt: 1, textAlign: 'center' }}
-                            >
-                                Creating your account...
+    return (
+        <Box
+            sx={{
+                minHeight: '100vh',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                py: 4
+            }}
+        >
+            <Container maxWidth="md">
+                <Grid container spacing={4} alignItems="center">
+                    {/* Left side - Welcome content */}
+                    <Grid item xs={12} md={6}>
+                        <Box sx={{ color: 'white', pr: { md: 4 } }}>
+                            <Typography variant="h3" fontWeight="bold" gutterBottom>
+                                Join USC-PIS
                             </Typography>
-                        )}
-                    </Box>
-                    <Box className="itemBox">
-                        <Link to="/">Already have an account?</Link>
-                    </Box>
-                </Box>
-            </form>
-        </div>
+                            <Typography variant="h6" sx={{ mb: 4, opacity: 0.9 }}>
+                                University of Southern California Patient Information System
+                            </Typography>
+                            
+                            <Stack spacing={3}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                    <CheckCircle sx={{ color: 'white' }} />
+                                    <Typography variant="body1">
+                                        Secure medical record management
+                                    </Typography>
+                                </Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                    <CheckCircle sx={{ color: 'white' }} />
+                                    <Typography variant="body1">
+                                        Digital health campaigns and information
+                                    </Typography>
+                                </Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                    <CheckCircle sx={{ color: 'white' }} />
+                                    <Typography variant="body1">
+                                        Easy medical certificate requests
+                                    </Typography>
+                                </Box>
+                            </Stack>
+                        </Box>
+                    </Grid>
+
+                    {/* Right side - Registration form */}
+                    <Grid item xs={12} md={6}>
+                        <Paper
+                            elevation={24}
+                            sx={{
+                                p: 4,
+                                borderRadius: 3,
+                                background: 'rgba(255, 255, 255, 0.95)',
+                                backdropFilter: 'blur(20px)',
+                                border: '1px solid rgba(255, 255, 255, 0.2)'
+                            }}
+                        >
+                            <form onSubmit={handleSubmit(onSubmit)}>
+                                {/* Header */}
+                                <Box sx={{ textAlign: 'center', mb: 4 }}>
+                                    <PersonAdd 
+                                        sx={{ 
+                                            fontSize: 48, 
+                                            color: 'primary.main',
+                                            mb: 2
+                                        }} 
+                                    />
+                                    <Typography 
+                                        variant="h4" 
+                                        fontWeight="bold" 
+                                        color="primary.main"
+                                        gutterBottom
+                                    >
+                                        Create Account
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        Enter your details to get started
+                                    </Typography>
+                                </Box>
+
+                                {/* Form fields */}
+                                <Stack spacing={3}>
+                                    <Box>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                            <Email fontSize="small" color="primary" />
+                                            <Typography variant="body2" fontWeight="medium">
+                                                Email Address
+                                            </Typography>
+                                        </Box>
+                                        <MyTextField
+                                            name="email"
+                                            control={control}
+                                            required
+                                            placeholder="Enter your USC email"
+                                            error={!!errors?.email}
+                                            helperText={errors?.email?.message}
+                                            rules={{
+                                                required: 'Email is required',
+                                                pattern: {
+                                                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                                    message: 'Invalid email address'
+                                                }
+                                            }}
+                                        />
+                                    </Box>
+
+                                    <Box>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                            <Lock fontSize="small" color="primary" />
+                                            <Typography variant="body2" fontWeight="medium">
+                                                Password
+                                            </Typography>
+                                        </Box>
+                                        <MyPassField
+                                            name="password"
+                                            control={control}
+                                            required
+                                            placeholder="Create a strong password"
+                                            error={!!errors?.password}
+                                            helperText={errors?.password?.message}
+                                            rules={{
+                                                required: 'Password is required',
+                                                minLength: {
+                                                    value: 8,
+                                                    message: 'Password must be at least 8 characters'
+                                                }
+                                            }}
+                                        />
+                                    </Box>
+
+                                    <Box>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                            <Lock fontSize="small" color="primary" />
+                                            <Typography variant="body2" fontWeight="medium">
+                                                Confirm Password
+                                            </Typography>
+                                        </Box>
+                                        <MyPassField
+                                            name="password2"
+                                            control={control}
+                                            required
+                                            placeholder="Confirm your password"
+                                            error={!!errors?.password2}
+                                            helperText={errors?.password2?.message}
+                                            rules={{
+                                                required: 'Please confirm your password',
+                                                validate: value => value === password || 'Passwords do not match'
+                                            }}
+                                        />
+                                    </Box>
+
+                                    <Box>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                            <Badge fontSize="small" color="primary" />
+                                            <Typography variant="body2" fontWeight="medium">
+                                                Role
+                                            </Typography>
+                                        </Box>
+                                        <Controller
+                                            name="role"
+                                            control={control}
+                                            defaultValue="STUDENT"
+                                            render={({ field }) => (
+                                                <FormControl fullWidth>
+                                                    <Select 
+                                                        {...field} 
+                                                        displayEmpty
+                                                        sx={{
+                                                            borderRadius: 2,
+                                                            '& .MuiOutlinedInput-notchedOutline': {
+                                                                borderColor: alpha('#667eea', 0.3)
+                                                            },
+                                                            '&:hover .MuiOutlinedInput-notchedOutline': {
+                                                                borderColor: 'primary.main'
+                                                            }
+                                                        }}
+                                                    >
+                                                        <MenuItem value="STUDENT">Student</MenuItem>
+                                                        <MenuItem value="DOCTOR">Doctor</MenuItem>
+                                                        <MenuItem value="NURSE">Nurse</MenuItem>
+                                                        <MenuItem value="STAFF">Staff</MenuItem>
+                                                    </Select>
+                                                </FormControl>
+                                            )}
+                                        />
+                                    </Box>
+
+                                    {/* Error and success messages */}
+                                    {serverError && (
+                                        <Alert 
+                                            severity="error" 
+                                            sx={{ 
+                                                borderRadius: 2,
+                                                '& .MuiAlert-icon': {
+                                                    alignItems: 'center'
+                                                }
+                                            }}
+                                        >
+                                            {serverError}
+                                        </Alert>
+                                    )}
+                                    
+                                    {successMessage && (
+                                        <Alert 
+                                            severity="success" 
+                                            sx={{ 
+                                                borderRadius: 2,
+                                                '& .MuiAlert-icon': {
+                                                    alignItems: 'center'
+                                                }
+                                            }}
+                                        >
+                                            {successMessage}
+                                        </Alert>
+                                    )}
+
+                                    {/* Submit button */}
+                                    <Button
+                                        type="submit"
+                                        variant="contained"
+                                        size="large"
+                                        disabled={authStatus === 'loading'}
+                                        startIcon={
+                                            authStatus === 'loading' ? 
+                                                <CircularProgress size={20} color="inherit" /> : 
+                                                <PersonAdd />
+                                        }
+                                        sx={{
+                                            py: 1.5,
+                                            borderRadius: 2,
+                                            background: 'linear-gradient(45deg, #667eea 30%, #764ba2 90%)',
+                                            boxShadow: '0 4px 20px rgba(102, 126, 234, 0.4)',
+                                            '&:hover': {
+                                                background: 'linear-gradient(45deg, #5a6fd8 30%, #6a4190 90%)',
+                                                transform: 'translateY(-2px)',
+                                                boxShadow: '0 6px 25px rgba(102, 126, 234, 0.5)'
+                                            },
+                                            '&:disabled': {
+                                                background: 'rgba(0, 0, 0, 0.12)'
+                                            },
+                                            transition: 'all 0.3s ease'
+                                        }}
+                                    >
+                                        {authStatus === 'loading' ? 'Creating Account...' : 'Create Account'}
+                                    </Button>
+
+                                    {/* Divider */}
+                                    <Divider sx={{ my: 2 }}>
+                                        <Typography variant="body2" color="text.secondary">
+                                            Already have an account?
+                                        </Typography>
+                                    </Divider>
+
+                                    {/* Login link */}
+                                    <Button
+                                        component={Link}
+                                        to="/"
+                                        variant="outlined"
+                                        startIcon={<ArrowBack />}
+                                        sx={{
+                                            py: 1.5,
+                                            borderRadius: 2,
+                                            borderColor: alpha('#667eea', 0.5),
+                                            color: '#667eea',
+                                            '&:hover': {
+                                                borderColor: '#667eea',
+                                                backgroundColor: alpha('#667eea', 0.1)
+                                            }
+                                        }}
+                                    >
+                                        Sign In Instead
+                                    </Button>
+                                </Stack>
+                            </form>
+                        </Paper>
+                    </Grid>
+                </Grid>
+            </Container>
+        </Box>
     )
 }
 
