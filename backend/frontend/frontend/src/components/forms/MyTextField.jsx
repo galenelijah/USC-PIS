@@ -18,20 +18,24 @@ const MyTextField = ({
       name={name}
       control={control}
       defaultValue=""
-      render={({ field, fieldState: { error: fieldError } }) => (
-        <TextField
-          {...field}
-          label={label}
-          required={required}
-          error={!!error || !!fieldError}
-          helperText={error?.message || fieldError?.message}
-          fullWidth
-          type={type}
-          multiline={multiline}
-          rows={rows}
-          {...props}
-        />
-      )}
+      render={({ field, fieldState: { error: fieldError } }) => {
+        // Debug logging
+        console.log(`Field ${name}:`, field.value);
+        return (
+          <TextField
+            {...field}
+            label={label}
+            required={required}
+            error={!!error || !!fieldError}
+            helperText={error?.message || fieldError?.message}
+            fullWidth
+            type={type}
+            multiline={multiline}
+            rows={rows}
+            {...props}
+          />
+        );
+      }}
     />
   );
 };
