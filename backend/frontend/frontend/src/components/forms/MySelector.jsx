@@ -28,7 +28,7 @@ const MySelector = ({
             label={label}
             {...props}
           >
-            {options.map((option) => (
+            {(options || []).map((option) => (
               <MenuItem key={option.id} value={option.id}>
                 {option.label}
               </MenuItem>

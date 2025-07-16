@@ -83,7 +83,7 @@ export const SexChoices = [
   { id: 3, label: 'Other' },
 ];
 
-const YearLevelChoices = [
+export const YearLevelChoices = [
   { id: 1, label: '1st Year' },
   { id: 2, label: '2nd Year' },
   { id: 3, label: '3rd Year' },

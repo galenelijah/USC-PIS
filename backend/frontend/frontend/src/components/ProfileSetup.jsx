@@ -47,6 +47,11 @@ import MyTextField from './forms/MyTextField';
 import MyDatePicker from './forms/MyDatePicker';
 import MySelector from './forms/MySelector';
 import { CivilStatusChoices, SexChoices, ProgramsChoices } from './static/choices.jsx';
+
+// Defensive fallbacks for imported arrays
+const safeCivilStatusChoices = CivilStatusChoices || [];
+const safeSexChoices = SexChoices || [];
+const safeProgramsChoices = ProgramsChoices || [];
 import dayjs from 'dayjs';
 import StepConnector, { stepConnectorClasses } from '@mui/material/StepConnector';
 import { styled } from '@mui/material/styles';
@@ -287,7 +292,7 @@ const ProfileSetup = () => {
   };
 
   const renderStepContent = (step) => {
-    const StepIcon = steps[step].icon;
+    const StepIcon = steps[step]?.icon;
     
     switch (step) {
       case 0:
@@ -337,7 +342,7 @@ const ProfileSetup = () => {
                       label="Sex"
                       name="sex"
                       control={control}
-                      choices={SexChoices}
+                      options={safeSexChoices}
                       required
                       error={!!errors?.sex}
                       helperText={errors?.sex?.message}
@@ -348,7 +353,7 @@ const ProfileSetup = () => {
                       label="Civil Status"
                       name="civil_status"
                       control={control}
-                      choices={CivilStatusChoices}
+                      options={safeCivilStatusChoices}
                       required
                       error={!!errors?.civil_status}
                       helperText={errors?.civil_status?.message}
@@ -480,7 +485,7 @@ const ProfileSetup = () => {
                       label="Course"
                       name="course"
                       control={control}
-                      choices={ProgramsChoices}
+                      options={safeProgramsChoices}
                       required
                       error={!!errors?.course}
                       helperText={errors?.course?.message}
