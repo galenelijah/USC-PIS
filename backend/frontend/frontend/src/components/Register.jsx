@@ -1,4 +1,4 @@
-import {Box, FormControl, InputLabel, MenuItem, Select, Typography, Alert} from '@mui/material'
+import {Box, FormControl, InputLabel, MenuItem, Select, Typography, Alert, CircularProgress} from '@mui/material'
 import MyTextField from './forms/MyTextField'
 import MyPassField from './forms/MyPassField'
 import MyButton from './forms/MyButton'
@@ -150,14 +150,35 @@ const Register = () =>{
                             )}
                         />
                     </Box>
-                    {serverError && <Alert severity="error" sx={{ mt: 2 }}>{serverError}</Alert>}
-                    {successMessage && <Alert severity="success" sx={{ mt: 2 }}>{successMessage}</Alert>}
-                    <MyButton
-                        label="Register"
-                        type="submit"
-                        disabled={authStatus === 'loading'}
-                    />
-                    {authStatus === 'loading' && <Typography sx={{mt: 1}}>Registering...</Typography>}
+                    {serverError && (
+                        <Alert severity="error" sx={{ mt: 2, mb: 1 }}>
+                            {serverError}
+                        </Alert>
+                    )}
+                    {successMessage && (
+                        <Alert severity="success" sx={{ mt: 2, mb: 1 }}>
+                            {successMessage}
+                        </Alert>
+                    )}
+                    <Box className="itemBox">
+                        <MyButton
+                            label={authStatus === 'loading' ? '' : 'Register'}
+                            type="submit"
+                            disabled={authStatus === 'loading'}
+                            startIcon={authStatus === 'loading' ? 
+                                <CircularProgress size={20} color="inherit" /> : null
+                            }
+                        />
+                        {authStatus === 'loading' && (
+                            <Typography 
+                                variant="body2" 
+                                color="text.secondary" 
+                                sx={{ mt: 1, textAlign: 'center' }}
+                            >
+                                Creating your account...
+                            </Typography>
+                        )}
+                    </Box>
                     <Box className="itemBox">
                         <Link to="/">Already have an account?</Link>
                     </Box>

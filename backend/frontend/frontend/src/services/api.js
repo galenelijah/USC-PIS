@@ -23,16 +23,12 @@ export const api = axios.create({
   withCredentials: true
 });
 
-// Add request interceptor for debugging
+// Add request interceptor for authentication
 api.interceptors.request.use(request => {
-  console.log('Starting Request:', request);
   // Use consistent token name - 'Token' instead of 'token'
   const token = getToken();
   if (token) {
     request.headers.Authorization = `Token ${token}`;
-    console.log('Using token:', token);
-  } else {
-    console.log('No token found in localStorage');
   }
   return request;
 }, error => {
@@ -40,21 +36,17 @@ api.interceptors.request.use(request => {
   return Promise.reject(error);
 });
 
-// Add response interceptor for debugging and handling HTML responses
+// Add response interceptor for handling HTML responses and authentication
 api.interceptors.response.use(
   response => {
-    console.log('Response:', response);
-    
     // Check if response contains a token and save it
     if (response.data && response.data.token) {
       saveToken(response.data.token);
-      console.log('Saved new token from response');
     }
     
     // Check if the response is HTML instead of JSON
     const contentType = response.headers['content-type'];
     if (contentType && contentType.includes('text/html') && !response.config.url.includes('download')) {
-      console.error('Received HTML response instead of JSON:', response);
       const error = new Error('Received HTML response from server. You may need to log in again.');
       error.response = response;
       return Promise.reject(error);
@@ -63,11 +55,8 @@ api.interceptors.response.use(
     return response;
   },
   error => {
-    console.error('API Error:', error.response || error);
-    
     // Check for HTML responses in error cases
     if (error.response?.headers?.['content-type']?.includes('text/html')) {
-      console.error('Received HTML error response');
       if (error.response.status === 401 || error.response.status === 403) {
         // Clear token and redirect to login only if not trying to login/register
         if (!error.config.url.includes('/auth/login/') && !error.config.url.includes('/auth/register/')) {

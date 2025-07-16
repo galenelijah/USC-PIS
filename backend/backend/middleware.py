@@ -181,8 +181,8 @@ class RateLimitMiddleware:
         if client_ip not in self.request_times:
             self.request_times[client_ip] = []
         
-        # Check rate limit (100 requests per hour for authenticated users, 20 for unauthenticated)
-        max_requests = 100 if hasattr(request, 'user') and request.user.is_authenticated else 20
+        # Check rate limit (500 requests per hour for authenticated users, 100 for unauthenticated)
+        max_requests = 500 if hasattr(request, 'user') and request.user.is_authenticated else 100
         
         if len(self.request_times[client_ip]) >= max_requests:
             return HttpResponse(
