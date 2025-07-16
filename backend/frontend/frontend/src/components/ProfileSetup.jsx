@@ -230,15 +230,15 @@ const ProfileSetup = () => {
   // Helper functions
   const toggleSelection = (option, selectedList, setter) => {
     setter((prev) =>
-      prev.includes(option) ? prev.filter((item) => item !== option) : [...prev, option]
+      (prev || []).includes(option) ? (prev || []).filter((item) => item !== option) : [...(prev || []), option]
     );
   };
 
-  const handleAddItem = (setter) => setter((prev) => [...prev, ""]);
+  const handleAddItem = (setter) => setter((prev) => [...(prev || []), ""]);
   const handleRemoveItem = (index, setter) =>
-    setter((prev) => prev.filter((_, i) => i !== index));
+    setter((prev) => (prev || []).filter((_, i) => i !== index));
   const handleItemChange = (index, value, setter) =>
-    setter((prev) => prev.map((item, i) => (i === index ? value : item)));
+    setter((prev) => (prev || []).map((item, i) => (i === index ? value : item)));
 
   const handleNext = async () => {
     const currentStepFields = stepFields[activeStep];
