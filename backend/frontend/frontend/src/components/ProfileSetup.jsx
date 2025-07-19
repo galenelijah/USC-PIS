@@ -263,18 +263,32 @@ const ProfileSetup = () => {
     setError(null);
 
     try {
+      // Prepare illnesses array with custom input if specified
+      const illnessesArray = selectedIllnesses.includes('Others (please specify)') 
+        ? [...selectedIllnesses.filter(illness => illness !== 'Others (please specify)'), otherIllness].filter(Boolean)
+        : selectedIllnesses;
+
       const profileData = {
         ...data,
         birthday: data.birthday ? dayjs(data.birthday).format('YYYY-MM-DD') : null,
-        childhood_diseases: selectedChildhoodDiseases,
-        special_needs: selectedSpecialNeeds,
-        illnesses: selectedIllnesses.includes('Others (please specify)') 
-          ? [...selectedIllnesses.filter(illness => illness !== 'Others (please specify)'), otherIllness].filter(Boolean)
-          : selectedIllnesses,
-        existing_medical_conditions: existingMedicalConditions.filter(condition => condition.trim() !== ''),
-        medications: medications.filter(medication => medication.trim() !== ''),
-        allergies: allergies.filter(allergy => allergy.trim() !== ''),
+        // Convert arrays to comma-separated strings for Django CharField compatibility
+        childhood_diseases: selectedChildhoodDiseases.join(', '),
+        special_needs: selectedSpecialNeeds.join(', '),
+        illness: illnessesArray.join(', '),
+        existing_medical_condition: existingMedicalConditions.filter(condition => condition.trim() !== '').join(', '),
+        medications: medications.filter(medication => medication.trim() !== '').join(', '),
+        allergies: allergies.filter(allergy => allergy.trim() !== '').join(', '),
+        // Fix field name mappings for emergency contacts
+        father_name: data.contact_father_name,
+        mother_name: data.contact_mother_name,
+        emergency_contact: data.contact_emergency_name,
+        emergency_contact_number: data.contact_emergency_number,
       };
+
+      // Remove the old field names to avoid duplication
+      delete profileData.contact_father_name;
+      delete profileData.contact_mother_name;
+      delete profileData.contact_emergency_name;
 
       console.log('Submitting profile data:', profileData);
       const response = await authService.updateProfile(profileData);
