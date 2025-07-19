@@ -33,9 +33,7 @@ import { logout, logoutUser } from '../../features/authentication/authSlice';
 
 // Custom Dental Icon Component
 const DentalIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="-32 0 512 512" fill="currentColor">
-    <path d="M443.98 96.25c-11.01-45.22-47.11-82.06-92.01-93.72c-32.19-8.36-63 5.1-89.14 24.33c-3.25 2.39-6.96 3.73-10.5 5.48l28.32 18.21c7.42 4.77 9.58 14.67 4.8 22.11c-4.46 6.95-14.27 9.86-22.11 4.8L162.83 12.84c-20.7-10.85-43.38-16.4-66.81-10.31c-44.9 11.67-81 48.5-92.01 93.72c-10.13 41.62-.42 80.81 21.5 110.43c23.36 31.57 32.68 68.66 36.29 107.35c4.4 47.16 10.33 94.16 20.94 140.32l7.8 33.95c3.19 13.87 15.49 23.7 29.67 23.7c13.97 0 26.15-9.55 29.54-23.16l34.47-138.42c4.56-18.32 20.96-31.16 39.76-31.16s35.2 12.85 39.76 31.16l34.47 138.42c3.39 13.61 15.57 23.16 29.54 23.16c14.18 0 26.48-9.83 29.67-23.7l7.8-33.95c10.61-46.15 16.53-93.16 20.94-140.32c3.61-38.7 12.93-75.78 36.29-107.35c21.95-29.61 31.66-68.8 21.53-110.43"/>
-  </svg>
+  <LocalHospitalIcon />
 );
 
 const drawerWidth = 240;
@@ -66,7 +64,7 @@ const Sidebar = () => {
   const isAdminOrStaff = user && ['ADMIN', 'STAFF'].includes(user.role);
   const isDoctor = user && user.role === 'DOCTOR';
   const isNurse = user && user.role === 'NURSE';
-  
+
   const handleLogout = async () => {
     try {
       // First dispatch the async thunk to call the logout API
@@ -141,7 +139,7 @@ const Sidebar = () => {
   const renderMenuSection = (items, sectionTitle = null) => {
     const filteredItems = items.filter(isVisible);
     if (filteredItems.length === 0) return null;
-    
+
     return (
       <>
         {sectionTitle && (
@@ -151,9 +149,9 @@ const Sidebar = () => {
         )}
         <List>
           {filteredItems.map((item) => (
-            <Tooltip 
-              title={item.description || item.text} 
-              placement="right" 
+            <Tooltip
+              title={item.description || item.text}
+              placement="right"
               key={item.text}
               arrow
             >
@@ -190,7 +188,7 @@ const Sidebar = () => {
                 />
               </ListItem>
             </Tooltip>
-          ))
+          ))}
         </List>
       </>
     );
@@ -215,14 +213,14 @@ const Sidebar = () => {
           USC Patient Info System
         </Typography>
       </Box>
-      
+
       {user && (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2 }}>
           <Avatar sx={{ width: 64, height: 64, mb: 1, bgcolor: '#4caf50' }}>
             {user.first_name ? user.first_name[0] : user.email ? user.email[0].toUpperCase() : 'U'}
           </Avatar>
           <Typography variant="subtitle2" sx={{ color: 'white' }}>
-            {user.first_name && user.last_name 
+            {user.first_name && user.last_name
               ? `${user.first_name} ${user.last_name}`
               : user.email}
           </Typography>
@@ -231,9 +229,9 @@ const Sidebar = () => {
           </Typography>
         </Box>
       )}
-      
+
       <Divider sx={{ bgcolor: 'rgba(255, 255, 255, 0.12)', mb: 1 }} />
-      
+
       {renderMenuSection(dashboardItems, "MAIN")}
       {renderMenuSection(patientItems, "PATIENTS")}
       {renderMenuSection(infoItems, "INFORMATION")}
@@ -242,7 +240,7 @@ const Sidebar = () => {
       <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', my: 1 }} />
       {renderMenuSection(fileItems, "FILES")}
       {isAdminOrStaff && renderMenuSection(adminItems, "ADMINISTRATION")}
-      
+
       <Box sx={{ flexGrow: 1 }} />
       <Divider sx={{ bgcolor: 'rgba(255, 255, 255, 0.12)' }} />
       {renderMenuSection(userItems)}

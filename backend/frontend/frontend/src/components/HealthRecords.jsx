@@ -40,7 +40,7 @@ import {
   Person as PersonIcon,
   Medication as MedicationIcon,
   Healing as HealingIcon,
-  Template as TemplateIcon,
+  Description as TemplateIcon,
   LibraryBooks as LibraryIcon,
   Timeline as TimelineIcon,
   Assignment as CertificateIcon,

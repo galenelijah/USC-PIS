@@ -11,12 +11,6 @@ import {
   Card,
   CardContent,
   Grid,
-  Timeline,
-  TimelineItem,
-  TimelineSeparator,
-  TimelineConnector,
-  TimelineContent,
-  TimelineDot,
   Avatar,
   Divider,
   Alert,
@@ -51,6 +45,7 @@ import {
   Assignment as CertificateIcon,
   Feedback as FeedbackIcon
 } from '@mui/icons-material';
+
 import { Autocomplete } from '@mui/material';
 import { healthRecordsService, patientService } from '../services/api';
 import { useSelector } from 'react-redux';
@@ -521,22 +516,21 @@ const MedicalHistoryPage = () => {
     }
 
     return (
-      <Timeline position="left">
+      <Stack spacing={2}>
         {filteredRecords.map((record, index) => (
-          <TimelineItem key={record.id}>
-            <TimelineSeparator>
-              <TimelineDot 
-                sx={{ 
-                  bgcolor: getRecordColor(record.record_type),
-                  width: 40,
-                  height: 40
-                }}
-              >
-                {getRecordIcon(record.record_type)}
-              </TimelineDot>
-              {index < filteredRecords.length - 1 && <TimelineConnector />}
-            </TimelineSeparator>
-            <TimelineContent>
+          <Card key={record.id} sx={{ position: 'relative' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                <Avatar 
+                  sx={{ 
+                    bgcolor: getRecordColor(record.record_type),
+                    width: 40,
+                    height: 40
+                  }}
+                >
+                  {getRecordIcon(record.record_type)}
+                </Avatar>
+                <Box sx={{ flex: 1 }}>
               <Card 
                 elevation={2} 
                 sx={{ 
@@ -696,10 +690,12 @@ const MedicalHistoryPage = () => {
                   </Collapse>
                 </CardContent>
               </Card>
-            </TimelineContent>
-          </TimelineItem>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
         ))}
-      </Timeline>
+      </Stack>
     );
   };
 
