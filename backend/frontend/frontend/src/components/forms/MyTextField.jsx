@@ -19,8 +19,6 @@ const MyTextField = ({
       control={control}
       defaultValue=""
       render={({ field, fieldState: { error: fieldError } }) => {
-        // Debug logging
-        console.log(`Field ${name}:`, field.value);
         return (
           <TextField
             {...field}

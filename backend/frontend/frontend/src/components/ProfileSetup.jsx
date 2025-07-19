@@ -195,7 +195,7 @@ const ProfileSetup = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   
-  const { control, handleSubmit, formState: { errors }, setValue, getValues, watch, trigger } = useForm({
+  const { control, handleSubmit, formState: { errors }, setValue, getValues, watch, trigger, reset } = useForm({
     resolver: yupResolver(validationSchema),
     defaultValues: {
       first_name: '',
@@ -292,12 +292,12 @@ const ProfileSetup = () => {
   };
 
   const renderStepContent = (step) => {
-    const StepIcon = steps[step]?.icon;
+    const stepKey = `step-${step}`;
     
     switch (step) {
       case 0:
         return (
-          <Fade in timeout={500}>
+          <Box key={stepKey}>
             <Card elevation={0} sx={{ border: '1px solid', borderColor: alpha('#667eea', 0.2), borderRadius: 3 }}>
               <CardContent sx={{ p: 4 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
@@ -310,6 +310,7 @@ const ProfileSetup = () => {
                 <Grid container spacing={3}>
                   <Grid item xs={12} sm={6}>
                     <MyTextField
+                      key={`${stepKey}-first_name`}
                       label="First Name"
                       name="first_name"
                       control={control}
@@ -320,6 +321,7 @@ const ProfileSetup = () => {
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <MyTextField
+                      key={`${stepKey}-last_name`}
                       label="Last Name"
                       name="last_name"
                       control={control}
@@ -330,6 +332,7 @@ const ProfileSetup = () => {
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <MyTextField
+                      key={`${stepKey}-middle_name`}
                       label="Middle Name"
                       name="middle_name"
                       control={control}
@@ -339,6 +342,7 @@ const ProfileSetup = () => {
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <MySelector
+                      key={`${stepKey}-sex`}
                       label="Sex"
                       name="sex"
                       control={control}
@@ -350,6 +354,7 @@ const ProfileSetup = () => {
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <MySelector
+                      key={`${stepKey}-civil_status`}
                       label="Civil Status"
                       name="civil_status"
                       control={control}
@@ -361,6 +366,7 @@ const ProfileSetup = () => {
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <MyDatePicker
+                      key={`${stepKey}-birthday`}
                       label="Birthday"
                       name="birthday"
                       control={control}
@@ -371,6 +377,7 @@ const ProfileSetup = () => {
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <MyTextField
+                      key={`${stepKey}-nationality`}
                       label="Nationality"
                       name="nationality"
                       control={control}
@@ -381,6 +388,7 @@ const ProfileSetup = () => {
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <MyTextField
+                      key={`${stepKey}-religion`}
                       label="Religion"
                       name="religion"
                       control={control}
@@ -391,12 +399,12 @@ const ProfileSetup = () => {
                 </Grid>
               </CardContent>
             </Card>
-          </Fade>
+          </Box>
         );
       
       case 1:
         return (
-          <Fade in timeout={500}>
+          <Box key={stepKey}>
             <Card elevation={0} sx={{ border: '1px solid', borderColor: alpha('#764ba2', 0.2), borderRadius: 3 }}>
               <CardContent sx={{ p: 4 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
@@ -409,6 +417,7 @@ const ProfileSetup = () => {
                 <Grid container spacing={3}>
                   <Grid item xs={12}>
                     <MyTextField
+                      key={`${stepKey}-address_permanent`}
                       label="Permanent Address"
                       name="address_permanent"
                       control={control}
@@ -421,6 +430,7 @@ const ProfileSetup = () => {
                   </Grid>
                   <Grid item xs={12}>
                     <MyTextField
+                      key={`${stepKey}-address_present`}
                       label="Present Address"
                       name="address_present"
                       control={control}
@@ -433,6 +443,7 @@ const ProfileSetup = () => {
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <MyTextField
+                      key={`${stepKey}-phone`}
                       label="Phone Number"
                       name="phone"
                       control={control}
@@ -443,6 +454,7 @@ const ProfileSetup = () => {
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <MyTextField
+                      key={`${stepKey}-email`}
                       label="Email Address"
                       name="email"
                       control={control}
@@ -454,12 +466,12 @@ const ProfileSetup = () => {
                 </Grid>
               </CardContent>
             </Card>
-          </Fade>
+          </Box>
         );
       
       case 2:
         return (
-          <Fade in timeout={500}>
+          <Box key={stepKey}>
             <Card elevation={0} sx={{ border: '1px solid', borderColor: alpha('#f093fb', 0.2), borderRadius: 3 }}>
               <CardContent sx={{ p: 4 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
@@ -472,6 +484,7 @@ const ProfileSetup = () => {
                 <Grid container spacing={3}>
                   <Grid item xs={12} sm={6}>
                     <MyTextField
+                      key={`${stepKey}-id_number`}
                       label="Student ID Number"
                       name="id_number"
                       control={control}
@@ -482,6 +495,7 @@ const ProfileSetup = () => {
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <MySelector
+                      key={`${stepKey}-course`}
                       label="Course"
                       name="course"
                       control={control}
@@ -493,6 +507,7 @@ const ProfileSetup = () => {
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <MyTextField
+                      key={`${stepKey}-year_level`}
                       label="Year Level"
                       name="year_level"
                       control={control}
@@ -503,6 +518,7 @@ const ProfileSetup = () => {
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <MyTextField
+                      key={`${stepKey}-school`}
                       label="School/Campus"
                       name="school"
                       control={control}
@@ -512,6 +528,7 @@ const ProfileSetup = () => {
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <MyTextField
+                      key={`${stepKey}-weight`}
                       label="Weight (kg)"
                       name="weight"
                       control={control}
@@ -522,6 +539,7 @@ const ProfileSetup = () => {
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <MyTextField
+                      key={`${stepKey}-height`}
                       label="Height (cm)"
                       name="height"
                       control={control}
@@ -533,12 +551,12 @@ const ProfileSetup = () => {
                 </Grid>
               </CardContent>
             </Card>
-          </Fade>
+          </Box>
         );
       
       case 3:
         return (
-          <Fade in timeout={500}>
+          <Box key={stepKey}>
             <Stack spacing={3}>
               {/* Emergency Contacts */}
               <Card elevation={0} sx={{ border: '1px solid', borderColor: alpha('#f5576c', 0.2), borderRadius: 3 }}>
@@ -553,6 +571,7 @@ const ProfileSetup = () => {
                   <Grid container spacing={3}>
                     <Grid item xs={12} sm={6}>
                       <MyTextField
+                        key={`${stepKey}-contact_father_name`}
                         label="Father's Name"
                         name="contact_father_name"
                         control={control}
@@ -562,6 +581,7 @@ const ProfileSetup = () => {
                     </Grid>
                     <Grid item xs={12} sm={6}>
                       <MyTextField
+                        key={`${stepKey}-contact_mother_name`}
                         label="Mother's Name"
                         name="contact_mother_name"
                         control={control}
@@ -571,6 +591,7 @@ const ProfileSetup = () => {
                     </Grid>
                     <Grid item xs={12} sm={6}>
                       <MyTextField
+                        key={`${stepKey}-contact_emergency_name`}
                         label="Emergency Contact Name"
                         name="contact_emergency_name"
                         control={control}
@@ -580,6 +601,7 @@ const ProfileSetup = () => {
                     </Grid>
                     <Grid item xs={12} sm={6}>
                       <MyTextField
+                        key={`${stepKey}-contact_emergency_number`}
                         label="Emergency Contact Number"
                         name="contact_emergency_number"
                         control={control}
@@ -608,7 +630,7 @@ const ProfileSetup = () => {
                     </Typography>
                     <Grid container spacing={1}>
                       {(childhoodDiseasesOptions || []).map((disease) => (
-                        <Grid item xs={12} sm={6} key={disease}>
+                        <Grid item xs={12} sm={6} key={`${stepKey}-disease-${disease}`}>
                           <FormControlLabel
                             control={
                               <Checkbox
@@ -631,7 +653,7 @@ const ProfileSetup = () => {
                     </Typography>
                     <Grid container spacing={1}>
                       {(specialNeedsOptions || []).map((need) => (
-                        <Grid item xs={12} sm={6} key={need}>
+                        <Grid item xs={12} sm={6} key={`${stepKey}-need-${need}`}>
                           <FormControlLabel
                             control={
                               <Checkbox
@@ -654,7 +676,7 @@ const ProfileSetup = () => {
                     </Typography>
                     <Grid container spacing={1}>
                       {(illnessesOptions || []).map((illness) => (
-                        <Grid item xs={12} sm={6} key={illness}>
+                        <Grid item xs={12} sm={6} key={`${stepKey}-illness-${illness}`}>
                           <FormControlLabel
                             control={
                               <Checkbox
@@ -671,6 +693,7 @@ const ProfileSetup = () => {
                     <Collapse in={selectedIllnesses.includes('Others (please specify)')}>
                       <Box sx={{ mt: 2 }}>
                         <TextField
+                          key={`${stepKey}-other-illness`}
                           fullWidth
                           size="small"
                           placeholder="Please specify other illness"
@@ -687,7 +710,7 @@ const ProfileSetup = () => {
                     { title: 'Current Medications', state: medications || [], setter: setMedications },
                     { title: 'Known Allergies', state: allergies || [], setter: setAllergies }
                   ].map(({ title, state, setter }) => (
-                    <Box key={title} sx={{ mb: 3 }}>
+                    <Box key={`${stepKey}-${title}`} sx={{ mb: 3 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                         <Typography variant="h6" fontWeight="medium">{title}</Typography>
                         <Button
@@ -700,7 +723,7 @@ const ProfileSetup = () => {
                         </Button>
                       </Box>
                       {(state || []).map((item, index) => (
-                        <Box key={index} sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                        <Box key={`${stepKey}-${title}-${index}`} sx={{ display: 'flex', gap: 1, mb: 1 }}>
                           <TextField
                             fullWidth
                             size="small"
@@ -722,7 +745,7 @@ const ProfileSetup = () => {
                 </CardContent>
               </Card>
             </Stack>
-          </Fade>
+          </Box>
         );
       
       default:
