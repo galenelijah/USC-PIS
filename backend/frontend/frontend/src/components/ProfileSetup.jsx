@@ -184,7 +184,7 @@ const stepFields = [
   ['first_name', 'last_name', 'middle_name', 'sex', 'civil_status', 'birthday', 'nationality', 'religion'],
   ['address_permanent', 'address_present', 'phone', 'email'],
   ['id_number', 'course', 'year_level', 'school', 'weight', 'height'],
-  ['contact_father_name', 'contact_mother_name', 'contact_emergency_name', 'contact_emergency_number']
+  [] // Step 3 (Medical) has no required form fields, only state-based selections
 ];
 
 const ProfileSetup = () => {
@@ -247,11 +247,17 @@ const ProfileSetup = () => {
 
   const handleNext = async () => {
     const currentStepFields = stepFields[activeStep];
-    const isValid = await trigger(currentStepFields);
     
-    if (isValid) {
-      setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    // For steps with form fields, validate them
+    if (currentStepFields && currentStepFields.length > 0) {
+      const isValid = await trigger(currentStepFields);
+      if (!isValid) {
+        return; // Don't proceed if validation fails
+      }
     }
+    
+    // Move to next step
+    setActiveStep((prevActiveStep) => prevActiveStep + 1);
   };
 
   const handleBack = () => {
@@ -905,7 +911,7 @@ const ProfileSetup = () => {
               </Alert>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)}>
+            <Box>
               {renderStepContent(activeStep)}
 
               {/* Navigation */}
@@ -923,7 +929,7 @@ const ProfileSetup = () => {
                 
                 {activeStep === ((steps || []).length - 1) ? (
                   <Button
-                    type="submit"
+                    onClick={handleSubmit(onSubmit)}
                     variant="contained"
                     size="large"
                     disabled={loading}
@@ -958,7 +964,7 @@ const ProfileSetup = () => {
                   </Button>
                 )}
               </Box>
-            </form>
+            </Box>
           </Box>
         </Paper>
       </Container>

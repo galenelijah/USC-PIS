@@ -40,6 +40,7 @@ const FileDownloadPage = lazy(() => import('./pages/FileDownloadPage'));
 const MedicalCertificatesPage = lazy(() => import('./pages/MedicalCertificatesPage'));
 const MedicalRecordsPage = lazy(() => import('./components/MedicalRecordsPage'));
 const PatientMedicalDashboard = lazy(() => import('./components/PatientMedicalDashboard'));
+const EditProfile = lazy(() => import('./components/EditProfile'));
 
 // Loading component
 const PageLoader = () => (
@@ -371,6 +372,20 @@ const App = () => {
                 <Layout onSearch={handleSearch}>
                   <Profile />
                 </Layout>
+              </RequireProfileSetup>
+            </RequireAuth>
+          }
+        />
+        
+        {/* Edit Profile Route - Available to all authenticated users */}
+        <Route
+          path="/edit-profile"
+          element={
+            <RequireAuth isAuthenticated={isAuthenticated}>
+              <RequireProfileSetup>
+                <Suspense fallback={<PageLoader />}>
+                  <EditProfile />
+                </Suspense>
               </RequireProfileSetup>
             </RequireAuth>
           }
