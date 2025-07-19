@@ -39,6 +39,7 @@ const FileUploadPage = lazy(() => import('./pages/FileUploadPage'));
 const FileDownloadPage = lazy(() => import('./pages/FileDownloadPage'));
 const MedicalCertificatesPage = lazy(() => import('./pages/MedicalCertificatesPage'));
 const MedicalRecordsPage = lazy(() => import('./components/MedicalRecordsPage'));
+const PatientMedicalDashboard = lazy(() => import('./components/PatientMedicalDashboard'));
 
 // Loading component
 const PageLoader = () => (
@@ -490,6 +491,22 @@ const App = () => {
               <RequireProfileSetup>
                 <Layout onSearch={handleSearch}>
                   <MedicalRecordsPage />
+                </Layout>
+              </RequireProfileSetup>
+            </RequireAuth>
+          }
+        />
+        
+        {/* Patient Medical Dashboard Route */}
+        <Route
+          path="/patient-dashboard"
+          element={
+            <RequireAuth isAuthenticated={isAuthenticated}>
+              <RequireProfileSetup>
+                <Layout onSearch={handleSearch}>
+                  <Suspense fallback={<PageLoader />}>
+                    <PatientMedicalDashboard />
+                  </Suspense>
                 </Layout>
               </RequireProfileSetup>
             </RequireAuth>

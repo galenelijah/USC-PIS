@@ -90,6 +90,7 @@ const Sidebar = () => {
 
   const patientItems = [
     { text: 'Patients', icon: <PeopleIcon />, path: '/patients', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'] },
+    { text: 'Patient Medical Dashboard', icon: <MedicalInformationIcon />, path: '/patient-dashboard' },
     { text: 'Medical Records', icon: <LocalHospitalIcon />, path: '/health-records' },
     { text: 'Dental Records', icon: <DentalIcon />, path: '/dental-records' },
     { text: 'Medical Records (New)', icon: <LocalHospitalIcon />, path: '/medical-records' },
