@@ -216,7 +216,7 @@ export const authService = {
       console.log('Calling completeProfileSetup with data:', profileData);
       const response = await api.post('/auth/complete-profile/', profileData);
       console.log('Complete profile API response:', response);
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Complete profile API error:', error);
       if (error.response) {

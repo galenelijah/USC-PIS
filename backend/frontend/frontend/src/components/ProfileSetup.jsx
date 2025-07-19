@@ -291,15 +291,56 @@ const ProfileSetup = () => {
       delete profileData.contact_emergency_name;
 
       console.log('Submitting profile data:', profileData);
+      console.log('About to call completeProfileSetup...');
+      
+      // Try using updateProfile instead since completeProfileSetup might not exist
       const response = await authService.updateProfile(profileData);
       
-      if (response.data.user) {
-        dispatch(setCredentials({ user: response.data.user, token: currentToken }));
+      console.log('Profile setup API response received');
+      console.log('Response status:', response?.status);
+      console.log('Response data:', response?.data);
+      console.log('Full response object:', response);
+      
+      // The updateProfile endpoint returns user data directly
+      if (response.data) {
+        console.log('Profile update successful, updating Redux store');
+        dispatch(setCredentials({ user: response.data, token: currentToken }));
+        console.log('Navigating to home page');
         navigate('/home');
+      } else {
+        console.error('No data in response:', response);
+        setError('Profile setup completed but no user data received. Please refresh the page.');
       }
     } catch (error) {
       console.error('Profile setup error:', error);
-      setError(error.response?.data?.detail || error.response?.data?.message || 'Failed to update profile. Please try again.');
+      
+      // More detailed error handling
+      let errorMessage = 'Failed to complete profile setup. Please try again.';
+      
+      if (error.response) {
+        // Server responded with error status
+        const { status, data } = error.response;
+        console.error('Server error response:', status, data);
+        
+        if (data.detail) {
+          errorMessage = data.detail;
+        } else if (data.message) {
+          errorMessage = data.message;
+        } else if (data.errors) {
+          errorMessage = Array.isArray(data.errors) ? data.errors.join(', ') : 'Validation errors occurred.';
+        } else if (status === 401) {
+          errorMessage = 'Authentication failed. Please log in again.';
+        } else if (status === 429) {
+          errorMessage = 'Too many attempts. Please wait before trying again.';
+        } else if (status >= 500) {
+          errorMessage = 'Server error occurred. Please try again later.';
+        }
+      } else if (error.request) {
+        // No response received
+        errorMessage = 'Network error. Please check your connection and try again.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
