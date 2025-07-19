@@ -2,7 +2,7 @@
 
 from django.test import TestCase
 from .models import HealthInformation
-from django.urls import reverse
+from django.urls import reverse, NoReverseMatch
 
 class HealthInformationModelTest(TestCase):
     def test_create_health_info(self):
@@ -17,7 +17,7 @@ class HealthInfoEndpointTest(TestCase):
     def test_health_info_list_endpoint(self):
         try:
             url = reverse('health_info:healthinformation-list')
-        except:
+        except NoReverseMatch:
             url = '/api/health-info/health-information/'
         response = self.client.get(url)
         self.assertIn(response.status_code, [200, 403, 401]) 

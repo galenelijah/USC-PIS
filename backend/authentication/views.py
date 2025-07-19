@@ -148,7 +148,8 @@ def register_user(request):
             try:
                 client_ip = get_client_ip(request)
                 rate_limiter.record_attempt(client_ip, 'register', success=False)
-            except:
+            except Exception as e:
+                logger.warning(f"Failed to record rate limit attempt: {e}")
                 pass
             
             return Response({
@@ -269,7 +270,8 @@ def login_user(request):
                 rate_limiter.record_attempt(client_ip, 'login', success=False)
                 if email:
                     rate_limiter.record_attempt(email, 'login', success=False)
-            except:
+            except Exception as e:
+                logger.warning(f"Failed to record rate limit attempt: {e}")
                 pass
             
             return Response({
@@ -377,6 +379,11 @@ def logout_user(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def database_health_check(request):
+    # Enhanced security: Only admin users can access database health information
+    if not request.user.is_staff and request.user.role not in ['ADMIN', 'STAFF']:
+        return JsonResponse({
+            'error': 'Access denied. Admin privileges required.'
+        }, status=403)
     try:
         with connection.cursor() as cursor:
             # Get table counts, column counts, and approximate row counts
@@ -428,7 +435,13 @@ def debug_register(request):
     """
     Debug endpoint to test user creation directly.
     Access via /auth/debug-register/ to create a test user.
+    SECURITY: Only available in debug mode.
     """
+    # Security check: Only allow in debug mode
+    if not settings.DEBUG:
+        return JsonResponse({
+            'error': 'Debug endpoint not available in production'
+        }, status=404)
     try:
         # Generate a unique email
         import random
@@ -928,7 +941,8 @@ def debug_current_user(request):
             'email': patient_profile.email,
             'name': f"{patient_profile.first_name} {patient_profile.last_name}"
         }
-    except:
+    except Exception as e:
+        logger.debug(f"No patient profile found for user: {e}")
         patient_info = None
     
     return Response({
@@ -1012,7 +1026,6 @@ def complete_profile_setup(request):
             ]
         }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
-@csrf_exempt
 @require_http_methods(["GET"])
 def api_test(request):
     """Simple API test endpoint to verify API is working"""

@@ -39,7 +39,13 @@ import {
   MedicalServices as MedicalIcon,
   Person as PersonIcon,
   Medication as MedicationIcon,
-  Healing as HealingIcon
+  Healing as HealingIcon,
+  Template as TemplateIcon,
+  LibraryBooks as LibraryIcon,
+  Timeline as TimelineIcon,
+  Assignment as CertificateIcon,
+  BarChart as ReportIcon,
+  Launch as LaunchIcon
 } from '@mui/icons-material';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -49,6 +55,7 @@ import { selectCurrentUser } from '../features/authentication/authSlice';
 import dayjs from 'dayjs';
 import { healthRecordsService, patientService } from '../services/api';
 import MedicalRecord from './MedicalRecord';
+import ClinicalAnalytics from './ClinicalAnalytics';
 
 // Tab panel component for different record types
 function TabPanel(props) {
@@ -84,9 +91,62 @@ const HealthRecords = () => {
   const user = useSelector(selectCurrentUser);
   const [selectedMedicalRecordId, setSelectedMedicalRecordId] = useState(null);
   const [openMedicalRecordModal, setOpenMedicalRecordModal] = useState(false);
+  const [openTemplateDialog, setOpenTemplateDialog] = useState(false);
 
   // Check if user can edit records (not a student)
   const canEditRecords = user && user.role !== 'STUDENT';
+
+  // Clinical Templates for quick record creation
+  const clinicalTemplates = [
+    {
+      name: "Common Cold",
+      category: "MEDICAL",
+      chief_complaint: "Runny nose, sneezing, and mild cough",
+      diagnosis: "Common Cold (Upper Respiratory Infection)",
+      treatment: "Rest, increased fluid intake, OTC decongestants as needed. Avoid antibiotics.",
+      notes: "Patient advised on proper hand hygiene and rest. Follow-up if symptoms worsen or persist beyond 7-10 days."
+    },
+    {
+      name: "Headache Assessment",
+      category: "MEDICAL", 
+      chief_complaint: "Headache with mild to moderate intensity",
+      diagnosis: "Tension Headache",
+      treatment: "OTC pain relievers (acetaminophen/ibuprofen), rest, hydration, stress management.",
+      notes: "Patient counseled on trigger identification and lifestyle modifications. Return if severe or persistent."
+    },
+    {
+      name: "Routine Dental Cleaning",
+      category: "DENTAL",
+      chief_complaint: "Routine dental checkup and cleaning",
+      diagnosis: "Routine dental prophylaxis, good oral hygiene",
+      treatment: "Professional dental cleaning, fluoride treatment, oral hygiene education.",
+      notes: "Regular 6-month dental checkups recommended. Patient demonstrates good oral hygiene practices."
+    },
+    {
+      name: "Minor Wound Care",
+      category: "MEDICAL",
+      chief_complaint: "Minor cut/abrasion requiring care",
+      diagnosis: "Minor laceration/abrasion",
+      treatment: "Wound cleaning, antiseptic application, bandaging. Tetanus status verified.",
+      notes: "Patient educated on wound care, signs of infection. Follow-up if signs of infection develop."
+    },
+    {
+      name: "Blood Pressure Check",
+      category: "MEDICAL",
+      chief_complaint: "Routine blood pressure monitoring",
+      diagnosis: "Blood pressure assessment",
+      treatment: "Lifestyle counseling, dietary recommendations as appropriate.",
+      notes: "Patient advised on regular monitoring and healthy lifestyle practices."
+    },
+    {
+      name: "Dental Pain Assessment",
+      category: "DENTAL",
+      chief_complaint: "Dental pain and discomfort",
+      diagnosis: "Dental caries/tooth sensitivity",
+      treatment: "Pain management, dental restoration referral if needed.",
+      notes: "Patient referred for comprehensive dental evaluation and treatment planning."
+    }
+  ];
 
   useEffect(() => {
     fetchHealthRecords();
@@ -134,6 +194,193 @@ const HealthRecords = () => {
       medications: []
     });
     setOpenDialog(true);
+  };
+
+  const handleOpenTemplateDialog = () => {
+    setOpenTemplateDialog(true);
+  };
+
+  const handleCloseTemplateDialog = () => {
+    setOpenTemplateDialog(false);
+  };
+
+  const handleUseTemplate = (template) => {
+    setDialogMode('create');
+    setCurrentRecord({
+      patient: null,
+      visit_date: dayjs().format('YYYY-MM-DD'),
+      record_type: template.category,
+      chief_complaint: template.chief_complaint,
+      diagnosis: template.diagnosis,
+      treatment: template.treatment,
+      notes: template.notes,
+      vital_signs: {
+        temperature: '',
+        blood_pressure: '',
+        heart_rate: '',
+        respiratory_rate: '',
+        oxygen_saturation: ''
+      },
+      medications: []
+    });
+    setOpenTemplateDialog(false);
+    setOpenDialog(true);
+  };
+
+  // Workflow automation functions
+  const getFollowUpSuggestions = (record) => {
+    const suggestions = [];
+    
+    // Check if follow-up is needed based on diagnosis
+    const followUpDiagnoses = [
+      'hypertension', 'diabetes', 'chronic', 'ongoing', 'monitor'
+    ];
+    
+    if (followUpDiagnoses.some(keyword => 
+      record.diagnosis?.toLowerCase().includes(keyword)
+    )) {
+      suggestions.push({
+        type: 'follow-up',
+        message: 'Consider scheduling a follow-up appointment in 2-4 weeks',
+        action: 'Schedule Follow-up'
+      });
+    }
+    
+    // Check if medical certificate might be needed
+    if (record.diagnosis?.toLowerCase().includes('sick') || 
+        record.treatment?.toLowerCase().includes('rest')) {
+      suggestions.push({
+        type: 'certificate',
+        message: 'Patient may need a medical certificate',
+        action: 'Generate Certificate'
+      });
+    }
+    
+    // Check if lab work might be needed
+    if (record.diagnosis?.toLowerCase().includes('blood') || 
+        record.diagnosis?.toLowerCase().includes('test')) {
+      suggestions.push({
+        type: 'lab',
+        message: 'Consider ordering relevant lab tests',
+        action: 'Order Lab Work'
+      });
+    }
+    
+    return suggestions;
+  };
+
+  const handleAutomationAction = (action, record) => {
+    switch (action) {
+      case 'Schedule Follow-up':
+        // Auto-create a follow-up record template
+        setDialogMode('create');
+        setCurrentRecord({
+          patient: record.patient?.id,
+          visit_date: dayjs().add(2, 'week').format('YYYY-MM-DD'),
+          record_type: record.record_type,
+          chief_complaint: `Follow-up for: ${record.diagnosis}`,
+          diagnosis: '',
+          treatment: '',
+          notes: `Follow-up appointment for previous diagnosis: ${record.diagnosis}`,
+          vital_signs: {
+            temperature: '',
+            blood_pressure: '',
+            heart_rate: '',
+            respiratory_rate: '',
+            oxygen_saturation: ''
+          },
+          medications: []
+        });
+        setOpenDialog(true);
+        break;
+      case 'Generate Certificate':
+        window.open('/medical-certificates', '_blank');
+        break;
+      case 'Order Lab Work':
+        alert('Lab work ordering system integration would be implemented here.');
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleGenerateReport = () => {
+    // Generate comprehensive clinical report
+    const reportData = {
+      totalRecords: records.length,
+      medicalRecords: records.filter(r => r.record_type === 'MEDICAL').length,
+      dentalRecords: records.filter(r => r.record_type === 'DENTAL').length,
+      recentRecords: records.filter(r => dayjs(r.visit_date).isAfter(dayjs().subtract(30, 'day'))).length,
+      commonDiagnoses: getCommonDiagnoses(),
+      patientStats: getPatientStatistics(),
+      generatedAt: dayjs().format('YYYY-MM-DD HH:mm:ss')
+    };
+    
+    // Create and download report
+    downloadClinicalReport(reportData);
+  };
+
+  const getCommonDiagnoses = () => {
+    const diagnoses = records.map(r => r.diagnosis).filter(Boolean);
+    const diagnosisCount = {};
+    diagnoses.forEach(d => {
+      diagnosisCount[d] = (diagnosisCount[d] || 0) + 1;
+    });
+    return Object.entries(diagnosisCount)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 5)
+      .map(([diagnosis, count]) => ({ diagnosis, count }));
+  };
+
+  const getPatientStatistics = () => {
+    const uniquePatients = [...new Set(records.map(r => r.patient?.id).filter(Boolean))];
+    return {
+      totalPatients: uniquePatients.length,
+      avgRecordsPerPatient: uniquePatients.length > 0 ? (records.length / uniquePatients.length).toFixed(1) : 0,
+      patientsThisMonth: records.filter(r => 
+        dayjs(r.visit_date).isAfter(dayjs().startOf('month'))
+      ).map(r => r.patient?.id).filter((id, index, arr) => arr.indexOf(id) === index).length
+    };
+  };
+
+  const downloadClinicalReport = (data) => {
+    const reportContent = `
+CLINICAL RECORDS REPORT
+Generated: ${data.generatedAt}
+
+=== SUMMARY STATISTICS ===
+Total Records: ${data.totalRecords}
+Medical Records: ${data.medicalRecords}
+Dental Records: ${data.dentalRecords}
+Records (Last 30 Days): ${data.recentRecords}
+
+=== PATIENT STATISTICS ===
+Total Patients: ${data.patientStats.totalPatients}
+Average Records per Patient: ${data.patientStats.avgRecordsPerPatient}
+New Patients This Month: ${data.patientStats.patientsThisMonth}
+
+=== COMMON DIAGNOSES ===
+${data.commonDiagnoses.map(d => `${d.diagnosis}: ${d.count} cases`).join('\n')}
+
+=== DETAILED RECORDS ===
+${filteredRecords.map(r => `
+Date: ${r.visit_date}
+Patient: ${r.patient?.first_name || ''} ${r.patient?.last_name || ''}
+Type: ${r.record_type}
+Diagnosis: ${r.diagnosis || 'N/A'}
+Treatment: ${r.treatment || 'N/A'}
+`).join('\n')}
+    `;
+    
+    const blob = new Blob([reportContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `clinical-report-${dayjs().format('YYYY-MM-DD')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const handleOpenEditDialog = (record) => {
@@ -242,10 +489,11 @@ const HealthRecords = () => {
     
     const dateMatch = selectedDate ? record.visit_date === dayjs(selectedDate).format('YYYY-MM-DD') : true;
     
-    // Filter based on tab selection (0: All, 1: Medical, 2: Dental)
+    // Filter based on tab selection (0: All, 1: Medical, 2: Dental, 3: Analytics)
     const typeMatch = tabValue === 0 || 
       (tabValue === 1 && record.record_type === 'MEDICAL') || 
-      (tabValue === 2 && record.record_type === 'DENTAL');
+      (tabValue === 2 && record.record_type === 'DENTAL') ||
+      tabValue === 3; // Analytics tab shows all records
     
     return searchMatch && dateMatch && typeMatch;
   });
@@ -255,6 +503,101 @@ const HealthRecords = () => {
       <Typography variant="h4" component="h1" gutterBottom>
         Health Records
       </Typography>
+
+      {/* Quick Stats */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={3}>
+          <Card elevation={1}>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <Typography variant="h4" color="primary">
+                {records.length}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Total Records
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={3}>
+          <Card elevation={1}>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <Typography variant="h4" color="primary">
+                {records.filter(r => r.record_type === 'MEDICAL').length}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Medical Records
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={3}>
+          <Card elevation={1}>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <Typography variant="h4" color="primary">
+                {records.filter(r => r.record_type === 'DENTAL').length}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Dental Records
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={3}>
+          <Card elevation={1}>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <Typography variant="h4" color="primary">
+                {records.filter(r => dayjs(r.visit_date).isAfter(dayjs().subtract(30, 'day'))).length}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Last 30 Days
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Integration Quick Actions */}
+      <Card elevation={2} sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Quick Actions & Integration
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <Button
+              variant="outlined"
+              startIcon={<TimelineIcon />}
+              onClick={() => window.open('/medical-records', '_blank')}
+              size="small"
+            >
+              View Medical History
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<CertificateIcon />}
+              onClick={() => window.open('/medical-certificates', '_blank')}
+              size="small"
+            >
+              Medical Certificates
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<ReportIcon />}
+              onClick={() => window.open('/reports', '_blank')}
+              size="small"
+            >
+              Generate Reports
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<LaunchIcon />}
+              onClick={() => window.open('/patient-dashboard', '_blank')}
+              size="small"
+            >
+              Patient Dashboard
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
 
       {/* Filters and actions */}
       <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
@@ -281,33 +624,71 @@ const HealthRecords = () => {
         </LocalizationProvider>
 
         {canEditRecords && (
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleOpenCreateDialog}
-            sx={{ 
-              ml: 'auto',
-              bgcolor: 'rgb(104, 138, 124)', 
-              '&:hover': { bgcolor: 'rgb(84, 118, 104)' } 
-            }}
-          >
-            Add Record
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2, ml: 'auto' }}>
+            <Button
+              variant="outlined"
+              startIcon={<ReportIcon />}
+              onClick={() => handleGenerateReport()}
+              sx={{ 
+                borderColor: '#f093fb',
+                color: '#f093fb',
+                '&:hover': {
+                  borderColor: '#e070f0',
+                  backgroundColor: 'rgba(240, 147, 251, 0.1)',
+                }
+              }}
+            >
+              Generate Report
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<TemplateIcon />}
+              onClick={() => setOpenTemplateDialog(true)}
+              sx={{ 
+                borderColor: '#667eea',
+                color: '#667eea',
+                '&:hover': {
+                  borderColor: '#5a6fd8',
+                  backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                }
+              }}
+            >
+              Use Template
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleOpenCreateDialog}
+              sx={{ 
+                background: 'linear-gradient(45deg, #667eea 30%, #764ba2 90%)',
+                '&:hover': {
+                  background: 'linear-gradient(45deg, #5a6fd8 30%, #6a4190 90%)',
+                }
+              }}
+            >
+              New Clinical Record
+            </Button>
+          </Box>
         )}
       </Box>
 
       {/* Tabs for record types */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-        <Tabs value={tabValue} onChange={handleTabChange} aria-label="health record tabs">
-          <Tab label="All Records" id="health-record-tab-0" />
-          <Tab label="Medical" id="health-record-tab-1" icon={<MedicalIcon />} iconPosition="start" />
-          <Tab label="Dental" id="health-record-tab-2" icon={<HealingIcon />} iconPosition="start" />
+        <Tabs value={tabValue} onChange={handleTabChange} aria-label="clinical record tabs">
+          <Tab label="All Clinical Records" id="clinical-record-tab-0" />
+          <Tab label="Medical Records" id="clinical-record-tab-1" icon={<MedicalIcon />} iconPosition="start" />
+          <Tab label="Dental Records" id="clinical-record-tab-2" icon={<HealingIcon />} iconPosition="start" />
+          <Tab label="Analytics" id="clinical-record-tab-3" icon={<ReportIcon />} iconPosition="start" />
         </Tabs>
       </Box>
 
-      {/* Records Table */}
+      {/* Records Table or Analytics */}
       {loading ? (
         <Typography>Loading records...</Typography>
+      ) : tabValue === 3 ? (
+        <Box sx={{ mt: 2 }}>
+          <ClinicalAnalytics records={records} />
+        </Box>
       ) : (
         <TableContainer component={Paper} sx={{ mt: 2 }}>
           <Table>
@@ -339,17 +720,47 @@ const HealthRecords = () => {
                     <TableCell>{record.diagnosis || 'No diagnosis'}</TableCell>
                     <TableCell>{record.treatment || 'No treatment'}</TableCell>
                     <TableCell align="right">
-                      {record.record_type === 'MEDICAL' && (
-                        <Button size="small" onClick={() => { setSelectedMedicalRecordId(record.id); setOpenMedicalRecordModal(true); }}>
-                          View
-                        </Button>
-                      )}
-                      <IconButton onClick={() => handleOpenEditDialog(record)} disabled={!canEditRecords}>
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton onClick={() => handleDeleteRecord(record.id)} disabled={!canEditRecords}>
-                        <DeleteIcon />
-                      </IconButton>
+                      {/* Workflow Automation Suggestions */}
+                      {canEditRecords && (() => {
+                        const suggestions = getFollowUpSuggestions(record);
+                        return suggestions.length > 0 && (
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+                            {suggestions.map((suggestion, index) => (
+                              <Chip
+                                key={index}
+                                label={suggestion.action}
+                                size="small"
+                                color={suggestion.type === 'follow-up' ? 'primary' : 
+                                       suggestion.type === 'certificate' ? 'secondary' : 'default'}
+                                onClick={() => handleAutomationAction(suggestion.action, record)}
+                                sx={{ 
+                                  fontSize: '0.7rem',
+                                  height: 20,
+                                  cursor: 'pointer',
+                                  '&:hover': {
+                                    opacity: 0.8
+                                  }
+                                }}
+                              />
+                            ))}
+                          </Box>
+                        );
+                      })()}
+                      
+                      {/* Regular Action Buttons */}
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        {record.record_type === 'MEDICAL' && (
+                          <Button size="small" onClick={() => { setSelectedMedicalRecordId(record.id); setOpenMedicalRecordModal(true); }}>
+                            View
+                          </Button>
+                        )}
+                        <IconButton onClick={() => handleOpenEditDialog(record)} disabled={!canEditRecords}>
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton onClick={() => handleDeleteRecord(record.id)} disabled={!canEditRecords}>
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 ))
@@ -368,7 +779,7 @@ const HealthRecords = () => {
       {/* Create/Edit Dialog */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>
-          {dialogMode === 'create' ? 'Create Health Record' : 'Edit Health Record'}
+          {dialogMode === 'create' ? 'Create Clinical Record' : 'Edit Clinical Record'}
         </DialogTitle>
         <DialogContent dividers>
           {currentRecord && (
@@ -543,8 +954,10 @@ const HealthRecords = () => {
             onClick={handleSaveRecord} 
             variant="contained"
             sx={{ 
-              bgcolor: 'rgb(104, 138, 124)', 
-              '&:hover': { bgcolor: 'rgb(84, 118, 104)' } 
+              background: 'linear-gradient(45deg, #667eea 30%, #764ba2 90%)',
+              '&:hover': {
+                background: 'linear-gradient(45deg, #5a6fd8 30%, #6a4190 90%)',
+              }
             }}
           >
             Save
@@ -560,6 +973,66 @@ const HealthRecords = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenMedicalRecordModal(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Clinical Templates Dialog */}
+      <Dialog open={openTemplateDialog} onClose={handleCloseTemplateDialog} maxWidth="md" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <TemplateIcon sx={{ color: '#667eea' }} />
+            Clinical Record Templates
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Select a template to quickly create a clinical record with pre-filled information.
+          </Typography>
+          <Grid container spacing={2}>
+            {clinicalTemplates.map((template, index) => (
+              <Grid item xs={12} sm={6} key={index}>
+                <Card 
+                  elevation={2} 
+                  sx={{ 
+                    cursor: 'pointer', 
+                    transition: 'all 0.3s ease',
+                    border: `2px solid ${template.category === 'DENTAL' ? '#f093fb20' : '#667eea20'}`,
+                    '&:hover': { 
+                      boxShadow: 6, 
+                      transform: 'translateY(-2px)',
+                      borderColor: template.category === 'DENTAL' ? '#f093fb' : '#667eea'
+                    } 
+                  }}
+                  onClick={() => handleUseTemplate(template)}
+                >
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Typography variant="h6" fontWeight="bold">
+                        {template.name}
+                      </Typography>
+                      <Chip 
+                        label={template.category} 
+                        color={template.category === 'DENTAL' ? 'secondary' : 'primary'} 
+                        size="small"
+                      />
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      <strong>Chief Complaint:</strong> {template.chief_complaint}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      <strong>Diagnosis:</strong> {template.diagnosis}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Treatment:</strong> {template.treatment.substring(0, 60)}...
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseTemplateDialog}>Cancel</Button>
         </DialogActions>
       </Dialog>
     </Box>

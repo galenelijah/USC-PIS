@@ -38,7 +38,7 @@ const AdminFeedbackList = lazy(() => import('./components/AdminFeedbackList'));
 const FileUploadPage = lazy(() => import('./pages/FileUploadPage'));
 const FileDownloadPage = lazy(() => import('./pages/FileDownloadPage'));
 const MedicalCertificatesPage = lazy(() => import('./pages/MedicalCertificatesPage'));
-const MedicalRecordsPage = lazy(() => import('./components/MedicalRecordsPage'));
+const MedicalHistoryPage = lazy(() => import('./components/MedicalHistoryPage'));
 const PatientMedicalDashboard = lazy(() => import('./components/PatientMedicalDashboard'));
 const EditProfile = lazy(() => import('./components/EditProfile'));
 
@@ -498,14 +498,16 @@ const App = () => {
           }
         />
         
-        {/* Medical Records Route */}
+        {/* Medical History Route */}
         <Route
           path="/medical-records"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
                 <Layout onSearch={handleSearch}>
-                  <MedicalRecordsPage />
+                  <Suspense fallback={<PageLoader />}>
+                    <MedicalHistoryPage />
+                  </Suspense>
                 </Layout>
               </RequireProfileSetup>
             </RequireAuth>

@@ -1,5 +1,5 @@
 from django.test import TestCase
-from django.urls import reverse
+from django.urls import reverse, NoReverseMatch
 from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
 from django.contrib.auth import get_user_model
@@ -117,7 +117,7 @@ class FeedbackEndpointTest(TestCase):
     def test_feedback_list_endpoint(self):
         try:
             url = reverse('feedback:feedback-list')
-        except:
+        except NoReverseMatch:
             url = '/api/feedback/'
         response = self.client.get(url)
         self.assertIn(response.status_code, [200, 403, 401])

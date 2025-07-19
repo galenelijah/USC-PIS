@@ -91,9 +91,9 @@ const Sidebar = () => {
   const patientItems = [
     { text: 'Patients', icon: <PeopleIcon />, path: '/patients', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'] },
     { text: 'Patient Medical Dashboard', icon: <MedicalInformationIcon />, path: '/patient-dashboard' },
-    { text: 'Medical Records', icon: <LocalHospitalIcon />, path: '/health-records' },
+    { text: 'Medical History', icon: <LocalHospitalIcon />, path: '/medical-records', description: 'View patient medical timeline and history' },
+    { text: 'Clinical Records', icon: <LocalHospitalIcon />, path: '/health-records', description: 'Comprehensive clinical record management', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'] },
     { text: 'Dental Records', icon: <DentalIcon />, path: '/dental-records' },
-    { text: 'Medical Records (New)', icon: <LocalHospitalIcon />, path: '/medical-records' },
     { text: 'Consultations', icon: <LocalHospitalIcon />, path: '/consultations' },
     { text: 'Medical Certificates', icon: <MedicalInformationIcon />, path: '/medical-certificates', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE', 'STUDENT'] },
   ];
@@ -151,7 +151,12 @@ const Sidebar = () => {
         )}
         <List>
           {filteredItems.map((item) => (
-            <Tooltip title={item.text} placement="right" key={item.text}>
+            <Tooltip 
+              title={item.description || item.text} 
+              placement="right" 
+              key={item.text}
+              arrow
+            >
               <ListItem
                 button
                 onClick={() => {
@@ -176,10 +181,16 @@ const Sidebar = () => {
                 <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
                   {item.icon}
                 </ListItemIcon>
-                <ListItemText primary={item.text} />
+                <ListItemText 
+                  primary={item.text}
+                  primaryTypographyProps={{
+                    fontSize: '0.875rem',
+                    fontWeight: isActive(item.path) ? 'bold' : 'normal'
+                  }}
+                />
               </ListItem>
             </Tooltip>
-          ))}
+          ))
         </List>
       </>
     );

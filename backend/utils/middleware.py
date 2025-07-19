@@ -65,12 +65,15 @@ class SecurityHeadersMiddleware:
         if not settings.DEBUG:
             csp_policy = (
                 "default-src 'self'; "
-                "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-                "style-src 'self' 'unsafe-inline'; "
+                "script-src 'self' https://cdn.jsdelivr.net; "
+                "style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
                 "img-src 'self' data: https:; "
-                "font-src 'self' data:; "
+                "font-src 'self' data: https://fonts.gstatic.com; "
                 "connect-src 'self' https:; "
-                "frame-ancestors 'self';"
+                "frame-ancestors 'none'; "
+                "object-src 'none'; "
+                "base-uri 'self'; "
+                "form-action 'self';"
             )
             response['Content-Security-Policy'] = csp_policy
         
