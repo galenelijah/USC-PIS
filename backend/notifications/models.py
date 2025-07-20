@@ -101,8 +101,8 @@ class Notification(models.Model):
     
     # Additional data
     metadata = models.JSONField(default=dict, blank=True)
-    action_url = models.URLField(blank=True, help_text="URL for notification action")
-    action_text = models.CharField(max_length=100, blank=True, help_text="Text for action button")
+    action_url = models.URLField(blank=True, null=True, help_text="URL for notification action")
+    action_text = models.CharField(max_length=100, blank=True, null=True, help_text="Text for action button")
     
     # Related objects
     template = models.ForeignKey(NotificationTemplate, on_delete=models.SET_NULL, null=True, blank=True)

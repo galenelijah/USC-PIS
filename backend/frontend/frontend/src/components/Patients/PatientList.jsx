@@ -15,6 +15,7 @@ import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 
 const PatientRow = memo(({ patient, onEdit, onDelete }) => (
   <TableRow key={patient.id}>
+    <TableCell>{patient.usc_id || 'N/A'}</TableCell>
     <TableCell>{`${patient.first_name} ${patient.last_name}`}</TableCell>
     <TableCell>{patient.date_of_birth}</TableCell>
     <TableCell>{patient.gender}</TableCell>
@@ -50,6 +51,7 @@ const PatientList = memo(({ patients, onEdit, onDelete }) => {
         <Table>
           <TableHead>
             <TableRow>
+              <TableCell>USC ID</TableCell>
               <TableCell>Name</TableCell>
               <TableCell>Date of Birth</TableCell>
               <TableCell>Gender</TableCell>

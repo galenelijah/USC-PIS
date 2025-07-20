@@ -64,15 +64,20 @@ class PatientSerializer(serializers.ModelSerializer):
     medical_records = MedicalRecordSerializer(many=True, read_only=True)
     dental_records = DentalRecordSerializer(many=True, read_only=True)
     consultations = ConsultationSerializer(many=True, read_only=True)
+    usc_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Patient
         fields = [
-            'id', 'first_name', 'last_name', 'date_of_birth', 
+            'id', 'usc_id', 'first_name', 'last_name', 'date_of_birth', 
             'gender', 'email', 'phone_number', 'address',
             'created_at', 'updated_at', 'medical_records', 'dental_records', 'consultations'
         ]
-        read_only_fields = ['created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at', 'usc_id']
+    
+    def get_usc_id(self, obj):
+        """Get USC ID number from the related user"""
+        return obj.user.id_number if obj.user and obj.user.id_number else None
     
     def validate_email(self, value):
         """Validate email with USC domain requirement."""

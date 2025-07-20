@@ -54,7 +54,8 @@ class PatientViewSet(viewsets.ModelViewSet):
                 Q(first_name__icontains=search) |
                 Q(last_name__icontains=search) |
                 Q(email__icontains=search) |
-                Q(user__email__icontains=search)
+                Q(user__email__icontains=search) |
+                Q(user__id_number__icontains=search)  # Search by USC ID number
             )
             
         return queryset
