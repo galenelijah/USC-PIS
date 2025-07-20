@@ -299,18 +299,20 @@ const ProfileSetup = () => {
       console.log('Submitting profile data:', profileData);
       console.log('About to call completeProfileSetup...');
       
-      // Try using updateProfile instead since completeProfileSetup might not exist
-      const response = await authService.updateProfile(profileData);
+      // Use the correct completeProfileSetup endpoint
+      const response = await authService.completeProfileSetup(profileData);
       
       console.log('Profile setup API response received');
       console.log('Response status:', response?.status);
       console.log('Response data:', response?.data);
       console.log('Full response object:', response);
       
-      // The updateProfile endpoint returns user data directly
+      // The completeProfileSetup endpoint returns user data and new token
       if (response.data) {
-        console.log('Profile update successful, updating Redux store');
-        dispatch(setCredentials({ user: response.data, token: currentToken }));
+        console.log('Profile setup successful, updating Redux store');
+        const userData = response.data.user || response.data;
+        const newToken = response.data.token || currentToken;
+        dispatch(setCredentials({ user: userData, token: newToken }));
         console.log('Navigating to home page');
         navigate('/home');
       } else {

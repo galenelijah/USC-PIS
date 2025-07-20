@@ -27,6 +27,15 @@ import {
 } from "@mui/icons-material";
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../features/authentication/authSlice';
+import { 
+  getSexLabel, 
+  getCivilStatusLabel, 
+  getCourseLabel, 
+  getYearLevelLabel,
+  calculateAge,
+  formatMedicalInfo,
+  convertStringToArray 
+} from '../utils/fieldMappers';
 import BMI_male_1 from "../assets/images/BMI_Visual/BMI_male_1.png";
 import BMI_male_2 from "../assets/images/BMI_Visual/BMI_male_2.png";
 import BMI_male_3 from "../assets/images/BMI_Visual/BMI_male_3.png";
@@ -94,24 +103,7 @@ const PatientMedicalDashboard = () => {
     return { category: "Not Available", image: null, color: "#f0f0f0" };
   };
 
-  // Helper function to parse comma-separated strings to arrays
-  const parseStringToArray = (str) => {
-    if (!str || typeof str !== 'string') return [];
-    return str.split(',').map(item => item.trim()).filter(item => item.length > 0);
-  };
-
-  // Calculate user age from birthday
-  const calculateAge = (birthday) => {
-    if (!birthday) return null;
-    const today = new Date();
-    const birthDate = new Date(birthday);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    return age;
-  };
+  // Use imported utility functions
 
   if (!currentUser) {
     return (
@@ -127,13 +119,13 @@ const PatientMedicalDashboard = () => {
   const userBMI = calculateBMI(currentUser.weight, currentUser.height);
   const bmiInfo = getBMIInfo(userBMI, currentUser.sex);
 
-  // Parse medical information arrays
-  const illnesses = parseStringToArray(currentUser.illness);
-  const allergies = parseStringToArray(currentUser.allergies);
-  const medications = parseStringToArray(currentUser.medications);
-  const childhoodDiseases = parseStringToArray(currentUser.childhood_diseases);
-  const specialNeeds = parseStringToArray(currentUser.special_needs);
-  const existingConditions = parseStringToArray(currentUser.existing_medical_condition);
+  // Parse medical information arrays using imported utility
+  const illnesses = convertStringToArray(currentUser.illness);
+  const allergies = convertStringToArray(currentUser.allergies);
+  const medications = convertStringToArray(currentUser.medications);
+  const childhoodDiseases = convertStringToArray(currentUser.childhood_diseases);
+  const specialNeeds = convertStringToArray(currentUser.special_needs);
+  const existingConditions = convertStringToArray(currentUser.existing_medical_condition);
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
@@ -302,7 +294,7 @@ const PatientMedicalDashboard = () => {
                     </Grid>
                     <Grid item xs={6} sm={2}>
                       <Typography variant="caption" color="textSecondary">Sex</Typography>
-                      <Typography variant="body1" fontWeight="medium">{currentUser.sex || 'N/A'}</Typography>
+                      <Typography variant="body1" fontWeight="medium">{getSexLabel(currentUser.sex)}</Typography>
                     </Grid>
                     <Grid item xs={12} sm={6}>
                       <Typography variant="caption" color="textSecondary">ID Number</Typography>
@@ -312,7 +304,7 @@ const PatientMedicalDashboard = () => {
                       <Typography variant="caption" color="textSecondary">Program</Typography>
                       <Typography variant="body1" fontWeight="medium">
                         {currentUser.year_level && currentUser.course 
-                          ? `${currentUser.year_level} - ${currentUser.course}`
+                          ? `${getYearLevelLabel(currentUser.year_level)} - ${getCourseLabel(currentUser.course)}`
                           : 'N/A'
                         }
                       </Typography>
