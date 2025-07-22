@@ -36,6 +36,7 @@ import {
   formatMedicalInfo,
   convertStringToArray 
 } from '../utils/fieldMappers';
+import { healthRecordsService } from '../services/api';
 import BMI_male_1 from "../assets/images/BMI_Visual/BMI_male_1.png";
 import BMI_male_2 from "../assets/images/BMI_Visual/BMI_male_2.png";
 import BMI_male_3 from "../assets/images/BMI_Visual/BMI_male_3.png";
@@ -51,6 +52,52 @@ const PatientMedicalDashboard = () => {
   const currentUser = useSelector(selectCurrentUser);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [medicalRecords, setMedicalRecords] = useState([]);
+  const [latestVitalSigns, setLatestVitalSigns] = useState({});
+
+  // Fetch medical records to get vital signs
+  useEffect(() => {
+    const fetchMedicalRecords = async () => {
+      if (!currentUser) return;
+      
+      try {
+        setLoading(true);
+        const response = await healthRecordsService.getAll();
+        
+        if (response?.data && Array.isArray(response.data)) {
+          setMedicalRecords(response.data);
+          
+          // Find the most recent medical record with vital signs
+          const recordsWithVitalSigns = response.data.filter(record => 
+            record.vital_signs && Object.keys(record.vital_signs).length > 0
+          );
+          
+          if (recordsWithVitalSigns.length > 0) {
+            // Sort by visit date (most recent first) and get the latest vital signs
+            const sortedRecords = recordsWithVitalSigns.sort((a, b) => 
+              new Date(b.visit_date) - new Date(a.visit_date)
+            );
+            setLatestVitalSigns(sortedRecords[0].vital_signs);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching medical records:', err);
+        setError('Failed to load medical records');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMedicalRecords();
+  }, [currentUser]);
+
+  // Format vital signs for display
+  const formatVitalSign = (value, unit = '') => {
+    if (value === null || value === undefined || value === '') {
+      return 'Not recorded';
+    }
+    return `${value}${unit ? ' ' + unit : ''}`;
+  };
 
   // Calculate BMI if height and weight are available
   const calculateBMI = (weight, height) => {
@@ -234,19 +281,23 @@ const PatientMedicalDashboard = () => {
               <Box sx={{ '& > *': { mb: 1 } }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2">Temperature:</Typography>
-                  <Typography variant="body2">Not recorded</Typography>
+                  <Typography variant="body2">{formatVitalSign(latestVitalSigns.temperature, '°C')}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2">Pulse Rate:</Typography>
-                  <Typography variant="body2">Not recorded</Typography>
+                  <Typography variant="body2">{formatVitalSign(latestVitalSigns.heart_rate, 'bpm')}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2">Blood Pressure:</Typography>
-                  <Typography variant="body2">Not recorded</Typography>
+                  <Typography variant="body2">{formatVitalSign(latestVitalSigns.blood_pressure, 'mmHg')}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2">Vision:</Typography>
-                  <Typography variant="body2">Not recorded</Typography>
+                  <Typography variant="body2">Oxygen Saturation:</Typography>
+                  <Typography variant="body2">{formatVitalSign(latestVitalSigns.oxygen_saturation, '%')}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">Respiratory Rate:</Typography>
+                  <Typography variant="body2">{formatVitalSign(latestVitalSigns.respiratory_rate, '/min')}</Typography>
                 </Box>
               </Box>
             </CardContent>

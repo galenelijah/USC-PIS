@@ -275,7 +275,7 @@ const HealthRecords = () => {
         // Auto-create a follow-up record template
         setDialogMode('create');
         setCurrentRecord({
-          patient: record.patient?.id,
+          patient: record.patient,
           visit_date: dayjs().add(2, 'week').format('YYYY-MM-DD'),
           record_type: record.record_type,
           chief_complaint: `Follow-up for: ${record.diagnosis}`,
@@ -365,7 +365,7 @@ ${data.commonDiagnoses.map(d => `${d.diagnosis}: ${d.count} cases`).join('\n')}
 === DETAILED RECORDS ===
 ${filteredRecords.map(r => `
 Date: ${r.visit_date}
-Patient: ${r.patient?.first_name || ''} ${r.patient?.last_name || ''}
+Patient: ${r.patient_name || `Patient ID: ${r.patient}`}
 Type: ${r.record_type}
 Diagnosis: ${r.diagnosis || 'N/A'}
 Treatment: ${r.treatment || 'N/A'}
@@ -482,9 +482,8 @@ Treatment: ${r.treatment || 'N/A'}
   // Filter records based on search term and selected date
   const filteredRecords = records.filter(record => {
     const searchMatch = 
-      (record.patient?.first_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (record.patient?.last_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (record.patient?.id_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (record.patient_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (record.patient_usc_id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (record.diagnosis || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     const dateMatch = selectedDate ? record.visit_date === dayjs(selectedDate).format('YYYY-MM-DD') : true;
@@ -708,8 +707,16 @@ Treatment: ${r.treatment || 'N/A'}
                 filteredRecords.map((record) => (
                   <TableRow key={record.id}>
                     <TableCell>{record.visit_date}</TableCell>
-                    <TableCell>{record.patient ? `${record.patient.first_name || ''} ${record.patient.last_name || ''}`.trim() : 'Unknown Patient'}</TableCell>
-                    <TableCell>{record.patient?.id_number || 'N/A'}</TableCell>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight="medium">
+                        {record.patient_name || `Patient ID: ${record.patient}`}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary">
+                        {record.patient_usc_id || 'N/A'}
+                      </Typography>
+                    </TableCell>
                     <TableCell>
                       <Chip 
                         label={record.record_type || 'MEDICAL'} 
