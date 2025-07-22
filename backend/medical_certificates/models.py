@@ -69,7 +69,7 @@ def medical_certificate_notification(sender, instance, created, **kwargs):
         # Notify patient when certificate is created
         if instance.patient.user:
             Notification.objects.create(
-                user=instance.patient.user,
+                recipient=instance.patient.user,
                 title="Medical Certificate Created",
                 message=f"A new medical certificate has been created for you by {instance.issued_by.get_full_name()}.",
                 notification_type="certificate_created"
@@ -80,7 +80,7 @@ def medical_certificate_notification(sender, instance, created, **kwargs):
             # Notify patient when certificate is approved
             if instance.patient.user:
                 Notification.objects.create(
-                    user=instance.patient.user,
+                    recipient=instance.patient.user,
                     title="Medical Certificate Approved",
                     message=f"Your medical certificate has been approved by {instance.approved_by.get_full_name()}. You can now download it.",
                     notification_type="certificate_approved"
@@ -89,7 +89,7 @@ def medical_certificate_notification(sender, instance, created, **kwargs):
             # Notify patient when certificate is rejected
             if instance.patient.user:
                 Notification.objects.create(
-                    user=instance.patient.user,
+                    recipient=instance.patient.user,
                     title="Medical Certificate Rejected",
                     message=f"Your medical certificate has been rejected by {instance.approved_by.get_full_name()}. Please contact the clinic for more information.",
                     notification_type="certificate_rejected"
@@ -99,7 +99,7 @@ def medical_certificate_notification(sender, instance, created, **kwargs):
             doctors = User.objects.filter(role__in=['DOCTOR', 'ADMIN'])
             for doctor in doctors:
                 Notification.objects.create(
-                    user=doctor,
+                    recipient=doctor,
                     title="Medical Certificate Pending Approval",
                     message=f"A medical certificate for {instance.patient.get_full_name()} is pending your approval.",
                     notification_type="certificate_pending"

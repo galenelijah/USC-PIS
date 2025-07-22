@@ -191,23 +191,30 @@ const Campaigns = () => {
   };
 
   const handleCampaignClick = async (campaign) => {
+    // Always set the selected campaign and show the dialog
+    setSelectedCampaign(campaign);
+    setDialogOpen(true);
+    
+    // Track engagement (non-critical)
     try {
-      setSelectedCampaign(campaign);
-      
-      // Track engagement
       await campaignService.trackEngagement(campaign.id);
-      
-      // Fetch resources and feedback
+    } catch (err) {
+      console.warn('Failed to track engagement:', err);
+    }
+    
+    // Fetch resources and feedback (non-critical for display)
+    try {
       const [resourcesResponse, feedbackResponse] = await Promise.all([
         campaignService.getCampaignResources(campaign.id),
         campaignService.getCampaignFeedback(campaign.id)
       ]);
       
-      setResources(resourcesResponse.data);
-      setCampaignFeedback(feedbackResponse.data);
-      setDialogOpen(true);
+      setResources(resourcesResponse.data || []);
+      setCampaignFeedback(feedbackResponse.data || []);
     } catch (err) {
-      console.error('Error loading campaign details:', err);
+      console.warn('Failed to load campaign resources/feedback:', err);
+      setResources([]);
+      setCampaignFeedback([]);
     }
   };
 

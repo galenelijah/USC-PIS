@@ -363,7 +363,7 @@ def health_campaign_notification(sender, instance, created, **kwargs):
         admins = User.objects.filter(role__in=['ADMIN', 'STAFF'])
         for admin in admins:
             Notification.objects.create(
-                user=admin,
+                recipient=admin,
                 title="New Health Campaign Created",
                 message=f"A new health campaign '{instance.title}' has been created and is ready for review.",
                 notification_type="campaign_created"
@@ -375,7 +375,7 @@ def health_campaign_notification(sender, instance, created, **kwargs):
             active_users = User.objects.filter(is_active=True)
             for user in active_users[:50]:  # Limit to first 50 users to avoid overwhelming
                 Notification.objects.create(
-                    user=user,
+                    recipient=user,
                     title=f"New Health Campaign: {instance.title}",
                     message=f"A new health campaign about {instance.get_campaign_type_display()} is now active. Check it out!",
                     notification_type="campaign_activated"
