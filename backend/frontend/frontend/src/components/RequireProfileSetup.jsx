@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { selectCurrentUser, selectAuthToken, setCredentials } from '../features/authentication/authSlice';
 import { authService } from '../services/api';
 import { CircularProgress, Box, Typography } from '@mui/material';
+import logger from '../utils/logger';
 
 const RequireProfileSetup = ({ children }) => {
     const [loading, setLoading] = useState(true);

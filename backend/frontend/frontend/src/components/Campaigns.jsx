@@ -219,7 +219,12 @@ const Campaigns = () => {
       Object.keys(campaignForm).forEach(key => {
         if (campaignForm[key] !== null && campaignForm[key] !== '' && 
             !['banner_image', 'thumbnail_image', 'pubmat_image'].includes(key)) {
-          formData.append(key, campaignForm[key]);
+          // Format date fields properly
+          if ((key === 'start_date' || key === 'end_date') && campaignForm[key] instanceof Date) {
+            formData.append(key, campaignForm[key].toISOString().split('T')[0]); // Format as YYYY-MM-DD
+          } else {
+            formData.append(key, campaignForm[key]);
+          }
         }
       });
       

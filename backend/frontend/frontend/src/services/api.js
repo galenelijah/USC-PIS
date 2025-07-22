@@ -171,6 +171,15 @@ export const authService = {
       return await api.get('/auth/profile/me/');
     } catch (error) {
       handleApiError(error);
+      throw error;
+    }
+  },
+  getCurrentUser: async () => {
+    try {
+      return await api.get('/auth/profile/me/');
+    } catch (error) {
+      handleApiError(error);
+      throw error;
     }
   },
   updateProfile: async (data) => {
@@ -296,6 +305,7 @@ export const patientService = {
       return await api.get('/patients/medical-records/');
     } catch (error) {
       handleApiError(error);
+      throw error;
     }
   },
 };
@@ -443,6 +453,7 @@ export const fileUploadService = {
       return await api.get('/files/uploads/');
     } catch (error) {
       handleApiError(error);
+      throw error; // Re-throw so frontend can handle the error properly
     }
   },
   upload: async (file, description = '') => {
@@ -469,6 +480,7 @@ export const fileUploadService = {
       });
     } catch (error) {
       handleApiError(error);
+      throw error;
     }
   },
   delete: async (id) => {
@@ -476,6 +488,7 @@ export const fileUploadService = {
       return await api.delete(`/files/uploads/${id}/`);
     } catch (error) {
       handleApiError(error);
+      throw error;
     }
   },
 };

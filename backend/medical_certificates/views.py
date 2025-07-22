@@ -79,8 +79,8 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
             'valid_until': certificate.valid_until.strftime('%B %d, %Y'),
             'additional_notes': certificate.additional_notes,
             'doctor_name': f"Dr. {certificate.issued_by.get_full_name()}",
-            'doctor_title': certificate.issued_by.title or 'University Physician',
-            'doctor_license': certificate.issued_by.license_number or 'N/A',
+            'doctor_title': getattr(certificate.issued_by, 'title', None) or 'University Physician',
+            'doctor_license': getattr(certificate.issued_by, 'license_number', None) or 'N/A',
             'STATIC_URL': '/static/',
         }
         

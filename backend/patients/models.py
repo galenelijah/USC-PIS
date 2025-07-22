@@ -33,6 +33,19 @@ class Patient(models.Model):
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
 
+    def get_full_name(self):
+        """Return the full name of the patient"""
+        return f"{self.first_name} {self.last_name}"
+
+    @property
+    def age(self):
+        """Calculate and return the patient's age"""
+        from datetime import date
+        if not self.date_of_birth:
+            return None
+        today = date.today()
+        return today.year - self.date_of_birth.year - ((today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day))
+
     class Meta:
         ordering = ['-created_at']
 
