@@ -82,15 +82,16 @@ class FeedbackViewSet(viewsets.ModelViewSet):
                 print(f"No patient found by email {user.email}. Creating a new patient.")
                 # 3. Create a new patient only if no patient exists with this email/user link
                 try:
+                    # Use user data if available from profile setup, otherwise use defaults
                     patient = Patient.objects.create(
                         user=user,
-                        first_name=user.first_name or 'DefaultFirstName', # Use more specific defaults
+                        first_name=user.first_name or 'DefaultFirstName',
                         last_name=user.last_name or 'DefaultLastName',
-                        date_of_birth='2000-01-01', # Consider making this nullable or required during profile setup
-                        gender='O', # Consider making this nullable or required
+                        date_of_birth=user.birthday or '2000-01-01',  # Use user's birthday if available
+                        gender='M' if user.sex and user.sex.lower().startswith('m') else 'F' if user.sex and user.sex.lower().startswith('f') else 'O',  # Convert sex to gender (M/F/O)
                         email=user.email,
-                        phone_number=user.phone or '0000000000', # Try user phone first
-                        address=user.address_present or 'Default Address' # Try user address first
+                        phone_number=user.phone or user.phone_number or '0000000000',
+                        address=user.address_present or user.address_permanent or 'Default Address'
                     )
                     print(f"Created new patient for user {user.email}: {patient}")
                 except Exception as e:

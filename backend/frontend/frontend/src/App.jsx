@@ -434,6 +434,22 @@ const App = () => {
           }
         />
         
+        {/* Specific Feedback Form Route */}
+        <Route
+          path="/feedback/:medicalRecordId"
+          element={
+            <RequireAuth isAuthenticated={isAuthenticated}>
+              <RequireProfileSetup>
+                <Layout onSearch={handleSearch}>
+                  <Suspense fallback={<PageLoader />}>
+                    <FeedbackFormWrapper />
+                  </Suspense>
+                </Layout>
+              </RequireProfileSetup>
+            </RequireAuth>
+          }
+        />
+        
         {/* Admin Feedback Route - only for admin/staff */}
         <Route
           path="/admin-feedback"

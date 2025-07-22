@@ -420,6 +420,7 @@ export const feedbackService = {
       return await api.post('/feedback/', { medical_record, rating, comments, courteous, recommend, improvement });
     } catch (error) {
       handleApiError(error);
+      throw error;
     }
   },
   getAll: async () => {
