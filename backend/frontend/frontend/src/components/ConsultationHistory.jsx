@@ -18,6 +18,7 @@ import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/ico
 import { consultationService } from '../services/api';
 import { selectCurrentUser } from '../features/authentication/authSlice';
 import ConsultationFormModal from './ConsultationFormModal';
+import logger from '../utils/logger';
 
 const ConsultationHistory = () => {
   const [consultations, setConsultations] = useState([]);
@@ -37,14 +38,14 @@ const ConsultationHistory = () => {
       if (apiResponse && apiResponse.data && Array.isArray(apiResponse.data)) {
         setConsultations(apiResponse.data);
       } else {
-        console.warn(
+        logger.warn(
           'Consultations API did not return an array in the data field or response/data was missing. Response received:',
           apiResponse
         );
         setConsultations([]);
       }
     } catch (err) {
-      console.error('Error fetching consultations:', err);
+      logger.error('Error fetching consultations:', err);
       setError('Failed to load consultation history. Please try again later.');
       setConsultations([]);
     } finally {
@@ -78,7 +79,7 @@ const ConsultationHistory = () => {
         alert('Consultation record deleted successfully.');
         fetchConsultations();
       } catch (err) {
-        console.error('Error deleting consultation:', err);
+        logger.error('Error deleting consultation:', err);
         alert('Failed to delete consultation record.');
       }
     }
@@ -106,7 +107,7 @@ const ConsultationHistory = () => {
       const date = new Date(dateTimeStr);
       return date.toLocaleString();
     } catch (e) {
-      console.error('Error formatting date:', e);
+      logger.error('Error formatting date:', e);
       return 'Invalid Date';
     }
   };
@@ -133,7 +134,7 @@ const ConsultationHistory = () => {
         <Table stickyHeader>
           <TableHead>
             <TableRow>
-              {isAdmin && <TableCell sx={{ fontWeight: 'bold' }}>Patient ID</TableCell>}
+              {isAdmin && <TableCell sx={{ fontWeight: 'bold' }}>Patient</TableCell>}
               <TableCell sx={{ fontWeight: 'bold' }}>Date/Time</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Chief Complaints</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Treatment Plan</TableCell>
@@ -151,7 +152,18 @@ const ConsultationHistory = () => {
             ) : (
               consultations.map((consultation) => (
                 <TableRow key={consultation.id} hover>
-                  {isAdmin && <TableCell>{consultation.patient}</TableCell>}
+                  {isAdmin && (
+                    <TableCell>
+                      <Typography variant="body2" fontWeight="medium">
+                        {consultation.patient_name || `Patient ID: ${consultation.patient}`}
+                      </Typography>
+                      {consultation.patient_usc_id && (
+                        <Typography variant="caption" color="text.secondary">
+                          USC ID: {consultation.patient_usc_id}
+                        </Typography>
+                      )}
+                    </TableCell>
+                  )}
                   <TableCell>{formatDateTime(consultation.date_time)}</TableCell>
                   <TableCell>{consultation.chief_complaints}</TableCell>
                   <TableCell>{consultation.treatment_plan}</TableCell>

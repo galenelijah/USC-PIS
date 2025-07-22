@@ -183,6 +183,7 @@ export class ErrorParser {
       }
 
     } catch (parseError) {
+      // Always log parsing errors since these are system errors
       console.error('Error parsing failed:', parseError);
       errorInfo.message = 'An error occurred while processing the request';
     }
@@ -341,25 +342,47 @@ export class NetworkRecoveryManager {
     this.retryQueue = [];
     this.maxRetries = 3;
     this.retryDelay = 1000; // Start with 1 second
+    this.eventListeners = new Map(); // Track event listeners for cleanup
     
     this._setupEventListeners();
   }
 
   _setupEventListeners() {
-    window.addEventListener('online', () => {
+    // Create bound event handlers for cleanup
+    this.onlineHandler = () => {
       this.isOnline = true;
       this._processRetryQueue();
       ErrorNotificationManager.showSuccess('Connection restored');
-    });
+    };
 
-    window.addEventListener('offline', () => {
+    this.offlineHandler = () => {
       this.isOnline = false;
       ErrorNotificationManager.show({
         type: ERROR_TYPES.NETWORK,
         message: 'You are currently offline. Some features may not work.',
         retryable: false
       }, { autoClose: false });
+    };
+
+    // Add event listeners and track them
+    window.addEventListener('online', this.onlineHandler);
+    window.addEventListener('offline', this.offlineHandler);
+    
+    // Store references for cleanup
+    this.eventListeners.set('online', this.onlineHandler);
+    this.eventListeners.set('offline', this.offlineHandler);
+  }
+
+  // Add cleanup method
+  destroy() {
+    // Remove all event listeners
+    this.eventListeners.forEach((handler, event) => {
+      window.removeEventListener(event, handler);
     });
+    this.eventListeners.clear();
+    
+    // Clear retry queue
+    this.retryQueue = [];
   }
 
   addToRetryQueue(requestFunction, context = {}) {
@@ -398,6 +421,7 @@ export class NetworkRecoveryManager {
         }, this.retryDelay * Math.pow(2, item.retries)); // Exponential backoff
       } else {
         // Max retries reached
+        // Always log max retry errors since these are system errors
         console.error('Max retries reached for queued request:', error);
       }
     }
@@ -496,7 +520,7 @@ export class GlobalErrorHandler {
   static handleError(error, errorInfo = {}) {
     const parsedError = ErrorParser.parse(error);
     
-    // Log error for debugging
+    // Always log global errors since these are critical system errors
     console.error('Global error caught:', {
       error,
       errorInfo,
@@ -535,6 +559,7 @@ export class GlobalErrorHandler {
         });
       }
     } catch (reportingError) {
+      // Always log reporting failures since these are system errors
       console.error('Error reporting failed:', reportingError);
     }
   }
@@ -675,6 +700,7 @@ class NetworkRecoveryQueue {
       try {
         await this.executeWithRetry(item);
       } catch (error) {
+        // Always log retry failures since these are system errors
         console.error('Retry queue execution failed:', error);
         
         // If still has retries left, add back to queue
@@ -819,7 +845,7 @@ export class ErrorBoundary extends React.Component {
       errorInfo: errorInfo
     });
 
-    // Log error
+    // Always log error boundary errors since these are critical system errors
     console.error('Error boundary caught an error:', error, errorInfo);
 
     // Show notification

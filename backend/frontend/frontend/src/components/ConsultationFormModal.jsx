@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import { consultationService, patientService } from '../services/api';
+import logger from '../utils/logger';
 
 const ConsultationFormModal = ({ open, onClose, consultationData, onSave }) => {
   const {
@@ -82,7 +83,7 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave }) => {
       }
       onSave(); // This will trigger a refresh and close the modal in the parent
     } catch (error) {
-      console.error('Error saving consultation:', error);
+      logger.error('Error saving consultation:', error);
       alert(
         `Failed to save consultation: ${
           error.response?.data?.detail || error.message

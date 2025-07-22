@@ -12,13 +12,14 @@ import {
   Box,
 } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { getSexLabel } from '../../utils/fieldMappers';
 
 const PatientRow = memo(({ patient, onEdit, onDelete }) => (
   <TableRow key={patient.id}>
     <TableCell>{patient.usc_id || 'N/A'}</TableCell>
     <TableCell>{`${patient.first_name} ${patient.last_name}`}</TableCell>
     <TableCell>{patient.date_of_birth}</TableCell>
-    <TableCell>{patient.gender}</TableCell>
+    <TableCell>{getSexLabel(patient.gender)}</TableCell>
     <TableCell>{patient.email}</TableCell>
     <TableCell>{patient.phone_number}</TableCell>
     <TableCell>

@@ -240,9 +240,14 @@ const MedicalRecordsPage = () => {
                       </TableCell>
                       {isStaffOrMedical && (
                         <TableCell>
-                          <Typography variant="body2">
+                          <Typography variant="body2" fontWeight="medium">
                             {record.patient_name || `Patient ID: ${record.patient}`}
                           </Typography>
+                          {record.patient_usc_id && (
+                            <Typography variant="caption" color="text.secondary">
+                              USC ID: {record.patient_usc_id}
+                            </Typography>
+                          )}
                         </TableCell>
                       )}
                       <TableCell>

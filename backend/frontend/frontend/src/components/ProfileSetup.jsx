@@ -46,7 +46,8 @@ import { useNavigate } from 'react-router-dom';
 import MyTextField from './forms/MyTextField';
 import MyDatePicker from './forms/MyDatePicker';
 import MySelector from './forms/MySelector';
-import { CivilStatusChoices, SexChoices, ProgramsChoices } from './static/choices.jsx';
+import { CivilStatusChoices, SexChoices, ProgramsChoices } from './static/choices';
+import logger from '../utils/logger';
 
 // Defensive fallbacks for imported arrays
 const safeCivilStatusChoices = CivilStatusChoices || [];
@@ -296,31 +297,28 @@ const ProfileSetup = () => {
       delete profileData.contact_mother_name;
       delete profileData.contact_emergency_name;
 
-      console.log('Submitting profile data:', profileData);
-      console.log('About to call completeProfileSetup...');
+      logger.apiCall('POST', '/auth/complete-profile-setup/', profileData);
       
       // Use the correct completeProfileSetup endpoint
       const response = await authService.completeProfileSetup(profileData);
       
-      console.log('Profile setup API response received');
-      console.log('Response status:', response?.status);
-      console.log('Response data:', response?.data);
-      console.log('Full response object:', response);
+      logger.info('Profile setup API response received');
+      logger.debug('Response status:', response?.status);
       
       // The completeProfileSetup endpoint returns user data and new token
       if (response.data) {
-        console.log('Profile setup successful, updating Redux store');
+        logger.info('Profile setup successful, updating Redux store');
         const userData = response.data.user || response.data;
         const newToken = response.data.token || currentToken;
         dispatch(setCredentials({ user: userData, token: newToken }));
-        console.log('Navigating to home page');
+        logger.info('Navigating to home page');
         navigate('/home');
       } else {
-        console.error('No data in response:', response);
+        logger.error('No data in response:', response);
         setError('Profile setup completed but no user data received. Please refresh the page.');
       }
     } catch (error) {
-      console.error('Profile setup error:', error);
+      logger.error('Profile setup error:', error);
       
       // More detailed error handling
       let errorMessage = 'Failed to complete profile setup. Please try again.';

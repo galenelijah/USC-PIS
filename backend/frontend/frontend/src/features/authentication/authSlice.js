@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { authService } from '../../services/api';
+import logger from '../../utils/logger';
 
 // Consistent token key
 const TOKEN_KEY = 'Token';
@@ -37,7 +38,7 @@ const loadInitialState = () => {
       error: null
     };
   } catch (error) {
-    console.error('Error loading auth state from localStorage:', error);
+    logger.error('Error loading auth state from localStorage:', error);
     return {
       token: null,
       user: null,
@@ -53,9 +54,9 @@ export const registerUser = createAsyncThunk(
   'auth/register',
   async (userData, { rejectWithValue }) => {
     try {
-      console.log('Register API call with data:', userData);
+      logger.auth('register attempt', { email: userData.email, role: userData.role });
       const response = await authService.register(userData);
-      console.log('Register API response:', response);
+      logger.auth('register success', { userId: response.data?.user?.id });
       
       // Ensure we return both token and user data if available
       return {
@@ -63,10 +64,10 @@ export const registerUser = createAsyncThunk(
         user: response.data.user || response.data
       };
     } catch (error) {
-      console.error('Register API error:', error);
+      logger.error('Register API error:', error);
       if (error.response) {
-        console.error('Error status:', error.response.status);
-        console.error('Error data:', error.response.data);
+        logger.error('Error status:', error.response.status);
+        logger.error('Error data:', error.response.data);
         return rejectWithValue(error.response.data);
       }
       return rejectWithValue(error.message || 'Registration failed');

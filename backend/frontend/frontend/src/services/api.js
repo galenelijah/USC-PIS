@@ -1,4 +1,5 @@
 import axios from 'axios';
+import logger from '../utils/logger';
 
 // Consistent token key
 const TOKEN_KEY = 'Token';
@@ -32,7 +33,7 @@ api.interceptors.request.use(request => {
   }
   return request;
 }, error => {
-  console.error('Request interceptor error:', error);
+  logger.error('Request interceptor error:', error);
   return Promise.reject(error);
 });
 
@@ -74,18 +75,18 @@ api.interceptors.response.use(
 
 // Helper function to handle API errors
 export const handleApiError = (error) => {
-  console.error('API Error:', error);
+  logger.error('API Error:', error);
   if (error.response) {
     // The request was made and the server responded with a status code
     // that falls out of the range of 2xx
-    console.error('Error data:', error.response.data);
-    console.error('Error status:', error.response.status);
-    console.error('Error headers:', error.response.headers);
+    logger.error('Error data:', error.response.data);
+    logger.error('Error status:', error.response.status);
+    logger.error('Error headers:', error.response.headers);
     
     // Check for HTML responses
     const contentType = error.response.headers['content-type'];
     if (contentType && contentType.includes('text/html')) {
-      console.error('Received HTML error response');
+      logger.error('Received HTML error response');
       // This likely means the session expired or there's a server error
       if (error.response.status === 401 || error.response.status === 403) {
         // Clear token and redirect to login
@@ -97,10 +98,10 @@ export const handleApiError = (error) => {
     }
   } else if (error.request) {
     // The request was made but no response was received
-    console.error('Error request:', error.request);
+    logger.error('Error request:', error.request);
   } else {
     // Something happened in setting up the request that triggered an Error
-    console.error('Error message:', error.message);
+    logger.error('Error message:', error.message);
   }
   throw error;
 };
@@ -108,9 +109,9 @@ export const handleApiError = (error) => {
 export const authService = {
   register: async (data) => {
     try {
-      console.log('Register API call with data:', data);
+      logger.apiCall('POST', '/auth/register/', data);
       const response = await api.post('/auth/register/', data);
-      console.log('Register API response:', response);
+      logger.auth('register success', { userId: response.data?.user?.id });
       
       // If registration returns a token, save it
       if (response.data && response.data.token) {
@@ -119,20 +120,20 @@ export const authService = {
       
       return response;
     } catch (error) {
-      console.error('Register API error:', error);
+      logger.error('Register API error:', error);
       // Enhanced error handling
       if (error.response) {
         // The request was made and the server responded with a status code outside of 2xx
-        console.error('Error status:', error.response.status);
-        console.error('Error data:', error.response.data);
+        logger.error('Error status:', error.response.status);
+        logger.error('Error data:', error.response.data);
         throw error;
       } else if (error.request) {
         // The request was made but no response was received
-        console.error('No response received:', error.request);
+        logger.error('No response received:', error.request);
         throw new Error('No response from server. Please check your connection.');
       } else {
         // Something happened in setting up the request
-        console.error('Error setting up request:', error.message);
+        logger.error('Error setting up request:', error.message);
         throw error;
       }
     }

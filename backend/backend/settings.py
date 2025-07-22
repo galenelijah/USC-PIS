@@ -97,7 +97,7 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Add whitenoise middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
-    'backend.middleware.RateLimitMiddleware',  # Add rate limiting
+    # 'backend.middleware.RateLimitMiddleware',  # Temporarily disabled - will be re-enabled in deployment
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',

@@ -3,10 +3,20 @@ from .models import Patient, MedicalRecord, Consultation, DentalRecord
 from authentication.validators import email_validator
 
 class MedicalRecordSerializer(serializers.ModelSerializer):
+    patient_name = serializers.SerializerMethodField()
+    patient_usc_id = serializers.SerializerMethodField()
+    
     class Meta:
         model = MedicalRecord
-        fields = ['id', 'patient', 'visit_date', 'diagnosis', 'treatment', 'notes', 'vital_signs', 'physical_examination', 'created_at', 'updated_at', 'created_by']
-        read_only_fields = ['created_at', 'updated_at', 'created_by']
+        fields = ['id', 'patient', 'patient_name', 'patient_usc_id', 'visit_date', 'diagnosis', 'treatment', 'notes', 'vital_signs', 'physical_examination', 'created_at', 'updated_at', 'created_by']
+        read_only_fields = ['created_at', 'updated_at', 'created_by', 'patient_name', 'patient_usc_id']
+    
+    def get_patient_name(self, obj):
+        return f"{obj.patient.first_name} {obj.patient.last_name}"
+    
+    def get_patient_usc_id(self, obj):
+        """Get USC ID number from the related user"""
+        return obj.patient.user.id_number if obj.patient.user and obj.patient.user.id_number else None
 
 class DentalRecordSerializer(serializers.ModelSerializer):
     patient_name = serializers.SerializerMethodField()
@@ -55,10 +65,20 @@ class DentalRecordSerializer(serializers.ModelSerializer):
         return value
 
 class ConsultationSerializer(serializers.ModelSerializer):
+    patient_name = serializers.SerializerMethodField()
+    patient_usc_id = serializers.SerializerMethodField()
+    
     class Meta:
         model = Consultation
-        fields = ['id', 'patient', 'date_time', 'chief_complaints', 'treatment_plan', 'remarks', 'created_at', 'updated_at', 'created_by']
-        read_only_fields = ['created_at', 'updated_at', 'created_by']
+        fields = ['id', 'patient', 'patient_name', 'patient_usc_id', 'date_time', 'chief_complaints', 'treatment_plan', 'remarks', 'created_at', 'updated_at', 'created_by']
+        read_only_fields = ['created_at', 'updated_at', 'created_by', 'patient_name', 'patient_usc_id']
+    
+    def get_patient_name(self, obj):
+        return f"{obj.patient.first_name} {obj.patient.last_name}"
+    
+    def get_patient_usc_id(self, obj):
+        """Get USC ID number from the related user"""
+        return obj.patient.user.id_number if obj.patient.user and obj.patient.user.id_number else None
 
 class PatientSerializer(serializers.ModelSerializer):
     medical_records = MedicalRecordSerializer(many=True, read_only=True)
