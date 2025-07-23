@@ -64,11 +64,15 @@ class ReportDataService:
         # Gender distribution
         gender_distribution = list(queryset.values('gender').annotate(count=Count('id')).order_by('gender'))
         
-        # Age calculation using database functions
+        # Age calculation using database functions (PostgreSQL compatible)
+        from django.db import connection
         today = timezone.now().date()
+        
+        # Use Django ORM for cross-database compatibility
         age_distribution = queryset.extra(
             select={
-                'age': "CAST((julianday('now') - julianday(date_of_birth)) / 365.25 AS INTEGER)"
+                'age': "EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth))" if connection.vendor == 'postgresql' 
+                       else "CAST((julianday('now') - julianday(date_of_birth)) / 365.25 AS INTEGER)"
             }
         ).extra(
             select={
@@ -129,32 +133,58 @@ class ReportDataService:
             medical_qs = medical_qs.filter(created_at__lte=date_end)
             dental_qs = dental_qs.filter(created_at__lte=date_end)
         
-        # Get trends using database aggregation for better performance
+        # Get trends using database aggregation for better performance (PostgreSQL compatible)
         with connection.cursor() as cursor:
-            # Monthly trends query
-            cursor.execute("""
-                SELECT 
-                    DATE(created_at, 'start of month') as month,
-                    COUNT(*) as visits,
-                    'Medical' as type
-                FROM patients_medicalrecord 
-                WHERE created_at >= ? AND created_at <= ?
-                GROUP BY month
-                UNION ALL
-                SELECT 
-                    DATE(created_at, 'start of month') as month,
-                    COUNT(*) as visits,
-                    'Dental' as type
-                FROM patients_dentalrecord 
-                WHERE created_at >= ? AND created_at <= ?
-                GROUP BY month
-                ORDER BY month
-            """, [
-                date_start or timezone.now() - timedelta(days=365),
-                date_end or timezone.now(),
-                date_start or timezone.now() - timedelta(days=365),
-                date_end or timezone.now()
-            ])
+            # Monthly trends query - database agnostic
+            if connection.vendor == 'postgresql':
+                cursor.execute("""
+                    SELECT 
+                        DATE_TRUNC('month', created_at)::date as month,
+                        COUNT(*) as visits,
+                        'Medical' as type
+                    FROM patients_medicalrecord 
+                    WHERE created_at >= %s AND created_at <= %s
+                    GROUP BY month
+                    UNION ALL
+                    SELECT 
+                        DATE_TRUNC('month', created_at)::date as month,
+                        COUNT(*) as visits,
+                        'Dental' as type
+                    FROM patients_dentalrecord 
+                    WHERE created_at >= %s AND created_at <= %s
+                    GROUP BY month
+                    ORDER BY month
+                """, [
+                    date_start or timezone.now() - timedelta(days=365),
+                    date_end or timezone.now(),
+                    date_start or timezone.now() - timedelta(days=365),
+                    date_end or timezone.now()
+                ])
+            else:
+                # SQLite fallback
+                cursor.execute("""
+                    SELECT 
+                        DATE(created_at, 'start of month') as month,
+                        COUNT(*) as visits,
+                        'Medical' as type
+                    FROM patients_medicalrecord 
+                    WHERE created_at >= ? AND created_at <= ?
+                    GROUP BY month
+                    UNION ALL
+                    SELECT 
+                        DATE(created_at, 'start of month') as month,
+                        COUNT(*) as visits,
+                        'Dental' as type
+                    FROM patients_dentalrecord 
+                    WHERE created_at >= ? AND created_at <= ?
+                    GROUP BY month
+                    ORDER BY month
+                """, [
+                    date_start or timezone.now() - timedelta(days=365),
+                    date_end or timezone.now(),
+                    date_start or timezone.now() - timedelta(days=365),
+                    date_end or timezone.now()
+                ])
             
             monthly_data = cursor.fetchall()
         
@@ -176,28 +206,50 @@ class ReportDataService:
                 'total_visits': data['total']
             })
         
-        # Visit distribution by day of week and hour
+        # Visit distribution by day of week and hour (PostgreSQL compatible)
         hour_distribution = []
         with connection.cursor() as cursor:
-            cursor.execute("""
-                SELECT 
-                    CAST(strftime('%H', created_at) AS INTEGER) as hour,
-                    COUNT(*) as visits
-                FROM (
-                    SELECT created_at FROM patients_medicalrecord
-                    WHERE created_at >= ? AND created_at <= ?
-                    UNION ALL
-                    SELECT created_at FROM patients_dentalrecord
-                    WHERE created_at >= ? AND created_at <= ?
-                ) combined
-                GROUP BY hour
-                ORDER BY hour
-            """, [
-                date_start or timezone.now() - timedelta(days=365),
-                date_end or timezone.now(),
-                date_start or timezone.now() - timedelta(days=365),
-                date_end or timezone.now()
-            ])
+            if connection.vendor == 'postgresql':
+                cursor.execute("""
+                    SELECT 
+                        EXTRACT(HOUR FROM created_at)::integer as hour,
+                        COUNT(*) as visits
+                    FROM (
+                        SELECT created_at FROM patients_medicalrecord
+                        WHERE created_at >= %s AND created_at <= %s
+                        UNION ALL
+                        SELECT created_at FROM patients_dentalrecord
+                        WHERE created_at >= %s AND created_at <= %s
+                    ) combined
+                    GROUP BY hour
+                    ORDER BY hour
+                """, [
+                    date_start or timezone.now() - timedelta(days=365),
+                    date_end or timezone.now(),
+                    date_start or timezone.now() - timedelta(days=365),
+                    date_end or timezone.now()
+                ])
+            else:
+                # SQLite fallback
+                cursor.execute("""
+                    SELECT 
+                        CAST(strftime('%H', created_at) AS INTEGER) as hour,
+                        COUNT(*) as visits
+                    FROM (
+                        SELECT created_at FROM patients_medicalrecord
+                        WHERE created_at >= ? AND created_at <= ?
+                        UNION ALL
+                        SELECT created_at FROM patients_dentalrecord
+                        WHERE created_at >= ? AND created_at <= ?
+                    ) combined
+                    GROUP BY hour
+                    ORDER BY hour
+                """, [
+                    date_start or timezone.now() - timedelta(days=365),
+                    date_end or timezone.now(),
+                    date_start or timezone.now() - timedelta(days=365),
+                    date_end or timezone.now()
+                ])
             
             for hour, visits in cursor.fetchall():
                 hour_distribution.append({'hour': hour, 'visits': visits})
@@ -331,23 +383,41 @@ class ReportDataService:
         
         rating_distribution = [{'rating': k, 'count': v} for k, v in sorted(rating_dict.items())]
         
-        # Monthly satisfaction trends using database aggregation
+        # Monthly satisfaction trends using database aggregation (PostgreSQL compatible)
         with connection.cursor() as cursor:
-            cursor.execute("""
-                SELECT 
-                    DATE(created_at, 'start of month') as month,
-                    AVG(rating) as avg_rating,
-                    COUNT(*) as feedback_count,
-                    COUNT(CASE WHEN recommend = 'yes' THEN 1 END) as recommend_count,
-                    COUNT(CASE WHEN courteous = 'yes' THEN 1 END) as courtesy_count
-                FROM feedback_feedback 
-                WHERE created_at >= ? AND created_at <= ?
-                GROUP BY month
-                ORDER BY month
-            """, [
-                date_start or timezone.now() - timedelta(days=180),
-                date_end or timezone.now()
-            ])
+            if connection.vendor == 'postgresql':
+                cursor.execute("""
+                    SELECT 
+                        DATE_TRUNC('month', created_at)::date as month,
+                        AVG(rating) as avg_rating,
+                        COUNT(*) as feedback_count,
+                        COUNT(CASE WHEN recommend = 'yes' THEN 1 END) as recommend_count,
+                        COUNT(CASE WHEN courteous = 'yes' THEN 1 END) as courtesy_count
+                    FROM feedback_feedback 
+                    WHERE created_at >= %s AND created_at <= %s
+                    GROUP BY month
+                    ORDER BY month
+                """, [
+                    date_start or timezone.now() - timedelta(days=180),
+                    date_end or timezone.now()
+                ])
+            else:
+                # SQLite fallback
+                cursor.execute("""
+                    SELECT 
+                        DATE(created_at, 'start of month') as month,
+                        AVG(rating) as avg_rating,
+                        COUNT(*) as feedback_count,
+                        COUNT(CASE WHEN recommend = 'yes' THEN 1 END) as recommend_count,
+                        COUNT(CASE WHEN courteous = 'yes' THEN 1 END) as courtesy_count
+                    FROM feedback_feedback 
+                    WHERE created_at >= ? AND created_at <= ?
+                    GROUP BY month
+                    ORDER BY month
+                """, [
+                    date_start or timezone.now() - timedelta(days=180),
+                    date_end or timezone.now()
+                ])
             
             satisfaction_trends = []
             for row in cursor.fetchall():
@@ -360,21 +430,36 @@ class ReportDataService:
                     'courtesy_rate': round((courtesy / max(1, count)) * 100, 1)
                 })
         
-        # Response time analysis (if medical record feedback)
+        # Response time analysis (if medical record feedback) - PostgreSQL compatible
         response_time_stats = None
         with connection.cursor() as cursor:
-            cursor.execute("""
-                SELECT 
-                    AVG(julianday(f.created_at) - julianday(mr.created_at)) as avg_response_days,
-                    COUNT(*) as count
-                FROM feedback_feedback f
-                JOIN patients_medicalrecord mr ON f.medical_record_id = mr.id
-                WHERE f.created_at >= ? AND f.created_at <= ?
-                AND f.medical_record_id IS NOT NULL
-            """, [
-                date_start or timezone.now() - timedelta(days=180),
-                date_end or timezone.now()
-            ])
+            if connection.vendor == 'postgresql':
+                cursor.execute("""
+                    SELECT 
+                        AVG(EXTRACT(EPOCH FROM (f.created_at - mr.created_at))/86400) as avg_response_days,
+                        COUNT(*) as count
+                    FROM feedback_feedback f
+                    JOIN patients_medicalrecord mr ON f.medical_record_id = mr.id
+                    WHERE f.created_at >= %s AND f.created_at <= %s
+                    AND f.medical_record_id IS NOT NULL
+                """, [
+                    date_start or timezone.now() - timedelta(days=180),
+                    date_end or timezone.now()
+                ])
+            else:
+                # SQLite fallback
+                cursor.execute("""
+                    SELECT 
+                        AVG(julianday(f.created_at) - julianday(mr.created_at)) as avg_response_days,
+                        COUNT(*) as count
+                    FROM feedback_feedback f
+                    JOIN patients_medicalrecord mr ON f.medical_record_id = mr.id
+                    WHERE f.created_at >= ? AND f.created_at <= ?
+                    AND f.medical_record_id IS NOT NULL
+                """, [
+                    date_start or timezone.now() - timedelta(days=180),
+                    date_end or timezone.now()
+                ])
             
             row = cursor.fetchone()
             if row and row[1] > 0:
