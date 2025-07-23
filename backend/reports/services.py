@@ -308,7 +308,7 @@ class ReportDataService:
             'hour_distribution': hour_distribution,
             'common_diagnoses': common_diagnoses,
             'average_daily_visits': round(total_visits / max(1, 
-                (date_end or timezone.now() - (date_start or timezone.now() - timedelta(days=365))).days
+                ((date_end or timezone.now()) - (date_start or timezone.now() - timedelta(days=365))).days
             ), 1),
             'peak_hour': max(hour_distribution, key=lambda x: x['visits'])['hour'] if hour_distribution else None
         }
