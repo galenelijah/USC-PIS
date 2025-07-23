@@ -71,9 +71,12 @@ const UniversalCampaigns = () => {
     priority: 'MEDIUM',
     content: '',
     summary: '',
+    objectives: '',
     target_audience: '',
     call_to_action: '',
     tags: '',
+    start_date: '',
+    end_date: '',
     status: 'ACTIVE'
   });
   
@@ -194,9 +197,12 @@ const UniversalCampaigns = () => {
         priority: 'MEDIUM',
         content: '',
         summary: '',
+        objectives: '',
         target_audience: '',
         call_to_action: '',
         tags: '',
+        start_date: '',
+        end_date: '',
         status: 'ACTIVE'
       });
       fetchActiveCampaigns(); // Refresh campaigns
@@ -604,10 +610,23 @@ const UniversalCampaigns = () => {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
+                  label="Description *"
+                  value={campaignForm.description}
+                  onChange={(e) => setCampaignForm({ ...campaignForm, description: e.target.value })}
+                  placeholder="Brief description of the campaign..."
+                  multiline
+                  rows={2}
+                  required
+                />
+              </Grid>
+
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
                   label="Short Summary"
                   value={campaignForm.summary}
                   onChange={(e) => setCampaignForm({ ...campaignForm, summary: e.target.value })}
-                  placeholder="Brief description of the campaign..."
+                  placeholder="Additional summary (optional)..."
                   multiline
                   rows={2}
                 />
@@ -623,6 +642,48 @@ const UniversalCampaigns = () => {
                   multiline
                   rows={6}
                   helperText="You can use basic HTML tags like <h3>, <p>, <ul>, <li>, <strong>, etc."
+                />
+              </Grid>
+
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Objectives *"
+                  value={campaignForm.objectives}
+                  onChange={(e) => setCampaignForm({ ...campaignForm, objectives: e.target.value })}
+                  placeholder="Campaign objectives and goals (e.g., • Increase awareness • Promote healthy habits • Reduce incidents)"
+                  multiline
+                  rows={3}
+                  required
+                  helperText="List the main objectives of this campaign"
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Start Date *"
+                  type="date"
+                  value={campaignForm.start_date}
+                  onChange={(e) => setCampaignForm({ ...campaignForm, start_date: e.target.value })}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                  required
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="End Date *"
+                  type="date"
+                  value={campaignForm.end_date}
+                  onChange={(e) => setCampaignForm({ ...campaignForm, end_date: e.target.value })}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                  required
                 />
               </Grid>
 
@@ -666,7 +727,14 @@ const UniversalCampaigns = () => {
             onClick={handleCampaignCreate}
             variant="contained"
             startIcon={<SaveIcon />}
-            disabled={!campaignForm.title || !campaignForm.content}
+            disabled={
+              !campaignForm.title || 
+              !campaignForm.description || 
+              !campaignForm.content || 
+              !campaignForm.objectives || 
+              !campaignForm.start_date || 
+              !campaignForm.end_date
+            }
           >
             Create Campaign
           </Button>
