@@ -92,7 +92,6 @@ const Sidebar = () => {
     { text: 'Medical History', icon: <LocalHospitalIcon />, path: '/medical-records', description: 'View patient medical timeline and history' },
     { text: 'Clinical Records', icon: <LocalHospitalIcon />, path: '/health-records', description: 'Comprehensive clinical record management', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'] },
     { text: 'Dental Records', icon: <DentalIcon />, path: '/dental-records' },
-    { text: 'Consultations', icon: <LocalHospitalIcon />, path: '/consultations' },
     { text: 'Medical Certificates', icon: <MedicalInformationIcon />, path: '/medical-certificates', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE', 'STUDENT'] },
   ];
 

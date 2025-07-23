@@ -211,15 +211,6 @@ const Dashboard = memo(({ user }) => {
             </Grid>
             <Grid item xs={12} md={4}>
               <QuickAction
-                title="Consultations"
-                description="View your past consultations and medical visits"
-                icon={<EventNoteIcon />}
-                to="/consultations"
-                color="secondary"
-              />
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <QuickAction
                 title="Health Information"
                 description="Access important health information and resources"
                 icon={<AssessmentIcon />}
@@ -249,15 +240,6 @@ const Dashboard = memo(({ user }) => {
                 icon={<HospitalIcon />}
                 to="/health-records"
                 color="secondary"
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <QuickAction
-                title="Consultations"
-                description="Manage patient consultations"
-                icon={<HealingIcon />}
-                to="/consultations"
-                color="info"
               />
             </Grid>
             <Grid item xs={12} md={3}>
