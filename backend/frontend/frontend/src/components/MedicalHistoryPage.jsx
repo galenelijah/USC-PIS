@@ -140,10 +140,6 @@ const MedicalHistoryPage = () => {
 
     // Filter by record type based on tab
     if (tabValue === 1) {
-      filtered = filtered.filter(record => record.record_type === 'MEDICAL');
-    } else if (tabValue === 2) {
-      filtered = filtered.filter(record => record.record_type === 'DENTAL');
-    } else if (tabValue === 3) {
       // Health Insights tab - show all records for analysis
       // No filtering needed
     }
@@ -861,10 +857,8 @@ const MedicalHistoryPage = () => {
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="medical history tabs">
           <Tab label="All Records" id="medical-history-tab-0" />
-          <Tab label="Medical Only" id="medical-history-tab-1" icon={<MedicalIcon />} iconPosition="start" />
-          <Tab label="Dental Only" id="medical-history-tab-2" icon={<DentalIcon />} iconPosition="start" />
           {isStudent && (
-            <Tab label="Health Insights" id="medical-history-tab-3" icon={<ExpandMoreIcon />} iconPosition="start" />
+            <Tab label="Health Insights" id="medical-history-tab-1" icon={<ExpandMoreIcon />} iconPosition="start" />
           )}
         </Tabs>
       </Box>
@@ -932,7 +926,7 @@ const MedicalHistoryPage = () => {
 
           {/* Timeline or Health Insights */}
           <Paper elevation={1} sx={{ p: 3 }}>
-            {tabValue === 3 && isStudent ? renderHealthInsights() : renderRecordTimeline()}
+            {tabValue === 1 && isStudent ? renderHealthInsights() : renderRecordTimeline()}
           </Paper>
         </>
       )}
