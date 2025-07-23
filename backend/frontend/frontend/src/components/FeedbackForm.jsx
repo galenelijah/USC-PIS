@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Box, Typography, Rating, TextField, Button, Snackbar, Alert, Paper, FormControl, FormLabel, RadioGroup, FormControlLabel, Radio, Divider } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Rating, TextField, Button, Snackbar, Alert, Paper, FormControl, FormLabel, RadioGroup, FormControlLabel, Radio, Divider, CircularProgress } from '@mui/material';
 import { feedbackService } from '../services/api';
 
 const FeedbackForm = ({ medicalRecordId, onSubmitted }) => {
@@ -11,6 +11,26 @@ const FeedbackForm = ({ medicalRecordId, onSubmitted }) => {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [hasExistingFeedback, setHasExistingFeedback] = useState(false);
+  const [checkingExisting, setCheckingExisting] = useState(true);
+
+  useEffect(() => {
+    const checkExistingFeedback = async () => {
+      try {
+        setCheckingExisting(true);
+        const response = await feedbackService.checkExisting(medicalRecordId);
+        setHasExistingFeedback(response.data.has_feedback);
+      } catch (err) {
+        console.error('Error checking existing feedback:', err);
+        // If we can't check, allow them to try submitting
+        setHasExistingFeedback(false);
+      } finally {
+        setCheckingExisting(false);
+      }
+    };
+
+    checkExistingFeedback();
+  }, [medicalRecordId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,11 +53,47 @@ const FeedbackForm = ({ medicalRecordId, onSubmitted }) => {
       setImprovement('');
       if (onSubmitted) onSubmitted();
     } catch (err) {
-      setError('Failed to submit feedback. Please try again.');
+      console.error('Feedback submission error:', err);
+      // Handle specific error messages from the backend
+      if (err.response && err.response.data && err.response.data.detail) {
+        setError(err.response.data.detail);
+      } else if (err.response && err.response.status === 403) {
+        setError('You have already submitted feedback for this visit.');
+      } else {
+        setError('Failed to submit feedback. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (checkingExisting) {
+    return (
+      <Paper sx={{ p: 3, maxWidth: 500, mx: 'auto', mt: 4 }} elevation={3}>
+        <Box display="flex" alignItems="center" justifyContent="center" p={4}>
+          <CircularProgress size={30} />
+          <Typography variant="body1" sx={{ ml: 2 }}>Checking feedback status...</Typography>
+        </Box>
+      </Paper>
+    );
+  }
+
+  if (hasExistingFeedback) {
+    return (
+      <Paper sx={{ p: 3, maxWidth: 500, mx: 'auto', mt: 4 }} elevation={3}>
+        <Typography variant="h5" gutterBottom>Feedback Already Submitted</Typography>
+        <Alert severity="info" sx={{ mb: 2 }}>
+          {medicalRecordId !== 'general'
+            ? 'You have already submitted feedback for this medical visit.'
+            : 'You have already submitted general feedback about our clinic.'}
+        </Alert>
+        <Typography variant="body1" color="text.secondary">
+          Thank you for your previous feedback. Each patient can only submit feedback once 
+          {medicalRecordId !== 'general' ? ' per visit' : ''} to ensure the integrity of our feedback system.
+        </Typography>
+      </Paper>
+    );
+  }
 
   return (
     <Paper sx={{ p: 3, maxWidth: 500, mx: 'auto', mt: 4 }} elevation={3}>

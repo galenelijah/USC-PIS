@@ -445,6 +445,17 @@ export const feedbackService = {
       handleApiError(error);
     }
   },
+  checkExisting: async (medicalRecordId) => {
+    try {
+      const params = medicalRecordId && medicalRecordId !== 'general' 
+        ? { medical_record_id: medicalRecordId }
+        : {};
+      return await api.get('/feedback/check-existing/', { params });
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
 };
 
 // Add fileUploadService

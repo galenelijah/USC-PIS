@@ -72,6 +72,10 @@ def generate_report_task(report_id, template_id, filters, date_start, date_end, 
             report_data = service.generate_feedback_analysis_report(
                 date_start, date_end, filters, export_format
             )
+        elif template.report_type == 'COMPREHENSIVE_ANALYTICS':
+            report_data = service.generate_comprehensive_analytics_report(
+                date_start, date_end, filters, export_format
+            )
         
         if report_data:
             # Save file

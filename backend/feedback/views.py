@@ -53,9 +53,11 @@ class FeedbackViewSet(viewsets.ModelViewSet):
         """
         Ensure the user can submit feedback, finding or creating Patient as needed.
         Handles multiple cases for robust patient linking.
+        Also prevents duplicate feedback submissions.
         """
         user = self.request.user
         patient = None
+        medical_record = serializer.validated_data.get('medical_record')
 
         # 1. Try to get patient directly linked to the user
         try:
@@ -105,6 +107,27 @@ class FeedbackViewSet(viewsets.ModelViewSet):
              print(f"Critical Error: Could not find or create patient for user {user.email} before saving feedback.")
              raise PermissionDenied("Could not associate feedback with a patient profile.")
 
+        # Check for duplicate feedback submissions
+        existing_feedback = None
+        if medical_record:
+            # Check for existing feedback on this specific medical record
+            existing_feedback = Feedback.objects.filter(
+                patient=patient,
+                medical_record=medical_record
+            ).first()
+            if existing_feedback:
+                print(f"Duplicate feedback attempt for medical record {medical_record.id} by patient {patient.id}")
+                raise PermissionDenied("You have already submitted feedback for this medical visit.")
+        else:
+            # Check for existing general feedback (where medical_record is null)
+            existing_feedback = Feedback.objects.filter(
+                patient=patient,
+                medical_record__isnull=True
+            ).first()
+            if existing_feedback:
+                print(f"Duplicate general feedback attempt by patient {patient.id}")
+                raise PermissionDenied("You have already submitted general feedback.")
+
         # Save the feedback, linked to the found/created patient
         try:
             serializer.save(patient=patient)
@@ -112,6 +135,37 @@ class FeedbackViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(f"Error saving feedback for user {user.email}: {str(e)}")
             raise PermissionDenied(f"Error submitting feedback: {str(e)}")
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated], url_path='check-existing')
+    def check_existing(self, request):
+        """
+        Check if the current user has already submitted feedback for a specific medical record or general feedback.
+        Query parameter: medical_record_id (optional, if not provided, checks for general feedback)
+        """
+        user = request.user
+        medical_record_id = request.query_params.get('medical_record_id')
+        
+        try:
+            # Get patient for current user
+            patient = Patient.objects.get(user=user)
+        except Patient.DoesNotExist:
+            # If no patient exists, no feedback exists either
+            return Response({'has_feedback': False})
+
+        if medical_record_id and medical_record_id != 'general':
+            # Check for specific medical record feedback
+            existing_feedback = Feedback.objects.filter(
+                patient=patient,
+                medical_record_id=medical_record_id
+            ).exists()
+        else:
+            # Check for general feedback (medical_record is null)
+            existing_feedback = Feedback.objects.filter(
+                patient=patient,
+                medical_record__isnull=True
+            ).exists()
+
+        return Response({'has_feedback': existing_feedback})
 
     @action(detail=False, methods=['get'], permission_classes=[IsAdminOrStaff], url_path='analytics')
     def analytics(self, request):
