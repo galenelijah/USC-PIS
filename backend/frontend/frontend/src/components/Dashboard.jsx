@@ -218,6 +218,15 @@ const Dashboard = memo(({ user }) => {
                 color="success"
               />
             </Grid>
+            <Grid item xs={12} md={4}>
+              <QuickAction
+                title="Health Campaigns"
+                description="View active health campaigns and wellness programs"
+                icon={<HealingIcon />}
+                to="/campaigns"
+                color="secondary"
+              />
+            </Grid>
           </>
         );
       case 'DOCTOR':

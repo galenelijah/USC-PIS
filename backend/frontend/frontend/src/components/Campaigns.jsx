@@ -63,10 +63,19 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { campaignService } from '../services/api';
+import StudentCampaigns from './StudentCampaigns';
 
 const Campaigns = () => {
   const navigate = useNavigate();
+  const user = useSelector(state => state.auth.user);
+
+  // If user is a student, show the student-friendly view
+  if (user?.role === 'STUDENT') {
+    return <StudentCampaigns />;
+  }
+
   const [campaigns, setCampaigns] = useState([]);
   const [filteredCampaigns, setFilteredCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);

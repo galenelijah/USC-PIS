@@ -1019,6 +1019,11 @@ export const campaignService = {
   // Get featured campaigns
   getFeaturedCampaigns: () => {
     return api.get('/health-info/campaigns/featured/');
+  },
+
+  // Get active campaigns (for students)
+  getActiveCampaigns: () => {
+    return api.get('/health-info/campaigns/', { params: { status: 'ACTIVE' } });
   }
 };
 
