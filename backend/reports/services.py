@@ -68,31 +68,51 @@ class ReportDataService:
         from django.db import connection
         today = timezone.now().date()
         
-        # Use Django ORM for cross-database compatibility
-        age_distribution = queryset.extra(
-            select={
-                'age': "EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth))" if connection.vendor == 'postgresql' 
-                       else "CAST((julianday('now') - julianday(date_of_birth)) / 365.25 AS INTEGER)"
-            }
-        ).extra(
-            select={
-                'age_group': """
-                CASE 
-                    WHEN age < 18 THEN '0-17'
-                    WHEN age BETWEEN 18 AND 25 THEN '18-25'
-                    WHEN age BETWEEN 26 AND 35 THEN '26-35'
-                    WHEN age BETWEEN 36 AND 45 THEN '36-45'
-                    WHEN age BETWEEN 46 AND 60 THEN '46-60'
-                    ELSE '60+'
-                END
-                """
-            }
-        ).values('age_group').annotate(count=Count('id')).order_by('age_group')
+        # Use raw SQL for proper age group calculation with cross-database support
+        with connection.cursor() as cursor:
+            if connection.vendor == 'postgresql':
+                cursor.execute("""
+                    SELECT 
+                        CASE 
+                            WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) < 18 THEN '0-17'
+                            WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) BETWEEN 18 AND 25 THEN '18-25'
+                            WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) BETWEEN 26 AND 35 THEN '26-35'
+                            WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) BETWEEN 36 AND 45 THEN '36-45'
+                            WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) BETWEEN 46 AND 60 THEN '46-60'
+                            ELSE '60+'
+                        END as age_group,
+                        COUNT(*) as count
+                    FROM patients_patient p
+                    JOIN authentication_user u ON p.user_id = u.id
+                    WHERE p.date_of_birth IS NOT NULL
+                    GROUP BY age_group
+                    ORDER BY age_group
+                """)
+            else:
+                cursor.execute("""
+                    SELECT 
+                        CASE 
+                            WHEN CAST((julianday('now') - julianday(date_of_birth)) / 365.25 AS INTEGER) < 18 THEN '0-17'
+                            WHEN CAST((julianday('now') - julianday(date_of_birth)) / 365.25 AS INTEGER) BETWEEN 18 AND 25 THEN '18-25'
+                            WHEN CAST((julianday('now') - julianday(date_of_birth)) / 365.25 AS INTEGER) BETWEEN 26 AND 35 THEN '26-35'
+                            WHEN CAST((julianday('now') - julianday(date_of_birth)) / 365.25 AS INTEGER) BETWEEN 36 AND 45 THEN '36-45'
+                            WHEN CAST((julianday('now') - julianday(date_of_birth)) / 365.25 AS INTEGER) BETWEEN 46 AND 60 THEN '46-60'
+                            ELSE '60+'
+                        END as age_group,
+                        COUNT(*) as count
+                    FROM patients_patient p
+                    JOIN authentication_user u ON p.user_id = u.id
+                    WHERE p.date_of_birth IS NOT NULL
+                    GROUP BY age_group
+                    ORDER BY age_group
+                """)
+            
+            age_distribution_results = cursor.fetchall()
         
         # Convert to dict for easier frontend usage
         age_groups = {}
-        for item in age_distribution:
-            age_groups[item['age_group']] = item['count']
+        for age_group, count in age_distribution_results:
+            age_groups[age_group] = count
         
         # Ensure all age groups are present
         for group in ['0-17', '18-25', '26-35', '36-45', '46-60', '60+']:
@@ -191,16 +211,28 @@ class ReportDataService:
         # Process monthly trends
         monthly_trends = {}
         for month_str, visits, visit_type in monthly_data:
-            if month_str not in monthly_trends:
-                monthly_trends[month_str] = {'medical': 0, 'dental': 0, 'total': 0}
-            monthly_trends[month_str][visit_type.lower()] = visits
-            monthly_trends[month_str]['total'] += visits
+            # Handle both string and date objects
+            if isinstance(month_str, str):
+                month_key = month_str
+            else:
+                # Convert date object to string
+                month_key = month_str.strftime('%Y-%m-%d') if month_str else str(month_str)
+            
+            if month_key not in monthly_trends:
+                monthly_trends[month_key] = {'medical': 0, 'dental': 0, 'total': 0}
+            monthly_trends[month_key][visit_type.lower()] = visits
+            monthly_trends[month_key]['total'] += visits
         
         # Convert to list format
         monthly_list = []
         for month, data in sorted(monthly_trends.items()):
+            # Ensure month is in YYYY-MM format
+            if len(month) > 7:
+                month_formatted = month[:7]  # YYYY-MM format
+            else:
+                month_formatted = month
             monthly_list.append({
-                'month': month[:7],  # YYYY-MM format
+                'month': month_formatted,
                 'medical_visits': data['medical'],
                 'dental_visits': data['dental'],
                 'total_visits': data['total']
@@ -422,8 +454,15 @@ class ReportDataService:
             satisfaction_trends = []
             for row in cursor.fetchall():
                 month, avg_rating, count, recommend, courtesy = row
+                # Handle both string and date objects
+                if isinstance(month, str):
+                    month_formatted = month[:7]  # YYYY-MM format
+                else:
+                    # Convert date object to string
+                    month_formatted = month.strftime('%Y-%m') if month else str(month)[:7]
+                
                 satisfaction_trends.append({
-                    'month': month[:7],  # YYYY-MM format
+                    'month': month_formatted,
                     'average_rating': round(avg_rating or 0, 1),
                     'feedback_count': count,
                     'recommendation_rate': round((recommend / max(1, count)) * 100, 1),
@@ -503,14 +542,24 @@ class ReportDataService:
         # System utilization metrics
         with connection.cursor() as cursor:
             # User activity analysis
-            cursor.execute("""
-                SELECT 
-                    u.role,
-                    COUNT(*) as user_count,
-                    COUNT(CASE WHEN u.last_login >= ? THEN 1 END) as active_users
-                FROM authentication_user u
-                GROUP BY u.role
-            """, [timezone.now() - timedelta(days=30)])
+            if connection.vendor == 'postgresql':
+                cursor.execute("""
+                    SELECT 
+                        u.role,
+                        COUNT(*) as user_count,
+                        COUNT(CASE WHEN u.last_login >= %s THEN 1 END) as active_users
+                    FROM authentication_user u
+                    GROUP BY u.role
+                """, [timezone.now() - timedelta(days=30)])
+            else:
+                cursor.execute("""
+                    SELECT 
+                        u.role,
+                        COUNT(*) as user_count,
+                        COUNT(CASE WHEN u.last_login >= ? THEN 1 END) as active_users
+                    FROM authentication_user u
+                    GROUP BY u.role
+                """, [timezone.now() - timedelta(days=30)])
             
             user_activity = []
             for role, total, active in cursor.fetchall():
@@ -819,5 +868,61 @@ class ReportGenerationService:
             return self.export_service.export_to_csv(data, "Comprehensive Analytics Report")
         elif export_format == 'JSON':
             return self.export_service.export_to_json(data, "Comprehensive Analytics Report")
+        
+        return None
+    
+    def generate_medical_statistics_report(self, date_start=None, date_end=None, filters=None, export_format='PDF'):
+        """Generate medical statistics report"""
+        # Use patient summary data for medical statistics
+        data = self.data_service.get_patient_summary_data(date_start, date_end, filters)
+        
+        if export_format == 'PDF':
+            return self.export_service.export_to_pdf(data, "", "Medical Statistics Report")
+        elif export_format == 'EXCEL':
+            return self.export_service.export_to_excel(data, "Medical Statistics Report")
+        elif export_format == 'CSV':
+            return self.export_service.export_to_csv(data, "Medical Statistics Report")
+        elif export_format == 'JSON':
+            return self.export_service.export_to_json(data, "Medical Statistics Report")
+        
+        return None
+    
+    def generate_dental_statistics_report(self, date_start=None, date_end=None, filters=None, export_format='PDF'):
+        """Generate dental statistics report"""
+        # Use visit trends data focusing on dental records
+        data = self.data_service.get_visit_trends_data(date_start, date_end, filters)
+        
+        if export_format == 'PDF':
+            return self.export_service.export_to_pdf(data, "", "Dental Statistics Report")
+        elif export_format == 'EXCEL':
+            return self.export_service.export_to_excel(data, "Dental Statistics Report")
+        elif export_format == 'CSV':
+            return self.export_service.export_to_csv(data, "Dental Statistics Report")
+        elif export_format == 'JSON':
+            return self.export_service.export_to_json(data, "Dental Statistics Report")
+        
+        return None
+    
+    def generate_campaign_performance_report(self, date_start=None, date_end=None, filters=None, export_format='PDF'):
+        """Generate campaign performance report"""
+        # Use comprehensive analytics data for campaign performance
+        data = self.data_service.get_comprehensive_analytics_data(date_start, date_end, filters)
+        
+        # Add campaign-specific data
+        campaign_data = {
+            'campaign_overview': data.get('overview', {}),
+            'user_engagement': data.get('user_activity', []),
+            'health_metrics': data.get('health_metrics', {}),
+            'system_efficiency': data.get('efficiency_metrics', {})
+        }
+        
+        if export_format == 'PDF':
+            return self.export_service.export_to_pdf(campaign_data, "", "Campaign Performance Report")
+        elif export_format == 'EXCEL':
+            return self.export_service.export_to_excel(campaign_data, "Campaign Performance Report")
+        elif export_format == 'CSV':
+            return self.export_service.export_to_csv(campaign_data, "Campaign Performance Report")
+        elif export_format == 'JSON':
+            return self.export_service.export_to_json(campaign_data, "Campaign Performance Report")
         
         return None 

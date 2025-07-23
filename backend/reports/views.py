@@ -76,6 +76,18 @@ def generate_report_task(report_id, template_id, filters, date_start, date_end, 
             report_data = service.generate_comprehensive_analytics_report(
                 date_start, date_end, filters, export_format
             )
+        elif template.report_type == 'MEDICAL_STATISTICS':
+            report_data = service.generate_medical_statistics_report(
+                date_start, date_end, filters, export_format
+            )
+        elif template.report_type == 'DENTAL_STATISTICS':
+            report_data = service.generate_dental_statistics_report(
+                date_start, date_end, filters, export_format
+            )
+        elif template.report_type == 'CAMPAIGN_PERFORMANCE':
+            report_data = service.generate_campaign_performance_report(
+                date_start, date_end, filters, export_format
+            )
         
         if report_data:
             # Save file
@@ -101,13 +113,16 @@ def generate_report_task(report_id, template_id, filters, date_start, date_end, 
         report.save()
         
     except Exception as e:
-        logger.error(f"Error generating report {report_id}: {str(e)}")
+        import traceback
+        error_details = f"Error generating report {report_id}: {str(e)}\n{traceback.format_exc()}"
+        logger.error(error_details)
         try:
             report = GeneratedReport.objects.get(id=report_id)
             report.status = 'FAILED'
-            report.error_message = str(e)
+            report.error_message = f"{str(e)}\n\nFull traceback:\n{traceback.format_exc()}"
             report.save()
-        except:
+        except Exception as save_error:
+            logger.error(f"Failed to save error status: {save_error}")
             pass
 
 class ReportTemplateViewSet(viewsets.ModelViewSet):
