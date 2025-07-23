@@ -21,7 +21,14 @@ import {
   Container,
   Rating,
   TextField,
-  Snackbar
+  Snackbar,
+  Fab,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Switch,
+  FormControlLabel
 } from '@mui/material';
 import {
   Favorite as FavoriteIcon,
@@ -39,12 +46,15 @@ import {
   Vaccines as PreventionIcon,
   Close as CloseIcon,
   ThumbUp as ThumbUpIcon,
-  Comment as CommentIcon
+  Comment as CommentIcon,
+  Add as AddIcon,
+  Edit as EditIcon,
+  Save as SaveIcon
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { campaignService } from '../services/api';
 
-const StudentCampaigns = () => {
+const UniversalCampaigns = () => {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
@@ -53,6 +63,19 @@ const StudentCampaigns = () => {
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
   const [feedback, setFeedback] = useState({ rating: 0, comment: '' });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [campaignForm, setCampaignForm] = useState({
+    title: '',
+    description: '',
+    campaign_type: 'GENERAL',
+    priority: 'MEDIUM',
+    content: '',
+    summary: '',
+    target_audience: '',
+    call_to_action: '',
+    tags: '',
+    status: 'ACTIVE'
+  });
   
   const user = useSelector(state => state.auth.user);
 
@@ -63,7 +86,8 @@ const StudentCampaigns = () => {
   const fetchActiveCampaigns = async () => {
     try {
       setLoading(true);
-      const response = await campaignService.getActiveCampaigns();
+      // Get all campaigns - backend no longer filters by role
+      const response = await campaignService.getCampaigns();
       setCampaigns(response.data.results || response.data);
     } catch (error) {
       console.error('Error fetching campaigns:', error);
@@ -151,6 +175,36 @@ const StudentCampaigns = () => {
     }
   };
 
+  const handleCampaignCreate = async () => {
+    try {
+      const formData = new FormData();
+      Object.keys(campaignForm).forEach(key => {
+        if (campaignForm[key]) {
+          formData.append(key, campaignForm[key]);
+        }
+      });
+
+      await campaignService.createCampaign(formData);
+      showSnackbar('Campaign created successfully!', 'success');
+      setCreateDialogOpen(false);
+      setCampaignForm({
+        title: '',
+        description: '',
+        campaign_type: 'GENERAL',
+        priority: 'MEDIUM',
+        content: '',
+        summary: '',
+        target_audience: '',
+        call_to_action: '',
+        tags: '',
+        status: 'ACTIVE'
+      });
+      fetchActiveCampaigns(); // Refresh campaigns
+    } catch (error) {
+      showSnackbar('Failed to create campaign', 'error');
+    }
+  };
+
   const showSnackbar = (message, severity = 'success') => {
     setSnackbar({ open: true, message, severity });
   };
@@ -188,11 +242,19 @@ const StudentCampaigns = () => {
           Health & Wellness Campaigns
         </Typography>
         <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-          Stay healthy and informed with our latest campus health initiatives
+          Comprehensive health information and campaigns for the entire USC community
         </Typography>
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
-          <Chip icon={<SchoolIcon />} label={`${campaigns.length} Active Campaigns`} color="primary" />
-          <Chip icon={<PeopleIcon />} label="For USC Students" color="secondary" />
+          <Chip icon={<SchoolIcon />} label={`${campaigns.length} Total Campaigns`} color="primary" />
+          <Chip 
+            icon={<HealthIcon />} 
+            label={`${campaigns.filter(c => c.status === 'ACTIVE').length} Active`} 
+            color="success" 
+          />
+          <Chip icon={<PeopleIcon />} label="For Everyone" color="secondary" />
+          {user && ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'].includes(user.role) && (
+            <Chip icon={<EditIcon />} label="Can Create" color="warning" />
+          )}
         </Box>
       </Box>
 
@@ -257,6 +319,12 @@ const StudentCampaigns = () => {
                     {campaign.priority === 'HIGH' && (
                       <Chip size="small" label="Priority" color="error" />
                     )}
+                    <Chip 
+                      size="small" 
+                      label={campaign.status || 'ACTIVE'} 
+                      color={campaign.status === 'ACTIVE' ? 'success' : 'default'}
+                      variant={campaign.status === 'ACTIVE' ? 'filled' : 'outlined'}
+                    />
                   </Box>
                 </Box>
               </Box>
@@ -467,6 +535,144 @@ const StudentCampaigns = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Create Campaign Button (for authorized users) */}
+      {user && ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'].includes(user.role) && (
+        <Fab
+          color="primary"
+          aria-label="add campaign"
+          sx={{
+            position: 'fixed',
+            bottom: 32,
+            right: 32,
+            zIndex: 1000,
+          }}
+          onClick={() => setCreateDialogOpen(true)}
+        >
+          <AddIcon />
+        </Fab>
+      )}
+
+      {/* Simple Campaign Creation Dialog */}
+      <Dialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Create New Health Campaign</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Campaign Title"
+                  value={campaignForm.title}
+                  onChange={(e) => setCampaignForm({ ...campaignForm, title: e.target.value })}
+                  placeholder="e.g., Winter Flu Prevention Campaign"
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Campaign Type</InputLabel>
+                  <Select
+                    value={campaignForm.campaign_type}
+                    onChange={(e) => setCampaignForm({ ...campaignForm, campaign_type: e.target.value })}
+                    label="Campaign Type"
+                  >
+                    <MenuItem value="MENTAL_HEALTH">Mental Health</MenuItem>
+                    <MenuItem value="NUTRITION">Nutrition</MenuItem>
+                    <MenuItem value="HYGIENE">Hygiene</MenuItem>
+                    <MenuItem value="PREVENTION">Prevention</MenuItem>
+                    <MenuItem value="VACCINATION">Vaccination</MenuItem>
+                    <MenuItem value="GENERAL">General Health</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Priority</InputLabel>
+                  <Select
+                    value={campaignForm.priority}
+                    onChange={(e) => setCampaignForm({ ...campaignForm, priority: e.target.value })}
+                    label="Priority"
+                  >
+                    <MenuItem value="LOW">Low</MenuItem>
+                    <MenuItem value="MEDIUM">Medium</MenuItem>
+                    <MenuItem value="HIGH">High</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Short Summary"
+                  value={campaignForm.summary}
+                  onChange={(e) => setCampaignForm({ ...campaignForm, summary: e.target.value })}
+                  placeholder="Brief description of the campaign..."
+                  multiline
+                  rows={2}
+                />
+              </Grid>
+
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Campaign Content"
+                  value={campaignForm.content}
+                  onChange={(e) => setCampaignForm({ ...campaignForm, content: e.target.value })}
+                  placeholder="Detailed campaign content (supports basic HTML)..."
+                  multiline
+                  rows={6}
+                  helperText="You can use basic HTML tags like <h3>, <p>, <ul>, <li>, <strong>, etc."
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Target Audience"
+                  value={campaignForm.target_audience}
+                  onChange={(e) => setCampaignForm({ ...campaignForm, target_audience: e.target.value })}
+                  placeholder="e.g., All USC Students, Faculty and Staff"
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Tags"
+                  value={campaignForm.tags}
+                  onChange={(e) => setCampaignForm({ ...campaignForm, tags: e.target.value })}
+                  placeholder="health, safety, students (comma-separated)"
+                />
+              </Grid>
+
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Call to Action"
+                  value={campaignForm.call_to_action}
+                  onChange={(e) => setCampaignForm({ ...campaignForm, call_to_action: e.target.value })}
+                  placeholder="What should people do after reading this campaign?"
+                  multiline
+                  rows={2}
+                />
+              </Grid>
+            </Grid>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={handleCampaignCreate}
+            variant="contained"
+            startIcon={<SaveIcon />}
+            disabled={!campaignForm.title || !campaignForm.content}
+          >
+            Create Campaign
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
@@ -478,4 +684,4 @@ const StudentCampaigns = () => {
   );
 };
 
-export default StudentCampaigns;
+export default UniversalCampaigns;

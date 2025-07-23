@@ -73,10 +73,8 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         
-        # Filter by active status for non-staff users
-        if not (self.request.user.is_authenticated and 
-               (self.request.user.is_staff or self.request.user.role in ['ADMIN', 'STAFF'])):
-            queryset = queryset.filter(status='ACTIVE')
+        # Show all campaigns to all authenticated users
+        # No role-based filtering - everyone can see all campaigns
         
         # Additional filters
         featured = self.request.query_params.get('featured', None)

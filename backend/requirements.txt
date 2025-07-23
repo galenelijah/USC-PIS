@@ -11,6 +11,7 @@ coverage
 python-dateutil
 weasyprint
 xhtml2pdf
+reportlab>=4.0.0
 # New dependencies for edge case handling
 python-magic>=0.4.27
 Pillow>=10.0.0

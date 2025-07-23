@@ -641,18 +641,105 @@ class ReportExportService:
     
     @staticmethod
     def export_to_pdf(report_data, template_content, title="Report"):
-        """Export report to PDF - simplified version without xhtml2pdf"""
+        """Export report to PDF using ReportLab"""
         try:
-            # For now, return a simple text-based PDF-like content
-            # In production, you would use a proper PDF library
-            content = f"""
-            {title}
-            Generated on: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}
+            from reportlab.lib.pagesizes import letter, A4
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.units import inch
+            from reportlab.lib import colors
+            from io import BytesIO
             
-            Report Data:
-            {json.dumps(report_data, indent=2, default=str)}
-            """
-            return content.encode('utf-8')
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=A4)
+            styles = getSampleStyleSheet()
+            story = []
+            
+            # Title
+            title_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Heading1'],
+                fontSize=18,
+                spaceAfter=30,
+            )
+            story.append(Paragraph(title, title_style))
+            
+            # Generation date
+            date_style = ParagraphStyle(
+                'DateStyle',
+                parent=styles['Normal'],
+                fontSize=10,
+                textColor=colors.grey,
+            )
+            story.append(Paragraph(f"Generated on: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}", date_style))
+            story.append(Spacer(1, 20))
+            
+            # Process report data into readable format
+            if isinstance(report_data, dict):
+                for key, value in report_data.items():
+                    # Section header
+                    story.append(Paragraph(str(key).replace('_', ' ').title(), styles['Heading2']))
+                    
+                    if isinstance(value, (list, tuple)):
+                        # Create table for list data
+                        if value and isinstance(value[0], dict):
+                            # Table from dict list
+                            if len(value) > 0:
+                                headers = list(value[0].keys())
+                                table_data = [headers]
+                                for item in value[:10]:  # Limit to 10 rows
+                                    table_data.append([str(item.get(h, '')) for h in headers])
+                                
+                                table = Table(table_data)
+                                table.setStyle(TableStyle([
+                                    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                                    ('FONTSIZE', (0, 0), (-1, 0), 12),
+                                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                                    ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                                ]))
+                                story.append(table)
+                        else:
+                            # Simple list
+                            for item in value[:10]:  # Limit to 10 items
+                                story.append(Paragraph(f"• {str(item)}", styles['Normal']))
+                    elif isinstance(value, dict):
+                        # Nested dictionary
+                        for sub_key, sub_value in value.items():
+                            story.append(Paragraph(f"{str(sub_key).replace('_', ' ').title()}: {str(sub_value)}", styles['Normal']))
+                    else:
+                        # Simple value
+                        story.append(Paragraph(str(value), styles['Normal']))
+                    
+                    story.append(Spacer(1, 12))
+            
+            # Build PDF
+            doc.build(story)
+            
+            # Get PDF data
+            buffer.seek(0)
+            return buffer.getvalue()
+            
+        except ImportError:
+            # Fallback if ReportLab is not available
+            logger.warning("ReportLab not available, using text fallback for PDF")
+            try:
+                content = f"""USC-PIS REPORT
+{title}
+Generated on: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+REPORT DATA:
+{json.dumps(report_data, indent=2, default=str)}
+
+End of Report
+"""
+                return content.encode('utf-8')
+            except Exception as e:
+                logger.error(f"Error in PDF fallback: {str(e)}")
+                return None
         except Exception as e:
             logger.error(f"Error generating PDF: {str(e)}")
             return None
