@@ -39,8 +39,10 @@ The dashboard provides quick access to:
 
 1. Viewing Records
    - Click on "Medical Records" in the sidebar
-   - Use filters to find specific records
-   - Click on a record to view details
+   - **All Records Tab**: View both medical and dental records together in a unified timeline
+   - **Health Insights Tab** (Students only): Access personalized health analytics and recommendations
+   - Use search bar to find specific records by diagnosis, treatment, or complaint
+   - Click on a record to expand and view detailed information
 
 2. Creating Records (Doctors/Nurses)
    - Click "New Record"
@@ -82,8 +84,10 @@ The dashboard provides quick access to:
 
 1. Viewing Medical History
    ```
-   Dashboard → Medical Records → History
+   Dashboard → Medical Records → All Records Tab
    ```
+   
+   **Note**: Medical and dental records are now displayed together for simplified navigation. Students can also access the "Health Insights" tab for personalized health analytics.
 
 2. Scheduling Appointment
    ```

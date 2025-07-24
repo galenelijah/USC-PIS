@@ -78,11 +78,12 @@ Welcome to the USC Patient Information System (USC-PIS). This comprehensive guid
 - Quick access to common tasks
 
 ### Medical Records
-- View complete medical history
+- View complete medical history (medical and dental records combined)
 - Add new medical records
 - Update existing records
 - Attach documents and lab results
 - Search and filter records
+- **Interface Update**: Medical and dental records are now displayed together in a single "All Records" view for simplified navigation
 
 ### Appointments
 - Schedule new appointments
@@ -124,9 +125,11 @@ Welcome to the USC Patient Information System (USC-PIS). This comprehensive guid
 
 ### Viewing Medical Records
 1. Navigate to "Medical Records"
-2. Use filters to find specific records
-3. Click on a record to view details
-4. Use the print icon to generate a PDF
+2. **All Records Tab**: View both medical and dental records together in a single, unified timeline
+3. **Health Insights Tab** (Students only): Access personalized health analytics and recommendations based on your medical history
+4. Use the search bar to find specific records by diagnosis, treatment, or complaint
+5. Click on a record to expand and view detailed information including vital signs and clinical notes
+6. Use the print icon to generate a PDF of your medical history
 
 ### Submitting Feedback (Patient/Student)
 1. Click "Feedback" in the navigation sidebar.

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectCurrentUser, selectAuthToken, setCredentials } from '../features/authentication/authSlice';
@@ -12,6 +12,7 @@ const RequireProfileSetup = ({ children }) => {
     const user = useSelector(selectCurrentUser);
     const token = useSelector(selectAuthToken);
     const dispatch = useDispatch();
+    const hasCheckedProfile = useRef(false);
 
     useEffect(() => {
         const checkProfileStatus = async () => {
@@ -25,8 +26,15 @@ const RequireProfileSetup = ({ children }) => {
                     return;
                 }
 
+                // If we already checked and user still has incomplete profile, don't check again
+                if (hasCheckedProfile.current && !user.completeSetup) {
+                    setLoading(false);
+                    return;
+                }
+
                 // Check if user has completed profile setup
-                if (!user.completeSetup) {
+                if (!user.completeSetup && !hasCheckedProfile.current) {
+                    hasCheckedProfile.current = true;
                     // Try to fetch updated user data to ensure we have the latest status
                     try {
                         const response = await authService.getCurrentUser();
@@ -57,7 +65,7 @@ const RequireProfileSetup = ({ children }) => {
         };
 
         checkProfileStatus();
-    }, [user, token, dispatch]);
+    }, [user?.completeSetup, token, dispatch]);
 
     if (loading) {
         return (
