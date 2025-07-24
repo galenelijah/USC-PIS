@@ -12,6 +12,8 @@ import {
   MenuItem
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import { consultationSchema } from '../utils/validationSchemas';
 import { consultationService, patientService } from '../services/api';
 import logger from '../utils/logger';
 
@@ -23,6 +25,7 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave }) => {
     setValue,
     formState: { errors, isSubmitting },
   } = useForm({
+    resolver: yupResolver(consultationSchema),
     defaultValues: {
       patient: '', // Patient ID
       date_time: '',
@@ -102,7 +105,6 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave }) => {
               <Controller
                 name="patient"
                 control={control}
-                rules={{ required: 'Patient is required' }}
                 render={({ field }) => (
                   <TextField
                     {...field}
@@ -133,7 +135,6 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave }) => {
               <Controller
                 name="date_time"
                 control={control}
-                rules={{ required: 'Date and Time are required' }}
                 render={({ field }) => (
                   <TextField
                     {...field}
@@ -154,7 +155,6 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave }) => {
               <Controller
                 name="chief_complaints"
                 control={control}
-                rules={{ required: 'Chief Complaints are required' }}
                 render={({ field }) => (
                   <TextField
                     {...field}
@@ -173,7 +173,6 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave }) => {
               <Controller
                 name="treatment_plan"
                 control={control}
-                rules={{ required: 'Treatment Plan is required' }}
                 render={({ field }) => (
                   <TextField
                     {...field}

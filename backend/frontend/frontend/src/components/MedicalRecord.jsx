@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Typography, Box, TextField, Grid, Paper, Button, CircularProgress, Alert, Autocomplete, Divider } from "@mui/material";
+import { useForm, Controller } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import { medicalRecordSchema } from '../utils/validationSchemas';
 import BMI_male_1 from "../assets/images/BMI_Visual/BMI_male_1.png";
 import BMI_male_2 from "../assets/images/BMI_Visual/BMI_male_2.png";
 import BMI_male_3 from "../assets/images/BMI_Visual/BMI_male_3.png";
@@ -44,6 +47,8 @@ const defaultUserData = {
     medications: [],
 };
 
+// Schema imported from validationSchemas.js
+
 const MedicalRecord = ({ medicalRecordId }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -52,35 +57,39 @@ const MedicalRecord = ({ medicalRecordId }) => {
     const isStaffOrMedical = user?.role && ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'].includes(user.role);
     
     const [patients, setPatients] = useState([]);
-    const [patientId, setPatientId] = useState(null);
     const [selectedPatient, setSelectedPatient] = useState(null);
 
-    const [formData, setFormData] = useState({
-        patient: '',
-        visit_date: '',
-        diagnosis: '',
-        treatment: '',
-        notes: '',
-        vital_signs: {
-            temperature: '',
-            blood_pressure: '',
-            pulse_rate: '',
-            respiratory_rate: '',
-            height: '',
-            weight: '',
-            bmi: ''
-        },
-        physical_examination: {
-            general_appearance: '',
-            skin: '',
-            heent: '',
-            heart: '',
-            lungs: '',
-            abdomen: '',
-            extremities: '',
-            neurological: ''
+    const { handleSubmit, control, formState: { errors }, setValue, watch, reset } = useForm({
+        resolver: yupResolver(medicalRecordSchema),
+        defaultValues: {
+            patient: '',
+            visit_date: new Date().toISOString().split('T')[0],
+            diagnosis: '',
+            treatment: '',
+            notes: '',
+            vital_signs: {
+                temperature: '',
+                blood_pressure: '',
+                pulse_rate: '',
+                respiratory_rate: '',
+                height: '',
+                weight: '',
+                bmi: ''
+            },
+            physical_examination: {
+                general_appearance: '',
+                skin: '',
+                heent: '',
+                heart: '',
+                lungs: '',
+                abdomen: '',
+                extremities: '',
+                neurological: ''
+            }
         }
     });
+
+    const watchedVitalSigns = watch('vital_signs');
 
     // Fetch patients for staff/medical users
     useEffect(() => {
@@ -102,7 +111,7 @@ const MedicalRecord = ({ medicalRecordId }) => {
     }, [medicalRecordId]);
 
     const resetForm = () => {
-        setFormData({
+        reset({
             patient: '',
             visit_date: new Date().toISOString().split('T')[0],
             diagnosis: '',
@@ -128,7 +137,6 @@ const MedicalRecord = ({ medicalRecordId }) => {
                 neurological: ''
             }
         });
-        setPatientId(null);
         setSelectedPatient(null);
     };
 
@@ -163,8 +171,8 @@ const MedicalRecord = ({ medicalRecordId }) => {
                 }
             };
             
-            setFormData(safeData);
-            setPatientId(data.patient);
+            // Reset form with fetched data
+            reset(safeData);
             
             // Find and set the selected patient for display
             if (data.patient && patients.length > 0) {
@@ -179,52 +187,17 @@ const MedicalRecord = ({ medicalRecordId }) => {
         }
     };
 
-    const handleInputChange = (section, field) => (event) => {
-        const value = event.target.value;
-        
-        if (section) {
-            setFormData(prev => ({
-                ...prev,
-                [section]: {
-                    ...prev[section],
-                    [field]: value
-                }
-            }));
-        } else {
-            setFormData(prev => ({
-                ...prev,
-                [field]: value
-            }));
-        }
-    };
+    // Function removed - using react-hook-form Controllers instead
 
     const handlePatientChange = (event, value) => {
-        setPatientId(value ? value.id : null);
         setSelectedPatient(value);
-        setFormData(prev => ({ ...prev, patient: value ? value.id : '' }));
+        setValue('patient', value ? value.id : '', { shouldValidate: true });
     };
 
-    const validateForm = () => {
-        if (!patientId && !medicalRecordId) {
-            setError('Please select a patient.');
-            return false;
-        }
-        if (!formData.visit_date) {
-            setError('Please enter a visit date.');
-            return false;
-        }
-        if (!formData.diagnosis.trim()) {
-            setError('Please enter a diagnosis.');
-            return false;
-        }
-        return true;
-    };
+    // Validation is now handled by Yup schema
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const onSubmit = async (data) => {
         if (!isStaffOrMedical) return;
-
-        if (!validateForm()) return;
 
         setLoading(true);
         setError(null);
@@ -232,10 +205,9 @@ const MedicalRecord = ({ medicalRecordId }) => {
 
         try {
             const payload = { 
-                ...formData, 
-                patient: patientId || formData.patient,
-                vital_signs: formData.vital_signs || {},
-                physical_examination: formData.physical_examination || {}
+                ...data,
+                vital_signs: data.vital_signs || {},
+                physical_examination: data.physical_examination || {}
             };
             
             if (medicalRecordId) {
@@ -271,7 +243,7 @@ const MedicalRecord = ({ medicalRecordId }) => {
             return { category: "Severe Obesity", image: isMale ? BMI_male_5 : BMI_female_5 };
         return { category: "Not specified", image: null };
     };
-    const bmiInfo = getBMIInfo(formData.vital_signs.bmi, formData.vital_signs.sex);
+    const bmiInfo = getBMIInfo(watchedVitalSigns?.bmi, watchedVitalSigns?.sex);
 
     if (loading && medicalRecordId) {
         return (
@@ -282,7 +254,7 @@ const MedicalRecord = ({ medicalRecordId }) => {
     }
 
     return (
-        <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 1200, mx: 'auto' }}>
+        <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ maxWidth: 1200, mx: 'auto' }}>
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
             {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
@@ -324,15 +296,22 @@ const MedicalRecord = ({ medicalRecordId }) => {
                                 </Grid>
                             )}
                             <Grid item xs={12} md={6}>
-                                <TextField
-                                    fullWidth
-                                    label="Visit Date"
-                                    type="date"
-                                    value={formData.visit_date}
-                                    onChange={handleInputChange(null, 'visit_date')}
-                                    InputLabelProps={{ shrink: true }}
-                                    disabled={!isStaffOrMedical}
-                                    required
+                                <Controller
+                                    name="visit_date"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            fullWidth
+                                            label="Visit Date"
+                                            type="date"
+                                            InputLabelProps={{ shrink: true }}
+                                            disabled={!isStaffOrMedical}
+                                            required
+                                            error={!!errors.visit_date}
+                                            helperText={errors.visit_date?.message}
+                                        />
+                                    )}
                                 />
                             </Grid>
                         </Grid>
@@ -347,73 +326,122 @@ const MedicalRecord = ({ medicalRecordId }) => {
                         </Typography>
                         <Grid container spacing={2}>
                             <Grid item xs={12} md={3}>
-                                <TextField
-                                    fullWidth
-                                    label="Temperature (°C)"
-                                    value={formData.vital_signs?.temperature || ''}
-                                    onChange={handleInputChange('vital_signs', 'temperature')}
-                                    disabled={!isStaffOrMedical}
-                                    placeholder="36.5"
+                                <Controller
+                                    name="vital_signs.temperature"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            fullWidth
+                                            label="Temperature (°C)"
+                                            disabled={!isStaffOrMedical}
+                                            placeholder="36.5"
+                                            error={!!errors.vital_signs?.temperature}
+                                            helperText={errors.vital_signs?.temperature?.message}
+                                        />
+                                    )}
                                 />
                             </Grid>
                             <Grid item xs={12} md={3}>
-                                <TextField
-                                    fullWidth
-                                    label="Blood Pressure (mmHg)"
-                                    value={formData.vital_signs?.blood_pressure || ''}
-                                    onChange={handleInputChange('vital_signs', 'blood_pressure')}
-                                    disabled={!isStaffOrMedical}
-                                    placeholder="120/80"
+                                <Controller
+                                    name="vital_signs.blood_pressure"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            fullWidth
+                                            label="Blood Pressure (mmHg)"
+                                            disabled={!isStaffOrMedical}
+                                            placeholder="120/80"
+                                            error={!!errors.vital_signs?.blood_pressure}
+                                            helperText={errors.vital_signs?.blood_pressure?.message}
+                                        />
+                                    )}
                                 />
                             </Grid>
                             <Grid item xs={12} md={3}>
-                                <TextField
-                                    fullWidth
-                                    label="Pulse Rate (bpm)"
-                                    value={formData.vital_signs?.pulse_rate || ''}
-                                    onChange={handleInputChange('vital_signs', 'pulse_rate')}
-                                    disabled={!isStaffOrMedical}
-                                    placeholder="72"
+                                <Controller
+                                    name="vital_signs.pulse_rate"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            fullWidth
+                                            label="Pulse Rate (bpm)"
+                                            disabled={!isStaffOrMedical}
+                                            placeholder="72"
+                                            error={!!errors.vital_signs?.pulse_rate}
+                                            helperText={errors.vital_signs?.pulse_rate?.message}
+                                        />
+                                    )}
                                 />
                             </Grid>
                             <Grid item xs={12} md={3}>
-                                <TextField
-                                    fullWidth
-                                    label="Respiratory Rate (/min)"
-                                    value={formData.vital_signs?.respiratory_rate || ''}
-                                    onChange={handleInputChange('vital_signs', 'respiratory_rate')}
-                                    disabled={!isStaffOrMedical}
-                                    placeholder="16"
+                                <Controller
+                                    name="vital_signs.respiratory_rate"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            fullWidth
+                                            label="Respiratory Rate (/min)"
+                                            disabled={!isStaffOrMedical}
+                                            placeholder="16"
+                                            error={!!errors.vital_signs?.respiratory_rate}
+                                            helperText={errors.vital_signs?.respiratory_rate?.message}
+                                        />
+                                    )}
                                 />
                             </Grid>
                             <Grid item xs={12} md={4}>
-                                <TextField
-                                    fullWidth
-                                    label="Height (cm)"
-                                    value={formData.vital_signs?.height || ''}
-                                    onChange={handleInputChange('vital_signs', 'height')}
-                                    disabled={!isStaffOrMedical}
-                                    placeholder="170"
+                                <Controller
+                                    name="vital_signs.height"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            fullWidth
+                                            label="Height (cm)"
+                                            disabled={!isStaffOrMedical}
+                                            placeholder="170"
+                                            error={!!errors.vital_signs?.height}
+                                            helperText={errors.vital_signs?.height?.message}
+                                        />
+                                    )}
                                 />
                             </Grid>
                             <Grid item xs={12} md={4}>
-                                <TextField
-                                    fullWidth
-                                    label="Weight (kg)"
-                                    value={formData.vital_signs?.weight || ''}
-                                    onChange={handleInputChange('vital_signs', 'weight')}
-                                    disabled={!isStaffOrMedical}
-                                    placeholder="70"
+                                <Controller
+                                    name="vital_signs.weight"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            fullWidth
+                                            label="Weight (kg)"
+                                            disabled={!isStaffOrMedical}
+                                            placeholder="70"
+                                            error={!!errors.vital_signs?.weight}
+                                            helperText={errors.vital_signs?.weight?.message}
+                                        />
+                                    )}
                                 />
                             </Grid>
                             <Grid item xs={12} md={4}>
-                                <TextField
-                                    fullWidth
-                                    label="BMI"
-                                    value={formData.vital_signs?.bmi || ''}
-                                    onChange={handleInputChange('vital_signs', 'bmi')}
-                                    disabled={!isStaffOrMedical}
-                                    placeholder="24.2"
+                                <Controller
+                                    name="vital_signs.bmi"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            fullWidth
+                                            label="BMI"
+                                            disabled={!isStaffOrMedical}
+                                            placeholder="24.2"
+                                            error={!!errors.vital_signs?.bmi}
+                                            helperText={errors.vital_signs?.bmi?.message}
+                                        />
+                                    )}
                                 />
                             </Grid>
                         </Grid>
@@ -428,63 +456,98 @@ const MedicalRecord = ({ medicalRecordId }) => {
                         </Typography>
                         <Grid container spacing={2}>
                             <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    multiline
-                                    rows={3}
-                                    label="General Appearance"
-                                    value={formData.physical_examination?.general_appearance || ''}
-                                    onChange={handleInputChange('physical_examination', 'general_appearance')}
-                                    disabled={!isStaffOrMedical}
-                                    placeholder="Patient appears alert and oriented..."
+                                <Controller
+                                    name="physical_examination.general_appearance"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            fullWidth
+                                            multiline
+                                            rows={3}
+                                            label="General Appearance"
+                                            disabled={!isStaffOrMedical}
+                                            placeholder="Patient appears alert and oriented..."
+                                            error={!!errors.physical_examination?.general_appearance}
+                                            helperText={errors.physical_examination?.general_appearance?.message}
+                                        />
+                                    )}
                                 />
                             </Grid>
                             <Grid item xs={12} md={6}>
-                                <TextField
-                                    fullWidth
-                                    multiline
-                                    rows={2}
-                                    label="Heart"
-                                    value={formData.physical_examination?.heart || ''}
-                                    onChange={handleInputChange('physical_examination', 'heart')}
-                                    disabled={!isStaffOrMedical}
-                                    placeholder="Regular rate and rhythm..."
+                                <Controller
+                                    name="physical_examination.heart"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            fullWidth
+                                            multiline
+                                            rows={2}
+                                            label="Heart"
+                                            disabled={!isStaffOrMedical}
+                                            placeholder="Regular rate and rhythm..."
+                                            error={!!errors.physical_examination?.heart}
+                                            helperText={errors.physical_examination?.heart?.message}
+                                        />
+                                    )}
                                 />
                             </Grid>
                             <Grid item xs={12} md={6}>
-                                <TextField
-                                    fullWidth
-                                    multiline
-                                    rows={2}
-                                    label="Lungs"
-                                    value={formData.physical_examination?.lungs || ''}
-                                    onChange={handleInputChange('physical_examination', 'lungs')}
-                                    disabled={!isStaffOrMedical}
-                                    placeholder="Clear to auscultation..."
+                                <Controller
+                                    name="physical_examination.lungs"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            fullWidth
+                                            multiline
+                                            rows={2}
+                                            label="Lungs"
+                                            disabled={!isStaffOrMedical}
+                                            placeholder="Clear to auscultation..."
+                                            error={!!errors.physical_examination?.lungs}
+                                            helperText={errors.physical_examination?.lungs?.message}
+                                        />
+                                    )}
                                 />
                             </Grid>
                             <Grid item xs={12} md={6}>
-                                <TextField
-                                    fullWidth
-                                    multiline
-                                    rows={2}
-                                    label="Abdomen"
-                                    value={formData.physical_examination?.abdomen || ''}
-                                    onChange={handleInputChange('physical_examination', 'abdomen')}
-                                    disabled={!isStaffOrMedical}
-                                    placeholder="Soft, non-tender..."
+                                <Controller
+                                    name="physical_examination.abdomen"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            fullWidth
+                                            multiline
+                                            rows={2}
+                                            label="Abdomen"
+                                            disabled={!isStaffOrMedical}
+                                            placeholder="Soft, non-tender..."
+                                            error={!!errors.physical_examination?.abdomen}
+                                            helperText={errors.physical_examination?.abdomen?.message}
+                                        />
+                                    )}
                                 />
                             </Grid>
                             <Grid item xs={12} md={6}>
-                                <TextField
-                                    fullWidth
-                                    multiline
-                                    rows={2}
-                                    label="Extremities"
-                                    value={formData.physical_examination?.extremities || ''}
-                                    onChange={handleInputChange('physical_examination', 'extremities')}
-                                    disabled={!isStaffOrMedical}
-                                    placeholder="No edema or deformities..."
+                                <Controller
+                                    name="physical_examination.extremities"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            fullWidth
+                                            multiline
+                                            rows={2}
+                                            label="Extremities"
+                                            disabled={!isStaffOrMedical}
+                                            placeholder="No edema or deformities..."
+                                            error={!!errors.physical_examination?.extremities}
+                                            helperText={errors.physical_examination?.extremities?.message}
+                                        />
+                                    )}
                                 />
                             </Grid>
                         </Grid>
@@ -499,40 +562,61 @@ const MedicalRecord = ({ medicalRecordId }) => {
                         </Typography>
                         <Grid container spacing={2}>
                             <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    multiline
-                                    rows={4}
-                                    label="Diagnosis"
-                                    value={formData.diagnosis}
-                                    onChange={handleInputChange(null, 'diagnosis')}
-                                    disabled={!isStaffOrMedical}
-                                    required
-                                    placeholder="Primary diagnosis and any secondary conditions..."
+                                <Controller
+                                    name="diagnosis"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            fullWidth
+                                            multiline
+                                            rows={4}
+                                            label="Diagnosis"
+                                            disabled={!isStaffOrMedical}
+                                            required
+                                            placeholder="Primary diagnosis and any secondary conditions..."
+                                            error={!!errors.diagnosis}
+                                            helperText={errors.diagnosis?.message}
+                                        />
+                                    )}
                                 />
                             </Grid>
                             <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    multiline
-                                    rows={4}
-                                    label="Treatment Plan"
-                                    value={formData.treatment}
-                                    onChange={handleInputChange(null, 'treatment')}
-                                    disabled={!isStaffOrMedical}
-                                    placeholder="Medications, procedures, follow-up instructions..."
+                                <Controller
+                                    name="treatment"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            fullWidth
+                                            multiline
+                                            rows={4}
+                                            label="Treatment Plan"
+                                            disabled={!isStaffOrMedical}
+                                            placeholder="Medications, procedures, follow-up instructions..."
+                                            error={!!errors.treatment}
+                                            helperText={errors.treatment?.message}
+                                        />
+                                    )}
                                 />
                             </Grid>
                             <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    multiline
-                                    rows={3}
-                                    label="Additional Notes"
-                                    value={formData.notes}
-                                    onChange={handleInputChange(null, 'notes')}
-                                    disabled={!isStaffOrMedical}
-                                    placeholder="Any additional observations or instructions..."
+                                <Controller
+                                    name="notes"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            fullWidth
+                                            multiline
+                                            rows={3}
+                                            label="Additional Notes"
+                                            disabled={!isStaffOrMedical}
+                                            placeholder="Any additional observations or instructions..."
+                                            error={!!errors.notes}
+                                            helperText={errors.notes?.message}
+                                        />
+                                    )}
                                 />
                             </Grid>
                         </Grid>

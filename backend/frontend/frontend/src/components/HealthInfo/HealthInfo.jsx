@@ -19,6 +19,9 @@ import {
   Edit as EditIcon,
   Add as AddIcon,
 } from '@mui/icons-material';
+import { useForm, Controller } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import { healthInfoSchema } from '../../utils/validationSchemas';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchHealthInfo, addHealthInfo, updateHealthInfo, deleteHealthInfo, setEditing, clearEditing } from '../../features/healthInfoSlice';
 import { selectCurrentUser } from '../../features/authentication/authSlice';
@@ -28,28 +31,36 @@ const HealthInfo = () => {
   const dispatch = useDispatch();
   const { list: healthInfo = [], loading, error, editing } = useSelector(state => state.healthInfo);
   const user = useSelector(selectCurrentUser);
-  const [form, setForm] = useState({ title: '', content: '', category: '' });
+  const { handleSubmit, control, formState: { errors }, reset } = useForm({
+    resolver: yupResolver(healthInfoSchema),
+    defaultValues: {
+      title: '',
+      content: '',
+      category: ''
+    }
+  });
 
   useEffect(() => { dispatch(fetchHealthInfo()); }, [dispatch]);
   useEffect(() => {
-    if (editing) setForm(editing);
-    else setForm({ title: '', content: '', category: '' });
-  }, [editing]);
+    if (editing) {
+      reset(editing);
+    } else {
+      reset({ title: '', content: '', category: '' });
+    }
+  }, [editing, reset]);
 
   const isStaff = user && (user.role === 'ADMIN' || user.role === 'STAFF');
   const isStudent = user && user.role === 'STUDENT';
   const isPatient = user && user.role === 'PATIENT';
   const isReadOnly = !isStaff;
 
-  const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
-  const handleSubmit = e => {
-    e.preventDefault();
+  const onSubmit = (data) => {
     if (editing) {
-      dispatch(updateHealthInfo({ id: editing.id, data: form })).then(() => dispatch(clearEditing()));
+      dispatch(updateHealthInfo({ id: editing.id, data })).then(() => dispatch(clearEditing()));
     } else {
-      dispatch(addHealthInfo(form));
+      dispatch(addHealthInfo(data));
     }
-    setForm({ title: '', content: '', category: '' });
+    reset({ title: '', content: '', category: '' });
   };
 
   return (
@@ -68,41 +79,59 @@ const HealthInfo = () => {
           <Typography variant="h6" gutterBottom color="primary">
             {editing ? 'Edit Health Information' : 'Add New Health Information'}
           </Typography>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit(onSubmit)}>
             <Grid container spacing={2}>
               <Grid item xs={12} md={4}>
-                <TextField
-                  fullWidth
-                  label="Title"
+                <Controller
                   name="title"
-                  value={form.title}
-                  onChange={handleChange}
-                  variant="outlined"
-                  required
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Title"
+                      variant="outlined"
+                      required
+                      error={!!errors.title}
+                      helperText={errors.title?.message}
+                    />
+                  )}
                 />
               </Grid>
               <Grid item xs={12} md={4}>
-                <TextField
-                  fullWidth
-                  label="Category"
+                <Controller
                   name="category"
-                  value={form.category}
-                  onChange={handleChange}
-                  variant="outlined"
-                  required
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Category"
+                      variant="outlined"
+                      required
+                      error={!!errors.category}
+                      helperText={errors.category?.message}
+                    />
+                  )}
                 />
               </Grid>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={4}
-                  label="Content"
+                <Controller
                   name="content"
-                  value={form.content}
-                  onChange={handleChange}
-                  variant="outlined"
-                  required
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      multiline
+                      rows={4}
+                      label="Content"
+                      variant="outlined"
+                      required
+                      error={!!errors.content}
+                      helperText={errors.content?.message}
+                    />
+                  )}
                 />
               </Grid>
               <Grid item xs={12}>

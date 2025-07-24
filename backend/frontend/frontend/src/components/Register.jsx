@@ -30,13 +30,23 @@ import MyPassField from './forms/MyPassField'
 import MyButton from './forms/MyButton'
 import {Link, useNavigate} from 'react-router-dom'
 import {useForm, Controller} from 'react-hook-form'
+import { yupResolver } from '@hookform/resolvers/yup';
 import { useDispatch, useSelector } from 'react-redux';
 import { registerUser, loginUser, selectAuthStatus, selectAuthError, resetAuthStatus } from '../features/authentication/authSlice';
 import { useEffect, useState } from 'react';
+import { registerSchema } from '../utils/validationSchemas';
 
 const Register = () =>{
     const navigate = useNavigate()
-    const {handleSubmit, control, watch, formState: { errors } } = useForm()
+    const {handleSubmit, control, watch, formState: { errors } } = useForm({
+        resolver: yupResolver(registerSchema),
+        defaultValues: {
+            email: '',
+            password: '',
+            password2: '',
+            role: 'STUDENT'
+        }
+    })
     const dispatch = useDispatch();
     const authStatus = useSelector(selectAuthStatus);
     const authError = useSelector(selectAuthError);
@@ -199,13 +209,6 @@ const Register = () =>{
                                             placeholder="Enter your USC email"
                                             error={!!errors?.email}
                                             helperText={errors?.email?.message}
-                                            rules={{
-                                                required: 'Email is required',
-                                                pattern: {
-                                                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                                    message: 'Invalid email address'
-                                                }
-                                            }}
                                         />
                                     </Box>
 
@@ -223,13 +226,6 @@ const Register = () =>{
                                             placeholder="Create a strong password"
                                             error={!!errors?.password}
                                             helperText={errors?.password?.message}
-                                            rules={{
-                                                required: 'Password is required',
-                                                minLength: {
-                                                    value: 8,
-                                                    message: 'Password must be at least 8 characters'
-                                                }
-                                            }}
                                         />
                                     </Box>
 
@@ -247,10 +243,6 @@ const Register = () =>{
                                             placeholder="Confirm your password"
                                             error={!!errors?.password2}
                                             helperText={errors?.password2?.message}
-                                            rules={{
-                                                required: 'Please confirm your password',
-                                                validate: value => value === password || 'Passwords do not match'
-                                            }}
                                         />
                                     </Box>
 
@@ -264,7 +256,6 @@ const Register = () =>{
                                         <Controller
                                             name="role"
                                             control={control}
-                                            defaultValue="STUDENT"
                                             render={({ field }) => (
                                                 <FormControl fullWidth>
                                                     <Select 

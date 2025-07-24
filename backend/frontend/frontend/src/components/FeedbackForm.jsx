@@ -1,18 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Rating, TextField, Button, Snackbar, Alert, Paper, FormControl, FormLabel, RadioGroup, FormControlLabel, Radio, Divider, CircularProgress } from '@mui/material';
+import { 
+  Box, 
+  Typography, 
+  Rating, 
+  TextField, 
+  Button, 
+  Snackbar, 
+  Alert, 
+  Paper, 
+  FormControl, 
+  FormLabel, 
+  RadioGroup, 
+  FormControlLabel, 
+  Radio, 
+  Divider, 
+  CircularProgress 
+} from '@mui/material';
+import { useForm, Controller } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import { feedbackSchema } from '../utils/validationSchemas';
 import { feedbackService } from '../services/api';
 
 const FeedbackForm = ({ medicalRecordId, onSubmitted }) => {
-  const [rating, setRating] = useState(0);
-  const [comments, setComments] = useState('');
-  const [courteous, setCourteous] = useState('');
-  const [recommend, setRecommend] = useState('');
-  const [improvement, setImprovement] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [hasExistingFeedback, setHasExistingFeedback] = useState(false);
   const [checkingExisting, setCheckingExisting] = useState(true);
+  
+  const { handleSubmit, control, formState: { errors }, reset } = useForm({
+    resolver: yupResolver(feedbackSchema),
+    defaultValues: {
+      rating: 0,
+      comments: '',
+      courteous: '',
+      recommend: '',
+      improvement: ''
+    }
+  });
 
   useEffect(() => {
     const checkExistingFeedback = async () => {
@@ -32,25 +57,16 @@ const FeedbackForm = ({ medicalRecordId, onSubmitted }) => {
     checkExistingFeedback();
   }, [medicalRecordId]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const onSubmit = async (data) => {
     setSubmitting(true);
     setError('');
     try {
       await feedbackService.submitFeedback({
         medical_record: medicalRecordId !== 'general' ? medicalRecordId : null,
-        rating,
-        comments,
-        courteous,
-        recommend,
-        improvement,
+        ...data
       });
       setSuccess(true);
-      setRating(0);
-      setComments('');
-      setCourteous('');
-      setRecommend('');
-      setImprovement('');
+      reset();
       if (onSubmitted) onSubmitted();
     } catch (err) {
       console.error('Feedback submission error:', err);
@@ -69,125 +85,199 @@ const FeedbackForm = ({ medicalRecordId, onSubmitted }) => {
 
   if (checkingExisting) {
     return (
-      <Paper sx={{ p: 3, maxWidth: 500, mx: 'auto', mt: 4 }} elevation={3}>
-        <Box display="flex" alignItems="center" justifyContent="center" p={4}>
-          <CircularProgress size={30} />
-          <Typography variant="body1" sx={{ ml: 2 }}>Checking feedback status...</Typography>
-        </Box>
-      </Paper>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+        <CircularProgress />
+        <Typography variant="body2" sx={{ ml: 2 }}>
+          Checking existing feedback...
+        </Typography>
+      </Box>
     );
   }
 
   if (hasExistingFeedback) {
     return (
-      <Paper sx={{ p: 3, maxWidth: 500, mx: 'auto', mt: 4 }} elevation={3}>
-        <Typography variant="h5" gutterBottom>Feedback Already Submitted</Typography>
-        <Alert severity="info" sx={{ mb: 2 }}>
-          {medicalRecordId !== 'general'
-            ? 'You have already submitted feedback for this medical visit.'
-            : 'You have already submitted general feedback about our clinic.'}
-        </Alert>
-        <Typography variant="body1" color="text.secondary">
-          Thank you for your previous feedback. Each patient can only submit feedback once 
-          {medicalRecordId !== 'general' ? ' per visit' : ''} to ensure the integrity of our feedback system.
+      <Paper sx={{ p: 3, textAlign: 'center' }}>
+        <Typography variant="h6" color="primary" gutterBottom>
+          Feedback Already Submitted
+        </Typography>
+        <Typography variant="body1" color="textSecondary">
+          You have already provided feedback for this medical record. Thank you for your input!
         </Typography>
       </Paper>
     );
   }
 
   return (
-    <Paper sx={{ p: 3, maxWidth: 500, mx: 'auto', mt: 4 }} elevation={3}>
-      <Typography variant="h5" gutterBottom>Patient Feedback</Typography>
-      <Typography variant="body1" gutterBottom>
-        {medicalRecordId !== 'general'
-          ? 'Please rate your experience for this visit and leave any comments below.'
-          : 'Please provide your general feedback about our clinic.'}
+    <Paper sx={{ p: 3 }}>
+      <Typography variant="h6" gutterBottom color="primary">
+        Share Your Feedback
       </Typography>
-      <Divider sx={{ my: 2 }} />
-      <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-        <Typography variant="subtitle1" gutterBottom>Overall Experience</Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Rating
+      <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
+        Your feedback helps us improve our services. All fields marked with * are required.
+      </Typography>
+
+      <form onSubmit={handleSubmit(onSubmit)}>
+        {/* Rating */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle1" gutterBottom>
+            Overall Rating *
+          </Typography>
+          <Controller
             name="rating"
-            value={rating}
-            onChange={(_, newValue) => setRating(newValue)}
-            size="large"
+            control={control}
+            render={({ field }) => (
+              <Box>
+                <Rating
+                  {...field}
+                  size="large"
+                  onChange={(event, newValue) => {
+                    field.onChange(newValue);
+                  }}
+                />
+                {errors.rating && (
+                  <Typography variant="caption" color="error" display="block" sx={{ mt: 1 }}>
+                    {errors.rating.message}
+                  </Typography>
+                )}
+              </Box>
+            )}
           />
         </Box>
-        <FormControl component="fieldset" sx={{ mb: 2 }}>
-          <FormLabel component="legend">Was the staff courteous?</FormLabel>
-          <RadioGroup
-            row
-            value={courteous}
-            onChange={e => setCourteous(e.target.value)}
+
+        <Divider sx={{ my: 3 }} />
+
+        {/* Courteous Staff */}
+        <Box sx={{ mb: 3 }}>
+          <Controller
+            name="courteous"
+            control={control}
+            render={({ field }) => (
+              <FormControl error={!!errors.courteous}>
+                <FormLabel component="legend">
+                  Were the staff members courteous and professional? *
+                </FormLabel>
+                <RadioGroup
+                  {...field}
+                  row
+                  sx={{ mt: 1 }}
+                >
+                  <FormControlLabel value="yes" control={<Radio />} label="Yes" />
+                  <FormControlLabel value="no" control={<Radio />} label="No" />
+                </RadioGroup>
+                {errors.courteous && (
+                  <Typography variant="caption" color="error" sx={{ mt: 1 }}>
+                    {errors.courteous.message}
+                  </Typography>
+                )}
+              </FormControl>
+            )}
+          />
+        </Box>
+
+        {/* Recommend Service */}
+        <Box sx={{ mb: 3 }}>
+          <Controller
+            name="recommend"
+            control={control}
+            render={({ field }) => (
+              <FormControl error={!!errors.recommend}>
+                <FormLabel component="legend">
+                  Would you recommend our services to others? *
+                </FormLabel>
+                <RadioGroup
+                  {...field}
+                  row
+                  sx={{ mt: 1 }}
+                >
+                  <FormControlLabel value="yes" control={<Radio />} label="Yes" />
+                  <FormControlLabel value="no" control={<Radio />} label="No" />
+                </RadioGroup>
+                {errors.recommend && (
+                  <Typography variant="caption" color="error" sx={{ mt: 1 }}>
+                    {errors.recommend.message}
+                  </Typography>
+                )}
+              </FormControl>
+            )}
+          />
+        </Box>
+
+        <Divider sx={{ my: 3 }} />
+
+        {/* Comments */}
+        <Box sx={{ mb: 3 }}>
+          <Controller
+            name="comments"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                multiline
+                rows={4}
+                label="Additional Comments"
+                placeholder="Please share any additional thoughts about your experience..."
+                error={!!errors.comments}
+                helperText={errors.comments?.message}
+              />
+            )}
+          />
+        </Box>
+
+        {/* Improvement Suggestions */}
+        <Box sx={{ mb: 3 }}>
+          <Controller
+            name="improvement"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                multiline
+                rows={3}
+                label="Suggestions for Improvement"
+                placeholder="How can we improve our services? Your suggestions are valuable to us..."
+                error={!!errors.improvement}
+                helperText={errors.improvement?.message}
+              />
+            )}
+          />
+        </Box>
+
+        {/* Error Alert */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        {/* Submit Button */}
+        <Box sx={{ textAlign: 'center' }}>
+          <Button
+            type="submit"
+            variant="contained"
+            size="large"
+            disabled={submitting}
+            startIcon={submitting ? <CircularProgress size={20} /> : null}
+            sx={{ minWidth: 150 }}
           >
-            <FormControlLabel value="yes" control={<Radio />} label="Yes" />
-            <FormControlLabel value="no" control={<Radio />} label="No" />
-          </RadioGroup>
-        </FormControl>
-        <FormControl component="fieldset" sx={{ mb: 2 }}>
-          <FormLabel component="legend">Would you recommend us?</FormLabel>
-          <RadioGroup
-            row
-            value={recommend}
-            onChange={e => setRecommend(e.target.value)}
-          >
-            <FormControlLabel value="yes" control={<Radio />} label="Yes" />
-            <FormControlLabel value="no" control={<Radio />} label="No" />
-          </RadioGroup>
-        </FormControl>
-        <TextField
-          label="Comments (optional)"
-          multiline
-          minRows={3}
-          fullWidth
-          value={comments}
-          onChange={e => setComments(e.target.value)}
-          variant="outlined"
-          sx={{ mb: 2 }}
-        />
-        <TextField
-          label="What could we improve? (optional)"
-          multiline
-          minRows={2}
-          fullWidth
-          value={improvement}
-          onChange={e => setImprovement(e.target.value)}
-          variant="outlined"
-          sx={{ mb: 2 }}
-        />
-        <Button
-          type="submit"
-          variant="contained"
-          color="primary"
-          disabled={submitting || !rating}
-          fullWidth
-        >
-          {submitting ? 'Submitting...' : 'Submit Feedback'}
-        </Button>
-      </Box>
+            {submitting ? 'Submitting...' : 'Submit Feedback'}
+          </Button>
+        </Box>
+      </form>
+
+      {/* Success Snackbar */}
       <Snackbar
         open={success}
-        autoHideDuration={4000}
+        autoHideDuration={6000}
         onClose={() => setSuccess(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert severity="success" sx={{ width: '100%' }}>
-          Thank you for your feedback!
-        </Alert>
-      </Snackbar>
-      <Snackbar
-        open={!!error}
-        autoHideDuration={4000}
-        onClose={() => setError('')}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity="error" sx={{ width: '100%' }}>
-          {error}
+        <Alert onClose={() => setSuccess(false)} severity="success" sx={{ width: '100%' }}>
+          Thank you for your feedback! Your input helps us improve our services.
         </Alert>
       </Snackbar>
     </Paper>
   );
 };
 
-export default FeedbackForm; 
+export default FeedbackForm;

@@ -14,28 +14,35 @@ import {
   Stack,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { useForm, Controller } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import { medicalCertificateSchema } from '../../utils/validationSchemas';
 import { medicalCertificateService } from '../../services/api';
 import { patientService } from '../../services/api';
 
 const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel }) => {
-  const [formData, setFormData] = useState({
-    patient: '',
-    template: '',
-    diagnosis: '',
-    recommendations: '',
-    valid_from: null,
-    valid_until: null,
-    additional_notes: '',
-  });
   const [patients, setPatients] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  const { handleSubmit, control, formState: { errors }, reset } = useForm({
+    resolver: yupResolver(medicalCertificateSchema),
+    defaultValues: {
+      patient: '',
+      template: '',
+      diagnosis: '',
+      recommendations: '',
+      valid_from: null,
+      valid_until: null,
+      additional_notes: '',
+    }
+  });
 
   useEffect(() => {
     fetchFormData();
     if (certificate) {
-      setFormData({
+      reset({
         patient: certificate.patient,
         template: certificate.template,
         diagnosis: certificate.diagnosis,
@@ -45,50 +52,29 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel }) => {
         additional_notes: certificate.additional_notes || '',
       });
     }
-  }, [certificate]);
+  }, [certificate, reset]);
 
   const fetchFormData = async () => {
     try {
       setLoading(true);
-      const [patientsResponse, templatesResponse] = await Promise.all([
+      const [patientsRes, templatesRes] = await Promise.all([
         patientService.getAll(),
-        medicalCertificateService.getAllTemplates()
+        medicalCertificateService.getTemplates(),
       ]);
-      setPatients(Array.isArray(patientsResponse.data) ? patientsResponse.data : []);
-      setTemplates(Array.isArray(templatesResponse.data) ? templatesResponse.data : []);
-      setError(null);
+      setPatients(patientsRes.data || []);
+      setTemplates(templatesRes.data || []);
     } catch (err) {
       setError('Failed to load form data');
-      console.error('Error loading form data:', err);
+      console.error('Error fetching form data:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleDateChange = (name) => (date) => {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: date,
-    }));
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    if (!formData.patient || !formData.template || !formData.diagnosis || !formData.valid_from || !formData.valid_until) {
-      setError('Please fill in all required fields');
-      return;
-    }
-    
+  const handleFormSubmit = async (data) => {
     try {
-      await onSubmit(formData);
+      setError(null);
+      await onSubmit(data);
     } catch (err) {
       setError('Failed to save medical certificate');
       console.error('Error saving certificate:', err);
@@ -101,7 +87,7 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel }) => {
 
   return (
     <Paper sx={{ p: 3 }}>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit(handleFormSubmit)}>
         <Grid container spacing={3}>
           {error && (
             <Grid item xs={12}>
@@ -109,107 +95,173 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel }) => {
             </Grid>
           )}
 
+          {/* Patient Selection */}
           <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel>Patient</InputLabel>
-              <Select
-                name="patient"
-                value={formData.patient}
-                onChange={handleChange}
-                label="Patient"
-                required
-              >
-                {patients.map((patient) => (
-                  <MenuItem key={patient.id} value={patient.id}>
-                    {patient.first_name} {patient.last_name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Controller
+              name="patient"
+              control={control}
+              render={({ field }) => (
+                <FormControl fullWidth error={!!errors.patient}>
+                  <InputLabel>Patient *</InputLabel>
+                  <Select
+                    {...field}
+                    label="Patient *"
+                    value={field.value || ''}
+                  >
+                    {patients.map((patient) => (
+                      <MenuItem key={patient.id} value={patient.id}>
+                        {patient.first_name} {patient.last_name} - {patient.id_number}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  {errors.patient && (
+                    <Typography variant="caption" color="error" sx={{ mt: 1 }}>
+                      {errors.patient.message}
+                    </Typography>
+                  )}
+                </FormControl>
+              )}
+            />
           </Grid>
 
+          {/* Template Selection */}
           <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel>Template</InputLabel>
-              <Select
-                name="template"
-                value={formData.template}
-                onChange={handleChange}
-                label="Template"
-                required
-              >
-                {templates.map((template) => (
-                  <MenuItem key={template.id} value={template.id}>
-                    {template.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Controller
+              name="template"
+              control={control}
+              render={({ field }) => (
+                <FormControl fullWidth error={!!errors.template}>
+                  <InputLabel>Template *</InputLabel>
+                  <Select
+                    {...field}
+                    label="Template *"
+                    value={field.value || ''}
+                  >
+                    {templates.map((template) => (
+                      <MenuItem key={template.id} value={template.id}>
+                        {template.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  {errors.template && (
+                    <Typography variant="caption" color="error" sx={{ mt: 1 }}>
+                      {errors.template.message}
+                    </Typography>
+                  )}
+                </FormControl>
+              )}
+            />
           </Grid>
 
+          {/* Diagnosis */}
           <Grid item xs={12}>
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
+            <Controller
               name="diagnosis"
-              label="Diagnosis"
-              value={formData.diagnosis}
-              onChange={handleChange}
-              required
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  fullWidth
+                  multiline
+                  rows={4}
+                  label="Diagnosis *"
+                  placeholder="Enter the primary diagnosis and any relevant medical conditions..."
+                  error={!!errors.diagnosis}
+                  helperText={errors.diagnosis?.message}
+                />
+              )}
             />
           </Grid>
 
+          {/* Recommendations */}
           <Grid item xs={12}>
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
+            <Controller
               name="recommendations"
-              label="Recommendations"
-              value={formData.recommendations}
-              onChange={handleChange}
-              required
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  fullWidth
+                  multiline
+                  rows={4}
+                  label="Recommendations *"
+                  placeholder="Enter medical recommendations, restrictions, or treatment plans..."
+                  error={!!errors.recommendations}
+                  helperText={errors.recommendations?.message}
+                />
+              )}
             />
           </Grid>
 
+          {/* Valid From Date */}
           <Grid item xs={12} md={6}>
-            <DatePicker
-              label="Valid From"
-              value={formData.valid_from}
-              onChange={handleDateChange('valid_from')}
-              slotProps={{ textField: { fullWidth: true, required: true } }}
+            <Controller
+              name="valid_from"
+              control={control}
+              render={({ field }) => (
+                <DatePicker
+                  {...field}
+                  label="Valid From *"
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      error: !!errors.valid_from,
+                      helperText: errors.valid_from?.message,
+                    },
+                  }}
+                />
+              )}
             />
           </Grid>
 
+          {/* Valid Until Date */}
           <Grid item xs={12} md={6}>
-            <DatePicker
-              label="Valid Until"
-              value={formData.valid_until}
-              onChange={handleDateChange('valid_until')}
-              slotProps={{ textField: { fullWidth: true, required: true } }}
-              minDate={formData.valid_from}
+            <Controller
+              name="valid_until"
+              control={control}
+              render={({ field }) => (
+                <DatePicker
+                  {...field}
+                  label="Valid Until *"
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      error: !!errors.valid_until,
+                      helperText: errors.valid_until?.message,
+                    },
+                  }}
+                />
+              )}
             />
           </Grid>
 
+          {/* Additional Notes */}
           <Grid item xs={12}>
-            <TextField
-              fullWidth
-              multiline
-              rows={2}
+            <Controller
               name="additional_notes"
-              label="Additional Notes"
-              value={formData.additional_notes}
-              onChange={handleChange}
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  fullWidth
+                  multiline
+                  rows={3}
+                  label="Additional Notes"
+                  placeholder="Any additional information or special instructions..."
+                  error={!!errors.additional_notes}
+                  helperText={errors.additional_notes?.message}
+                />
+              )}
             />
           </Grid>
 
+          {/* Action Buttons */}
           <Grid item xs={12}>
             <Stack direction="row" spacing={2} justifyContent="flex-end">
-              <Button onClick={onCancel} color="inherit">
+              <Button onClick={onCancel} variant="outlined">
                 Cancel
               </Button>
-              <Button type="submit" variant="contained" color="primary">
+              <Button type="submit" variant="contained">
                 {certificate ? 'Update Certificate' : 'Create Certificate'}
               </Button>
             </Stack>
@@ -220,4 +272,4 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel }) => {
   );
 };
 
-export default MedicalCertificateForm; 
+export default MedicalCertificateForm;

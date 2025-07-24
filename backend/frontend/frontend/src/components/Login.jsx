@@ -27,12 +27,20 @@ import {
 } from '@mui/icons-material';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginUser, selectAuthStatus, selectAuthError, resetAuthStatus } from '../features/authentication/authSlice';
+import { loginSchema } from '../utils/validationSchemas';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { handleSubmit, control, formState: { errors } } = useForm();
+  const { handleSubmit, control, formState: { errors } } = useForm({
+    resolver: yupResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: ''
+    }
+  });
   const dispatch = useDispatch();
   const authStatus = useSelector(selectAuthStatus);
   const authError = useSelector(selectAuthError);
@@ -175,14 +183,6 @@ const Login = () => {
                     <Controller
                       name="email"
                       control={control}
-                      defaultValue=""
-                      rules={{
-                        required: 'Email is required',
-                        pattern: {
-                          value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                          message: 'Invalid email address',
-                        },
-                      }}
                       render={({ field }) => (
                         <TextField
                           {...field}
@@ -218,8 +218,6 @@ const Login = () => {
                     <Controller
                       name="password"
                       control={control}
-                      defaultValue=""
-                      rules={{ required: 'Password is required' }}
                       render={({ field }) => (
                         <TextField
                           {...field}
