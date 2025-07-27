@@ -13,12 +13,23 @@ import {
   Paper,
   Divider,
   useTheme,
+  Chip,
+  Card,
+  CardContent,
+  CardActions,
+  CardMedia,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
   Edit as EditIcon,
   Add as AddIcon,
+  Visibility as VisibilityIcon,
+  Image as ImageIcon,
+  ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
+import ImageUpload from '../common/ImageUpload';
+import ImageViewer from '../common/ImageViewer';
+import ContentViewer from '../common/ContentViewer';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { healthInfoSchema } from '../../utils/validationSchemas';
@@ -40,12 +51,23 @@ const HealthInfo = () => {
     }
   });
 
+  // State for image handling and viewers
+  const [uploadedImages, setUploadedImages] = useState([]);
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [contentViewerOpen, setContentViewerOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [viewerImages, setViewerImages] = useState([]);
+  const [imageIndex, setImageIndex] = useState(0);
+
   useEffect(() => { dispatch(fetchHealthInfo()); }, [dispatch]);
   useEffect(() => {
     if (editing) {
       reset(editing);
+      // Load existing images if editing
+      setUploadedImages(editing.images || []);
     } else {
       reset({ title: '', content: '', category: '' });
+      setUploadedImages([]);
     }
   }, [editing, reset]);
 
@@ -55,11 +77,37 @@ const HealthInfo = () => {
   const isReadOnly = !isStaffOrMedical;
 
   const onSubmit = (data) => {
+    const submissionData = {
+      ...data,
+      images: uploadedImages
+    };
+    
     if (editing) {
-      dispatch(updateHealthInfo({ id: editing.id, data })).then(() => dispatch(clearEditing()));
+      dispatch(updateHealthInfo({ id: editing.id, data: submissionData })).then(() => {
+        dispatch(clearEditing());
+        setUploadedImages([]);
+      });
     } else {
-      dispatch(addHealthInfo(data));
+      dispatch(addHealthInfo(submissionData));
+      setUploadedImages([]);
     }
+    reset({ title: '', content: '', category: '' });
+  };
+
+  const handleViewContent = (item) => {
+    setSelectedItem(item);
+    setContentViewerOpen(true);
+  };
+
+  const handleViewImages = (images, index = 0) => {
+    setViewerImages(images);
+    setImageIndex(index);
+    setImageViewerOpen(true);
+  };
+
+  const handleCancelEdit = () => {
+    dispatch(clearEditing());
+    setUploadedImages([]);
     reset({ title: '', content: '', category: '' });
   };
 
@@ -134,20 +182,40 @@ const HealthInfo = () => {
                   )}
                 />
               </Grid>
+              
+              {/* Image Upload Section */}
               <Grid item xs={12}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={editing ? <EditIcon /> : <AddIcon />}
-                  type="submit"
-                >
-                  {editing ? 'Update Information' : 'Add Information'}
-                </Button>
-                {editing && (
-                  <Button sx={{ ml: 2 }} variant="outlined" color="secondary" onClick={() => dispatch(clearEditing())}>
-                    Cancel
+                <Typography variant="h6" gutterBottom sx={{ mt: 2, mb: 1 }}>
+                  Images (Optional)
+                </Typography>
+                <ImageUpload
+                  images={uploadedImages}
+                  onImagesChange={setUploadedImages}
+                  maxImages={5}
+                  maxSizeMB={5}
+                />
+              </Grid>
+              
+              <Grid item xs={12}>
+                <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={editing ? <EditIcon /> : <AddIcon />}
+                    type="submit"
+                  >
+                    {editing ? 'Update Information' : 'Add Information'}
                   </Button>
-                )}
+                  {editing && (
+                    <Button 
+                      variant="outlined" 
+                      color="secondary" 
+                      onClick={handleCancelEdit}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                </Box>
               </Grid>
             </Grid>
           </form>
@@ -161,52 +229,154 @@ const HealthInfo = () => {
         </Typography>
         {loading && <Typography>Loading...</Typography>}
         {error && <Typography color="error">Error: {error}</Typography>}
-        <List>
+        
+        <Grid container spacing={3}>
           {healthInfo.map((info) => (
-            <React.Fragment key={info.id}>
-              <ListItem
-                sx={{
-                  bgcolor: 'background.paper',
-                  mb: 1,
-                  borderRadius: 1,
-                  '&:hover': { bgcolor: 'action.hover' },
+            <Grid item xs={12} md={6} lg={4} key={info.id}>
+              <Card 
+                elevation={2}
+                sx={{ 
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': { 
+                    elevation: 4,
+                    transform: 'translateY(-2px)'
+                  }
                 }}
               >
-                <ListItemText
-                  primary={
-                    <Typography variant="h6" component="div" color="primary">
+                {/* Show first image as card header if available */}
+                {info.images && info.images.length > 0 && (
+                  <CardMedia
+                    component="img"
+                    height="200"
+                    image={info.images[0].url}
+                    alt={info.title}
+                    sx={{ 
+                      cursor: 'pointer',
+                      objectFit: 'cover'
+                    }}
+                    onClick={() => handleViewImages(info.images, 0)}
+                  />
+                )}
+                
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                    <Typography variant="h6" component="div" color="primary" sx={{ fontWeight: 'bold' }}>
                       {info.title}
                     </Typography>
-                  }
-                  secondary={
-                    <>
-                      <Typography component="span" variant="body2" color="secondary">
-                        {info.category}
-                      </Typography>
-                      {` — ${info.content}`}
-                      <br />
-                      <Typography component="span" variant="caption" color="text.secondary">
-                        Posted on: {new Date(info.created_at).toLocaleDateString()}
-                      </Typography>
-                    </>
-                  }
-                />
-                {isStaffOrMedical && (
-                  <ListItemSecondaryAction>
-                    <IconButton edge="end" aria-label="edit" color="primary" onClick={() => dispatch(setEditing(info))}>
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton edge="end" aria-label="delete" onClick={() => dispatch(deleteHealthInfo(info.id))} color="error">
-                      <DeleteIcon />
-                    </IconButton>
-                  </ListItemSecondaryAction>
-                )}
-              </ListItem>
-              <Divider />
-            </React.Fragment>
+                    <Chip 
+                      label={info.category} 
+                      size="small" 
+                      color="secondary" 
+                      variant="outlined"
+                    />
+                  </Box>
+                  
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary" 
+                    sx={{ 
+                      mb: 2,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    {info.content}
+                  </Typography>
+                  
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      {new Date(info.created_at).toLocaleDateString()}
+                    </Typography>
+                    {info.images && info.images.length > 0 && (
+                      <Chip 
+                        icon={<ImageIcon />} 
+                        label={`${info.images.length} image${info.images.length > 1 ? 's' : ''}`}
+                        size="small"
+                        variant="outlined"
+                        color="primary"
+                      />
+                    )}
+                  </Box>
+                </CardContent>
+                
+                <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
+                  <Button
+                    size="small"
+                    startIcon={<VisibilityIcon />}
+                    onClick={() => handleViewContent(info)}
+                    variant="outlined"
+                  >
+                    View Full
+                  </Button>
+                  
+                  {info.images && info.images.length > 0 && (
+                    <Button
+                      size="small"
+                      startIcon={<ImageIcon />}
+                      onClick={() => handleViewImages(info.images, 0)}
+                      variant="outlined"
+                      color="secondary"
+                    >
+                      Images ({info.images.length})
+                    </Button>
+                  )}
+                  
+                  {isStaffOrMedical && (
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <IconButton 
+                        size="small" 
+                        color="primary" 
+                        onClick={() => dispatch(setEditing(info))}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton 
+                        size="small" 
+                        color="error" 
+                        onClick={() => dispatch(deleteHealthInfo(info.id))}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
+                  )}
+                </CardActions>
+              </Card>
+            </Grid>
           ))}
-        </List>
+        </Grid>
+        
+        {healthInfo.length === 0 && !loading && (
+          <Typography variant="body1" color="text.secondary" textAlign="center" sx={{ py: 4 }}>
+            No health information available yet.
+          </Typography>
+        )}
       </Paper>
+
+      {/* Image Viewer Modal */}
+      <ImageViewer
+        open={imageViewerOpen}
+        onClose={() => setImageViewerOpen(false)}
+        images={viewerImages}
+        currentIndex={imageIndex}
+        title="Health Information Images"
+      />
+
+      {/* Content Viewer Modal */}
+      <ContentViewer
+        open={contentViewerOpen}
+        onClose={() => setContentViewerOpen(false)}
+        title={selectedItem?.title || ''}
+        content={selectedItem?.content || ''}
+        category={selectedItem?.category || ''}
+        date={selectedItem?.created_at || ''}
+        images={selectedItem?.images || []}
+      />
     </Box>
   );
 };
