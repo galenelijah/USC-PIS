@@ -13,6 +13,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background-color: #f5f5f5;
+  overflow-x: hidden;
 }
 
 /* Remove conflicting styles */
@@ -23,6 +24,61 @@ button {
 /* Global styles */
 .page-container {
   padding: 24px;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  .page-container {
+    padding: 16px;
+  }
+  
+  /* Improve touch targets on mobile */
+  button {
+    min-height: 44px;
+  }
+  
+  /* Better spacing for form elements */
+  .MuiTextField-root {
+    margin-bottom: 16px;
+  }
+  
+  /* Optimize table display */
+  .MuiTableContainer-root {
+    border-radius: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-container {
+    padding: 12px;
+  }
+  
+  /* Smaller typography on very small screens */
+  h1 {
+    font-size: 1.75rem;
+  }
+  
+  h2 {
+    font-size: 1.5rem;
+  }
+  
+  /* Stack cards vertically with smaller padding */
+  .MuiCard-root {
+    margin-bottom: 12px;
+  }
+}
+
+/* Optimize scrolling on mobile */
+@media (hover: none) and (pointer: coarse) {
+  /* Hide scrollbars on touch devices for cleaner look */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Improve scroll momentum */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 .section-title {

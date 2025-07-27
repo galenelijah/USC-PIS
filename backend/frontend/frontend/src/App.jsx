@@ -60,6 +60,7 @@ const App = () => {
   // Memoized user role checks
   const userRoles = useMemo(() => ({
     isAdminOrStaff: !!user && ['ADMIN', 'STAFF'].includes(user.role),
+    isAdminOrStaffOrDoctor: !!user && ['ADMIN', 'STAFF', 'DOCTOR'].includes(user.role),
     isDoctor: !!user && user.role === 'DOCTOR',
     isNurse: !!user && user.role === 'NURSE',
     isStudent: !!user && user.role === 'STUDENT'
@@ -200,7 +201,7 @@ const App = () => {
             path="/database-monitor"
             element={
               <RequireAuth isAuthenticated={isAuthenticated}>
-                {userRoles.isAdminOrStaff ? (
+                {userRoles.isAdminOrStaffOrDoctor ? (
                   <Layout onSearch={handleSearch}>
                     <Suspense fallback={<PageLoader />}>
                       <DatabaseMonitor />
@@ -456,7 +457,7 @@ const App = () => {
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
-                {userRoles.isAdminOrStaff ? (
+                {userRoles.isAdminOrStaffOrDoctor ? (
                   <Layout onSearch={handleSearch}>
                     <AdminFeedbackList />
                   </Layout>

@@ -26,7 +26,7 @@ const ConsultationHistory = () => {
   const [error, setError] = useState(null);
   
   const currentUser = useSelector(selectCurrentUser);
-  const isAdmin = currentUser && currentUser.role === 'ADMIN';
+  const isAdminOrStaffOrDoctorOrStaffOrDoctor = currentUser && ['ADMIN', 'STAFF', 'DOCTOR'].includes(currentUser.role);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentConsultationData, setCurrentConsultationData] = useState(null);
@@ -118,7 +118,7 @@ const ConsultationHistory = () => {
         <Typography variant="h6" gutterBottom component="div" sx={{ fontWeight: 'bold' }}>
           Consultation History
         </Typography>
-        {isAdmin && (
+        {isAdminOrStaffOrDoctor && (
           <Button
             variant="contained"
             color="primary"
@@ -134,25 +134,25 @@ const ConsultationHistory = () => {
         <Table stickyHeader>
           <TableHead>
             <TableRow>
-              {isAdmin && <TableCell sx={{ fontWeight: 'bold' }}>Patient</TableCell>}
+              {isAdminOrStaffOrDoctor && <TableCell sx={{ fontWeight: 'bold' }}>Patient</TableCell>}
               <TableCell sx={{ fontWeight: 'bold' }}>Date/Time</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Chief Complaints</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Treatment Plan</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Remarks/Results</TableCell>
-              {isAdmin && <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>}
+              {isAdminOrStaffOrDoctor && <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
             {consultations.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isAdmin ? 6 : 5} align="center">
+                <TableCell colSpan={isAdminOrStaffOrDoctor ? 6 : 5} align="center">
                   No consultation records found.
                 </TableCell>
               </TableRow>
             ) : (
               consultations.map((consultation) => (
                 <TableRow key={consultation.id} hover>
-                  {isAdmin && (
+                  {isAdminOrStaffOrDoctor && (
                     <TableCell>
                       <Typography variant="body2" fontWeight="medium">
                         {consultation.patient_name || `Patient ID: ${consultation.patient}`}
@@ -168,7 +168,7 @@ const ConsultationHistory = () => {
                   <TableCell>{consultation.chief_complaints}</TableCell>
                   <TableCell>{consultation.treatment_plan}</TableCell>
                   <TableCell>{consultation.remarks}</TableCell>
-                  {isAdmin && (
+                  {isAdminOrStaffOrDoctor && (
                     <TableCell>
                       <IconButton onClick={() => handleOpenModal(consultation)} color="primary" size="small">
                         <EditIcon />
@@ -185,7 +185,7 @@ const ConsultationHistory = () => {
         </Table>
       </TableContainer>
 
-      {isAdmin && (
+      {isAdminOrStaffOrDoctor && (
         <ConsultationFormModal
           open={isModalOpen}
           onClose={handleCloseModal}

@@ -39,6 +39,8 @@ Welcome to the USC Patient Information System (USC-PIS). This comprehensive guid
 
 ## User Roles
 
+**Important Update (July 24, 2025):** Doctor roles now have full administrative access identical to Staff and Admin users, ensuring consistent experience across all medical professionals.
+
 ### Student
 - View personal medical records
 - Schedule appointments
@@ -47,12 +49,16 @@ Welcome to the USC Patient Information System (USC-PIS). This comprehensive guid
 - Access health forms and documents
 
 ### Doctor
-- View patient records
+- **Full Administrative Access** (identical to Staff/Admin)
+- View and manage all patient records
 - Create and update medical records
-- Manage appointments
-- Issue prescriptions
-- Generate medical certificates
-- View patient history
+- Manage appointments and consultations
+- Issue prescriptions and medical certificates
+- Access admin dashboard with system statistics
+- View and manage feedback analytics
+- Create and manage health information campaigns
+- Access database monitoring tools
+- Complete administrative menu access
 
 ### Nurse
 - Register new patients
@@ -143,7 +149,7 @@ Welcome to the USC Patient Information System (USC-PIS). This comprehensive guid
     - **What could we improve? (optional):** Offer specific suggestions.
 5. Click "Submit Feedback".
 
-### Viewing Feedback Analytics (Admin/Staff)
+### Viewing Feedback Analytics (Admin/Staff/Doctor)
 1. Click "Feedback" in the navigation sidebar.
 2. You will be directed to the **Admin - Patient Feedback** page.
 3. At the top, you will see the **Feedback Analytics Summary**:
@@ -152,6 +158,8 @@ Welcome to the USC Patient Information System (USC-PIS). This comprehensive guid
     - **Rating Distribution Chart:** A bar chart showing the count for each star rating (1-5).
     - **Staff Courteous? / Recommend Service?:** Cards showing the counts for Yes, No, and unanswered responses.
 4. Below the analytics, a table displays all individual feedback submissions.
+
+**Note:** Doctors now have full access to the admin feedback analytics view, identical to staff and admin users.
 
 ### Changing Password
 1. Go to Profile Settings

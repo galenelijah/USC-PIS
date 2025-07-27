@@ -88,16 +88,16 @@ const Login = () => {
         <Grid container spacing={4} alignItems="center">
           {/* Left side - Welcome content */}
           <Grid item xs={12} md={6}>
-            <Box sx={{ color: 'white', pr: { md: 4 } }}>
-              <SchoolIcon sx={{ fontSize: 64, mb: 3, opacity: 0.9 }} />
-              <Typography variant="h2" fontWeight="bold" gutterBottom>
+            <Box sx={{ color: 'white', pr: { md: 4 }, textAlign: { xs: 'center', md: 'left' } }}>
+              <SchoolIcon sx={{ fontSize: { xs: 48, md: 64 }, mb: 3, opacity: 0.9 }} />
+              <Typography variant="h2" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '2rem', md: '3rem' } }}>
                 Welcome Back
               </Typography>
-              <Typography variant="h5" sx={{ mb: 4, opacity: 0.9 }}>
+              <Typography variant="h5" sx={{ mb: 4, opacity: 0.9, fontSize: { xs: '1.25rem', md: '1.5rem' } }}>
                 USC Patient Information System
               </Typography>
               
-              <Stack spacing={3}>
+              <Stack spacing={3} sx={{ display: { xs: 'none', md: 'flex' } }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <CheckCircle sx={{ color: 'white' }} />
                   <Typography variant="h6">
@@ -125,7 +125,7 @@ const Login = () => {
             <Paper
               elevation={24}
               sx={{
-                p: 4,
+                p: { xs: 3, md: 4 },
                 borderRadius: 3,
                 background: 'rgba(255, 255, 255, 0.95)',
                 backdropFilter: 'blur(20px)',

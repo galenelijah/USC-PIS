@@ -1,30 +1,37 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, CssBaseline, Container, Paper } from '@mui/material';
 import Header from './Header';
 import Sidebar from './Sidebar';
 
 const Layout = ({ children, onSearch }) => {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
+
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
       <CssBaseline />
-      <Sidebar />
+      <Sidebar mobileOpen={mobileOpen} handleDrawerToggle={handleDrawerToggle} />
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          width: { sm: `calc(100% - 240px)` },
-          ml: { sm: '240px' },
+          width: { md: `calc(100% - 240px)` },
+          ml: { md: '240px' },
           display: 'flex',
           flexDirection: 'column',
         }}
       >
-        <Header onSearch={onSearch || (() => {})} />
+        <Header onSearch={onSearch || (() => {})} handleDrawerToggle={handleDrawerToggle} />
         <Container 
           maxWidth="xl" 
           sx={{ 
-            mt: 10, 
-            mb: 4, 
-            pt: 2,
+            mt: { xs: 8, sm: 10 }, 
+            mb: { xs: 2, sm: 4 }, 
+            pt: { xs: 1, sm: 2 },
+            px: { xs: 1, sm: 3 },
             flexGrow: 1,
             display: 'flex',
             flexDirection: 'column',
@@ -33,8 +40,8 @@ const Layout = ({ children, onSearch }) => {
           <Paper 
             elevation={0}
             sx={{ 
-              p: 3, 
-              borderRadius: 2,
+              p: { xs: 2, sm: 3 }, 
+              borderRadius: { xs: 1, sm: 2 },
               backgroundColor: 'white',
               flexGrow: 1,
               boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.05)',

@@ -23,13 +23,14 @@ import {
   ExitToApp as LogoutIcon,
   Help as HelpIcon,
   Clear as ClearIcon,
+  Menu as MenuIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout, logoutUser } from '../../features/authentication/authSlice';
 import { notificationService } from '../../services/api';
 
-const Header = ({ onSearch }) => {
+const Header = ({ onSearch, handleDrawerToggle }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector(state => state.auth?.user);
@@ -98,14 +99,25 @@ const Header = ({ onSearch }) => {
     <AppBar
       position="fixed"
       sx={{
-        ml: '240px',
-        width: 'calc(100% - 240px)',
+        ml: { md: '240px' },
+        width: { xs: '100%', md: 'calc(100% - 240px)' },
         backgroundColor: 'white',
         color: 'black',
         boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
       }}
     >
       <Toolbar>
+        {/* Mobile menu button */}
+        <IconButton
+          color="inherit"
+          aria-label="open drawer"
+          edge="start"
+          onClick={handleDrawerToggle}
+          sx={{ mr: 2, display: { md: 'none' } }}
+        >
+          <MenuIcon />
+        </IconButton>
+
         <Box
           sx={{
             backgroundColor: '#f5f5f5',
@@ -113,7 +125,7 @@ const Header = ({ onSearch }) => {
             p: '2px 16px',
             display: 'flex',
             alignItems: 'center',
-            width: 400,
+            width: { xs: '200px', sm: '300px', md: '400px' },
             boxShadow: 'inset 0px 0px 5px rgba(0,0,0,0.05)',
           }}
         >

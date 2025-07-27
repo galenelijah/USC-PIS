@@ -49,10 +49,10 @@ const HealthInfo = () => {
     }
   }, [editing, reset]);
 
-  const isStaff = user && (user.role === 'ADMIN' || user.role === 'STAFF');
+  const isStaffOrMedical = user && ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'].includes(user.role);
   const isStudent = user && user.role === 'STUDENT';
   const isPatient = user && user.role === 'PATIENT';
-  const isReadOnly = !isStaff;
+  const isReadOnly = !isStaffOrMedical;
 
   const onSubmit = (data) => {
     if (editing) {
@@ -69,12 +69,12 @@ const HealthInfo = () => {
         Health Information Dissemination
       </Typography>
       <Box sx={{ mb: 2 }}>
-        {isStaff && <Typography color="success.main">Admin/Staff View</Typography>}
+        {isStaffOrMedical && <Typography color="success.main">Admin/Staff/Doctor View</Typography>}
         {(isStudent || isPatient) && <Typography color="info.main">Patient/Student View (Read-Only)</Typography>}
       </Box>
 
-      {/* Add/Edit Health Information (Staff/Admin only) */}
-      {isStaff && (
+      {/* Add/Edit Health Information (Staff/Admin/Doctor only) */}
+      {isStaffOrMedical && (
         <Paper sx={{ p: 3, mb: 3, borderLeft: `4px solid ${theme.palette.primary.main}` }}>
           <Typography variant="h6" gutterBottom color="primary">
             {editing ? 'Edit Health Information' : 'Add New Health Information'}
@@ -140,7 +140,6 @@ const HealthInfo = () => {
                   color="primary"
                   startIcon={editing ? <EditIcon /> : <AddIcon />}
                   type="submit"
-                  disabled={!form.title || !form.content || !form.category}
                 >
                   {editing ? 'Update Information' : 'Add Information'}
                 </Button>
@@ -192,7 +191,7 @@ const HealthInfo = () => {
                     </>
                   }
                 />
-                {isStaff && (
+                {isStaffOrMedical && (
                   <ListItemSecondaryAction>
                     <IconButton edge="end" aria-label="edit" color="primary" onClick={() => dispatch(setEditing(info))}>
                       <EditIcon />

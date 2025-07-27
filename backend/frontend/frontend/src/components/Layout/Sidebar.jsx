@@ -10,6 +10,8 @@ import {
   Divider,
   Avatar,
   Tooltip,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -38,11 +40,13 @@ const DentalIcon = () => (
 
 const drawerWidth = 240;
 
-const Sidebar = () => {
+const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
   const userFromRedux = useSelector(state => state.auth && state.auth.user);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   const [user, setUser] = useState(null);
   
@@ -61,7 +65,7 @@ const Sidebar = () => {
     }
   }, [userFromRedux]);
 
-  const isAdminOrStaff = user && ['ADMIN', 'STAFF'].includes(user.role);
+  const isAdminOrStaffOrDoctor = user && ['ADMIN', 'STAFF', 'DOCTOR'].includes(user.role);
   const isDoctor = user && user.role === 'DOCTOR';
   const isNurse = user && user.role === 'NURSE';
 
@@ -142,7 +146,16 @@ const Sidebar = () => {
     return (
       <>
         {sectionTitle && (
-          <Typography variant="caption" sx={{ px: 3, py: 1, color: 'rgba(255, 255, 255, 0.7)', display: 'block' }}>
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              px: { xs: 2, sm: 3 }, 
+              py: 1, 
+              color: 'rgba(255, 255, 255, 0.7)', 
+              display: 'block',
+              fontSize: { xs: '0.65rem', sm: '0.75rem' }
+            }}
+          >
             {sectionTitle}
           </Typography>
         )}
@@ -160,7 +173,7 @@ const Sidebar = () => {
                   if (item.action) {
                     item.action();
                   } else if (item.isFeedback) {
-                    navigate(isAdminOrStaff ? '/admin-feedback' : '/feedback');
+                    navigate(isAdminOrStaffOrDoctor ? '/admin-feedback' : '/feedback');
                   } else {
                     navigate(item.path);
                   }
@@ -172,16 +185,16 @@ const Sidebar = () => {
                     backgroundColor: 'rgba(255, 255, 255, 0.1)',
                   },
                   mb: 0.5,
-                  pl: 2,
+                  pl: { xs: 1.5, sm: 2 },
                 }}
               >
-                <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
+                <ListItemIcon sx={{ color: 'white', minWidth: { xs: 32, sm: 40 } }}>
                   {item.icon}
                 </ListItemIcon>
                 <ListItemText 
                   primary={item.text}
                   primaryTypographyProps={{
-                    fontSize: '0.875rem',
+                    fontSize: { xs: '0.8rem', sm: '0.875rem' },
                     fontWeight: isActive(item.path) ? 'bold' : 'normal'
                   }}
                 />
@@ -193,37 +206,47 @@ const Sidebar = () => {
     );
   };
 
-  return (
-    <Drawer
-      variant="permanent"
-      sx={{
-        width: drawerWidth,
-        flexShrink: 0,
-        '& .MuiDrawer-paper': {
-          width: drawerWidth,
-          boxSizing: 'border-box',
-          backgroundColor: '#1a5e20', // Slightly darker green for better contrast
-          color: 'white',
-        },
-      }}
-    >
-      <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <Typography variant="h6" component="div" sx={{ color: 'white', fontWeight: 'bold', textAlign: 'center' }}>
+  const drawer = (
+    <div>
+      <Box sx={{ p: { xs: 2, sm: 3 }, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <Typography 
+          variant={isMobile ? "subtitle1" : "h6"} 
+          component="div" 
+          sx={{ 
+            color: 'white', 
+            fontWeight: 'bold', 
+            textAlign: 'center',
+            fontSize: { xs: '0.9rem', sm: '1.25rem' }
+          }}
+        >
           USC Patient Info System
         </Typography>
       </Box>
 
       {user && (
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2 }}>
-          <Avatar sx={{ width: 64, height: 64, mb: 1, bgcolor: '#4caf50' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2, px: { xs: 1, sm: 0 } }}>
+          <Avatar sx={{ width: { xs: 48, sm: 64 }, height: { xs: 48, sm: 64 }, mb: 1, bgcolor: '#4caf50' }}>
             {user.first_name ? user.first_name[0] : user.email ? user.email[0].toUpperCase() : 'U'}
           </Avatar>
-          <Typography variant="subtitle2" sx={{ color: 'white' }}>
+          <Typography 
+            variant="subtitle2" 
+            sx={{ 
+              color: 'white',
+              fontSize: { xs: '0.8rem', sm: '0.875rem' },
+              textAlign: 'center'
+            }}
+          >
             {user.first_name && user.last_name
               ? `${user.first_name} ${user.last_name}`
               : user.email}
           </Typography>
-          <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              color: 'rgba(255, 255, 255, 0.7)',
+              fontSize: { xs: '0.7rem', sm: '0.75rem' }
+            }}
+          >
             {user.role}
           </Typography>
         </Box>
@@ -238,12 +261,56 @@ const Sidebar = () => {
       {renderMenuSection(reportItems, 'ANALYTICS')}
       <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', my: 1 }} />
       {renderMenuSection(fileItems, "FILES")}
-      {isAdminOrStaff && renderMenuSection(adminItems, "ADMINISTRATION")}
+      {isAdminOrStaffOrDoctor && renderMenuSection(adminItems, "ADMINISTRATION")}
 
       <Box sx={{ flexGrow: 1 }} />
       <Divider sx={{ bgcolor: 'rgba(255, 255, 255, 0.12)' }} />
       {renderMenuSection(userItems)}
-    </Drawer>
+    </div>
+  );
+
+  return (
+    <Box
+      component="nav"
+      sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
+    >
+      {/* Mobile drawer */}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={handleDrawerToggle}
+        ModalProps={{
+          keepMounted: true, // Better open performance on mobile.
+        }}
+        sx={{
+          display: { xs: 'block', md: 'none' },
+          '& .MuiDrawer-paper': {
+            boxSizing: 'border-box',
+            width: drawerWidth,
+            backgroundColor: '#1a5e20',
+            color: 'white',
+          },
+        }}
+      >
+        {drawer}
+      </Drawer>
+      {/* Desktop drawer */}
+      <Drawer
+        variant="permanent"
+        sx={{
+          display: { xs: 'none', md: 'block' },
+          '& .MuiDrawer-paper': {
+            boxSizing: 'border-box',
+            width: drawerWidth,
+            backgroundColor: '#1a5e20',
+            color: 'white',
+          },
+        }}
+        open
+      >
+        {drawer}
+      </Drawer>
+    </Box>
   );
 };
 

@@ -60,7 +60,7 @@ const Dashboard = memo(({ user }) => {
   const [error, setError] = useState(null);
 
   // Define role check constants based on the user prop
-  const isAdminOrStaff = user && ['ADMIN', 'STAFF'].includes(user.role);
+  const isAdminOrStaffOrDoctor = user && ['ADMIN', 'STAFF', 'DOCTOR'].includes(user.role);
   const isDoctor = user && user.role === 'DOCTOR';
   const isNurse = user && user.role === 'NURSE';
   const isStudent = user && user.role === 'STUDENT';
@@ -311,7 +311,7 @@ const Dashboard = memo(({ user }) => {
 
   const renderAdminDashboard = () => (
     <Grid container spacing={3}>
-      <Grid item xs={12} md={3}>
+      <Grid item xs={12} sm={6} md={3}>
         <StatCard
           title="Total Patients"
           value={stats.totalPatients}
@@ -319,7 +319,7 @@ const Dashboard = memo(({ user }) => {
           color="#4caf50"
         />
       </Grid>
-      <Grid item xs={12} md={3}>
+      <Grid item xs={12} sm={6} md={3}>
         <StatCard
           title="Medical Records"
           value={stats.totalRecords}
@@ -327,7 +327,7 @@ const Dashboard = memo(({ user }) => {
           color="#2196f3"
         />
       </Grid>
-      <Grid item xs={12} md={3}>
+      <Grid item xs={12} sm={6} md={3}>
         <StatCard
           title="Today's Appointments"
           value={stats.appointmentsToday}
@@ -335,7 +335,7 @@ const Dashboard = memo(({ user }) => {
           color="#ff9800"
         />
       </Grid>
-      <Grid item xs={12} md={3}>
+      <Grid item xs={12} sm={6} md={3}>
         <StatCard
           title="Pending Requests"
           value={stats.pendingRequests}
@@ -643,7 +643,7 @@ const Dashboard = memo(({ user }) => {
         </Alert>
       )}
       
-      {isAdminOrStaff ? renderAdminDashboard() : renderStudentDashboard()}
+      {isAdminOrStaffOrDoctor ? renderAdminDashboard() : renderStudentDashboard()}
     </>
   );
 });
