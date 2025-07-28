@@ -320,14 +320,16 @@ export const healthInfoService = {
   },
   create: async (data) => {
     try {
-      return await api.post('/health-info/health-information/', data);
+      const headers = data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {};
+      return await api.post('/health-info/health-information/', data, { headers });
     } catch (error) {
       handleApiError(error);
     }
   },
   update: async (id, data) => {
     try {
-      return await api.put(`/health-info/health-information/${id}/`, data);
+      const headers = data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {};
+      return await api.put(`/health-info/health-information/${id}/`, data, { headers });
     } catch (error) {
       handleApiError(error);
     }
@@ -766,7 +768,7 @@ export const notificationService = {
   // Get notification templates
   getTemplates: async () => {
     try {
-      return await api.get('/notifications/templates/');
+      return await api.get('/medical-certificates/templates/');
     } catch (error) {
       handleApiError(error);
     }

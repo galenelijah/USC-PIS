@@ -28,7 +28,8 @@ import {
   Select,
   MenuItem,
   Switch,
-  FormControlLabel
+  FormControlLabel,
+  CardMedia
 } from '@mui/material';
 import {
   Favorite as FavoriteIcon,
@@ -49,10 +50,12 @@ import {
   Comment as CommentIcon,
   Add as AddIcon,
   Edit as EditIcon,
-  Save as SaveIcon
+  Save as SaveIcon,
+  Image as ImageIcon
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { campaignService } from '../services/api';
+import ImageUpload from '../common/ImageUpload';
 
 const UniversalCampaigns = () => {
   const [campaigns, setCampaigns] = useState([]);
@@ -79,6 +82,7 @@ const UniversalCampaigns = () => {
     end_date: '',
     status: 'ACTIVE'
   });
+  const [campaignImages, setCampaignImages] = useState([]);
   
   const user = useSelector(state => state.auth.user);
 
@@ -181,34 +185,51 @@ const UniversalCampaigns = () => {
   const handleCampaignCreate = async () => {
     try {
       const formData = new FormData();
+      
+      // Add form fields
       Object.keys(campaignForm).forEach(key => {
         if (campaignForm[key]) {
           formData.append(key, campaignForm[key]);
         }
       });
 
+      // Add images if any
+      if (campaignImages.length > 0) {
+        campaignImages.forEach((image, index) => {
+          if (image.file) {
+            formData.append(`images`, image.file);
+          }
+        });
+      }
+
       await campaignService.createCampaign(formData);
       showSnackbar('Campaign created successfully!', 'success');
       setCreateDialogOpen(false);
-      setCampaignForm({
-        title: '',
-        description: '',
-        campaign_type: 'GENERAL',
-        priority: 'MEDIUM',
-        content: '',
-        summary: '',
-        objectives: '',
-        target_audience: '',
-        call_to_action: '',
-        tags: '',
-        start_date: '',
-        end_date: '',
-        status: 'ACTIVE'
-      });
+      resetCampaignForm();
       fetchActiveCampaigns(); // Refresh campaigns
     } catch (error) {
+      console.error('Campaign creation error:', error);
       showSnackbar('Failed to create campaign', 'error');
     }
+  };
+
+  const resetCampaignForm = () => {
+    setCampaignForm({
+      title: '',
+      description: '',
+      campaign_type: 'GENERAL',
+      priority: 'MEDIUM',
+      content: '',
+      summary: '',
+      objectives: '',
+      target_audience: '',
+      call_to_action: '',
+      tags: '',
+      start_date: '',
+      end_date: '',
+      status: 'ACTIVE'
+    });
+    setCampaignImages([]);
   };
 
   const showSnackbar = (message, severity = 'success') => {
@@ -297,6 +318,20 @@ const UniversalCampaigns = () => {
               }}
               onClick={() => handleCampaignClick(campaign)}
             >
+              {/* Show first image as campaign banner if available */}
+              {campaign.images && campaign.images.length > 0 && (
+                <CardMedia
+                  component="img"
+                  height="200"
+                  image={campaign.images[0].url || campaign.images[0]}
+                  alt={campaign.title}
+                  sx={{ 
+                    cursor: 'pointer',
+                    objectFit: 'cover'
+                  }}
+                />
+              )}
+              
               {/* Campaign Header */}
               <Box
                 sx={{
@@ -349,11 +384,22 @@ const UniversalCampaigns = () => {
                   </Box>
                 </Box>
 
-                {campaign.target_audience && (
-                  <Typography variant="caption" color="primary" sx={{ fontWeight: 'medium' }}>
-                    👥 {campaign.target_audience}
-                  </Typography>
-                )}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  {campaign.target_audience && (
+                    <Typography variant="caption" color="primary" sx={{ fontWeight: 'medium' }}>
+                      👥 {campaign.target_audience}
+                    </Typography>
+                  )}
+                  {campaign.images && campaign.images.length > 0 && (
+                    <Chip 
+                      icon={<ImageIcon />} 
+                      label={`${campaign.images.length} image${campaign.images.length > 1 ? 's' : ''}`}
+                      size="small"
+                      variant="outlined"
+                      color="secondary"
+                    />
+                  )}
+                </Box>
               </CardContent>
 
               <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
@@ -718,11 +764,28 @@ const UniversalCampaigns = () => {
                   rows={2}
                 />
               </Grid>
+
+              {/* Image Upload Section */}
+              <Grid item xs={12}>
+                <Typography variant="h6" gutterBottom sx={{ mt: 2, mb: 1 }}>
+                  Campaign Images & Pubmats (Optional)
+                </Typography>
+                <ImageUpload
+                  images={campaignImages}
+                  onImagesChange={setCampaignImages}
+                  maxImages={5}
+                  maxSizeMB={10}
+                  acceptedTypes={['image/jpeg', 'image/png', 'image/gif', 'image/webp']}
+                />
+              </Grid>
             </Grid>
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => {
+            setCreateDialogOpen(false);
+            resetCampaignForm();
+          }}>Cancel</Button>
           <Button 
             onClick={handleCampaignCreate}
             variant="contained"

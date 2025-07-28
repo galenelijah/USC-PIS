@@ -38,7 +38,8 @@ import {
   Rating,
   LinearProgress,
   Divider,
-  InputAdornment
+  InputAdornment,
+  Avatar
 } from '@mui/material';
 import {
   Add as AddIcon,

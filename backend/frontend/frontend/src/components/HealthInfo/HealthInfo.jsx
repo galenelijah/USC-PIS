@@ -77,18 +77,31 @@ const HealthInfo = () => {
   const isReadOnly = !isStaffOrMedical;
 
   const onSubmit = (data) => {
-    const submissionData = {
-      ...data,
-      images: uploadedImages
-    };
+    const formData = new FormData();
+    
+    // Add form fields
+    Object.keys(data).forEach(key => {
+      if (data[key]) {
+        formData.append(key, data[key]);
+      }
+    });
+
+    // Add images if any
+    if (uploadedImages.length > 0) {
+      uploadedImages.forEach((image, index) => {
+        if (image.file) {
+          formData.append(`images`, image.file);
+        }
+      });
+    }
     
     if (editing) {
-      dispatch(updateHealthInfo({ id: editing.id, data: submissionData })).then(() => {
+      dispatch(updateHealthInfo({ id: editing.id, data: formData })).then(() => {
         dispatch(clearEditing());
         setUploadedImages([]);
       });
     } else {
-      dispatch(addHealthInfo(submissionData));
+      dispatch(addHealthInfo(formData));
       setUploadedImages([]);
     }
     reset({ title: '', content: '', category: '' });
