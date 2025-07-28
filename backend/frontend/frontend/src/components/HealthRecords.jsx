@@ -488,11 +488,8 @@ Treatment: ${r.treatment || 'N/A'}
     
     const dateMatch = selectedDate ? record.visit_date === dayjs(selectedDate).format('YYYY-MM-DD') : true;
     
-    // Filter based on tab selection (0: All, 1: Medical, 2: Dental, 3: Analytics)
-    const typeMatch = tabValue === 0 || 
-      (tabValue === 1 && record.record_type === 'MEDICAL') || 
-      (tabValue === 2 && record.record_type === 'DENTAL') ||
-      tabValue === 3; // Analytics tab shows all records
+    // Filter based on tab selection (0: All, 1: Analytics)
+    const typeMatch = tabValue === 0 || tabValue === 1; // Both tabs show all records
     
     return searchMatch && dateMatch && typeMatch;
   });
@@ -567,8 +564,32 @@ Treatment: ${r.treatment || 'N/A'}
               startIcon={<TimelineIcon />}
               onClick={() => window.open('/medical-records', '_blank')}
               size="small"
+              sx={{ 
+                borderColor: '#667eea',
+                color: '#667eea',
+                '&:hover': {
+                  borderColor: '#5a6fd8',
+                  backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                }
+              }}
             >
               View Medical History
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<HealingIcon />}
+              onClick={() => window.open('/dental-records', '_blank')}
+              size="small"
+              sx={{ 
+                borderColor: '#764ba2',
+                color: '#764ba2',
+                '&:hover': {
+                  borderColor: '#6a4190',
+                  backgroundColor: 'rgba(118, 75, 162, 0.1)',
+                }
+              }}
+            >
+              Manage Dental Records
             </Button>
             <Button
               variant="outlined"
@@ -675,16 +696,14 @@ Treatment: ${r.treatment || 'N/A'}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="clinical record tabs">
           <Tab label="All Clinical Records" id="clinical-record-tab-0" />
-          <Tab label="Medical Records" id="clinical-record-tab-1" icon={<MedicalIcon />} iconPosition="start" />
-          <Tab label="Dental Records" id="clinical-record-tab-2" icon={<HealingIcon />} iconPosition="start" />
-          <Tab label="Analytics" id="clinical-record-tab-3" icon={<ReportIcon />} iconPosition="start" />
+          <Tab label="Analytics" id="clinical-record-tab-1" icon={<ReportIcon />} iconPosition="start" />
         </Tabs>
       </Box>
 
       {/* Records Table or Analytics */}
       {loading ? (
         <Typography>Loading records...</Typography>
-      ) : tabValue === 3 ? (
+      ) : tabValue === 1 ? (
         <Box sx={{ mt: 2 }}>
           <ClinicalAnalytics records={records} />
         </Box>

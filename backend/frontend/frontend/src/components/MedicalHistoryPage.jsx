@@ -43,10 +43,16 @@ import {
   Edit as EditIcon,
   Add as AddIcon,
   Assignment as CertificateIcon,
-  Feedback as FeedbackIcon
+  Feedback as FeedbackIcon,
+  Warning as WarningIcon,
+  DateRange as DateRangeIcon,
+  Clear as ClearIcon
 } from '@mui/icons-material';
 
 import { Autocomplete } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { healthRecordsService, patientService } from '../services/api';
 import { useSelector } from 'react-redux';
 import dayjs from 'dayjs';
@@ -80,6 +86,9 @@ const MedicalHistoryPage = () => {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [tabValue, setTabValue] = useState(0);
   const [expandedRecord, setExpandedRecord] = useState(null);
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [showAllergyAlert, setShowAllergyAlert] = useState(false);
   
   const user = useSelector(state => state.auth.user);
   const isStaffOrMedical = user?.role && ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'].includes(user.role);
@@ -94,7 +103,7 @@ const MedicalHistoryPage = () => {
 
   useEffect(() => {
     filterRecords();
-  }, [searchTerm, records, selectedPatient, tabValue]);
+  }, [searchTerm, records, selectedPatient, tabValue, startDate, endDate]);
 
   const fetchRecords = async () => {
     setLoading(true);
@@ -134,7 +143,20 @@ const MedicalHistoryPage = () => {
         record.patient_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         record.diagnosis?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         record.treatment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.chief_complaint?.toLowerCase().includes(searchTerm.toLowerCase())
+        record.chief_complaint?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        record.medications?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filter by date range
+    if (startDate) {
+      filtered = filtered.filter(record => 
+        dayjs(record.visit_date).isAfter(dayjs(startDate).subtract(1, 'day'))
+      );
+    }
+    if (endDate) {
+      filtered = filtered.filter(record => 
+        dayjs(record.visit_date).isBefore(dayjs(endDate).add(1, 'day'))
       );
     }
 
@@ -177,6 +199,115 @@ const MedicalHistoryPage = () => {
 
   const handleExpandRecord = (recordId) => {
     setExpandedRecord(expandedRecord === recordId ? null : recordId);
+  };
+
+  // Export functionality
+  const handleExportRecords = () => {
+    const exportData = filteredRecords.map(record => ({
+      Date: formatDate(record.visit_date).formatted,
+      Patient: record.patient_name || `Patient ID: ${record.patient}`,
+      Type: record.record_type || 'MEDICAL',
+      Diagnosis: record.diagnosis || 'No diagnosis',
+      Treatment: record.treatment || 'No treatment',
+      'Chief Complaint': record.chief_complaint || 'N/A',
+      Medications: record.medications || 'None listed',
+      Notes: record.notes || 'No notes'
+    }));
+
+    const csvContent = [
+      Object.keys(exportData[0] || {}).join(','),
+      ...exportData.map(record => 
+        Object.values(record).map(value => 
+          `"${String(value).replace(/"/g, '""')}"`
+        ).join(',')
+      )
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `medical-history-${dayjs().format('YYYY-MM-DD')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Print functionality
+  const handlePrintRecords = () => {
+    const printWindow = window.open('', '_blank');
+    
+    const patientInfo = selectedPatient 
+      ? `<h2>Medical History for ${selectedPatient.first_name} ${selectedPatient.last_name}</h2>`
+      : '<h2>Medical History Report</h2>';
+    
+    const recordsHtml = filteredRecords.map(record => `
+      <div style="border: 1px solid #ddd; margin: 10px 0; padding: 15px; border-radius: 5px;">
+        <h3 style="color: #667eea; margin: 0 0 10px 0;">${record.diagnosis || 'No diagnosis'}</h3>
+        <p><strong>Date:</strong> ${formatDate(record.visit_date).formatted}</p>
+        <p><strong>Patient:</strong> ${record.patient_name || `Patient ID: ${record.patient}`}</p>
+        <p><strong>Type:</strong> ${record.record_type || 'MEDICAL'}</p>
+        ${record.chief_complaint ? `<p><strong>Chief Complaint:</strong> ${record.chief_complaint}</p>` : ''}
+        ${record.treatment ? `<p><strong>Treatment:</strong> ${record.treatment}</p>` : ''}
+        ${record.medications ? `<p><strong>Medications:</strong> ${record.medications}</p>` : ''}
+        ${record.notes ? `<p><strong>Notes:</strong> ${record.notes}</p>` : ''}
+      </div>
+    `).join('');
+    
+    printWindow.document.open();
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Medical History Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1, h2 { color: #333; }
+            h3 { color: #667eea; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .date { text-align: right; color: #666; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>USC Patient Information System</h1>
+            ${patientInfo}
+            <p class="date">Generated on: ${dayjs().format('MMMM DD, YYYY')}</p>
+          </div>
+          ${recordsHtml}
+          <p style="margin-top: 30px; font-size: 12px; color: #666;">
+            This report contains ${filteredRecords.length} medical record(s).
+          </p>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  // Date filter helpers
+  const clearDateFilters = () => {
+    setStartDate(null);
+    setEndDate(null);
+  };
+
+  // Check for allergies in selected patient's records
+  const checkForAllergies = () => {
+    if (!selectedPatient || !filteredRecords.length) return [];
+    
+    const allergies = [];
+    filteredRecords.forEach(record => {
+      if (record.notes?.toLowerCase().includes('allerg') || 
+          record.diagnosis?.toLowerCase().includes('allerg') ||
+          record.medications?.toLowerCase().includes('allerg')) {
+        allergies.push({
+          date: record.visit_date,
+          note: record.notes || record.diagnosis,
+          type: 'allergy'
+        });
+      }
+    });
+    return allergies;
   };
 
   const renderHealthInsights = () => {
@@ -445,49 +576,85 @@ const MedicalHistoryPage = () => {
     return (
       <Card elevation={2} sx={{ mb: 3 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Select Patient
+          <Typography variant="h6" gutterBottom color="primary">
+            👤 Patient Selection
           </Typography>
           <Grid container spacing={2} alignItems="center">
-            {patients.map((patient) => (
-              <Grid item key={patient.id}>
-                <Button
-                  variant={selectedPatient?.id === patient.id ? "contained" : "outlined"}
-                  onClick={() => setSelectedPatient(patient)}
-                  sx={{
-                    background: selectedPatient?.id === patient.id 
-                      ? 'linear-gradient(45deg, #667eea 30%, #764ba2 90%)'
-                      : 'transparent',
-                    '&:hover': {
-                      background: selectedPatient?.id === patient.id 
-                        ? 'linear-gradient(45deg, #5a6fd8 30%, #6a4190 90%)'
-                        : 'rgba(102, 126, 234, 0.1)',
-                    }
-                  }}
-                >
-                  {patient.first_name} {patient.last_name}
-                  {patient.id_number && (
-                    <Chip 
-                      label={patient.id_number} 
-                      size="small" 
-                      sx={{ ml: 1 }} 
-                    />
-                  )}
-                </Button>
-              </Grid>
-            ))}
-            {selectedPatient && (
-              <Grid item>
-                <Button 
-                  variant="outlined" 
-                  color="secondary"
-                  onClick={() => setSelectedPatient(null)}
-                >
-                  Clear Selection
-                </Button>
-              </Grid>
-            )}
+            <Grid item xs={12} md={8}>
+              <Autocomplete
+                options={patients}
+                getOptionLabel={(option) => `${option.first_name} ${option.last_name}${option.id_number ? ` (${option.id_number})` : ''}`}
+                value={selectedPatient}
+                onChange={(event, newValue) => setSelectedPatient(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Search and select patient"
+                    variant="outlined"
+                    size="medium"
+                    fullWidth
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: <PersonIcon sx={{ color: 'action.active', mr: 1 }} />,
+                    }}
+                  />
+                )}
+                renderOption={(props, option) => (
+                  <Box component="li" {...props} sx={{ gap: 2 }}>
+                    <Avatar sx={{ bgcolor: '#667eea', width: 32, height: 32 }}>
+                      {option.first_name?.[0]}{option.last_name?.[0]}
+                    </Avatar>
+                    <Box>
+                      <Typography variant="body2" fontWeight="medium">
+                        {option.first_name} {option.last_name}
+                      </Typography>
+                      {option.id_number && (
+                        <Typography variant="caption" color="text.secondary">
+                          USC ID: {option.id_number}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                )}
+                noOptionsText="No patients found"
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                {selectedPatient && (
+                  <Button 
+                    variant="outlined" 
+                    color="secondary"
+                    onClick={() => setSelectedPatient(null)}
+                    startIcon={<ClearIcon />}
+                    size="small"
+                  >
+                    Clear Selection
+                  </Button>
+                )}
+                <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center', ml: 1 }}>
+                  {patients.length} patients available
+                </Typography>
+              </Box>
+            </Grid>
           </Grid>
+          
+          {/* Allergy Alert */}
+          {selectedPatient && checkForAllergies().length > 0 && (
+            <Alert 
+              severity="warning" 
+              sx={{ mt: 2, borderColor: '#ff9800', backgroundColor: '#fff3e0' }}
+              icon={<WarningIcon />}
+            >
+              <Typography variant="body2" fontWeight="bold">
+                ⚠️ ALLERGY ALERT: {selectedPatient.first_name} {selectedPatient.last_name}
+              </Typography>
+              <Typography variant="body2">
+                Patient has documented allergies. Review medical history carefully.
+              </Typography>
+            </Alert>
+          )}
         </CardContent>
       </Card>
     );
@@ -540,11 +707,61 @@ const MedicalHistoryPage = () => {
                 }}
               >
                 <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                    <Box>
-                      <Typography variant="h6" gutterBottom>
-                        {record.diagnosis || 'No diagnosis recorded'}
+                  {/* Allergy/Medication Alerts */}
+                  {(record.notes?.toLowerCase().includes('allerg') || 
+                    record.diagnosis?.toLowerCase().includes('allerg') ||
+                    record.medications?.toLowerCase().includes('allerg')) && (
+                    <Alert 
+                      severity="warning" 
+                      sx={{ mb: 2, borderColor: '#ff9800', backgroundColor: '#fff8e1' }}
+                      icon={<WarningIcon />}
+                    >
+                      <Typography variant="body2" fontWeight="bold">
+                        ⚠️ ALLERGY DOCUMENTED
                       </Typography>
+                    </Alert>
+                  )}
+                  
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                    <Box sx={{ flex: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                        <Typography variant="h6" gutterBottom sx={{ mb: 0 }}>
+                          {record.diagnosis || 'No diagnosis recorded'}
+                        </Typography>
+                        <Chip 
+                          label={record.record_type || 'MEDICAL'} 
+                          color={record.record_type === 'DENTAL' ? 'secondary' : 'primary'}
+                          size="small"
+                        />
+                      </Box>
+                      
+                      {/* Patient Name Header - Always Visible */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                        <Avatar 
+                          sx={{ 
+                            bgcolor: getRecordColor(record.record_type),
+                            width: 24, height: 24, fontSize: '0.75rem'
+                          }}
+                        >
+                          {record.patient_name ? 
+                            record.patient_name.split(' ').map(n => n[0]).join('').toUpperCase() :
+                            record.patient?.first_name?.[0] + record.patient?.last_name?.[0] || 'P'
+                          }
+                        </Avatar>
+                        <Typography variant="body2" fontWeight="medium" color="text.primary">
+                          {record.patient_name || 
+                           (record.patient ? `${record.patient.first_name} ${record.patient.last_name}` : 'Unknown Patient')}
+                          {(record.patient?.id_number || record.patient_usc_id) && 
+                            <Chip 
+                              label={record.patient?.id_number || record.patient_usc_id} 
+                              size="small" 
+                              variant="outlined"
+                              sx={{ ml: 1, height: 20, fontSize: '0.7rem' }}
+                            />
+                          }
+                        </Typography>
+                      </Box>
+                      
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
                         <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                         <Typography variant="body2" color="text.secondary">
@@ -554,21 +771,7 @@ const MedicalHistoryPage = () => {
                           </span>
                         </Typography>
                       </Box>
-                      {record.patient && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <PersonIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                          <Typography variant="body2" color="text.secondary">
-                            {record.patient.first_name} {record.patient.last_name}
-                            {record.patient.id_number && ` (${record.patient.id_number})`}
-                          </Typography>
-                        </Box>
-                      )}
                     </Box>
-                    <Chip 
-                      label={record.record_type || 'MEDICAL'} 
-                      color={record.record_type === 'DENTAL' ? 'secondary' : 'primary'}
-                      size="small"
-                    />
                   </Box>
 
                   {record.chief_complaint && (
@@ -594,7 +797,7 @@ const MedicalHistoryPage = () => {
                   )}
 
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                       {record.vital_signs && Object.values(record.vital_signs).some(v => v) && (
                         <Chip 
                           icon={<VitalIcon />} 
@@ -603,12 +806,32 @@ const MedicalHistoryPage = () => {
                           variant="outlined"
                         />
                       )}
+                      {record.medications && (
+                        <Chip 
+                          icon={<MedicationIcon />} 
+                          label="Medications" 
+                          size="small" 
+                          variant="outlined"
+                          color="info"
+                        />
+                      )}
                       {record.notes && (
                         <Chip 
                           icon={<NotesIcon />} 
                           label="Has Notes" 
                           size="small" 
                           variant="outlined"
+                        />
+                      )}
+                      {(record.notes?.toLowerCase().includes('allerg') || 
+                        record.diagnosis?.toLowerCase().includes('allerg') ||
+                        record.medications?.toLowerCase().includes('allerg')) && (
+                        <Chip 
+                          icon={<WarningIcon />} 
+                          label="Allergy Alert" 
+                          size="small" 
+                          color="warning"
+                          variant="filled"
                         />
                       )}
                     </Box>
@@ -672,8 +895,18 @@ const MedicalHistoryPage = () => {
                           </List>
                         </Grid>
                       )}
-                      {record.notes && (
+                      {record.medications && (
                         <Grid item xs={12} md={6}>
+                          <Typography variant="body2" fontWeight="medium" gutterBottom>
+                            💊 Medications:
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {record.medications}
+                          </Typography>
+                        </Grid>
+                      )}
+                      {record.notes && (
+                        <Grid item xs={12} md={record.medications ? 6 : 12}>
                           <Typography variant="body2" fontWeight="medium" gutterBottom>
                             Clinical Notes:
                           </Typography>
@@ -780,8 +1013,12 @@ const MedicalHistoryPage = () => {
       {/* Search and Filters */}
       <Card elevation={2} sx={{ mb: 3 }}>
         <CardContent>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={6}>
+          <Typography variant="h6" gutterBottom color="primary">
+            🔍 Search & Filters
+          </Typography>
+          <Grid container spacing={2}>
+            {/* Search Box */}
+            <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
                 label="Search medical records"
@@ -796,16 +1033,51 @@ const MedicalHistoryPage = () => {
                     </InputAdornment>
                   ),
                 }}
-                placeholder={{ xs: "Search records...", md: "Search by diagnosis, treatment, or complaint..." }}
-                sx={{
-                  '& .MuiInputBase-input': {
-                    fontSize: { xs: '0.875rem', md: '1rem' }
-                  }
-                }}
+                placeholder="Search by diagnosis, treatment, medications..."
               />
             </Grid>
-            <Grid item xs={12} md={6}>
-              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+            
+            {/* Date Range Filters */}
+            <Grid item xs={12} md={4}>
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <DatePicker
+                    label="From Date"
+                    value={startDate}
+                    onChange={setStartDate}
+                    slotProps={{ 
+                      textField: { 
+                        size: 'small',
+                        sx: { flex: 1 }
+                      } 
+                    }}
+                    maxDate={endDate || dayjs()}
+                  />
+                  <DatePicker
+                    label="To Date"
+                    value={endDate}
+                    onChange={setEndDate}
+                    slotProps={{ 
+                      textField: { 
+                        size: 'small',
+                        sx: { flex: 1 }
+                      } 
+                    }}
+                    minDate={startDate}
+                    maxDate={dayjs()}
+                  />
+                  {(startDate || endDate) && (
+                    <IconButton onClick={clearDateFilters} size="small" title="Clear dates">
+                      <ClearIcon />
+                    </IconButton>
+                  )}
+                </Box>
+              </LocalizationProvider>
+            </Grid>
+            
+            {/* Action Buttons */}
+            <Grid item xs={12} md={4}>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', height: '100%' }}>
                 {isStaffOrMedical && (
                   <Button
                     variant="contained"
@@ -819,7 +1091,7 @@ const MedicalHistoryPage = () => {
                       }
                     }}
                   >
-                    Create New Record
+                    New Record
                   </Button>
                 )}
                 <Button
@@ -829,27 +1101,74 @@ const MedicalHistoryPage = () => {
                   disabled={filteredRecords.length === 0}
                   onClick={() => window.open('/medical-certificates', '_blank')}
                 >
-                  Medical Certificate
+                  Certificate
                 </Button>
                 <Button
                   variant="outlined"
                   startIcon={<PrintIcon />}
                   size="small"
                   disabled={filteredRecords.length === 0}
+                  onClick={handlePrintRecords}
                 >
-                  Print History
+                  Print
                 </Button>
                 <Button
                   variant="outlined"
                   startIcon={<ExportIcon />}
                   size="small"
                   disabled={filteredRecords.length === 0}
+                  onClick={handleExportRecords}
                 >
                   Export
                 </Button>
               </Box>
             </Grid>
           </Grid>
+          
+          {/* Active Filters Display */}
+          {(searchTerm || selectedPatient || startDate || endDate) && (
+            <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: 'divider' }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Active filters:
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                {searchTerm && (
+                  <Chip 
+                    label={`Search: "${searchTerm}"`} 
+                    onDelete={() => setSearchTerm('')} 
+                    size="small" 
+                    color="primary"
+                    variant="outlined"
+                  />
+                )}
+                {selectedPatient && (
+                  <Chip 
+                    label={`Patient: ${selectedPatient.first_name} ${selectedPatient.last_name}`} 
+                    onDelete={() => setSelectedPatient(null)} 
+                    size="small" 
+                    color="secondary"
+                    variant="outlined"
+                  />
+                )}
+                {startDate && (
+                  <Chip 
+                    label={`From: ${dayjs(startDate).format('MMM DD, YYYY')}`} 
+                    onDelete={() => setStartDate(null)} 
+                    size="small" 
+                    variant="outlined"
+                  />
+                )}
+                {endDate && (
+                  <Chip 
+                    label={`To: ${dayjs(endDate).format('MMM DD, YYYY')}`} 
+                    onDelete={() => setEndDate(null)} 
+                    size="small" 
+                    variant="outlined"
+                  />
+                )}
+              </Box>
+            </Box>
+          )}
         </CardContent>
       </Card>
 
