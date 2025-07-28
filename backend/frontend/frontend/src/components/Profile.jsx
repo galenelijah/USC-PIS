@@ -32,6 +32,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setCredentials, selectAuthToken, selectCurrentUser } from '../features/authentication/authSlice';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
+import { getSexLabel, getCivilStatusLabel, getCourseLabel, getYearLevelLabel } from '../utils/fieldMappers';
 
 const Profile = () => {
     const currentUser = useSelector(selectCurrentUser);
@@ -188,13 +189,13 @@ const Profile = () => {
                                 {user.sex && (
                                     <Box>
                                         <Typography variant="body2" color="text.secondary">Sex:</Typography>
-                                        <Typography>{user.sex}</Typography>
+                                        <Typography>{getSexLabel(user.sex)}</Typography>
                                     </Box>
                                 )}
                                 {user.civil_status && (
                                     <Box>
                                         <Typography variant="body2" color="text.secondary">Civil Status:</Typography>
-                                        <Typography>{user.civil_status}</Typography>
+                                        <Typography>{getCivilStatusLabel(user.civil_status)}</Typography>
                                     </Box>
                                 )}
                                 {user.nationality && (
@@ -278,13 +279,13 @@ const Profile = () => {
                                 {user.course && (
                                     <Box>
                                         <Typography variant="body2" color="text.secondary">Course:</Typography>
-                                        <Typography>{user.course}</Typography>
+                                        <Typography>{getCourseLabel(user.course)}</Typography>
                                     </Box>
                                 )}
                                 {user.year_level && (
                                     <Box>
                                         <Typography variant="body2" color="text.secondary">Year Level:</Typography>
-                                        <Typography>{user.year_level}</Typography>
+                                        <Typography>{getYearLevelLabel(user.year_level)}</Typography>
                                     </Box>
                                 )}
                                 {user.school && (

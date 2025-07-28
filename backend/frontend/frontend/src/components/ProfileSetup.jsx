@@ -59,7 +59,7 @@ import { styled } from '@mui/material/styles';
 import * as Yup from 'yup';
 import { authService } from '../services/api';
 import { useDispatch, useSelector } from 'react-redux';
-import { setCredentials, selectAuthToken } from '../features/authentication/authSlice';
+import { setCredentials, selectAuthToken, selectCurrentUser } from '../features/authentication/authSlice';
 
 // Custom styled components
 const ModernStepConnector = styled(StepConnector)(({ theme }) => ({
@@ -120,13 +120,36 @@ function ModernStepIcon(props) {
   );
 }
 
-// Steps configuration
-const steps = [
-  { label: 'Personal Information', icon: Person, color: '#667eea' },
-  { label: 'Contact Details', icon: ContactPhone, color: '#764ba2' },
-  { label: 'Academic Information', icon: School, color: '#f093fb' },
-  { label: 'Medical Information', icon: LocalHospital, color: '#f5576c' }
-];
+// Steps configuration - will be determined by user role
+const getStepsForRole = (role) => {
+  const baseSteps = [
+    { label: 'Personal Information', icon: Person, color: '#667eea' },
+    { label: 'Contact Details', icon: ContactPhone, color: '#764ba2' }
+  ];
+  
+  switch (role) {
+    case 'STUDENT':
+      return [
+        ...baseSteps,
+        { label: 'Academic Information', icon: School, color: '#f093fb' },
+        { label: 'Medical Information', icon: LocalHospital, color: '#f5576c' }
+      ];
+    case 'DOCTOR':
+    case 'NURSE':
+      return [
+        ...baseSteps,
+        { label: 'Professional Information', icon: Badge, color: '#f093fb' }
+      ];
+    case 'ADMIN':
+    case 'STAFF':
+      return [
+        ...baseSteps,
+        { label: 'Additional Information', icon: Badge, color: '#f093fb' }
+      ];
+    default:
+      return baseSteps;
+  }
+};
 
 // Medical options
 const childhoodDiseasesOptions = [
@@ -181,47 +204,113 @@ const validationSchema = Yup.object().shape({
   contact_emergency_number: Yup.string().nullable().notRequired()
 });
 
-const stepFields = [
-  ['first_name', 'last_name', 'middle_name', 'sex', 'civil_status', 'birthday', 'nationality', 'religion'],
-  ['address_permanent', 'address_present', 'phone', 'email'],
-  ['id_number', 'course', 'year_level', 'school', 'weight', 'height'],
-  [] // Step 3 (Medical) has no required form fields, only state-based selections
-];
+// Validation step fields - role-based
+const getStepFieldsForRole = (role) => {
+  const baseFields = [
+    ['first_name', 'last_name', 'middle_name', 'sex', 'civil_status', 'birthday'],
+    ['address_permanent', 'phone', 'email', 'contact_emergency_name', 'contact_emergency_number']
+  ];
+  
+  switch (role) {
+    case 'STUDENT':
+      return [
+        ['first_name', 'last_name', 'middle_name', 'sex', 'civil_status', 'birthday', 'nationality', 'religion'],
+        ['address_permanent', 'address_present', 'phone', 'email', 'contact_father_name', 'contact_mother_name', 'contact_emergency_name', 'contact_emergency_number'],
+        ['id_number', 'course', 'year_level', 'school', 'weight', 'height'],
+        [] // Medical information step
+      ];
+    case 'DOCTOR':
+    case 'NURSE':
+      return [
+        ...baseFields,
+        ['specialization', 'license_number', 'experience_years'] // Professional fields
+      ];
+    case 'ADMIN':
+    case 'STAFF':
+      return [
+        ...baseFields,
+        ['department', 'position', 'employee_id'] // Administrative fields
+      ];
+    default:
+      return baseFields;
+  }
+};
 
 const ProfileSetup = () => {
   const dispatch = useDispatch();
   const currentToken = useSelector(selectAuthToken);
+  const currentUser = useSelector(selectCurrentUser);
   const [activeStep, setActiveStep] = useState(0);
+  
+  // User role checks
+  const userRole = currentUser?.role;
+  const isStudent = currentUser && currentUser.role === 'STUDENT';
+  const isStaffOrMedical = currentUser && ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'].includes(currentUser.role);
+  
+  // Get role-based configuration
+  const steps = getStepsForRole(userRole);
+  const stepFields = getStepFieldsForRole(userRole);
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   
-  const { control, handleSubmit, formState: { errors }, setValue, getValues, watch, trigger, reset } = useForm({
-    resolver: yupResolver(validationSchema),
-    defaultValues: {
+  // Get default values based on role
+  const getDefaultValues = (role) => {
+    const baseDefaults = {
       first_name: '',
       last_name: '',
       middle_name: '',
       sex: '',
       civil_status: '',
       birthday: '',
-      nationality: '',
-      religion: '',
       address_permanent: '',
-      address_present: '',
       phone: '',
       email: '',
-      id_number: '',
-      course: '',
-      year_level: '',
-      school: '',
-      weight: '',
-      height: '',
-      contact_father_name: '',
-      contact_mother_name: '',
       contact_emergency_name: '',
       contact_emergency_number: '',
+    };
+
+    switch (role) {
+      case 'STUDENT':
+        return {
+          ...baseDefaults,
+          nationality: '',
+          religion: '',
+          address_present: '',
+          id_number: '',
+          course: '',
+          year_level: '',
+          school: '',
+          weight: '',
+          height: '',
+          contact_father_name: '',
+          contact_mother_name: '',
+        };
+      case 'DOCTOR':
+      case 'NURSE':
+        return {
+          ...baseDefaults,
+          specialization: '',
+          license_number: '',
+          experience_years: '',
+        };
+      case 'ADMIN':
+      case 'STAFF':
+        return {
+          ...baseDefaults,
+          department: '',
+          position: '',
+          employee_id: '',
+        };
+      default:
+        return baseDefaults;
     }
+  };
+
+  const { control, handleSubmit, formState: { errors }, setValue, getValues, watch, trigger, reset } = useForm({
+    resolver: yupResolver(validationSchema),
+    defaultValues: getDefaultValues(userRole)
   });
 
   // Medical information state
@@ -239,6 +328,270 @@ const ProfileSetup = () => {
       (prev || []).includes(option) ? (prev || []).filter((item) => item !== option) : [...(prev || []), option]
     );
   };
+
+  // Simplified rendering for non-students
+  const renderPersonalInfoSimplified = (stepKey) => (
+    <Box key={stepKey}>
+      <Card elevation={0} sx={{ border: '1px solid', borderColor: alpha('#667eea', 0.2), borderRadius: 3 }}>
+        <CardContent sx={{ p: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+            <Person sx={{ color: '#667eea', fontSize: 28 }} />
+            <Typography variant="h5" fontWeight="bold" color="primary">
+              Personal Information
+            </Typography>
+          </Box>
+          
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6}>
+              <MyTextField
+                key={`${stepKey}-first_name`}
+                label="First Name"
+                name="first_name"
+                control={control}
+                required
+                error={!!errors?.first_name}
+                helperText={errors?.first_name?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MyTextField
+                key={`${stepKey}-last_name`}
+                label="Last Name"
+                name="last_name"
+                control={control}
+                required
+                error={!!errors?.last_name}
+                helperText={errors?.last_name?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MyTextField
+                key={`${stepKey}-middle_name`}
+                label="Middle Name"
+                name="middle_name"
+                control={control}
+                error={!!errors?.middle_name}
+                helperText={errors?.middle_name?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MySelector
+                key={`${stepKey}-sex`}
+                label="Sex"
+                name="sex"
+                control={control}
+                options={safeSexChoices}
+                required
+                error={!!errors?.sex}
+                helperText={errors?.sex?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MySelector
+                key={`${stepKey}-civil_status`}
+                label="Civil Status"
+                name="civil_status"
+                control={control}
+                options={safeCivilStatusChoices}
+                required
+                error={!!errors?.civil_status}
+                helperText={errors?.civil_status?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MyDatePicker
+                key={`${stepKey}-birthday`}
+                label="Birthday"
+                name="birthday"
+                control={control}
+                required
+                error={!!errors?.birthday}
+                helperText={errors?.birthday?.message}
+              />
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+    </Box>
+  );
+
+  const renderContactInfoSimplified = (stepKey) => (
+    <Box key={stepKey}>
+      <Card elevation={0} sx={{ border: '1px solid', borderColor: alpha('#764ba2', 0.2), borderRadius: 3 }}>
+        <CardContent sx={{ p: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+            <ContactPhone sx={{ color: '#764ba2', fontSize: 28 }} />
+            <Typography variant="h5" fontWeight="bold" color="secondary">
+              Contact Information
+            </Typography>
+          </Box>
+          
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <MyTextField
+                key={`${stepKey}-address_permanent`}
+                label="Address"
+                name="address_permanent"
+                control={control}
+                required
+                multiline
+                rows={2}
+                error={!!errors?.address_permanent}
+                helperText={errors?.address_permanent?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MyTextField
+                key={`${stepKey}-phone`}
+                label="Phone Number"
+                name="phone"
+                control={control}
+                required
+                error={!!errors?.phone}
+                helperText={errors?.phone?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MyTextField
+                key={`${stepKey}-email`}
+                label="Email Address"
+                name="email"
+                control={control}
+                required
+                error={!!errors?.email}
+                helperText={errors?.email?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MyTextField
+                key={`${stepKey}-contact_emergency_name`}
+                label="Emergency Contact Name"
+                name="contact_emergency_name"
+                control={control}
+                required
+                error={!!errors?.contact_emergency_name}
+                helperText={errors?.contact_emergency_name?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MyTextField
+                key={`${stepKey}-contact_emergency_number`}
+                label="Emergency Contact Number"
+                name="contact_emergency_number"
+                control={control}
+                required
+                error={!!errors?.contact_emergency_number}
+                helperText={errors?.contact_emergency_number?.message}
+              />
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+    </Box>
+  );
+
+  const renderProfessionalInfo = (stepKey) => (
+    <Box key={stepKey}>
+      <Card elevation={0} sx={{ border: '1px solid', borderColor: alpha('#f093fb', 0.2), borderRadius: 3 }}>
+        <CardContent sx={{ p: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+            <Badge sx={{ color: '#f093fb', fontSize: 28 }} />
+            <Typography variant="h5" fontWeight="bold" sx={{ color: '#f093fb' }}>
+              Professional Information
+            </Typography>
+          </Box>
+          
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6}>
+              <MyTextField
+                key={`${stepKey}-specialization`}
+                label="Specialization/Field"
+                name="specialization"
+                control={control}
+                required
+                error={!!errors?.specialization}
+                helperText={errors?.specialization?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MyTextField
+                key={`${stepKey}-license_number`}
+                label="License Number"
+                name="license_number"
+                control={control}
+                required
+                error={!!errors?.license_number}
+                helperText={errors?.license_number?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MyTextField
+                key={`${stepKey}-experience_years`}
+                label="Years of Experience"
+                name="experience_years"
+                control={control}
+                type="number"
+                required
+                error={!!errors?.experience_years}
+                helperText={errors?.experience_years?.message}
+              />
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+    </Box>
+  );
+
+  const renderAdministrativeInfo = (stepKey) => (
+    <Box key={stepKey}>
+      <Card elevation={0} sx={{ border: '1px solid', borderColor: alpha('#f093fb', 0.2), borderRadius: 3 }}>
+        <CardContent sx={{ p: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+            <Badge sx={{ color: '#f093fb', fontSize: 28 }} />
+            <Typography variant="h5" fontWeight="bold" sx={{ color: '#f093fb' }}>
+              Administrative Information
+            </Typography>
+          </Box>
+          
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6}>
+              <MyTextField
+                key={`${stepKey}-department`}
+                label="Department"
+                name="department"
+                control={control}
+                required
+                error={!!errors?.department}
+                helperText={errors?.department?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MyTextField
+                key={`${stepKey}-position`}
+                label="Position/Title"
+                name="position"
+                control={control}
+                required
+                error={!!errors?.position}
+                helperText={errors?.position?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MyTextField
+                key={`${stepKey}-employee_id`}
+                label="Employee ID"
+                name="employee_id"
+                control={control}
+                required
+                error={!!errors?.employee_id}
+                helperText={errors?.employee_id?.message}
+              />
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+    </Box>
+  );
 
   const handleAddItem = (setter) => setter((prev) => [...(prev || []), ""]);
   const handleRemoveItem = (index, setter) =>
@@ -270,27 +623,34 @@ const ProfileSetup = () => {
     setError(null);
 
     try {
-      // Prepare illnesses array with custom input if specified
-      const illnessesArray = selectedIllnesses.includes('Others (please specify)') 
-        ? [...selectedIllnesses.filter(illness => illness !== 'Others (please specify)'), otherIllness].filter(Boolean)
-        : selectedIllnesses;
-
-      const profileData = {
+      let profileData = {
         ...data,
         birthday: data.birthday ? dayjs(data.birthday).format('YYYY-MM-DD') : null,
-        // Convert arrays to comma-separated strings for Django CharField compatibility
-        childhood_diseases: selectedChildhoodDiseases.join(', '),
-        special_needs: selectedSpecialNeeds.join(', '),
-        illness: illnessesArray.join(', '),
-        existing_medical_condition: existingMedicalConditions.filter(condition => condition.trim() !== '').join(', '),
-        medications: medications.filter(medication => medication.trim() !== '').join(', '),
-        allergies: allergies.filter(allergy => allergy.trim() !== '').join(', '),
-        // Fix field name mappings for emergency contacts
-        father_name: data.contact_father_name,
-        mother_name: data.contact_mother_name,
         emergency_contact: data.contact_emergency_name,
         emergency_contact_number: data.contact_emergency_number,
       };
+
+      // Add student-specific fields and medical information
+      if (isStudent) {
+        // Prepare illnesses array with custom input if specified
+        const illnessesArray = selectedIllnesses.includes('Others (please specify)') 
+          ? [...selectedIllnesses.filter(illness => illness !== 'Others (please specify)'), otherIllness].filter(Boolean)
+          : selectedIllnesses;
+
+        profileData = {
+          ...profileData,
+          // Convert arrays to comma-separated strings for Django CharField compatibility
+          childhood_diseases: selectedChildhoodDiseases.join(', '),
+          special_needs: selectedSpecialNeeds.join(', '),
+          illness: illnessesArray.join(', '),
+          existing_medical_condition: existingMedicalConditions.filter(condition => condition.trim() !== '').join(', '),
+          medications: medications.filter(medication => medication.trim() !== '').join(', '),
+          allergies: allergies.filter(allergy => allergy.trim() !== '').join(', '),
+          // Fix field name mappings for emergency contacts
+          father_name: data.contact_father_name,
+          mother_name: data.contact_mother_name,
+        };
+      }
 
       // Remove the old field names to avoid duplication
       delete profileData.contact_father_name;
@@ -355,6 +715,26 @@ const ProfileSetup = () => {
   const renderStepContent = (step) => {
     const stepKey = `step-${step}`;
     
+    // Use simplified rendering for non-students
+    if (!isStudent) {
+      switch (step) {
+        case 0:
+          return renderPersonalInfoSimplified(stepKey);
+        case 1:
+          return renderContactInfoSimplified(stepKey);
+        case 2:
+          if (userRole === 'DOCTOR' || userRole === 'NURSE') {
+            return renderProfessionalInfo(stepKey);
+          } else if (userRole === 'ADMIN' || userRole === 'STAFF') {
+            return renderAdministrativeInfo(stepKey);
+          }
+          return null;
+        default:
+          return null;
+      }
+    }
+    
+    // Original student rendering
     switch (step) {
       case 0:
         return (
@@ -845,8 +1225,19 @@ const ProfileSetup = () => {
               Complete Your Profile
             </Typography>
             <Typography variant="body1" sx={{ opacity: 0.9 }}>
-              Please fill in your information to set up your USC-PIS account
+              {isStudent 
+                ? "Please fill in your information to set up your USC-PIS student account"
+                : `Please fill in your ${userRole?.toLowerCase()} profile information`
+              }
             </Typography>
+            {!isStudent && (
+              <Chip 
+                label={`${userRole} Profile Setup`} 
+                color="primary" 
+                variant="outlined"
+                sx={{ mt: 1 }}
+              />
+            )}
             
             {/* Progress */}
             <Box sx={{ mt: 3, px: 4 }}>
