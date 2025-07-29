@@ -27,7 +27,8 @@ import {
   Tab,
   Chip,
   Divider,
-  Autocomplete
+  Autocomplete,
+  Avatar
 } from '@mui/material';
 import { 
   Add as AddIcon, 
