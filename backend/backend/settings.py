@@ -80,9 +80,6 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',  # Add token authentication
     'corsheaders',
     'django_filters',  # Add django-filter for API filtering
-    # Cloudinary for media storage (must be before apps that use file uploads)
-    'cloudinary_storage',
-    'cloudinary',
     'patients',
     'authentication',  # New authentication app
     'health_info',     # Add the missing health_info app
@@ -93,6 +90,13 @@ INSTALLED_APPS = [
     'reports',  # Add comprehensive reports app
     'utils',  # Add utils app for system monitoring and management commands
 ]
+
+# Add Cloudinary apps only when enabled
+if os.environ.get('USE_CLOUDINARY') == 'True':
+    # Insert cloudinary apps before local apps that use file uploads
+    local_apps_start = INSTALLED_APPS.index('patients')
+    INSTALLED_APPS.insert(local_apps_start, 'cloudinary_storage')
+    INSTALLED_APPS.insert(local_apps_start + 1, 'cloudinary')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

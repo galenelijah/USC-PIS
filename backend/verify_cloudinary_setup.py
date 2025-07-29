@@ -13,14 +13,20 @@ def check_requirements():
         with open('requirements.txt', 'r') as f:
             content = f.read()
             
-        has_cloudinary = 'cloudinary==' in content
-        has_storage = 'django-cloudinary-storage==' in content
+        has_active_cloudinary = 'cloudinary==1.36.0' in content and not '# cloudinary==1.36.0' in content
+        has_active_storage = 'django-cloudinary-storage==0.3.0' in content and not '# django-cloudinary-storage==0.3.0' in content
+        has_commented = '# cloudinary==1.36.0' in content and '# django-cloudinary-storage==0.3.0' in content
         
         print("Requirements Check:")
-        print(f"  - cloudinary package: {'[OK] Found' if has_cloudinary else '[MISSING]'}")
-        print(f"  - django-cloudinary-storage: {'[OK] Found' if has_storage else '[MISSING]'}")
-        
-        return has_cloudinary and has_storage
+        if has_active_cloudinary and has_active_storage:
+            print("  - cloudinary packages: [OK] Active (ready for production)")
+            return True
+        elif has_commented:
+            print("  - cloudinary packages: [OK] Commented (ready to uncomment)")
+            return True
+        else:
+            print("  - cloudinary packages: [MISSING] Not found")
+            return False
     except FileNotFoundError:
         print("[ERROR] requirements.txt not found")
         return False

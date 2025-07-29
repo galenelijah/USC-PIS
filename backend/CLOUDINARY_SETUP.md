@@ -52,9 +52,21 @@ heroku config:set USE_CLOUDINARY=True
    - `CLOUDINARY_API_SECRET` = your_api_secret
    - `USE_CLOUDINARY` = True
 
-### Step 3: Deploy (2 minutes)
+### Step 3: Add Cloudinary Dependencies (1 minute)
 
-The code is already prepared and ready. Just deploy:
+Uncomment the Cloudinary packages in requirements.txt:
+
+```bash
+# Edit requirements.txt and change:
+# cloudinary==1.36.0
+# django-cloudinary-storage==0.3.0
+
+# To:
+cloudinary==1.36.0
+django-cloudinary-storage==0.3.0
+```
+
+### Step 4: Deploy (2 minutes)
 
 ```bash
 git add .
@@ -69,7 +81,7 @@ git commit -m "Activate Cloudinary media storage for production
 git push heroku main
 ```
 
-### Step 4: Verify Setup (2 minutes)
+### Step 5: Verify Setup (2 minutes)
 
 1. **Check deployment logs**:
    ```bash
@@ -88,7 +100,7 @@ git push heroku main
    ```
    Image should still load after restart.
 
-### Step 5: Clean Up Broken References (Optional)
+### Step 6: Clean Up Broken References (Optional)
 
 Remove old broken image references from database:
 
