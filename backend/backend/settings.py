@@ -80,6 +80,9 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',  # Add token authentication
     'corsheaders',
     'django_filters',  # Add django-filter for API filtering
+    # Cloudinary for media storage (must be before apps that use file uploads)
+    'cloudinary_storage',
+    'cloudinary',
     'patients',
     'authentication',  # New authentication app
     'health_info',     # Add the missing health_info app
@@ -246,6 +249,35 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Media files (User uploads)
 MEDIA_URL = '/media/' # URL prefix for user-uploaded files
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media') # Absolute filesystem path to the directory for user-uploaded files
+
+# Cloudinary configuration for production media storage
+# Only activate when explicitly enabled via environment variable
+if os.environ.get('USE_CLOUDINARY') == 'True':
+    import cloudinary
+    import cloudinary.uploader
+    import cloudinary.api
+    
+    cloudinary.config(
+        cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
+        api_key=os.environ.get('CLOUDINARY_API_KEY'),
+        api_secret=os.environ.get('CLOUDINARY_API_SECRET'),
+        secure=True
+    )
+    
+    # Use Cloudinary for media file storage
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    
+    # Optional: Customize Cloudinary settings
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
+        'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
+        'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
+        'SECURE': True,
+        'MEDIA_TAG': 'media',  # Optional: tag all uploads
+        'INVALID_VIDEO_ERROR_MESSAGE': 'Please upload a valid video file.',
+        'EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS': (),
+        'FOLDER': 'usc-pis',  # Optional: organize uploads in folder
+    }
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

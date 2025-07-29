@@ -20,14 +20,22 @@ const RequireProfileSetup = ({ children }) => {
                 setLoading(true);
                 setError(null);
 
+                console.log('🔧 DEBUG RequireProfileSetup: Starting profile check');
+                console.log('🔧 DEBUG RequireProfileSetup: User:', user);
+                console.log('🔧 DEBUG RequireProfileSetup: User completeSetup:', user?.completeSetup);
+                console.log('🔧 DEBUG RequireProfileSetup: User completeSetup type:', typeof user?.completeSetup);
+                console.log('🔧 DEBUG RequireProfileSetup: localStorage user:', localStorage.getItem('user'));
+
                 // If no user or token, let RequireAuth handle it
                 if (!user || !token) {
+                    console.log('🔧 DEBUG RequireProfileSetup: No user or token, exiting');
                     setLoading(false);
                     return;
                 }
 
                 // If user has completed setup, we're good to go
                 if (user.completeSetup) {
+                    console.log('🔧 DEBUG RequireProfileSetup: User has completed setup, allowing access');
                     setLoading(false);
                     return;
                 }
@@ -46,11 +54,11 @@ const RequireProfileSetup = ({ children }) => {
                     logger.info('Refreshing user data to check profile completion status');
                     const response = await authService.getCurrentUser();
                     if (response.data) {
+                        console.log('🔧 DEBUG RequireProfileSetup: Fresh user data:', response.data);
+                        console.log('🔧 DEBUG RequireProfileSetup: Fresh completeSetup:', response.data.completeSetup);
+                        
                         // Update Redux state with fresh user data
-                        dispatch(setCredentials({
-                            user: response.data,
-                            token: token
-                        }));
+                        dispatch(setCredentials(response.data));
                         
                         logger.info(`User profile completion status: ${response.data.completeSetup}`);
                         
@@ -100,6 +108,8 @@ const RequireProfileSetup = ({ children }) => {
 
     // If user hasn't completed profile setup, redirect to profile setup
     if (user && !user.completeSetup) {
+        console.log('🔧 DEBUG RequireProfileSetup: Redirecting to profile setup');
+        console.log('🔧 DEBUG RequireProfileSetup: User at redirect time:', user);
         return <Navigate to="/profile-setup" replace />;
     }
 

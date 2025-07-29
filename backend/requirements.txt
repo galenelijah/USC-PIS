@@ -17,3 +17,6 @@ python-magic>=0.4.27
 Pillow>=10.0.0
 psutil>=5.9.0
 requests>=2.31.0
+# Cloudinary for production media storage
+cloudinary==1.36.0
+django-cloudinary-storage==0.3.0
