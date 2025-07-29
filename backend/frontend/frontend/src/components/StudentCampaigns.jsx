@@ -95,7 +95,21 @@ const UniversalCampaigns = () => {
       setLoading(true);
       // Get all campaigns - backend no longer filters by role
       const response = await campaignService.getCampaigns();
-      setCampaigns(response.data.results || response.data);
+      const campaignData = response.data.results || response.data;
+      
+      // Debug: Log campaign data to check images
+      console.log('Campaign data:', campaignData);
+      campaignData.forEach((campaign, index) => {
+        console.log(`Campaign ${index + 1}: ${campaign.title}`);
+        console.log(`  - Images: ${campaign.images ? campaign.images.length : 0}`);
+        if (campaign.images && campaign.images.length > 0) {
+          campaign.images.forEach((img, imgIndex) => {
+            console.log(`    Image ${imgIndex + 1}: ${img.type} - ${img.url}`);
+          });
+        }
+      });
+      
+      setCampaigns(campaignData);
     } catch (error) {
       console.error('Error fetching campaigns:', error);
       showSnackbar('Failed to load campaigns', 'error');
@@ -318,35 +332,56 @@ const UniversalCampaigns = () => {
               }}
               onClick={() => handleCampaignClick(campaign)}
             >
-              {/* Show first image as campaign banner if available */}
-              {campaign.images && campaign.images.length > 0 && (
-                <Box sx={{ position: 'relative', height: 200, overflow: 'hidden' }}>
-                  <CardMedia
-                    component="img"
-                    height="200"
-                    image={campaign.images[0].url || campaign.images[0]}
-                    alt={campaign.title}
-                    sx={{ 
-                      cursor: 'pointer',
-                      objectFit: 'cover',
-                      width: '100%',
-                      height: '100%'
-                    }}
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.parentNode.querySelector('.fallback-banner').style.display = 'flex';
-                    }}
-                  />
+              {/* Campaign Banner - Always show either image or icon placeholder */}
+              <Box sx={{ position: 'relative', height: 200, overflow: 'hidden' }}>
+                {campaign.images && campaign.images.length > 0 ? (
+                  <>
+                    <CardMedia
+                      component="img"
+                      height="200"
+                      image={campaign.images[0].url || campaign.images[0]}
+                      alt={campaign.title}
+                      sx={{ 
+                        cursor: 'pointer',
+                        objectFit: 'cover',
+                        width: '100%',
+                        height: '100%'
+                      }}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.parentNode.querySelector('.fallback-banner').style.display = 'flex';
+                      }}
+                    />
+                    <Box
+                      className="fallback-banner"
+                      sx={{
+                        display: 'none',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        backgroundColor: `${getCampaignColor(campaign.campaign_type)}20`,
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {getCampaignIcon(campaign.campaign_type)}
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        Image not available
+                      </Typography>
+                    </Box>
+                  </>
+                ) : (
+                  // Default placeholder when no images exist
                   <Box
-                    className="fallback-banner"
                     sx={{
-                      display: 'none',
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
                       width: '100%',
                       height: '100%',
-                      backgroundColor: `${getCampaignColor(campaign.campaign_type)}20`,
+                      background: `linear-gradient(135deg, ${getCampaignColor(campaign.campaign_type)}40, ${getCampaignColor(campaign.campaign_type)}20)`,
+                      display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -354,12 +389,12 @@ const UniversalCampaigns = () => {
                     }}
                   >
                     {getCampaignIcon(campaign.campaign_type)}
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      Image not available
+                    <Typography variant="h6" color="text.primary" sx={{ mt: 1, fontWeight: 'bold' }}>
+                      {campaign.campaign_type.replace('_', ' ')}
                     </Typography>
                   </Box>
-                </Box>
-              )}
+                )}
+              </Box>
               
               {/* Campaign Header */}
               <Box
