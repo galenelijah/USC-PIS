@@ -275,6 +275,10 @@ const HealthInfo = () => {
                       objectFit: 'cover'
                     }}
                     onClick={() => handleViewImages(info.images, 0)}
+                    onError={(e) => {
+                      console.log('Image failed to load:', info.images[0]);
+                      e.target.style.display = 'none';
+                    }}
                   />
                 )}
                 

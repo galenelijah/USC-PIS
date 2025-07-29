@@ -17,6 +17,10 @@ def pubmat_upload_path(instance, filename):
     """Generate upload path for PubMat images"""
     return f'pubmats/{filename}'
 
+def health_info_image_upload_path(instance, filename):
+    """Generate upload path for health info images"""
+    return f'health_info/{instance.id}/{filename}'
+
 class HealthInformation(models.Model):
     title = models.CharField(max_length=200)
     content = models.TextField()
@@ -28,10 +32,35 @@ class HealthInformation(models.Model):
     def __str__(self):
         return self.title
 
+class HealthInformationImage(models.Model):
+    """Images associated with health information"""
+    health_info = models.ForeignKey(HealthInformation, related_name='images', on_delete=models.CASCADE)
+    image = models.ImageField(
+        upload_to=health_info_image_upload_path,
+        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'gif'])]
+    )
+    caption = models.CharField(max_length=255, blank=True)
+    order = models.PositiveIntegerField(default=0, help_text="Display order of the image")
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'uploaded_at']
+
+    def __str__(self):
+        return f"Image for {self.health_info.title}"
+    
+    @property
+    def url(self):
+        """Return the full URL for the image"""
+        if self.image:
+            return self.image.url
+        return None
+
 class CampaignTemplate(models.Model):
     """Reusable templates for health campaigns"""
     
     CAMPAIGN_TYPES = [
+        ('GENERAL', 'General Health Information'),
         ('VACCINATION', 'Vaccination Campaign'),
         ('MENTAL_HEALTH', 'Mental Health Awareness'),
         ('NUTRITION', 'Nutrition & Wellness'),
@@ -109,6 +138,7 @@ class HealthCampaign(models.Model):
     """Enhanced model for visual health campaigns with PubMats and banners"""
     
     CAMPAIGN_TYPES = [
+        ('GENERAL', 'General Health Information'),
         ('VACCINATION', 'Vaccination Campaign'),
         ('MENTAL_HEALTH', 'Mental Health Awareness'),
         ('NUTRITION', 'Nutrition & Wellness'),

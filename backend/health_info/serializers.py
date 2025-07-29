@@ -1,9 +1,25 @@
 from rest_framework import serializers
-from .models import HealthInformation, HealthCampaign, CampaignResource, CampaignFeedback
+from .models import HealthInformation, HealthInformationImage, HealthCampaign, CampaignResource, CampaignFeedback
 from authentication.models import User
+
+class HealthInformationImageSerializer(serializers.ModelSerializer):
+    url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = HealthInformationImage
+        fields = ['id', 'url', 'caption', 'order']
+    
+    def get_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
 
 class HealthInformationSerializer(serializers.ModelSerializer):
     author_name = serializers.CharField(source='author.get_full_name', read_only=True)
+    images = HealthInformationImageSerializer(many=True, read_only=True)
     
     class Meta:
         model = HealthInformation
@@ -42,6 +58,7 @@ class HealthCampaignListSerializer(serializers.ModelSerializer):
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
     banner_image_url = serializers.SerializerMethodField()
     thumbnail_image_url = serializers.SerializerMethodField()
+    images = serializers.SerializerMethodField()  # For frontend compatibility
     is_active = serializers.ReadOnlyField()
     is_featured = serializers.ReadOnlyField()
     resource_count = serializers.SerializerMethodField()
@@ -54,7 +71,7 @@ class HealthCampaignListSerializer(serializers.ModelSerializer):
             'id', 'title', 'summary', 'campaign_type', 'status', 'priority',
             'start_date', 'end_date', 'featured_until', 'view_count', 'engagement_count',
             'created_at', 'updated_at', 'created_by_name', 'banner_image_url', 
-            'thumbnail_image_url', 'is_active', 'is_featured', 'resource_count',
+            'thumbnail_image_url', 'images', 'is_active', 'is_featured', 'resource_count',
             'feedback_count', 'average_rating', 'tags'
         ]
     
@@ -73,6 +90,43 @@ class HealthCampaignListSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.thumbnail_image.url)
             return obj.thumbnail_image.url
         return None
+    
+    def get_images(self, obj):
+        """Return array of campaign images for frontend compatibility"""
+        images = []
+        request = self.context.get('request')
+        
+        # Add banner image if it exists
+        if obj.banner_image:
+            url = request.build_absolute_uri(obj.banner_image.url) if request else obj.banner_image.url
+            images.append({
+                'id': f'banner_{obj.id}',
+                'url': url,
+                'type': 'banner',
+                'caption': 'Campaign Banner'
+            })
+        
+        # Add thumbnail image if it exists
+        if obj.thumbnail_image:
+            url = request.build_absolute_uri(obj.thumbnail_image.url) if request else obj.thumbnail_image.url
+            images.append({
+                'id': f'thumbnail_{obj.id}',
+                'url': url,
+                'type': 'thumbnail',
+                'caption': 'Campaign Thumbnail'
+            })
+        
+        # Add pubmat image if it exists
+        if obj.pubmat_image:
+            url = request.build_absolute_uri(obj.pubmat_image.url) if request else obj.pubmat_image.url
+            images.append({
+                'id': f'pubmat_{obj.id}',
+                'url': url,
+                'type': 'pubmat',
+                'caption': 'Campaign PubMat'
+            })
+        
+        return images
     
     def get_resource_count(self, obj):
         return obj.resources.count()
@@ -94,6 +148,7 @@ class HealthCampaignDetailSerializer(serializers.ModelSerializer):
     banner_image_url = serializers.SerializerMethodField()
     thumbnail_image_url = serializers.SerializerMethodField()
     pubmat_image_url = serializers.SerializerMethodField()
+    images = serializers.SerializerMethodField()  # For frontend compatibility
     is_active = serializers.ReadOnlyField()
     is_featured = serializers.ReadOnlyField()
     resources = CampaignResourceSerializer(many=True, read_only=True)
@@ -136,6 +191,43 @@ class HealthCampaignDetailSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.pubmat_image.url)
             return obj.pubmat_image.url
         return None
+    
+    def get_images(self, obj):
+        """Return array of campaign images for frontend compatibility"""
+        images = []
+        request = self.context.get('request')
+        
+        # Add banner image if it exists
+        if obj.banner_image:
+            url = request.build_absolute_uri(obj.banner_image.url) if request else obj.banner_image.url
+            images.append({
+                'id': f'banner_{obj.id}',
+                'url': url,
+                'type': 'banner',
+                'caption': 'Campaign Banner'
+            })
+        
+        # Add thumbnail image if it exists
+        if obj.thumbnail_image:
+            url = request.build_absolute_uri(obj.thumbnail_image.url) if request else obj.thumbnail_image.url
+            images.append({
+                'id': f'thumbnail_{obj.id}',
+                'url': url,
+                'type': 'thumbnail', 
+                'caption': 'Campaign Thumbnail'
+            })
+        
+        # Add pubmat image if it exists
+        if obj.pubmat_image:
+            url = request.build_absolute_uri(obj.pubmat_image.url) if request else obj.pubmat_image.url
+            images.append({
+                'id': f'pubmat_{obj.id}',
+                'url': url,
+                'type': 'pubmat',
+                'caption': 'Campaign PubMat'
+            })
+        
+        return images
     
     def get_tags_list(self, obj):
         if obj.tags:

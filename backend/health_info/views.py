@@ -7,7 +7,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Count, Avg, Sum
 from django.utils import timezone
 from datetime import datetime, timedelta
-from .models import HealthInformation, HealthCampaign, CampaignResource, CampaignFeedback
+from .models import HealthInformation, HealthInformationImage, HealthCampaign, CampaignResource, CampaignFeedback
 from .serializers import (
     HealthInformationSerializer, 
     HealthCampaignListSerializer,
@@ -50,7 +50,34 @@ class HealthInformationViewSet(viewsets.ModelViewSet):
     ordering = ['-created_at']
 
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        # Save the health information instance
+        health_info = serializer.save(author=self.request.user)
+        
+        # Handle image uploads if present
+        images = self.request.FILES.getlist('images')
+        for index, image_file in enumerate(images):
+            HealthInformationImage.objects.create(
+                health_info=health_info,
+                image=image_file,
+                order=index
+            )
+    
+    def perform_update(self, serializer):
+        # Save the health information instance
+        health_info = serializer.save()
+        
+        # Handle image uploads if present
+        images = self.request.FILES.getlist('images')
+        if images:  # Only update images if new ones are provided
+            # Remove existing images
+            health_info.images.all().delete()
+            # Add new images
+            for index, image_file in enumerate(images):
+                HealthInformationImage.objects.create(
+                    health_info=health_info,
+                    image=image_file,
+                    order=index
+                )
 
 class HealthCampaignViewSet(viewsets.ModelViewSet):
     """Enhanced viewset for health campaigns with comprehensive features"""
