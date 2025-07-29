@@ -814,7 +814,11 @@ Treatment: ${r.treatment || 'N/A'}
                 <Grid item xs={12}>
                   <Autocomplete
                     options={patients}
-                    getOptionLabel={(option) => `${option.first_name} ${option.last_name} (${option.id_number || 'No ID'})`}
+                    getOptionLabel={(option) => {
+                      const name = `${option.first_name} ${option.last_name}`;
+                      const id = option.usc_id || option.id_number || option.student_id;
+                      return `${name}${id ? ` (${id})` : ''}`;
+                    }}
                     value={patients.find(p => p.id === currentRecord.patient) || null}
                     onChange={handlePatientChange}
                     renderInput={(params) => (
@@ -823,9 +827,33 @@ Treatment: ${r.treatment || 'N/A'}
                         label="Select Patient"
                         required
                         margin="normal"
-                        helperText="Search by name or ID number"
+                        helperText="Search by name or USC ID"
                       />
                     )}
+                    renderOption={(props, option) => (
+                      <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: '0.8rem' }}>
+                          {option.first_name?.[0]}{option.last_name?.[0]}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="body2" fontWeight="medium">
+                            {option.first_name} {option.last_name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            USC ID: {option.usc_id || option.id_number || option.student_id || 'Not Available'}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    )}
+                    filterOptions={(options, { inputValue }) => {
+                      return options.filter(option => {
+                        const name = `${option.first_name || ''} ${option.last_name || ''}`.toLowerCase();
+                        const email = (option.email || '').toLowerCase();
+                        const uscId = (option.usc_id || option.id_number || option.student_id || '').toLowerCase();
+                        const search = inputValue.toLowerCase();
+                        return name.includes(search) || email.includes(search) || uscId.includes(search);
+                      });
+                    }}
                     isOptionEqualToValue={(option, value) => option.id === value?.id}
                   />
                 </Grid>
@@ -835,7 +863,7 @@ Treatment: ${r.treatment || 'N/A'}
                   <TextField
                     fullWidth
                     label="Patient"
-                    value={`${currentRecord.patient.first_name || ''} ${currentRecord.patient.last_name || ''} (${currentRecord.patient.id_number || 'No ID'})`}
+                    value={`${currentRecord.patient.first_name || ''} ${currentRecord.patient.last_name || ''} ${(currentRecord.patient.usc_id || currentRecord.patient.id_number || currentRecord.patient.student_id) ? `(${currentRecord.patient.usc_id || currentRecord.patient.id_number || currentRecord.patient.student_id})` : ''}`}
                     disabled
                     margin="normal"
                     helperText="Patient cannot be changed when editing records"

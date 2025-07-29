@@ -39,7 +39,8 @@ import {
   LinearProgress,
   Divider,
   InputAdornment,
-  Avatar
+  Avatar,
+  Autocomplete
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -552,20 +553,49 @@ const Dental = () => {
                 <Box sx={{ mt: 3 }}>
                   <Grid container spacing={2}>
                     <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth>
-                        <InputLabel>Patient</InputLabel>
-                        <Select
-                          value={formData.patient}
-                          label="Patient"
-                          onChange={(e) => handleInputChange('patient', e.target.value)}
-                        >
-                          {patients.map((patient) => (
-                            <MenuItem key={patient.id} value={patient.id}>
-                              {patient.first_name} {patient.last_name}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
+                      <Autocomplete
+                        options={patients}
+                        getOptionLabel={(option) => {
+                          const name = `${option.first_name || ''} ${option.last_name || ''}`.trim();
+                          const id = option.usc_id || option.id_number || option.student_id;
+                          return `${name}${id ? ` (${id})` : ''}`;
+                        }}
+                        value={patients.find(p => p.id === formData.patient) || null}
+                        onChange={(event, newValue) => handleInputChange('patient', newValue ? newValue.id : '')}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Select Patient"
+                            required
+                            helperText="Search by name or USC ID"
+                          />
+                        )}
+                        renderOption={(props, option) => (
+                          <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: '0.8rem' }}>
+                              {option.first_name?.[0]}{option.last_name?.[0]}
+                            </Avatar>
+                            <Box>
+                              <Typography variant="body2" fontWeight="medium">
+                                {option.first_name} {option.last_name}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {option.usc_id || option.id_number || option.student_id || 'No ID'}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        )}
+                        isOptionEqualToValue={(option, value) => option.id === value?.id}
+                        filterOptions={(options, { inputValue }) => {
+                          return options.filter(option => {
+                            const name = `${option.first_name || ''} ${option.last_name || ''}`.toLowerCase();
+                            const email = (option.email || '').toLowerCase();
+                            const uscId = (option.usc_id || option.id_number || option.student_id || '').toLowerCase();
+                            const search = inputValue.toLowerCase();
+                            return name.includes(search) || email.includes(search) || uscId.includes(search);
+                          });
+                        }}
+                      />
                     </Grid>
                     <Grid item xs={12} sm={6}>
                       <DatePicker

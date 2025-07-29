@@ -12,6 +12,23 @@ from django.http import HttpResponse
 from datetime import date
 from rest_framework.permissions import IsAuthenticated
 
+
+def get_certificate_status(certificate, field='approval_status'):
+    """Get certificate status with backward compatibility"""
+    if hasattr(certificate, 'approval_status'):
+        return getattr(certificate, field) if field == 'approval_status' else certificate.approval_status
+    elif hasattr(certificate, 'status'):
+        return certificate.status
+    return 'draft'
+
+
+def set_certificate_status(certificate, status_value):
+    """Set certificate status with backward compatibility"""
+    if hasattr(certificate, 'approval_status'):
+        certificate.approval_status = status_value
+    elif hasattr(certificate, 'status'):
+        certificate.status = status_value
+
 # Create your views here.
 
 class IsStaffOrMedicalPersonnel(permissions.BasePermission):
@@ -49,15 +66,28 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
         patient_id = self.request.query_params.get('patient', None)
         if patient_id:
             queryset = queryset.filter(patient_id=patient_id)
-        status_param = self.request.query_params.get('status', None)
+        # Support both old 'status' and new 'approval_status' parameters for backward compatibility
+        status_param = self.request.query_params.get('status', None) or self.request.query_params.get('approval_status', None)
         if status_param:
-            queryset = queryset.filter(status=status_param)
+            # Check which field exists in the model
+            model_fields = [field.name for field in MedicalCertificate._meta.get_fields()]
+            if 'approval_status' in model_fields:
+                queryset = queryset.filter(approval_status=status_param)
+            elif 'status' in model_fields:
+                queryset = queryset.filter(status=status_param)
         return queryset
 
     def perform_create(self, serializer):
+        # Check which status field exists
+        model_fields = [field.name for field in MedicalCertificate._meta.get_fields()]
+        if 'approval_status' in model_fields:
+            status_value = serializer.validated_data.get('approval_status')
+        else:
+            status_value = serializer.validated_data.get('status')
+            
         serializer.save(
             issued_by=self.request.user,
-            issued_at=timezone.now() if serializer.validated_data.get('status') == 'pending' else None
+            issued_at=timezone.now() if status_value == 'pending' else None
         )
 
     @action(detail=True, methods=['get'])
@@ -78,6 +108,11 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
             'valid_from': certificate.valid_from.strftime('%B %d, %Y'),
             'valid_until': certificate.valid_until.strftime('%B %d, %Y'),
             'additional_notes': certificate.additional_notes,
+            # New fitness status fields (with backward compatibility)
+            'fitness_status': getattr(certificate, 'get_fitness_status_display', lambda: 'Fit')(),
+            'fitness_reason': getattr(certificate, 'fitness_reason', ''),
+            'is_fit': getattr(certificate, 'fitness_status', 'fit') == 'fit',
+            'is_not_fit': getattr(certificate, 'fitness_status', 'fit') == 'not_fit',
             'doctor_name': f"Dr. {certificate.issued_by.get_full_name()}",
             'doctor_title': getattr(certificate.issued_by, 'title', None) or 'University Physician',
             'doctor_license': getattr(certificate.issued_by, 'license_number', None) or 'N/A',
@@ -99,7 +134,7 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
     def approve(self, request, pk=None):
         certificate = self.get_object()
         
-        if certificate.status != 'pending':
+        if get_certificate_status(certificate) != 'pending':
             return Response(
                 {'detail': 'Only pending certificates can be approved.'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -111,7 +146,7 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        certificate.status = 'approved'
+        set_certificate_status(certificate, 'approved')
         certificate.approved_by = request.user
         certificate.approved_at = timezone.now()
         certificate.save()
@@ -123,7 +158,7 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
     def reject(self, request, pk=None):
         certificate = self.get_object()
         
-        if certificate.status != 'pending':
+        if get_certificate_status(certificate) != 'pending':
             return Response(
                 {'detail': 'Only pending certificates can be rejected.'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -135,7 +170,7 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        certificate.status = 'rejected'
+        set_certificate_status(certificate, 'rejected')
         certificate.approved_by = request.user
         certificate.approved_at = timezone.now()
         certificate.save()
@@ -147,13 +182,13 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
     def submit(self, request, pk=None):
         certificate = self.get_object()
         
-        if certificate.status != 'draft':
+        if get_certificate_status(certificate) != 'draft':
             return Response(
                 {'detail': 'Only draft certificates can be submitted.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        certificate.status = 'pending'
+        set_certificate_status(certificate, 'pending')
         certificate.issued_at = timezone.now()
         certificate.save()
         
