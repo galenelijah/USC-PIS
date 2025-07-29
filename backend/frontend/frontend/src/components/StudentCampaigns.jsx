@@ -55,7 +55,7 @@ import {
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { campaignService } from '../services/api';
-// import ImageUpload from '../common/ImageUpload'; // Temporarily disabled for build fix
+import ImageUpload from '../common/ImageUpload';
 
 const UniversalCampaigns = () => {
   const [campaigns, setCampaigns] = useState([]);
@@ -82,7 +82,7 @@ const UniversalCampaigns = () => {
     end_date: '',
     status: 'ACTIVE'
   });
-  // const [campaignImages, setCampaignImages] = useState([]); // Temporarily disabled
+  const [campaignImages, setCampaignImages] = useState([]);
   
   const user = useSelector(state => state.auth.user);
 
@@ -184,8 +184,25 @@ const UniversalCampaigns = () => {
 
   const handleCampaignCreate = async () => {
     try {
-      // Temporarily use regular data instead of FormData for deployment
-      await campaignService.createCampaign(campaignForm);
+      const formData = new FormData();
+      
+      // Add form fields
+      Object.keys(campaignForm).forEach(key => {
+        if (campaignForm[key]) {
+          formData.append(key, campaignForm[key]);
+        }
+      });
+
+      // Add images if any
+      if (campaignImages.length > 0) {
+        campaignImages.forEach((image, index) => {
+          if (image.file) {
+            formData.append(`images`, image.file);
+          }
+        });
+      }
+
+      await campaignService.createCampaign(formData);
       showSnackbar('Campaign created successfully!', 'success');
       setCreateDialogOpen(false);
       resetCampaignForm();
@@ -212,7 +229,7 @@ const UniversalCampaigns = () => {
       end_date: '',
       status: 'ACTIVE'
     });
-    // setCampaignImages([]); // Temporarily disabled
+    setCampaignImages([]);
   };
 
   const showSnackbar = (message, severity = 'success') => {
@@ -748,21 +765,18 @@ const UniversalCampaigns = () => {
                 />
               </Grid>
 
-              {/* Image Upload Section - Temporarily disabled for build fix */}
+              {/* Image Upload Section */}
               <Grid item xs={12}>
                 <Typography variant="h6" gutterBottom sx={{ mt: 2, mb: 1 }}>
-                  Campaign Images & Pubmats (Coming Soon)
+                  Campaign Images & Pubmats (Optional)
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Image upload functionality will be available after deployment fixes.
-                </Typography>
-                {/* <ImageUpload
+                <ImageUpload
                   images={campaignImages}
                   onImagesChange={setCampaignImages}
                   maxImages={5}
                   maxSizeMB={10}
                   acceptedTypes={['image/jpeg', 'image/png', 'image/gif', 'image/webp']}
-                /> */}
+                />
               </Grid>
             </Grid>
           </Box>

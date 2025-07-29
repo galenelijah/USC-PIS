@@ -93,7 +93,7 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel }) => {
       setLoading(true);
       const [patientsRes, templatesRes] = await Promise.all([
         patientService.getAll(),
-        medicalCertificateService.getTemplates(),
+        medicalCertificateService.getAllTemplates(),
       ]);
       const patientsData = patientsRes.data || [];
       setPatients(patientsData);

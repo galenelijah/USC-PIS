@@ -98,11 +98,15 @@ const HealthInfo = () => {
     if (editing) {
       dispatch(updateHealthInfo({ id: editing.id, data: formData })).then(() => {
         dispatch(clearEditing());
+        dispatch(fetchHealthInfo()); // Refresh list to show updated images
         setUploadedImages([]);
       });
     } else {
-      dispatch(addHealthInfo(formData));
-      setUploadedImages([]);
+      dispatch(addHealthInfo(formData)).then(() => {
+        // Refresh the health info list to show new item with images
+        dispatch(fetchHealthInfo());
+        setUploadedImages([]);
+      });
     }
     reset({ title: '', content: '', category: '' });
   };
@@ -264,7 +268,7 @@ const HealthInfo = () => {
                   <CardMedia
                     component="img"
                     height="200"
-                    image={info.images[0].url}
+                    image={info.images[0].url || info.images[0]}
                     alt={info.title}
                     sx={{ 
                       cursor: 'pointer',
