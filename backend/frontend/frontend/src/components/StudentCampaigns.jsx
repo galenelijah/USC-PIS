@@ -320,16 +320,45 @@ const UniversalCampaigns = () => {
             >
               {/* Show first image as campaign banner if available */}
               {campaign.images && campaign.images.length > 0 && (
-                <CardMedia
-                  component="img"
-                  height="200"
-                  image={campaign.images[0].url || campaign.images[0]}
-                  alt={campaign.title}
-                  sx={{ 
-                    cursor: 'pointer',
-                    objectFit: 'cover'
-                  }}
-                />
+                <Box sx={{ position: 'relative', height: 200, overflow: 'hidden' }}>
+                  <CardMedia
+                    component="img"
+                    height="200"
+                    image={campaign.images[0].url || campaign.images[0]}
+                    alt={campaign.title}
+                    sx={{ 
+                      cursor: 'pointer',
+                      objectFit: 'cover',
+                      width: '100%',
+                      height: '100%'
+                    }}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.parentNode.querySelector('.fallback-banner').style.display = 'flex';
+                    }}
+                  />
+                  <Box
+                    className="fallback-banner"
+                    sx={{
+                      display: 'none',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      backgroundColor: `${getCampaignColor(campaign.campaign_type)}20`,
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {getCampaignIcon(campaign.campaign_type)}
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      Image not available
+                    </Typography>
+                  </Box>
+                </Box>
               )}
               
               {/* Campaign Header */}
@@ -483,6 +512,86 @@ const UniversalCampaigns = () => {
                 </Typography>
                 <Divider sx={{ my: 2 }} />
               </Box>
+
+              {/* Campaign Images Gallery */}
+              {selectedCampaign.images && selectedCampaign.images.length > 0 && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <ImageIcon color="primary" />
+                    Campaign Images & PubMats
+                  </Typography>
+                  <Grid container spacing={2}>
+                    {selectedCampaign.images.map((image, index) => (
+                      <Grid item xs={12} sm={6} md={4} key={image.id || index}>
+                        <Paper
+                          sx={{
+                            p: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            cursor: 'pointer',
+                            transition: 'transform 0.2s',
+                            '&:hover': { transform: 'scale(1.02)' }
+                          }}
+                          onClick={() => window.open(image.url, '_blank')}
+                        >
+                          <img
+                            src={image.url || image}
+                            alt={image.caption || `Campaign image ${index + 1}`}
+                            style={{
+                              width: '100%',
+                              height: '150px',
+                              objectFit: 'cover',
+                              borderRadius: '8px',
+                              marginBottom: '8px'
+                            }}
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                          <Box
+                            sx={{
+                              display: 'none',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              height: '150px',
+                              width: '100%',
+                              backgroundColor: 'grey.100',
+                              borderRadius: '8px',
+                              mb: 1
+                            }}
+                          >
+                            <ImageIcon sx={{ fontSize: 40, color: 'grey.400', mb: 1 }} />
+                            <Typography variant="caption" color="text.secondary">
+                              Image not available
+                            </Typography>
+                          </Box>
+                          <Box sx={{ textAlign: 'center', width: '100%' }}>
+                            <Chip
+                              size="small"
+                              label={image.type || 'Image'}
+                              color={
+                                image.type === 'banner' ? 'primary' :
+                                image.type === 'pubmat' ? 'secondary' :
+                                image.type === 'thumbnail' ? 'info' : 'default'
+                              }
+                              sx={{ mb: 0.5 }}
+                            />
+                            {image.caption && (
+                              <Typography variant="caption" display="block" color="text.secondary">
+                                {image.caption}
+                              </Typography>
+                            )}
+                          </Box>
+                        </Paper>
+                      </Grid>
+                    ))}
+                  </Grid>
+                  <Divider sx={{ mt: 3, mb: 2 }} />
+                </Box>
+              )}
 
               {/* Campaign Content */}
               <Box sx={{ mb: 3 }}>
