@@ -17,7 +17,12 @@ class CertificateTemplate(models.Model):
         return self.name
 
 class MedicalCertificate(models.Model):
-    STATUS_CHOICES = [
+    FITNESS_STATUS_CHOICES = [
+        ('fit', 'Fit'),
+        ('not_fit', 'Not Fit'),
+    ]
+    
+    APPROVAL_STATUS_CHOICES = [
         ('draft', 'Draft'),
         ('pending', 'Pending Approval'),
         ('approved', 'Approved'),
@@ -34,8 +39,25 @@ class MedicalCertificate(models.Model):
     valid_until = models.DateField()
     additional_notes = models.TextField(blank=True)
     
-    # Workflow
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    # Medical Fitness Assessment
+    fitness_status = models.CharField(
+        max_length=20, 
+        choices=FITNESS_STATUS_CHOICES, 
+        default='fit',
+        help_text="Medical fitness determination: Fit or Not Fit"
+    )
+    fitness_reason = models.TextField(
+        blank=True,
+        help_text="Reason for fitness status, especially important for 'Not Fit' determinations"
+    )
+    
+    # Approval Workflow
+    approval_status = models.CharField(
+        max_length=20, 
+        choices=APPROVAL_STATUS_CHOICES, 
+        default='draft',
+        help_text="Administrative approval status for the certificate"
+    )
     issued_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='issued_certificates')
     approved_by = models.ForeignKey(
         User, 
@@ -55,7 +77,7 @@ class MedicalCertificate(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"Certificate for {self.patient} - {self.get_status_display()}"
+        return f"Certificate for {self.patient} - {self.get_fitness_status_display()} ({self.get_approval_status_display()})"
 
 
 @receiver(post_save, sender=MedicalCertificate)
@@ -75,17 +97,20 @@ def medical_certificate_notification(sender, instance, created, **kwargs):
                 notification_type="certificate_created"
             )
     else:
-        # Check if status changed
-        if instance.status == 'approved' and instance.approved_by:
+        # Check if approval status changed
+        if instance.approval_status == 'approved' and instance.approved_by:
             # Notify patient when certificate is approved
             if instance.patient.user:
+                fitness_info = f"Status: {instance.get_fitness_status_display()}"
+                if instance.fitness_reason:
+                    fitness_info += f" - {instance.fitness_reason}"
                 Notification.objects.create(
                     recipient=instance.patient.user,
                     title="Medical Certificate Approved",
-                    message=f"Your medical certificate has been approved by {instance.approved_by.get_full_name()}. You can now download it.",
+                    message=f"Your medical certificate has been approved by {instance.approved_by.get_full_name()}. {fitness_info}. You can now download it.",
                     notification_type="certificate_approved"
                 )
-        elif instance.status == 'rejected' and instance.approved_by:
+        elif instance.approval_status == 'rejected' and instance.approved_by:
             # Notify patient when certificate is rejected
             if instance.patient.user:
                 Notification.objects.create(
@@ -94,13 +119,16 @@ def medical_certificate_notification(sender, instance, created, **kwargs):
                     message=f"Your medical certificate has been rejected by {instance.approved_by.get_full_name()}. Please contact the clinic for more information.",
                     notification_type="certificate_rejected"
                 )
-        elif instance.status == 'pending':
+        elif instance.approval_status == 'pending':
             # Notify doctors when certificate is submitted for approval
             doctors = User.objects.filter(role__in=['DOCTOR', 'ADMIN'])
             for doctor in doctors:
+                fitness_info = f"Fitness Status: {instance.get_fitness_status_display()}"
+                if instance.fitness_reason:
+                    fitness_info += f" - {instance.fitness_reason}"
                 Notification.objects.create(
                     recipient=doctor,
                     title="Medical Certificate Pending Approval",
-                    message=f"A medical certificate for {instance.patient.get_full_name()} is pending your approval.",
+                    message=f"A medical certificate for {instance.patient.get_full_name()} is pending your approval. {fitness_info}",
                     notification_type="certificate_pending"
                 )

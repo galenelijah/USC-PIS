@@ -144,6 +144,21 @@ export const medicalCertificateSchema = yup.object().shape({
     .nullable()
     .min(yup.ref('valid_from'), 'Valid until date must be after valid from date'),
   additional_notes: commonValidation.optionalText,
+  fitness_status: yup
+    .string()
+    .required('Fitness status is required')
+    .oneOf(['fit', 'not_fit'], 'Please select a valid fitness status'),
+  fitness_reason: yup
+    .string()
+    .when('fitness_status', {
+      is: 'not_fit',
+      then: (schema) => schema.required('Reason is required for "Not Fit" status'),
+      otherwise: (schema) => schema.notRequired()
+    }),
+  approval_status: yup
+    .string()
+    .required('Approval status is required')
+    .oneOf(['draft', 'pending', 'approved', 'rejected'], 'Please select a valid approval status'),
 });
 
 // Feedback schema

@@ -22,11 +22,16 @@ import { format } from 'date-fns';
 import { medicalCertificateService } from '../../services/api';
 import axios from 'axios';
 
-const statusColors = {
+const approvalStatusColors = {
   draft: 'default',
   pending: 'warning',
   approved: 'success',
   rejected: 'error',
+};
+
+const fitnessStatusColors = {
+  fit: 'success',
+  not_fit: 'error',
 };
 
 const MedicalCertificateDetail = ({ 
@@ -43,9 +48,19 @@ const MedicalCertificateDetail = ({
   const [error, setError] = useState(null);
 
   const canApproveReject = userRole === 'DOCTOR' || userRole === 'ADMIN';
-  const canEdit = certificate.status === 'draft';
-  const canSubmit = certificate.status === 'draft';
-  const canPrint = certificate.status === 'approved';
+  
+  // Medical professionals can always edit for fitness status changes
+  // Only restrict editing completely approved certificates to avoid confusion
+  const canEdit = (
+    certificate.approval_status === 'draft' || 
+    (
+      (userRole === 'DOCTOR' || userRole === 'ADMIN' || userRole === 'STAFF' || userRole === 'NURSE') && 
+      certificate.approval_status !== 'approved'
+    )
+  );
+  
+  const canSubmit = certificate.approval_status === 'draft';
+  const canPrint = certificate.approval_status === 'approved';
 
   const handlePreview = async () => {
     try {
@@ -97,8 +112,13 @@ const MedicalCertificateDetail = ({
           Back
         </Button>
         {canEdit && (
-          <Button onClick={onEdit} color="primary">
-            Edit
+          <Button 
+            onClick={onEdit} 
+            color="primary"
+            variant={certificate.approval_status === 'draft' ? 'contained' : 'outlined'}
+            title={certificate.approval_status === 'draft' ? 'Edit Certificate' : 'Edit Fitness Status & Medical Details'}
+          >
+            {certificate.approval_status === 'draft' ? 'Edit Certificate' : 'Update Medical Assessment'}
           </Button>
         )}
         {canSubmit && (
@@ -139,13 +159,35 @@ const MedicalCertificateDetail = ({
               <Typography variant="h5" component="h2">
                 Medical Certificate
               </Typography>
-              <Chip
-                label={certificate.status_display}
-                color={statusColors[certificate.status]}
-              />
+              <Stack direction="row" spacing={1}>
+                <Chip
+                  label={certificate.fitness_status === 'fit' ? 'Fit' : 'Not Fit'}
+                  color={fitnessStatusColors[certificate.fitness_status]}
+                  variant={certificate.fitness_status === 'not_fit' ? 'filled' : 'outlined'}
+                />
+                <Chip
+                  label={certificate.approval_status_display || certificate.approval_status?.replace('_', ' ')}
+                  color={approvalStatusColors[certificate.approval_status]}
+                />
+              </Stack>
             </Stack>
             <Divider sx={{ my: 2 }} />
           </Grid>
+
+          {/* Show edit info for non-draft certificates */}
+          {canEdit && certificate.approval_status !== 'draft' && (
+            <Grid item xs={12}>
+              <Alert severity="info" sx={{ mb: 2 }}>
+                <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                  Medical Assessment Can Be Updated
+                </Typography>
+                <Typography variant="body2">
+                  As a medical professional, you can still update the fitness status and medical details 
+                  even after the certificate has been submitted for approval.
+                </Typography>
+              </Alert>
+            </Grid>
+          )}
 
           <Grid item xs={12} md={6}>
             <Typography variant="subtitle2" color="text.secondary">
@@ -200,6 +242,42 @@ const MedicalCertificateDetail = ({
               {format(new Date(certificate.valid_until), 'MMMM d, yyyy')}
             </Typography>
           </Grid>
+
+          <Grid item xs={12} md={6}>
+            <Typography variant="subtitle2" color="text.secondary">
+              Fitness Status
+            </Typography>
+            <Chip
+              label={certificate.fitness_status === 'fit' ? 'Fit' : 'Not Fit'}
+              color={fitnessStatusColors[certificate.fitness_status]}
+              variant={certificate.fitness_status === 'not_fit' ? 'filled' : 'outlined'}
+              size="small"
+            />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <Typography variant="subtitle2" color="text.secondary">
+              Approval Status
+            </Typography>
+            <Chip
+              label={certificate.approval_status_display || certificate.approval_status?.replace('_', ' ')}
+              color={approvalStatusColors[certificate.approval_status]}
+              size="small"
+            />
+          </Grid>
+
+          {certificate.fitness_reason && certificate.fitness_status === 'not_fit' && (
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" color="error" sx={{ fontWeight: 'bold' }}>
+                Reason for Not Fit Status
+              </Typography>
+              <Paper sx={{ p: 2, backgroundColor: 'rgba(255, 235, 235, 0.1)', border: '1px solid rgba(211, 47, 47, 0.2)' }}>
+                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {certificate.fitness_reason}
+                </Typography>
+              </Paper>
+            </Grid>
+          )}
 
           {certificate.additional_notes && (
             <Grid item xs={12}>

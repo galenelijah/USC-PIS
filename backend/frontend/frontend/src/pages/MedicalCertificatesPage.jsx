@@ -12,6 +12,7 @@ import {
   Alert,
 } from '@mui/material';
 import { Add as AddIcon, Close as CloseIcon } from '@mui/icons-material';
+import { useSelector } from 'react-redux';
 import { medicalCertificateService } from '../services/api';
 import MedicalCertificateList from '../components/MedicalCertificates/MedicalCertificateList';
 import MedicalCertificateForm from '../components/MedicalCertificates/MedicalCertificateForm';
@@ -26,6 +27,7 @@ const MedicalCertificatesPage = () => {
 
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
+  const user = useSelector(state => state.auth.user);
 
   const handleCreate = () => {
     setMode('create');
@@ -107,7 +109,7 @@ const MedicalCertificatesPage = () => {
           onSubmit={() => handleWorkflowAction('submit', selectedCertificate)}
           onApprove={() => handleWorkflowAction('approve', selectedCertificate)}
           onReject={() => handleWorkflowAction('reject', selectedCertificate)}
-          userRole="DOCTOR" // TODO: Get from auth context
+          userRole={user?.role}
         />
       );
     }
@@ -144,6 +146,7 @@ const MedicalCertificatesPage = () => {
           onView={handleView}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          userRole={user?.role}
         />
 
         <Dialog

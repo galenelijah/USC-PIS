@@ -38,7 +38,7 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel }) => {
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState(null);
   
-  const { handleSubmit, control, formState: { errors }, reset, setValue } = useForm({
+  const { handleSubmit, control, formState: { errors }, reset, setValue, watch } = useForm({
     resolver: yupResolver(medicalCertificateSchema),
     defaultValues: {
       patient: '',
@@ -48,8 +48,13 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel }) => {
       valid_from: null,
       valid_until: null,
       additional_notes: '',
+      fitness_status: 'fit',
+      fitness_reason: '',
+      approval_status: 'draft',
     }
   });
+
+  const fitnessStatus = watch('fitness_status');
 
   // Filter patients based on search term
   useEffect(() => {
@@ -71,7 +76,10 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel }) => {
 
   useEffect(() => {
     fetchFormData();
-    if (certificate) {
+  }, []);
+
+  useEffect(() => {
+    if (certificate && patients.length > 0) {
       // Find and set the selected patient for display
       const patient = patients.find(p => p.id === certificate.patient);
       setSelectedPatient(patient);
@@ -84,9 +92,12 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel }) => {
         valid_from: new Date(certificate.valid_from),
         valid_until: new Date(certificate.valid_until),
         additional_notes: certificate.additional_notes || '',
+        fitness_status: certificate.fitness_status || 'fit',
+        fitness_reason: certificate.fitness_reason || '',
+        approval_status: certificate.approval_status || 'draft',
       });
     }
-  }, [certificate, reset, patients]);
+  }, [certificate, patients, reset]);
 
   const fetchFormData = async () => {
     try {
@@ -139,6 +150,21 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel }) => {
           {error && (
             <Grid item xs={12}>
               <Alert severity="error">{error}</Alert>
+            </Grid>
+          )}
+
+          {/* Show info when editing non-draft certificates */}
+          {certificate && certificate.approval_status !== 'draft' && (
+            <Grid item xs={12}>
+              <Alert severity="info" sx={{ mb: 2 }}>
+                <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                  Editing Medical Assessment
+                </Typography>
+                <Typography variant="body2">
+                  You can update the fitness status and medical details even after submission. 
+                  Changes to fitness status (Fit/Not Fit) and reasons will be reflected in the certificate.
+                </Typography>
+              </Alert>
             </Grid>
           )}
 
@@ -398,6 +424,101 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel }) => {
               )}
             />
           </Grid>
+
+          {/* Fitness Status */}
+          <Grid item xs={12} md={6}>
+            <Controller
+              name="fitness_status"
+              control={control}
+              render={({ field }) => (
+                <FormControl fullWidth error={!!errors.fitness_status}>
+                  <InputLabel>Medical Fitness Status *</InputLabel>
+                  <Select
+                    {...field}
+                    label="Medical Fitness Status *"
+                    value={field.value || 'fit'}
+                  >
+                    <MenuItem value="fit">Fit</MenuItem>
+                    <MenuItem value="not_fit">Not Fit</MenuItem>
+                  </Select>
+                  {errors.fitness_status && (
+                    <Typography variant="caption" color="error" sx={{ mt: 1 }}>
+                      {errors.fitness_status.message}
+                    </Typography>
+                  )}
+                </FormControl>
+              )}
+            />
+          </Grid>
+
+          {/* Approval Status */}
+          <Grid item xs={12} md={6}>
+            <Controller
+              name="approval_status"
+              control={control}
+              render={({ field }) => (
+                <FormControl fullWidth error={!!errors.approval_status}>
+                  <InputLabel>Approval Status *</InputLabel>
+                  <Select
+                    {...field}
+                    label="Approval Status *"
+                    value={field.value || 'draft'}
+                  >
+                    <MenuItem value="draft">Draft</MenuItem>
+                    <MenuItem value="pending">Pending Approval</MenuItem>
+                    <MenuItem value="approved">Approved</MenuItem>
+                    <MenuItem value="rejected">Rejected</MenuItem>
+                  </Select>
+                  {errors.approval_status && (
+                    <Typography variant="caption" color="error" sx={{ mt: 1 }}>
+                      {errors.approval_status.message}
+                    </Typography>
+                  )}
+                </FormControl>
+              )}
+            />
+          </Grid>
+
+          {/* Fitness Reason (conditional) */}
+          {fitnessStatus === 'not_fit' && (
+            <Grid item xs={12}>
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                  Reason Required for "Not Fit" Status
+                </Typography>
+                <Typography variant="body2">
+                  Please provide a detailed medical reason for determining the patient as "Not Fit". 
+                  This information will be included in the certificate and notifications.
+                </Typography>
+              </Alert>
+              <Controller
+                name="fitness_reason"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    multiline
+                    rows={4}
+                    label="Detailed Reason for Not Fit Status *"
+                    placeholder="Please provide detailed medical reason (e.g., specific medical conditions, restrictions, recommended duration of limitation, etc.)..."
+                    error={!!errors.fitness_reason}
+                    helperText={errors.fitness_reason?.message || "Be specific about medical conditions, limitations, and recommendations"}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: 'rgba(255, 245, 157, 0.2)', // Light yellow background
+                        borderColor: 'warning.main',
+                      },
+                      '& .MuiInputLabel-root': {
+                        color: 'warning.main',
+                        fontWeight: 'medium',
+                      },
+                    }}
+                  />
+                )}
+              />
+            </Grid>
+          )}
 
           {/* Additional Notes */}
           <Grid item xs={12}>
