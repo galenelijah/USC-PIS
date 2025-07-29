@@ -30,6 +30,7 @@ const MedicalCertificatesPage = () => {
   const user = useSelector(state => state.auth.user);
 
   const handleCreate = () => {
+    console.log('Create button clicked'); // Debug log
     setMode('create');
     setSelectedCertificate(null);
     setFormOpen(true);

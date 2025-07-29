@@ -25,11 +25,12 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { medicalCertificateSchema } from '../../utils/validationSchemas';
+import { createMedicalCertificateSchema } from '../../utils/validationSchemas';
 import { medicalCertificateService } from '../../services/api';
 import { patientService } from '../../services/api';
 
 const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRole = null }) => {
+  console.log('MedicalCertificateForm rendered with userRole:', userRole); // Debug log
   const [patients, setPatients] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +65,7 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
   };
 
   const { handleSubmit, control, formState: { errors }, reset, setValue, watch } = useForm({
-    resolver: yupResolver(medicalCertificateSchema),
+    resolver: yupResolver(createMedicalCertificateSchema(userRole)),
     defaultValues: getDefaultValues(),
   });
 

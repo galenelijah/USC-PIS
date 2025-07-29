@@ -132,7 +132,8 @@ export const medicalRecordSchema = yup.object().shape({
 });
 
 // Medical Certificate schema
-export const medicalCertificateSchema = yup.object().shape({
+// Base medical certificate schema (common fields)
+const baseMedicalCertificateSchema = {
   patient: commonValidation.requiredText('Patient selection'),
   template: commonValidation.requiredText('Template selection'),
   diagnosis: commonValidation.requiredText('Diagnosis'),
@@ -144,6 +145,10 @@ export const medicalCertificateSchema = yup.object().shape({
     .nullable()
     .min(yup.ref('valid_from'), 'Valid until date must be after valid from date'),
   additional_notes: commonValidation.optionalText,
+};
+
+// Doctor-specific fields
+const doctorMedicalCertificateFields = {
   fitness_status: yup
     .string()
     .required('Fitness status is required')
@@ -158,7 +163,28 @@ export const medicalCertificateSchema = yup.object().shape({
   approval_status: yup
     .string()
     .required('Approval status is required')
-    .oneOf(['draft', 'pending', 'approved', 'rejected'], 'Please select a valid approval status'),
+    .oneOf(['approved', 'rejected'], 'Please select a valid approval status'),
+};
+
+// Dynamic schema generator
+export const createMedicalCertificateSchema = (userRole) => {
+  console.log('Creating schema for userRole:', userRole); // Debug log
+  
+  if (userRole === 'DOCTOR') {
+    return yup.object().shape({
+      ...baseMedicalCertificateSchema,
+      ...doctorMedicalCertificateFields,
+    });
+  }
+  
+  // Non-doctors (including null/undefined) only need basic fields
+  return yup.object().shape(baseMedicalCertificateSchema);
+};
+
+// Default schema for backward compatibility
+export const medicalCertificateSchema = yup.object().shape({
+  ...baseMedicalCertificateSchema,
+  ...doctorMedicalCertificateFields,
 });
 
 // Feedback schema
