@@ -51,7 +51,8 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
   Save as SaveIcon,
-  Image as ImageIcon
+  Image as ImageIcon,
+  CloudUpload as UploadIcon
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { campaignService } from '../services/api';
@@ -80,7 +81,10 @@ const UniversalCampaigns = () => {
     tags: '',
     start_date: '',
     end_date: '',
-    status: 'ACTIVE'
+    status: 'ACTIVE',
+    bannerFile: null,
+    thumbnailFile: null,
+    pubmatFile: null
   });
   const [campaignImages, setCampaignImages] = useState([]);
   
@@ -97,17 +101,8 @@ const UniversalCampaigns = () => {
       const response = await campaignService.getCampaigns();
       const campaignData = response.data.results || response.data;
       
-      // Debug: Log campaign data to check images
-      console.log('Campaign data:', campaignData);
-      campaignData.forEach((campaign, index) => {
-        console.log(`Campaign ${index + 1}: ${campaign.title}`);
-        console.log(`  - Images: ${campaign.images ? campaign.images.length : 0}`);
-        if (campaign.images && campaign.images.length > 0) {
-          campaign.images.forEach((img, imgIndex) => {
-            console.log(`    Image ${imgIndex + 1}: ${img.type} - ${img.url}`);
-          });
-        }
-      });
+      // Debug: Log campaign data to check images (remove this after testing)
+      console.log('Campaign data loaded:', campaignData.length, 'campaigns');
       
       setCampaigns(campaignData);
     } catch (error) {
@@ -200,20 +195,22 @@ const UniversalCampaigns = () => {
     try {
       const formData = new FormData();
       
-      // Add form fields
+      // Add form fields (excluding file fields)
       Object.keys(campaignForm).forEach(key => {
-        if (campaignForm[key]) {
+        if (campaignForm[key] && !key.endsWith('File')) {
           formData.append(key, campaignForm[key]);
         }
       });
 
-      // Add images if any
-      if (campaignImages.length > 0) {
-        campaignImages.forEach((image, index) => {
-          if (image.file) {
-            formData.append(`images`, image.file);
-          }
-        });
+      // Add specific image files with their proper field names
+      if (campaignForm.bannerFile) {
+        formData.append('banner_image', campaignForm.bannerFile);
+      }
+      if (campaignForm.thumbnailFile) {
+        formData.append('thumbnail_image', campaignForm.thumbnailFile);
+      }
+      if (campaignForm.pubmatFile) {
+        formData.append('pubmat_image', campaignForm.pubmatFile);
       }
 
       await campaignService.createCampaign(formData);
@@ -241,7 +238,10 @@ const UniversalCampaigns = () => {
       tags: '',
       start_date: '',
       end_date: '',
-      status: 'ACTIVE'
+      status: 'ACTIVE',
+      bannerFile: null,
+      thumbnailFile: null,
+      pubmatFile: null
     });
     setCampaignImages([]);
   };
@@ -347,7 +347,11 @@ const UniversalCampaigns = () => {
                         width: '100%',
                         height: '100%'
                       }}
+                      onLoad={(e) => {
+                        console.log(`Image loaded successfully: ${e.target.src}`);
+                      }}
                       onError={(e) => {
+                        console.error(`Failed to load image: ${e.target.src}`);
                         e.target.style.display = 'none';
                         e.target.parentNode.querySelector('.fallback-banner').style.display = 'flex';
                       }}
@@ -909,18 +913,154 @@ const UniversalCampaigns = () => {
                 />
               </Grid>
 
-              {/* Image Upload Section */}
+              {/* Specific Image Upload Section */}
               <Grid item xs={12}>
-                <Typography variant="h6" gutterBottom sx={{ mt: 2, mb: 1 }}>
+                <Typography variant="h6" gutterBottom sx={{ mt: 2, mb: 2 }}>
                   Campaign Images & Pubmats (Optional)
                 </Typography>
-                <ImageUpload
-                  images={campaignImages}
-                  onImagesChange={setCampaignImages}
-                  maxImages={5}
-                  maxSizeMB={10}
-                  acceptedTypes={['image/jpeg', 'image/png', 'image/gif', 'image/webp']}
-                />
+                
+                {/* Banner Image */}
+                <Grid container spacing={2} sx={{ mb: 3 }}>
+                  <Grid item xs={12} sm={4}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <ImageIcon color="primary" sx={{ mr: 1 }} />
+                      <Typography variant="subtitle1" fontWeight="medium">
+                        Banner Image
+                      </Typography>
+                      <Chip size="small" label="Main display" color="primary" sx={{ ml: 1 }} />
+                    </Box>
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                      Large horizontal image shown at the top of campaign cards (800x400px recommended)
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      component="label"
+                      startIcon={<UploadIcon />}
+                      size="small"
+                      fullWidth
+                    >
+                      Choose Banner
+                      <input
+                        type="file"
+                        hidden
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            setCampaignForm({ ...campaignForm, bannerFile: file });
+                          }
+                        }}
+                      />
+                    </Button>
+                    {campaignForm.bannerFile && (
+                      <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="caption" color="success.main">
+                          ✓ {campaignForm.bannerFile.name}
+                        </Typography>
+                        <IconButton 
+                          size="small" 
+                          onClick={() => setCampaignForm({ ...campaignForm, bannerFile: null })}
+                        >
+                          <CloseIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    )}
+                  </Grid>
+
+                  {/* Thumbnail Image */}
+                  <Grid item xs={12} sm={4}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <ImageIcon color="info" sx={{ mr: 1 }} />
+                      <Typography variant="subtitle1" fontWeight="medium">
+                        Thumbnail Image
+                      </Typography>
+                      <Chip size="small" label="Preview" color="info" sx={{ ml: 1 }} />
+                    </Box>
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                      Square image for previews and listings (300x300px recommended)
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      component="label"
+                      startIcon={<UploadIcon />}
+                      size="small"
+                      fullWidth
+                    >
+                      Choose Thumbnail
+                      <input
+                        type="file"
+                        hidden
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            setCampaignForm({ ...campaignForm, thumbnailFile: file });
+                          }
+                        }}
+                      />
+                    </Button>
+                    {campaignForm.thumbnailFile && (
+                      <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="caption" color="success.main">
+                          ✓ {campaignForm.thumbnailFile.name}
+                        </Typography>
+                        <IconButton 
+                          size="small" 
+                          onClick={() => setCampaignForm({ ...campaignForm, thumbnailFile: null })}
+                        >
+                          <CloseIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    )}
+                  </Grid>
+
+                  {/* PubMat Image */}
+                  <Grid item xs={12} sm={4}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <ImageIcon color="secondary" sx={{ mr: 1 }} />
+                      <Typography variant="subtitle1" fontWeight="medium">
+                        PubMat Image
+                      </Typography>
+                      <Chip size="small" label="Print ready" color="secondary" sx={{ ml: 1 }} />
+                    </Box>
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                      High-resolution image for printing and distribution (PDF or high-res image)
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      component="label"
+                      startIcon={<UploadIcon />}
+                      size="small"
+                      fullWidth
+                    >
+                      Choose PubMat
+                      <input
+                        type="file"
+                        hidden
+                        accept="image/*,application/pdf"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            setCampaignForm({ ...campaignForm, pubmatFile: file });
+                          }
+                        }}
+                      />
+                    </Button>
+                    {campaignForm.pubmatFile && (
+                      <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="caption" color="success.main">
+                          ✓ {campaignForm.pubmatFile.name}
+                        </Typography>
+                        <IconButton 
+                          size="small" 
+                          onClick={() => setCampaignForm({ ...campaignForm, pubmatFile: null })}
+                        >
+                          <CloseIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    )}
+                  </Grid>
+                </Grid>
               </Grid>
             </Grid>
           </Box>

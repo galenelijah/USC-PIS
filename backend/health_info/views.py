@@ -126,10 +126,52 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
         return queryset
     
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user, last_modified_by=self.request.user)
+        # Save the campaign instance
+        campaign = serializer.save(created_by=self.request.user, last_modified_by=self.request.user)
+        
+        # Handle specific image field uploads (new approach)
+        if 'banner_image' in self.request.FILES:
+            campaign.banner_image = self.request.FILES['banner_image']
+        if 'thumbnail_image' in self.request.FILES:
+            campaign.thumbnail_image = self.request.FILES['thumbnail_image']
+        if 'pubmat_image' in self.request.FILES:
+            campaign.pubmat_image = self.request.FILES['pubmat_image']
+        
+        # Handle legacy generic image uploads for backward compatibility
+        images = self.request.FILES.getlist('images')
+        for image_file in images:
+            if not campaign.banner_image:
+                campaign.banner_image = image_file
+            elif not campaign.thumbnail_image:
+                campaign.thumbnail_image = image_file
+            elif not campaign.pubmat_image:
+                campaign.pubmat_image = image_file
+        
+        campaign.save()
     
     def perform_update(self, serializer):
-        serializer.save(last_modified_by=self.request.user)
+        # Save the campaign instance
+        campaign = serializer.save(last_modified_by=self.request.user)
+        
+        # Handle specific image field uploads (new approach)
+        if 'banner_image' in self.request.FILES:
+            campaign.banner_image = self.request.FILES['banner_image']
+        if 'thumbnail_image' in self.request.FILES:
+            campaign.thumbnail_image = self.request.FILES['thumbnail_image']
+        if 'pubmat_image' in self.request.FILES:
+            campaign.pubmat_image = self.request.FILES['pubmat_image']
+        
+        # Handle legacy generic image uploads for backward compatibility
+        images = self.request.FILES.getlist('images')
+        for image_file in images:
+            if not campaign.banner_image:
+                campaign.banner_image = image_file
+            elif not campaign.thumbnail_image:
+                campaign.thumbnail_image = image_file
+            elif not campaign.pubmat_image:
+                campaign.pubmat_image = image_file
+        
+        campaign.save()
     
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
