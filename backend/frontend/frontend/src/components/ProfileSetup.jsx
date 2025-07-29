@@ -178,31 +178,59 @@ const illnessesOptions = [
   'Others (please specify)',
 ];
 
-// Validation schema
-const validationSchema = Yup.object().shape({
-  first_name: Yup.string().required('First name is required'),
-  last_name: Yup.string().required('Last name is required'),
-  middle_name: Yup.string().nullable(),
-  sex: Yup.string().required('Sex is required'),
-  civil_status: Yup.string().required('Civil status is required'),
-  birthday: Yup.date().required('Birthday is required').nullable(),
-  nationality: Yup.string().required('Nationality is required'),
-  religion: Yup.string().nullable(),
-  address_permanent: Yup.string().required('Permanent address is required'),
-  address_present: Yup.string().required('Present address is required'),
-  phone: Yup.string().required('Phone number is required'),
-  email: Yup.string().email('Invalid email').required('Email is required'),
-  id_number: Yup.string().required('ID Number is required'),
-  course: Yup.string().required('Course is required'),
-  year_level: Yup.string().required('Year Level is required'),
-  school: Yup.string().nullable().notRequired(),
-  weight: Yup.string().nullable().notRequired(),
-  height: Yup.string().nullable().notRequired(),
-  contact_father_name: Yup.string().nullable().notRequired(),
-  contact_mother_name: Yup.string().nullable().notRequired(),
-  contact_emergency_name: Yup.string().nullable().notRequired(),
-  contact_emergency_number: Yup.string().nullable().notRequired()
-});
+// Role-based validation schema
+const createValidationSchema = (role) => {
+  // Base validation for all roles
+  const baseValidation = {
+    first_name: Yup.string().required('First name is required'),
+    last_name: Yup.string().required('Last name is required'),
+    middle_name: Yup.string().nullable(),
+    sex: Yup.string().required('Sex is required'),
+    civil_status: Yup.string().required('Civil status is required'),
+    birthday: Yup.date().required('Birthday is required').nullable(),
+    address_permanent: Yup.string().required('Permanent address is required'),
+    phone: Yup.string().required('Phone number is required'),
+    email: Yup.string().email('Invalid email').required('Email is required'),
+    contact_emergency_name: Yup.string().nullable(),
+    contact_emergency_number: Yup.string().nullable()
+  };
+
+  // Role-specific validation
+  switch (role) {
+    case 'STUDENT':
+      return Yup.object().shape({
+        ...baseValidation,
+        nationality: Yup.string().required('Nationality is required'),
+        religion: Yup.string().nullable(),
+        address_present: Yup.string().required('Present address is required'),
+        id_number: Yup.string().required('ID Number is required'),
+        course: Yup.string().required('Course is required'),
+        year_level: Yup.string().required('Year Level is required'),
+        school: Yup.string().nullable(),
+        weight: Yup.string().nullable(),
+        height: Yup.string().nullable(),
+        contact_father_name: Yup.string().nullable(),
+        contact_mother_name: Yup.string().nullable()
+      });
+
+    case 'DOCTOR':
+    case 'NURSE':
+      return Yup.object().shape({
+        ...baseValidation,
+        department: Yup.string().required('Department is required')
+      });
+
+    case 'ADMIN':
+    case 'STAFF':
+      return Yup.object().shape({
+        ...baseValidation,
+        department: Yup.string().required('Department is required')
+      });
+
+    default:
+      return Yup.object().shape(baseValidation);
+  }
+};
 
 // Validation step fields - role-based
 const getStepFieldsForRole = (role) => {
@@ -223,13 +251,13 @@ const getStepFieldsForRole = (role) => {
     case 'NURSE':
       return [
         ...baseFields,
-        ['specialization', 'license_number', 'experience_years'] // Professional fields
+        ['department'] // Department field only
       ];
     case 'ADMIN':
     case 'STAFF':
       return [
         ...baseFields,
-        ['department', 'position', 'employee_id'] // Administrative fields
+        ['department'] // Administrative fields
       ];
     default:
       return baseFields;
@@ -250,6 +278,10 @@ const ProfileSetup = () => {
   // Get role-based configuration
   const steps = getStepsForRole(userRole);
   const stepFields = getStepFieldsForRole(userRole);
+  
+  console.log('🔧 DEBUG: User role:', userRole);
+  console.log('🔧 DEBUG: Steps for role:', steps);
+  console.log('🔧 DEBUG: Step fields for role:', stepFields);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -291,17 +323,13 @@ const ProfileSetup = () => {
       case 'NURSE':
         return {
           ...baseDefaults,
-          specialization: '',
-          license_number: '',
-          experience_years: '',
+          department: '',
         };
       case 'ADMIN':
       case 'STAFF':
         return {
           ...baseDefaults,
           department: '',
-          position: '',
-          employee_id: '',
         };
       default:
         return baseDefaults;
@@ -309,7 +337,7 @@ const ProfileSetup = () => {
   };
 
   const { control, handleSubmit, formState: { errors }, setValue, getValues, watch, trigger, reset } = useForm({
-    resolver: yupResolver(validationSchema),
+    resolver: yupResolver(createValidationSchema(userRole)),
     defaultValues: getDefaultValues(userRole)
   });
 
@@ -495,45 +523,23 @@ const ProfileSetup = () => {
       <Card elevation={0} sx={{ border: '1px solid', borderColor: alpha('#f093fb', 0.2), borderRadius: 3 }}>
         <CardContent sx={{ p: 4 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-            <Badge sx={{ color: '#f093fb', fontSize: 28 }} />
+            <Health sx={{ color: '#f093fb', fontSize: 28 }} />
             <Typography variant="h5" fontWeight="bold" sx={{ color: '#f093fb' }}>
-              Professional Information
+              Department Information
             </Typography>
           </Box>
           
           <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <MyTextField
-                key={`${stepKey}-specialization`}
-                label="Specialization/Field"
-                name="specialization"
+                key={`${stepKey}-department`}
+                label="Department"
+                name="department"
                 control={control}
                 required
-                error={!!errors?.specialization}
-                helperText={errors?.specialization?.message}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <MyTextField
-                key={`${stepKey}-license_number`}
-                label="License Number"
-                name="license_number"
-                control={control}
-                required
-                error={!!errors?.license_number}
-                helperText={errors?.license_number?.message}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <MyTextField
-                key={`${stepKey}-experience_years`}
-                label="Years of Experience"
-                name="experience_years"
-                control={control}
-                type="number"
-                required
-                error={!!errors?.experience_years}
-                helperText={errors?.experience_years?.message}
+                error={!!errors?.department}
+                helperText={errors?.department?.message}
+                placeholder="e.g., Emergency Department, Pediatrics, Internal Medicine"
               />
             </Grid>
           </Grid>
@@ -549,12 +555,12 @@ const ProfileSetup = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
             <Badge sx={{ color: '#f093fb', fontSize: 28 }} />
             <Typography variant="h5" fontWeight="bold" sx={{ color: '#f093fb' }}>
-              Administrative Information
+              Department Information
             </Typography>
           </Box>
           
           <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <MyTextField
                 key={`${stepKey}-department`}
                 label="Department"
@@ -563,28 +569,7 @@ const ProfileSetup = () => {
                 required
                 error={!!errors?.department}
                 helperText={errors?.department?.message}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <MyTextField
-                key={`${stepKey}-position`}
-                label="Position/Title"
-                name="position"
-                control={control}
-                required
-                error={!!errors?.position}
-                helperText={errors?.position?.message}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <MyTextField
-                key={`${stepKey}-employee_id`}
-                label="Employee ID"
-                name="employee_id"
-                control={control}
-                required
-                error={!!errors?.employee_id}
-                helperText={errors?.employee_id?.message}
+                placeholder="e.g., Administration, Human Resources, IT Department"
               />
             </Grid>
           </Grid>
@@ -619,6 +604,9 @@ const ProfileSetup = () => {
   };
 
   const onSubmit = async (data) => {
+    console.log('🔧 DEBUG: onSubmit called with data:', data);
+    console.log('🔧 DEBUG: User role:', userRole);
+    
     setLoading(true);
     setError(null);
 
@@ -670,14 +658,25 @@ const ProfileSetup = () => {
         logger.info('Profile setup successful, updating Redux store');
         const userData = response.data.user || response.data;
         const newToken = response.data.token || currentToken;
+        
+        // Ensure completeSetup is set to true in the user data
+        if (userData) {
+          userData.completeSetup = true;
+        }
+        
         dispatch(setCredentials({ user: userData, token: newToken }));
-        logger.info('Navigating to home page');
-        navigate('/home');
+        
+        // Small delay to ensure state is updated before navigation
+        setTimeout(() => {
+          logger.info('Navigating to home page');
+          navigate('/home');
+        }, 100);
       } else {
         logger.error('No data in response:', response);
         setError('Profile setup completed but no user data received. Please refresh the page.');
       }
     } catch (error) {
+      console.log('🔧 DEBUG: Error in profile setup:', error);
       logger.error('Profile setup error:', error);
       
       // More detailed error handling
@@ -1320,7 +1319,24 @@ const ProfileSetup = () => {
                 
                 {activeStep === ((steps || []).length - 1) ? (
                   <Button
-                    onClick={handleSubmit(onSubmit)}
+                    onClick={async (e) => {
+                      console.log('🔧 DEBUG: Complete Setup button clicked');
+                      console.log('🔧 DEBUG: Active step:', activeStep);
+                      console.log('🔧 DEBUG: Total steps:', steps.length);
+                      console.log('🔧 DEBUG: Form errors:', errors);
+                      console.log('🔧 DEBUG: Form values:', getValues());
+                      
+                      // Trigger validation before submit
+                      const isValid = await trigger();
+                      console.log('🔧 DEBUG: Form validation result:', isValid);
+                      
+                      if (!isValid) {
+                        console.log('🔧 DEBUG: Form validation failed, errors:', errors);
+                        return;
+                      }
+                      
+                      handleSubmit(onSubmit)(e);
+                    }}
                     variant="contained"
                     size="large"
                     disabled={loading}

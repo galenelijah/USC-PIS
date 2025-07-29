@@ -482,6 +482,9 @@ class CompleteProfileSetupView(APIView):
             # Log the incoming request for debugging
             logger.info(f"Profile setup request received from IP: {get_client_ip(request)}")
             
+            # Handle both DRF request.data and Django request.POST
+            data = getattr(request, 'data', request.POST)
+            
             user = None
             authenticated = False
             
@@ -515,8 +518,8 @@ class CompleteProfileSetupView(APIView):
                     except Token.DoesNotExist:
                         logger.warning(f"Token not found: {token_key[:10]}...")
                         
-                        # LENIENT: Try to find user by email from request data if available
-                        email = request.data.get('email', '').strip().lower()
+                        # LENIENT: Try to find user by email from request data if available  
+                        email = data.get('email', '').strip().lower()
                         if email:
                             try:
                                 user = User.objects.get(email=email)
@@ -532,8 +535,8 @@ class CompleteProfileSetupView(APIView):
             # If we still don't have a user, try more lenient approaches
             if not user:
                 # Check if there's any identifying information in the request
-                email = request.data.get('email', '').strip().lower()
-                id_number = request.data.get('id_number', '').strip()
+                email = data.get('email', '').strip().lower()
+                id_number = data.get('id_number', '').strip()
                 
                 # Try to find user by email
                 if email:
@@ -562,8 +565,8 @@ class CompleteProfileSetupView(APIView):
             # If we STILL don't have a user, return a helpful error
             if not user:
                 # Final fallback: Check if we have enough information to help debug
-                email = request.data.get('email', '').strip().lower()
-                id_number = request.data.get('id_number', '').strip()
+                email = data.get('email', '').strip().lower()
+                id_number = data.get('id_number', '').strip()
                 
                 debug_info = {
                     'has_email': bool(email),
@@ -633,20 +636,20 @@ class CompleteProfileSetupView(APIView):
                 if not authenticated:
                     required_fields.append('id_number')
                 # Address is required (either permanent or present)
-                if not request.data.get('address_permanent') and not request.data.get('address_present'):
+                if not data.get('address_permanent') and not data.get('address_present'):
                     validation_errors.append('Either permanent or present address is required')
             
             # Check for missing required fields
             for field in required_fields:
-                if not request.data.get(field):
+                if not data.get(field):
                     validation_errors.append(f'{field.replace("_", " ").title()} is required')
             
             # Lenient date validation
             date_fields = ['birthday']
             for field in date_fields:
-                if request.data.get(field):
+                if data.get(field):
                     try:
-                        date_str = request.data[field]
+                        date_str = data[field]
                         parsed_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
                         
                         # Basic date validation (more lenient)
@@ -661,7 +664,7 @@ class CompleteProfileSetupView(APIView):
                         validation_errors.append(f'{field.replace("_", " ").title()} must be in YYYY-MM-DD format')
             
             # Lenient phone validation
-            phone = request.data.get('phone', '').strip()
+            phone = data.get('phone', '').strip()
             if phone:
                 clean_phone = ''.join(c for c in phone if c.isdigit() or c == '+')
                 if len(clean_phone) < 7:  # More lenient
@@ -679,7 +682,7 @@ class CompleteProfileSetupView(APIView):
             # Proceed with profile update
             with transaction.atomic():
                 try:
-                    user_serializer = UserProfileSerializer(user, data=request.data, partial=True)
+                    user_serializer = UserProfileSerializer(user, data=data, partial=True)
                     
                     if not user_serializer.is_valid():
                         logger.error(f"Serializer validation failed: {user_serializer.errors}")

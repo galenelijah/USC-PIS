@@ -26,34 +26,41 @@ const RequireProfileSetup = ({ children }) => {
                     return;
                 }
 
-                // If we already checked and user still has incomplete profile, don't check again
-                if (hasCheckedProfile.current && !user.completeSetup) {
+                // If user has completed setup, we're good to go
+                if (user.completeSetup) {
                     setLoading(false);
                     return;
                 }
 
-                // Check if user has completed profile setup
-                if (!user.completeSetup && !hasCheckedProfile.current) {
-                    hasCheckedProfile.current = true;
-                    // Try to fetch updated user data to ensure we have the latest status
-                    try {
-                        const response = await authService.getCurrentUser();
-                        if (response.data) {
-                            dispatch(setCredentials({
-                                user: response.data,
-                                token: token
-                            }));
-                            
-                            // Check again after refresh
-                            if (!response.data.completeSetup) {
-                                setLoading(false);
-                                return;
-                            }
-                        }
-                    } catch (refreshError) {
-                        // If we can't refresh user data, proceed with what we have
-                        logger.warn('Could not refresh user data:', refreshError);
+                // If we already checked and user still has incomplete profile, don't check again
+                if (hasCheckedProfile.current) {
+                    setLoading(false);
+                    return;
+                }
+
+                // Only check user status once if profile is incomplete
+                hasCheckedProfile.current = true;
+                
+                // Try to fetch updated user data to ensure we have the latest status
+                try {
+                    logger.info('Refreshing user data to check profile completion status');
+                    const response = await authService.getCurrentUser();
+                    if (response.data) {
+                        // Update Redux state with fresh user data
+                        dispatch(setCredentials({
+                            user: response.data,
+                            token: token
+                        }));
+                        
+                        logger.info(`User profile completion status: ${response.data.completeSetup}`);
+                        
+                        // After updating state, the component will re-render with fresh data
+                        setLoading(false);
+                        return;
                     }
+                } catch (refreshError) {
+                    // If we can't refresh user data, proceed with what we have
+                    logger.warn('Could not refresh user data:', refreshError);
                 }
 
                 setLoading(false);
