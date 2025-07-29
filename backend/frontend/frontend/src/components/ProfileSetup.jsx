@@ -36,9 +36,7 @@ import {
   Add,
   Remove,
   AccountCircle,
-  Home,
-  Badge,
-  Health
+  Badge
 } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -523,7 +521,7 @@ const ProfileSetup = () => {
       <Card elevation={0} sx={{ border: '1px solid', borderColor: alpha('#f093fb', 0.2), borderRadius: 3 }}>
         <CardContent sx={{ p: 4 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-            <Health sx={{ color: '#f093fb', fontSize: 28 }} />
+            <LocalHospital sx={{ color: '#f093fb', fontSize: 28 }} />
             <Typography variant="h5" fontWeight="bold" sx={{ color: '#f093fb' }}>
               Department Information
             </Typography>
