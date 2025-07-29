@@ -29,7 +29,7 @@ import { medicalCertificateSchema } from '../../utils/validationSchemas';
 import { medicalCertificateService } from '../../services/api';
 import { patientService } from '../../services/api';
 
-const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel }) => {
+const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRole = null }) => {
   const [patients, setPatients] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,9 +38,8 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel }) => {
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState(null);
   
-  const { handleSubmit, control, formState: { errors }, reset, setValue, watch } = useForm({
-    resolver: yupResolver(medicalCertificateSchema),
-    defaultValues: {
+  const getDefaultValues = () => {
+    const baseValues = {
       patient: '',
       template: '',
       diagnosis: '',
@@ -48,10 +47,25 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel }) => {
       valid_from: null,
       valid_until: null,
       additional_notes: '',
-      fitness_status: 'fit',
-      fitness_reason: '',
-      approval_status: 'draft',
+    };
+    
+    // Only doctors can set fitness status during creation
+    if (userRole === 'DOCTOR') {
+      return {
+        ...baseValues,
+        fitness_status: 'fit',
+        fitness_reason: '',
+        approval_status: 'approved', // Doctors can approve immediately
+      };
     }
+    
+    // Non-doctors create certificates that automatically go to pending
+    return baseValues;
+  };
+
+  const { handleSubmit, control, formState: { errors }, reset, setValue, watch } = useForm({
+    resolver: yupResolver(medicalCertificateSchema),
+    defaultValues: getDefaultValues(),
   });
 
   const fitnessStatus = watch('fitness_status');
@@ -425,62 +439,77 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel }) => {
             />
           </Grid>
 
-          {/* Fitness Status */}
-          <Grid item xs={12} md={6}>
-            <Controller
-              name="fitness_status"
-              control={control}
-              render={({ field }) => (
-                <FormControl fullWidth error={!!errors.fitness_status}>
-                  <InputLabel>Medical Fitness Status *</InputLabel>
-                  <Select
-                    {...field}
-                    label="Medical Fitness Status *"
-                    value={field.value || 'fit'}
-                  >
-                    <MenuItem value="fit">Fit</MenuItem>
-                    <MenuItem value="not_fit">Not Fit</MenuItem>
-                  </Select>
-                  {errors.fitness_status && (
-                    <Typography variant="caption" color="error" sx={{ mt: 1 }}>
-                      {errors.fitness_status.message}
-                    </Typography>
+          {/* Doctor-Only Fields: Fitness and Approval Status */}
+          {userRole === 'DOCTOR' && (
+            <>
+              {/* Fitness Status */}
+              <Grid item xs={12} md={6}>
+                <Controller
+                  name="fitness_status"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControl fullWidth error={!!errors.fitness_status}>
+                      <InputLabel>Medical Fitness Status *</InputLabel>
+                      <Select
+                        {...field}
+                        label="Medical Fitness Status *"
+                        value={field.value || 'fit'}
+                      >
+                        <MenuItem value="fit">Fit</MenuItem>
+                        <MenuItem value="not_fit">Not Fit</MenuItem>
+                      </Select>
+                      {errors.fitness_status && (
+                        <Typography variant="caption" color="error" sx={{ mt: 1 }}>
+                          {errors.fitness_status.message}
+                        </Typography>
+                      )}
+                    </FormControl>
                   )}
-                </FormControl>
-              )}
-            />
-          </Grid>
+                />
+              </Grid>
 
-          {/* Approval Status */}
-          <Grid item xs={12} md={6}>
-            <Controller
-              name="approval_status"
-              control={control}
-              render={({ field }) => (
-                <FormControl fullWidth error={!!errors.approval_status}>
-                  <InputLabel>Approval Status *</InputLabel>
-                  <Select
-                    {...field}
-                    label="Approval Status *"
-                    value={field.value || 'draft'}
-                  >
-                    <MenuItem value="draft">Draft</MenuItem>
-                    <MenuItem value="pending">Pending Approval</MenuItem>
-                    <MenuItem value="approved">Approved</MenuItem>
-                    <MenuItem value="rejected">Rejected</MenuItem>
-                  </Select>
-                  {errors.approval_status && (
-                    <Typography variant="caption" color="error" sx={{ mt: 1 }}>
-                      {errors.approval_status.message}
-                    </Typography>
+              {/* Approval Status */}
+              <Grid item xs={12} md={6}>
+                <Controller
+                  name="approval_status"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControl fullWidth error={!!errors.approval_status}>
+                      <InputLabel>Approval Status *</InputLabel>
+                      <Select
+                        {...field}
+                        label="Approval Status *"
+                        value={field.value || 'approved'}
+                      >
+                        <MenuItem value="approved">Approved</MenuItem>
+                        <MenuItem value="rejected">Rejected</MenuItem>
+                      </Select>
+                      {errors.approval_status && (
+                        <Typography variant="caption" color="error" sx={{ mt: 1 }}>
+                          {errors.approval_status.message}
+                        </Typography>
+                      )}
+                    </FormControl>
                   )}
-                </FormControl>
-              )}
-            />
-          </Grid>
+                />
+              </Grid>
+            </>
+          )}
 
-          {/* Fitness Reason (conditional) */}
-          {fitnessStatus === 'not_fit' && (
+          {/* Non-Doctor Info */}
+          {userRole !== 'DOCTOR' && (
+            <Grid item xs={12}>
+              <Alert severity="info">
+                <Typography variant="body2">
+                  <strong>Automatic Workflow:</strong> This certificate will be automatically submitted for doctor approval once created. 
+                  The doctor will assess the medical fitness status and provide final approval.
+                </Typography>
+              </Alert>
+            </Grid>
+          )}
+
+          {/* Fitness Reason (conditional - only for doctors when not_fit) */}
+          {userRole === 'DOCTOR' && fitnessStatus === 'not_fit' && (
             <Grid item xs={12}>
               <Alert severity="warning" sx={{ mb: 2 }}>
                 <Typography variant="body2" sx={{ fontWeight: 'medium' }}>

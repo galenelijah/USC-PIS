@@ -169,6 +169,7 @@ const MedicalCertificatesPage = () => {
               certificate={selectedCertificate}
               onSubmit={handleSubmit}
               onCancel={handleClose}
+              userRole={user?.role}
             />
           </DialogContent>
         </Dialog>
