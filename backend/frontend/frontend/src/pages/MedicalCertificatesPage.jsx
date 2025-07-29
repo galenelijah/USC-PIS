@@ -9,7 +9,7 @@ import {
   IconButton,
   useTheme,
   useMediaQuery,
-  Alert,
+  Alert
 } from '@mui/material';
 import { Add as AddIcon, Close as CloseIcon } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
