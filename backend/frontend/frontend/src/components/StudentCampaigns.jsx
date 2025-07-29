@@ -55,7 +55,7 @@ import {
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { campaignService } from '../services/api';
-import ImageUpload from '../common/ImageUpload';
+import ImageUpload from './common/ImageUpload';
 
 const UniversalCampaigns = () => {
   const [campaigns, setCampaigns] = useState([]);
