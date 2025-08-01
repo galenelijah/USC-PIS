@@ -21,11 +21,14 @@ import {
   Button,
   useTheme,
   useMediaQuery,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import { 
   Visibility as VisibilityIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { medicalCertificateService } from '../../services/api';
@@ -136,7 +139,7 @@ const CertificateCard = ({ certificate, onView, onEdit, onDelete, userRole }) =>
   </Card>
 );
 
-const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole }) => {
+const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole, refreshTrigger }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [certificates, setCertificates] = useState([]);
@@ -146,10 +149,24 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [autoRefresh, setAutoRefresh] = useState(false);
 
   useEffect(() => {
     fetchCertificates();
-  }, []);
+  }, [refreshTrigger]); // Re-fetch when refreshTrigger changes
+
+  // Auto-refresh every 30 seconds when enabled
+  useEffect(() => {
+    let interval;
+    if (autoRefresh) {
+      interval = setInterval(() => {
+        fetchCertificates();
+      }, 30000); // 30 seconds
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [autoRefresh]);
 
   const fetchCertificates = async () => {
     try {
@@ -204,7 +221,7 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole }) => {
 
   return (
     <Box>
-      <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+      <Stack direction="row" spacing={2} sx={{ mb: 2, alignItems: 'center' }}>
         <TextField
           label="Search"
           variant="outlined"
@@ -227,6 +244,27 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole }) => {
           <MenuItem value="approved">Approved</MenuItem>
           <MenuItem value="rejected">Rejected</MenuItem>
         </TextField>
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<RefreshIcon />}
+          onClick={fetchCertificates}
+          disabled={loading}
+          sx={{ minWidth: 'auto' }}
+        >
+          Refresh
+        </Button>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={autoRefresh}
+              onChange={(e) => setAutoRefresh(e.target.checked)}
+              size="small"
+            />
+          }
+          label="Auto-refresh (30s)"
+          sx={{ ml: 1 }}
+        />
       </Stack>
 
       {/* Desktop Table View */}

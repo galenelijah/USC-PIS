@@ -24,6 +24,7 @@ const MedicalCertificatesPage = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
@@ -70,6 +71,7 @@ const MedicalCertificatesPage = () => {
         await medicalCertificateService.update(selectedCertificate.id, formData);
         setSuccess('Medical certificate updated successfully');
       }
+      setRefreshTrigger(prev => prev + 1); // Trigger list refresh
       handleBack();
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to save medical certificate');
@@ -84,6 +86,7 @@ const MedicalCertificatesPage = () => {
     try {
       await medicalCertificateService.delete(certificate.id);
       setSuccess('Medical certificate deleted successfully');
+      setRefreshTrigger(prev => prev + 1); // Trigger list refresh
       handleBack();
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to delete medical certificate');
@@ -94,6 +97,7 @@ const MedicalCertificatesPage = () => {
     try {
       await medicalCertificateService[action](certificate.id);
       setSuccess(`Medical certificate ${action}ed successfully`);
+      setRefreshTrigger(prev => prev + 1); // Trigger list refresh
       handleBack();
     } catch (err) {
       setError(err.response?.data?.detail || `Failed to ${action} medical certificate`);
@@ -148,6 +152,7 @@ const MedicalCertificatesPage = () => {
           onEdit={handleEdit}
           onDelete={handleDelete}
           userRole={user?.role}
+          refreshTrigger={refreshTrigger}
         />
 
         <Dialog

@@ -147,20 +147,101 @@ const Reports = () => {
     }
   };
 
-  const handleDownloadReport = async (reportId) => {
+  const handleDownloadReport = async (reportId, format = null) => {
     try {
+      // Find the report to get its format and title
+      const report = reports.find(r => r.id === reportId);
+      const exportFormat = format || report?.export_format || 'PDF';
+      
       const response = await reportService.downloadReport(reportId);
-      // Handle download
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      
+      // Determine file extension and MIME type based on format
+      let fileExtension, mimeType;
+      switch (exportFormat.toLowerCase()) {
+        case 'csv':
+          fileExtension = 'csv';
+          mimeType = 'text/csv';
+          break;
+        case 'excel':
+        case 'xlsx':
+          fileExtension = 'xlsx';
+          mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+          break;
+        case 'json':
+          fileExtension = 'json';
+          mimeType = 'application/json';
+          break;
+        case 'pdf':
+        default:
+          fileExtension = 'pdf';
+          mimeType = 'application/pdf';
+          break;
+      }
+      
+      // Handle download with correct format
+      const blob = new Blob([response.data], { type: mimeType });
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `report_${reportId}.pdf`);
+      
+      // Generate filename with report title and current date
+      const reportTitle = report?.title?.replace(/[^a-zA-Z0-9]/g, '_') || 'report';
+      const currentDate = new Date().toISOString().split('T')[0];
+      link.setAttribute('download', `${reportTitle}_${currentDate}.${fileExtension}`);
+      
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      setSuccess(`Report downloaded successfully as ${exportFormat.toUpperCase()}`);
     } catch (err) {
-      setError('Failed to download report');
+      setError(`Failed to download report in ${format || 'PDF'} format`);
       console.error('Error downloading report:', err);
+    }
+  };
+
+  // Enhanced export functions for different formats
+  const handleExportReportAs = async (reportId, format) => {
+    try {
+      // Find the report
+      const report = reports.find(r => r.id === reportId);
+      if (!report) {
+        setError('Report not found');
+        return;
+      }
+
+      if (report.status !== 'COMPLETED') {
+        setError('Report must be completed before export');
+        return;
+      }
+
+      // If it's already in the requested format, just download
+      if (report.export_format?.toLowerCase() === format.toLowerCase()) {
+        return handleDownloadReport(reportId, format);
+      }
+
+      // Otherwise, generate new report in requested format
+      const selectedTemplateData = templates.find(t => t.id === report.template_id);
+      if (!selectedTemplateData) {
+        setError('Report template not found');
+        return;
+      }
+
+      const response = await reportService.generateReport(selectedTemplateData.id, {
+        title: `${report.title} (${format.toUpperCase()})`,
+        date_range_start: report.date_range_start,
+        date_range_end: report.date_range_end,
+        export_format: format.toUpperCase(),
+        filters: report.filters || {},
+        template_id: selectedTemplateData.id
+      });
+
+      setSuccess(`${format.toUpperCase()} export started! Check My Reports tab for download.`);
+      fetchData(); // Refresh reports list
+    } catch (err) {
+      setError(`Failed to export report as ${format.toUpperCase()}`);
+      console.error('Error exporting report:', err);
     }
   };
 
@@ -649,35 +730,74 @@ const Reports = () => {
                       </TableCell>
                       
                       <TableCell>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                           {report.status === 'COMPLETED' && (
-                            <Tooltip title="Download Report">
-                              <IconButton
-                                onClick={() => handleDownloadReport(report.id)}
-                                size="small"
-                                sx={{ 
-                                  color: '#1976d2',
-                                  '&:hover': { backgroundColor: '#e3f2fd' }
-                                }}
-                              >
-                                <DownloadIcon />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                          
-                          {report.status === 'COMPLETED' && (
-                            <Tooltip title="View Report Details">
-                              <IconButton
-                                onClick={() => {/* Add view functionality */}}
-                                size="small"
-                                sx={{ 
-                                  color: '#2e7d32',
-                                  '&:hover': { backgroundColor: '#e8f5e9' }
-                                }}
-                              >
-                                <ViewIcon />
-                              </IconButton>
-                            </Tooltip>
+                            <>
+                              <Tooltip title="Download Report (Original Format)">
+                                <IconButton
+                                  onClick={() => handleDownloadReport(report.id)}
+                                  size="small"
+                                  sx={{ 
+                                    color: '#1976d2',
+                                    '&:hover': { backgroundColor: '#e3f2fd' }
+                                  }}
+                                >
+                                  <DownloadIcon />
+                                </IconButton>
+                              </Tooltip>
+                              
+                              <Tooltip title="Export as CSV">
+                                <IconButton
+                                  onClick={() => handleExportReportAs(report.id, 'csv')}
+                                  size="small"
+                                  sx={{ 
+                                    color: '#2e7d32',
+                                    '&:hover': { backgroundColor: '#e8f5e9' }
+                                  }}
+                                >
+                                  <CsvIcon />
+                                </IconButton>
+                              </Tooltip>
+                              
+                              <Tooltip title="Export as Excel">
+                                <IconButton
+                                  onClick={() => handleExportReportAs(report.id, 'excel')}
+                                  size="small"
+                                  sx={{ 
+                                    color: '#0d7c34',
+                                    '&:hover': { backgroundColor: '#e8f4e8' }
+                                  }}
+                                >
+                                  <ExcelIcon />
+                                </IconButton>
+                              </Tooltip>
+                              
+                              <Tooltip title="Export as JSON">
+                                <IconButton
+                                  onClick={() => handleExportReportAs(report.id, 'json')}
+                                  size="small"
+                                  sx={{ 
+                                    color: '#7b1fa2',
+                                    '&:hover': { backgroundColor: '#f3e5f5' }
+                                  }}
+                                >
+                                  <JsonIcon />
+                                </IconButton>
+                              </Tooltip>
+                              
+                              <Tooltip title="View Report Details">
+                                <IconButton
+                                  onClick={() => {/* Add view functionality */}}
+                                  size="small"
+                                  sx={{ 
+                                    color: '#f57c00',
+                                    '&:hover': { backgroundColor: '#fff3e0' }
+                                  }}
+                                >
+                                  <ViewIcon />
+                                </IconButton>
+                              </Tooltip>
+                            </>
                           )}
                           
                           {report.status === 'FAILED' && (
@@ -690,8 +810,8 @@ const Reports = () => {
                                 }}
                                 size="small"
                                 sx={{ 
-                                  color: '#f57c00',
-                                  '&:hover': { backgroundColor: '#fff3e0' }
+                                  color: '#d32f2f',
+                                  '&:hover': { backgroundColor: '#ffebee' }
                                 }}
                               >
                                 <RefreshIcon />

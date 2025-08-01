@@ -507,30 +507,68 @@ Treatment: ${r.treatment || 'N/A'}
       return;
     }
 
-    const exportData = filteredRecords.map(record => ({
-      'Record ID': record.id,
-      'Record Type': record.record_type === 'MEDICAL' ? 'Medical' : 'Dental',
-      'Visit Date': dayjs(record.visit_date).format('YYYY-MM-DD'),
-      'Patient Name': record.patient_name || 'Unknown',
-      'Patient ID': record.patient_id || 'N/A',
-      'USC ID': record.patient_usc_id || 'N/A',
-      'Chief Complaint': record.chief_complaint || 'Not specified',
-      'History Present Illness': record.history_present_illness || 'Not documented',
-      'Past Medical History': record.past_medical_history || 'None reported',
-      'Physical Examination': record.physical_examination || 'Not performed',
-      'Blood Pressure': record.blood_pressure || 'N/A',
-      'Temperature (°C)': record.temperature || 'N/A',
-      'Pulse Rate (bpm)': record.pulse_rate || 'N/A',
-      'Respiratory Rate': record.respiratory_rate || 'N/A',
-      'Clinical Diagnosis': record.diagnosis || 'No diagnosis',
-      'Treatment Plan': record.treatment || 'No treatment',
-      'Medications': record.medications || 'None prescribed',
-      'Laboratory Results': record.laboratory_results || 'None ordered',
-      'Follow-up Instructions': record.follow_up_instructions || 'None specified',
-      'Clinical Notes': record.notes || 'No additional notes',
-      'Created Date': dayjs(record.created_at).format('YYYY-MM-DD HH:mm'),
-      'Last Updated': dayjs(record.updated_at).format('YYYY-MM-DD HH:mm')
-    }));
+    const exportData = filteredRecords.map(record => {
+      const baseData = {
+        'Record ID': record.id,
+        'Record Type': record.record_type === 'MEDICAL' ? 'Medical' : 'Dental',
+        'Visit Date': dayjs(record.visit_date).format('YYYY-MM-DD'),
+        'Patient Name': record.patient_name || 'Unknown',
+        'Patient ID': record.patient_id || 'N/A',
+        'USC ID': record.patient_usc_id || 'N/A',
+        'Clinical Diagnosis': record.diagnosis || 'No diagnosis',
+        'Treatment': record.treatment || record.treatment_performed || 'No treatment',
+        'Clinical Notes': record.notes || 'No additional notes',
+        'Created Date': dayjs(record.created_at).format('YYYY-MM-DD HH:mm'),
+        'Last Updated': dayjs(record.updated_at).format('YYYY-MM-DD HH:mm')
+      };
+
+      // Add medical-specific fields if it's a medical record
+      if (record.record_type === 'MEDICAL' || record.chief_complaint) {
+        return {
+          ...baseData,
+          'Chief Complaint': record.chief_complaint || 'Not specified',
+          'Present Illness History': record.history_present_illness || 'Not documented',
+          'Past Medical History': record.past_medical_history || 'None reported',
+          'Physical Examination': record.physical_examination || 'Not performed',
+          'Blood Pressure': record.blood_pressure || 'N/A',
+          'Temperature (°C)': record.temperature || 'N/A',
+          'Pulse Rate (bpm)': record.pulse_rate || 'N/A',
+          'Respiratory Rate': record.respiratory_rate || 'N/A',
+          'Medications': record.medications || 'None prescribed',
+          'Laboratory Results': record.laboratory_results || 'None ordered',
+          'Follow-up Instructions': record.follow_up_instructions || 'None specified',
+          'Dental Procedure': 'N/A',
+          'Tooth Number': 'N/A',
+          'Priority Level': 'N/A',
+          'Pain Level': 'N/A',
+          'Cost': 'N/A',
+          'Insurance Covered': 'N/A'
+        };
+      } 
+      // Add dental-specific fields if it's a dental record
+      else {
+        return {
+          ...baseData,
+          'Chief Complaint': 'N/A',
+          'Present Illness History': 'N/A',
+          'Past Medical History': 'N/A',
+          'Physical Examination': 'N/A',
+          'Blood Pressure': 'N/A',
+          'Temperature (°C)': 'N/A',
+          'Pulse Rate (bpm)': 'N/A',
+          'Respiratory Rate': 'N/A',
+          'Medications': 'N/A',
+          'Laboratory Results': 'N/A',
+          'Follow-up Instructions': 'N/A',
+          'Dental Procedure': record.procedure_performed_display || 'Not specified',
+          'Tooth Number': record.tooth_number || 'N/A',
+          'Priority Level': record.priority || 'N/A',
+          'Pain Level': record.pain_level || 'N/A',
+          'Cost': record.cost ? `₱${parseFloat(record.cost).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : 'N/A',
+          'Insurance Covered': record.insurance_covered ? 'Yes' : 'No'
+        };
+      }
+    });
 
     const csvContent = [
       Object.keys(exportData[0]).join(','),
@@ -559,30 +597,66 @@ Treatment: ${r.treatment || 'N/A'}
       return;
     }
 
-    const exportData = filteredRecords.map(record => ({
-      'ID': record.id,
-      'Type': record.record_type === 'MEDICAL' ? 'Medical' : 'Dental',
-      'Visit Date': record.visit_date,
-      'Patient': record.patient_name || 'Unknown',
-      'Patient ID': record.patient_id || '',
-      'USC ID': record.patient_usc_id || '',
-      'Chief Complaint': record.chief_complaint || '',
-      'Present Illness': record.history_present_illness || '',
-      'Medical History': record.past_medical_history || '',
-      'Physical Exam': record.physical_examination || '',
-      'BP': record.blood_pressure || '',
-      'Temp': record.temperature || '',
-      'Pulse': record.pulse_rate || '',
-      'RR': record.respiratory_rate || '',
-      'Diagnosis': record.diagnosis || '',
-      'Treatment': record.treatment || '',
-      'Medications': record.medications || '',
-      'Lab Results': record.laboratory_results || '',
-      'Follow-up': record.follow_up_instructions || '',
-      'Notes': record.notes || '',
-      'Created': record.created_at,
-      'Updated': record.updated_at
-    }));
+    const exportData = filteredRecords.map(record => {
+      const baseData = {
+        'ID': record.id,
+        'Type': record.record_type === 'MEDICAL' ? 'Medical' : 'Dental',
+        'Visit Date': record.visit_date,
+        'Patient': record.patient_name || 'Unknown',
+        'Patient ID': record.patient_id || '',
+        'USC ID': record.patient_usc_id || '',
+        'Diagnosis': record.diagnosis || '',
+        'Treatment': record.treatment || record.treatment_performed || '',
+        'Notes': record.notes || '',
+        'Created': record.created_at,
+        'Updated': record.updated_at
+      };
+
+      // Add type-specific fields
+      if (record.record_type === 'MEDICAL' || record.chief_complaint) {
+        return {
+          ...baseData,
+          'Chief Complaint': record.chief_complaint || '',
+          'Present Illness': record.history_present_illness || '',
+          'Medical History': record.past_medical_history || '',
+          'Physical Exam': record.physical_examination || '',
+          'Blood Pressure': record.blood_pressure || '',
+          'Temperature': record.temperature || '',
+          'Pulse Rate': record.pulse_rate || '',
+          'Respiratory Rate': record.respiratory_rate || '',
+          'Medications': record.medications || '',
+          'Lab Results': record.laboratory_results || '',
+          'Follow-up': record.follow_up_instructions || '',
+          'Procedure': '',
+          'Tooth Number': '',
+          'Priority': '',
+          'Pain Level': '',
+          'Cost': '',
+          'Insurance': ''
+        };
+      } else {
+        return {
+          ...baseData,
+          'Chief Complaint': '',
+          'Present Illness': '',
+          'Medical History': '',
+          'Physical Exam': '',
+          'Blood Pressure': '',
+          'Temperature': '',
+          'Pulse Rate': '',
+          'Respiratory Rate': '',
+          'Medications': '',
+          'Lab Results': '',
+          'Follow-up': '',
+          'Procedure': record.procedure_performed_display || '',
+          'Tooth Number': record.tooth_number || '',
+          'Priority': record.priority || '',
+          'Pain Level': record.pain_level || '',
+          'Cost': record.cost || '',
+          'Insurance': record.insurance_covered ? 'Covered' : 'Not Covered'
+        };
+      }
+    });
 
     const tsvContent = [
       Object.keys(exportData[0]).join('\t'),
@@ -652,16 +726,19 @@ Treatment: ${r.treatment || 'N/A'}
           <div class="summary">
             <h3>Report Summary</h3>
             <p><strong>Total Records:</strong> ${filteredRecords.length}</p>
-            <p><strong>Medical Records:</strong> ${filteredRecords.filter(r => r.record_type === 'MEDICAL').length}</p>
-            <p><strong>Dental Records:</strong> ${filteredRecords.filter(r => r.record_type === 'DENTAL').length}</p>
+            <p><strong>Medical Records:</strong> ${filteredRecords.filter(r => r.record_type === 'MEDICAL' || r.chief_complaint).length}</p>
+            <p><strong>Dental Records:</strong> ${filteredRecords.filter(r => r.record_type === 'DENTAL' || r.procedure_performed_display).length}</p>
             <p><strong>Date Filter:</strong> ${selectedDate ? dayjs(selectedDate).format('MMMM DD, YYYY') : 'All dates'}</p>
             <p><strong>Search Term:</strong> ${searchTerm || 'None'}</p>
+            <p><strong>Report Type:</strong> Combined Medical & Dental Health Records</p>
           </div>
           
-          ${filteredRecords.map(record => `
+          ${filteredRecords.map(record => {
+            const isMedical = record.record_type === 'MEDICAL' || record.chief_complaint;
+            return `
             <div class="record">
               <div class="record-header">
-                <span class="record-type">${record.record_type === 'MEDICAL' ? 'MEDICAL' : 'DENTAL'}</span>
+                <span class="record-type">${isMedical ? 'MEDICAL' : 'DENTAL'}</span>
                 <div class="record-title">${record.patient_name || 'Unknown Patient'}</div>
                 <div class="record-meta">
                   Record #${record.id} | Visit: ${dayjs(record.visit_date).format('MMM DD, YYYY')} | 
@@ -670,40 +747,70 @@ Treatment: ${r.treatment || 'N/A'}
               </div>
               <div class="record-body">
                 <div>
-                  <div class="field-group">
-                    <h4>Clinical Assessment</h4>
-                    <div class="field">
-                      <span class="field-label">Chief Complaint:</span>
-                      <span class="field-value">${record.chief_complaint || 'Not specified'}</span>
+                  ${isMedical ? `
+                    <div class="field-group">
+                      <h4>Clinical Assessment</h4>
+                      <div class="field">
+                        <span class="field-label">Chief Complaint:</span>
+                        <span class="field-value">${record.chief_complaint || 'Not specified'}</span>
+                      </div>
+                      <div class="field">
+                        <span class="field-label">Present Illness:</span>
+                        <span class="field-value">${record.history_present_illness || 'Not documented'}</span>
+                      </div>
+                      <div class="field">
+                        <span class="field-label">Physical Exam:</span>
+                        <span class="field-value">${record.physical_examination || 'Not performed'}</span>
+                      </div>
                     </div>
-                    <div class="field">
-                      <span class="field-label">Present Illness:</span>
-                      <span class="field-value">${record.history_present_illness || 'Not documented'}</span>
+                    <div class="vitals">
+                      <h4>Vital Signs</h4>
+                      <div class="field">
+                        <span class="field-label">Blood Pressure:</span>
+                        <span class="field-value">${record.blood_pressure || 'N/A'}</span>
+                      </div>
+                      <div class="field">
+                        <span class="field-label">Temperature:</span>
+                        <span class="field-value">${record.temperature || 'N/A'}°C</span>
+                      </div>
+                      <div class="field">
+                        <span class="field-label">Pulse Rate:</span>
+                        <span class="field-value">${record.pulse_rate || 'N/A'} bpm</span>
+                      </div>
+                      <div class="field">
+                        <span class="field-label">Respiratory Rate:</span>
+                        <span class="field-value">${record.respiratory_rate || 'N/A'}/min</span>
+                      </div>
                     </div>
-                    <div class="field">
-                      <span class="field-label">Physical Exam:</span>
-                      <span class="field-value">${record.physical_examination || 'Not performed'}</span>
+                  ` : `
+                    <div class="field-group">
+                      <h4>Dental Information</h4>
+                      <div class="field">
+                        <span class="field-label">Procedure:</span>
+                        <span class="field-value">${record.procedure_performed_display || 'Not specified'}</span>
+                      </div>
+                      <div class="field">
+                        <span class="field-label">Tooth Number:</span>
+                        <span class="field-value">${record.tooth_number || 'N/A'}</span>
+                      </div>
+                      <div class="field">
+                        <span class="field-label">Priority Level:</span>
+                        <span class="field-value">${record.priority || 'N/A'}</span>
+                      </div>
+                      <div class="field">
+                        <span class="field-label">Pain Level:</span>
+                        <span class="field-value">${record.pain_level || 'N/A'}/10</span>
+                      </div>
+                      <div class="field">
+                        <span class="field-label">Cost:</span>
+                        <span class="field-value">${record.cost ? '₱' + parseFloat(record.cost).toLocaleString('en-US', { minimumFractionDigits: 2 }) : 'N/A'}</span>
+                      </div>
+                      <div class="field">
+                        <span class="field-label">Insurance:</span>
+                        <span class="field-value">${record.insurance_covered ? 'Covered' : 'Not Covered'}</span>
+                      </div>
                     </div>
-                  </div>
-                  <div class="vitals">
-                    <h4>Vital Signs</h4>
-                    <div class="field">
-                      <span class="field-label">Blood Pressure:</span>
-                      <span class="field-value">${record.blood_pressure || 'N/A'}</span>
-                    </div>
-                    <div class="field">
-                      <span class="field-label">Temperature:</span>
-                      <span class="field-value">${record.temperature || 'N/A'}°C</span>
-                    </div>
-                    <div class="field">
-                      <span class="field-label">Pulse Rate:</span>
-                      <span class="field-value">${record.pulse_rate || 'N/A'} bpm</span>
-                    </div>
-                    <div class="field">
-                      <span class="field-label">Respiratory Rate:</span>
-                      <span class="field-value">${record.respiratory_rate || 'N/A'}/min</span>
-                    </div>
-                  </div>
+                  `}
                 </div>
                 <div>
                   <div class="field-group">
@@ -714,16 +821,22 @@ Treatment: ${r.treatment || 'N/A'}
                     </div>
                     <div class="field">
                       <span class="field-label">Treatment:</span>
-                      <span class="field-value">${record.treatment || 'No treatment'}</span>
+                      <span class="field-value">${record.treatment || record.treatment_performed || 'No treatment'}</span>
                     </div>
-                    <div class="field">
-                      <span class="field-label">Medications:</span>
-                      <span class="field-value">${record.medications || 'None prescribed'}</span>
-                    </div>
-                    <div class="field">
-                      <span class="field-label">Lab Results:</span>
-                      <span class="field-value">${record.laboratory_results || 'None ordered'}</span>
-                    </div>
+                    ${isMedical ? `
+                      <div class="field">
+                        <span class="field-label">Medications:</span>
+                        <span class="field-value">${record.medications || 'None prescribed'}</span>
+                      </div>
+                      <div class="field">
+                        <span class="field-label">Lab Results:</span>
+                        <span class="field-value">${record.laboratory_results || 'None ordered'}</span>
+                      </div>
+                      <div class="field">
+                        <span class="field-label">Follow-up:</span>
+                        <span class="field-value">${record.follow_up_instructions || 'None specified'}</span>
+                      </div>
+                    ` : ''}
                     <div class="field">
                       <span class="field-label">Notes:</span>
                       <span class="field-value">${record.notes || 'No additional notes'}</span>
@@ -732,7 +845,8 @@ Treatment: ${r.treatment || 'N/A'}
                 </div>
               </div>
             </div>
-          `).join('')}
+            `;
+          }).join('')}
           
           <div class="footer">
             <p>University of Southern California Patient Information System</p>
