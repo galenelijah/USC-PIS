@@ -20,7 +20,6 @@ import {
 import {
   Search as SearchIcon,
   Clear as ClearIcon,
-  Person as PersonIcon,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useForm, Controller } from 'react-hook-form';
@@ -35,8 +34,6 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [patientSearchTerm, setPatientSearchTerm] = useState('');
-  const [filteredPatients, setFilteredPatients] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState(null);
   
   const getDefaultValues = () => {
@@ -71,23 +68,6 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
 
   const fitnessStatus = watch('fitness_status');
 
-  // Filter patients based on search term
-  useEffect(() => {
-    if (!patientSearchTerm) {
-      setFilteredPatients(patients);
-    } else {
-      const searchLower = patientSearchTerm.toLowerCase();
-      const filtered = patients.filter(patient => 
-        patient.first_name?.toLowerCase().includes(searchLower) ||
-        patient.last_name?.toLowerCase().includes(searchLower) ||
-        patient.email?.toLowerCase().includes(searchLower) ||
-        patient.usc_id?.toLowerCase().includes(searchLower) ||
-        patient.id_number?.toLowerCase().includes(searchLower) ||
-        `${patient.first_name} ${patient.last_name}`.toLowerCase().includes(searchLower)
-      );
-      setFilteredPatients(filtered);
-    }
-  }, [patientSearchTerm, patients]);
 
   useEffect(() => {
     fetchFormData();
@@ -123,7 +103,6 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
       ]);
       const patientsData = patientsRes.data || [];
       setPatients(patientsData);
-      setFilteredPatients(patientsData);
       setTemplates(templatesRes.data || []);
     } catch (err) {
       setError('Failed to load form data');
@@ -146,12 +125,6 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
   const handlePatientChange = (event, value) => {
     setSelectedPatient(value);
     setValue('patient', value ? value.id : '', { shouldValidate: true });
-    setPatientSearchTerm(''); // Clear search when patient is selected
-  };
-
-  const clearPatientSearch = () => {
-    setPatientSearchTerm('');
-    setFilteredPatients(patients);
   };
 
   if (loading) {
@@ -183,150 +156,216 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
             </Grid>
           )}
 
-          {/* Patient Selection */}
+          {/* Patient Selection - Enhanced Single-Step Search */}
           <Grid item xs={12}>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" color="primary" gutterBottom>
-                Patient Search & Selection
-              </Typography>
-              
-              {/* Search Input */}
-              <TextField
-                fullWidth
-                placeholder="Search by name, email, or USC ID..."
-                value={patientSearchTerm}
-                onChange={(e) => setPatientSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon color="action" />
-                    </InputAdornment>
-                  ),
-                  endAdornment: patientSearchTerm && (
-                    <InputAdornment position="end">
-                      <Button
-                        size="small"
-                        onClick={clearPatientSearch}
-                        sx={{ minWidth: 'auto', p: 0.5 }}
+            <Typography variant="subtitle2" color="primary" gutterBottom sx={{ mb: 2 }}>
+              🔍 Patient Search & Selection
+            </Typography>
+            
+            <Controller
+              name="patient"
+              control={control}
+              render={({ field }) => (
+                <Autocomplete
+                  options={patients}
+                  getOptionLabel={(option) => {
+                    if (!option) return '';
+                    return `${option.first_name} ${option.last_name}`;
+                  }}
+                  value={selectedPatient}
+                  onChange={handlePatientChange}
+                  filterOptions={(options, { inputValue }) => {
+                    if (!inputValue) return options;
+                    
+                    const searchLower = inputValue.toLowerCase();
+                    return options.filter(patient => 
+                      patient.first_name?.toLowerCase().includes(searchLower) ||
+                      patient.last_name?.toLowerCase().includes(searchLower) ||
+                      patient.email?.toLowerCase().includes(searchLower) ||
+                      patient.usc_id?.toLowerCase().includes(searchLower) ||
+                      patient.id_number?.toLowerCase().includes(searchLower) ||
+                      `${patient.first_name} ${patient.last_name}`.toLowerCase().includes(searchLower)
+                    );
+                  }}
+                  renderOption={(props, option) => (
+                    <Box 
+                      component="li" 
+                      {...props} 
+                      sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 2, 
+                        py: 1.5,
+                        borderBottom: '1px solid rgba(0,0,0,0.06)',
+                        '&:hover': {
+                          backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                        }
+                      }}
+                    >
+                      <Avatar 
+                        sx={{ 
+                          bgcolor: 'primary.main', 
+                          width: 40, 
+                          height: 40,
+                          fontSize: '0.9rem'
+                        }}
                       >
-                        <ClearIcon fontSize="small" />
-                      </Button>
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  mb: 2,
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                  },
-                }}
-              />
-              
-              {/* Patient Selection */}
-              <Controller
-                name="patient"
-                control={control}
-                render={({ field }) => (
-                  <Autocomplete
-                    options={filteredPatients}
-                    getOptionLabel={option => `${option.last_name}, ${option.first_name}${option.usc_id ? ` (USC ID: ${option.usc_id})` : option.id_number ? ` (ID: ${option.id_number})` : ''}`}
-                    value={selectedPatient}
-                    onChange={handlePatientChange}
-                    filterOptions={(options) => options} // Disable built-in filtering since we handle it ourselves
-                    renderOption={(props, option) => (
-                      <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1 }}>
-                        <Avatar sx={{ bgcolor: '#1976d2', width: 32, height: 32 }}>
-                          <PersonIcon fontSize="small" />
-                        </Avatar>
-                        <Box sx={{ flexGrow: 1 }}>
-                          <Typography variant="body2" fontWeight="medium">
-                            {option.first_name} {option.last_name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {option.email}
-                          </Typography>
-                          <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                            {option.usc_id && (
-                              <Chip 
-                                label={`USC ID: ${option.usc_id}`} 
-                                size="small" 
-                                variant="outlined"
-                                sx={{ fontSize: '0.7rem', height: 18 }}
-                              />
-                            )}
-                            {option.id_number && (
-                              <Chip 
-                                label={`ID: ${option.id_number}`} 
-                                size="small" 
-                                variant="outlined"
-                                sx={{ fontSize: '0.7rem', height: 18 }}
-                              />
-                            )}
-                          </Box>
+                        {option.first_name?.[0]}{option.last_name?.[0]}
+                      </Avatar>
+                      <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                        <Typography 
+                          variant="body1" 
+                          fontWeight="medium"
+                          sx={{ mb: 0.5 }}
+                        >
+                          {option.first_name} {option.last_name}
+                        </Typography>
+                        <Typography 
+                          variant="body2" 
+                          color="text.secondary"
+                          sx={{ mb: 0.5 }}
+                        >
+                          📧 {option.email}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                          {option.usc_id && (
+                            <Chip 
+                              label={`🎓 USC ID: ${option.usc_id}`} 
+                              size="small" 
+                              color="primary"
+                              variant="outlined"
+                              sx={{ 
+                                fontSize: '0.7rem', 
+                                height: 20,
+                                '& .MuiChip-label': { px: 1 }
+                              }}
+                            />
+                          )}
+                          {option.id_number && (
+                            <Chip 
+                              label={`🆔 ID: ${option.id_number}`} 
+                              size="small" 
+                              color="secondary"
+                              variant="outlined"
+                              sx={{ 
+                                fontSize: '0.7rem', 
+                                height: 20,
+                                '& .MuiChip-label': { px: 1 }
+                              }}
+                            />
+                          )}
                         </Box>
                       </Box>
-                    )}
-                    renderInput={params => (
-                      <TextField 
-                        {...params} 
-                        label="Select Patient *" 
-                        required 
-                        error={!!errors.patient}
-                        helperText={errors.patient?.message || `${filteredPatients.length} patient${filteredPatients.length !== 1 ? 's' : ''} found`}
-                        placeholder="Choose a patient from the list..."
-                      />
-                    )}
-                    noOptionsText={patientSearchTerm ? "No patients match your search" : "Start typing to search patients"}
-                  />
-                )}
-              />
-              
-              {/* Selected Patient Display */}
-              {selectedPatient && (
-                <Box sx={{ 
-                  mt: 2, 
-                  p: 2, 
-                  backgroundColor: 'rgba(25, 118, 210, 0.08)', 
-                  borderRadius: 1,
-                  border: '1px solid rgba(25, 118, 210, 0.2)'
-                }}>
-                  <Typography variant="subtitle2" color="primary" gutterBottom>
-                    Selected Patient:
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar sx={{ bgcolor: '#1976d2' }}>
-                      <PersonIcon />
-                    </Avatar>
-                    <Box>
-                      <Typography variant="body1" fontWeight="medium">
-                        {selectedPatient.first_name} {selectedPatient.last_name}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {selectedPatient.email}
-                      </Typography>
-                      <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                        {selectedPatient.usc_id && (
-                          <Chip 
-                            label={`USC ID: ${selectedPatient.usc_id}`} 
-                            size="small" 
-                            color="primary"
-                            variant="outlined"
-                          />
-                        )}
-                        {selectedPatient.id_number && (
-                          <Chip 
-                            label={`ID: ${selectedPatient.id_number}`} 
-                            size="small" 
-                            color="primary"
-                            variant="outlined"
-                          />
-                        )}
-                      </Box>
                     </Box>
+                  )}
+                  renderInput={(params) => (
+                    <TextField 
+                      {...params} 
+                      label="Search and Select Patient" 
+                      placeholder="Start typing patient name, email, or USC ID..."
+                      required 
+                      error={!!errors.patient}
+                      helperText={
+                        errors.patient?.message || 
+                        "💡 Type to search by name, email, USC ID, or ID number"
+                      }
+                      InputProps={{
+                        ...params.InputProps,
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <SearchIcon color="primary" />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                          '&:hover': {
+                            backgroundColor: 'rgba(255, 255, 255, 1)',
+                          },
+                          '&.Mui-focused': {
+                            backgroundColor: 'rgba(255, 255, 255, 1)',
+                          }
+                        },
+                      }}
+                    />
+                  )}
+                  noOptionsText="No patients found - try a different search term"
+                  loadingText="Loading patients..."
+                  clearOnBlur={false}
+                  selectOnFocus
+                  handleHomeEndKeys
+                  popupIcon={null}
+                  clearIcon={selectedPatient ? <ClearIcon /> : null}
+                  sx={{
+                    '& .MuiAutocomplete-popupIndicator': {
+                      display: 'none'
+                    }
+                  }}
+                />
+              )}
+            />
+            
+            {/* Selected Patient Confirmation */}
+            {selectedPatient && (
+              <Box sx={{ 
+                mt: 3, 
+                p: 3, 
+                backgroundColor: 'rgba(76, 175, 80, 0.08)', 
+                borderRadius: 2,
+                border: '2px solid rgba(76, 175, 80, 0.2)',
+                position: 'relative'
+              }}>
+                <Typography 
+                  variant="subtitle2" 
+                  color="success.main" 
+                  gutterBottom
+                  sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}
+                >
+                  ✅ Selected Patient Confirmed
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                  <Avatar 
+                    sx={{ 
+                      bgcolor: 'success.main', 
+                      width: 48, 
+                      height: 48,
+                      fontSize: '1.1rem'
+                    }}
+                  >
+                    {selectedPatient.first_name?.[0]}{selectedPatient.last_name?.[0]}
+                  </Avatar>
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="h6" fontWeight="bold" color="text.primary">
+                      {selectedPatient.first_name} {selectedPatient.last_name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      📧 {selectedPatient.email}
+                    </Typography>
+                    <Stack direction="row" spacing={1}>
+                      {selectedPatient.usc_id && (
+                        <Chip 
+                          label={`🎓 USC ID: ${selectedPatient.usc_id}`} 
+                          size="small" 
+                          color="success"
+                          variant="filled"
+                          sx={{ fontWeight: 'medium' }}
+                        />
+                      )}
+                      {selectedPatient.id_number && (
+                        <Chip 
+                          label={`🆔 ID: ${selectedPatient.id_number}`} 
+                          size="small" 
+                          color="info"
+                          variant="filled"
+                          sx={{ fontWeight: 'medium' }}
+                        />
+                      )}
+                    </Stack>
                   </Box>
                 </Box>
-              )}
-            </Box>
+              </Box>
+            )}
           </Grid>
 
           {/* Template Selection */}

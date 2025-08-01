@@ -151,18 +151,39 @@ heroku config:unset CLOUDINARY_API_SECRET
 
 ## Troubleshooting
 
+### Build Failures
+
+**Error**: `ModuleNotFoundError: No module named 'cloudinary_storage'`
+- **Cause**: Packages are still commented in requirements.txt
+- **Solution**: Uncomment cloudinary packages before deploying
+- **Fix**: Edit requirements.txt to uncomment both packages
+
+**Error**: Django startup fails with import errors
+- **Cause**: Missing environment variable `USE_CLOUDINARY=True`
+- **Solution**: Set the environment variable in Heroku config vars
+- **Check**: Verify config vars are set correctly
+
 ### Images Not Uploading
 - Check Heroku config vars are set correctly
 - Verify `USE_CLOUDINARY=True` (case sensitive)
 - Check logs: `heroku logs --tail`
+- Ensure packages are uncommented in requirements.txt
 
 ### Old Images Still Broken
 - Run: `heroku run python manage.py restore_campaign_images`
 - This is expected - only NEW uploads go to Cloudinary
+- Old filesystem images cannot be recovered
 
 ### Permission Errors
 - Verify API credentials are correct in Cloudinary dashboard
 - Ensure no extra spaces in config vars
+- Test credentials in Cloudinary console
+
+### App Won't Start After Cloudinary Setup
+- Check if `USE_CLOUDINARY=True` is set
+- Verify packages are uncommented in requirements.txt
+- Check Django logs: `heroku logs --tail`
+- Ensure all 3 Cloudinary config vars are set
 
 ## Cost Monitoring
 

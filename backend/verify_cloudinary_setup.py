@@ -1,7 +1,24 @@
 #!/usr/bin/env python3
 """
-Verification script for Cloudinary setup
-Run this to verify the integration is ready but not active
+USC-PIS Cloudinary Integration Verification Script
+
+This script verifies that the Cloudinary integration is properly prepared
+but not active by default, ensuring safe deployment.
+
+Usage:
+    python verify_cloudinary_setup.py
+
+Verification includes:
+- Requirements.txt contains commented Cloudinary packages
+- Django settings.py has conditional Cloudinary configuration  
+- Environment variables are not set (inactive by default)
+- Documentation and management tools are present
+
+Exit codes:
+- 0: All checks passed, ready for activation
+- 1: Issues found, needs attention
+
+For activation instructions, see CLOUDINARY_SETUP.md
 """
 
 import os
