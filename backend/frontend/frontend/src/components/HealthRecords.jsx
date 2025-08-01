@@ -36,6 +36,11 @@ import {
   Delete as DeleteIcon,
   Search as SearchIcon,
   Download as DownloadIcon,
+  GetApp as ExportIcon,
+  PictureAsPdf as PdfIcon,
+  TableChart as ExcelIcon,
+  InsertDriveFile as CsvIcon,
+  Print as PrintIcon,
   CalendarMonth as CalendarIcon,
   MedicalServices as MedicalIcon,
   Person as PersonIcon,
@@ -495,6 +500,257 @@ Treatment: ${r.treatment || 'N/A'}
     return searchMatch && dateMatch && typeMatch;
   });
 
+  // Enhanced Export Functions
+  const handleExportCSV = () => {
+    if (filteredRecords.length === 0) {
+      alert('No health records to export');
+      return;
+    }
+
+    const exportData = filteredRecords.map(record => ({
+      'Record ID': record.id,
+      'Record Type': record.record_type === 'MEDICAL' ? 'Medical' : 'Dental',
+      'Visit Date': dayjs(record.visit_date).format('YYYY-MM-DD'),
+      'Patient Name': record.patient_name || 'Unknown',
+      'Patient ID': record.patient_id || 'N/A',
+      'USC ID': record.patient_usc_id || 'N/A',
+      'Chief Complaint': record.chief_complaint || 'Not specified',
+      'History Present Illness': record.history_present_illness || 'Not documented',
+      'Past Medical History': record.past_medical_history || 'None reported',
+      'Physical Examination': record.physical_examination || 'Not performed',
+      'Blood Pressure': record.blood_pressure || 'N/A',
+      'Temperature (°C)': record.temperature || 'N/A',
+      'Pulse Rate (bpm)': record.pulse_rate || 'N/A',
+      'Respiratory Rate': record.respiratory_rate || 'N/A',
+      'Clinical Diagnosis': record.diagnosis || 'No diagnosis',
+      'Treatment Plan': record.treatment || 'No treatment',
+      'Medications': record.medications || 'None prescribed',
+      'Laboratory Results': record.laboratory_results || 'None ordered',
+      'Follow-up Instructions': record.follow_up_instructions || 'None specified',
+      'Clinical Notes': record.notes || 'No additional notes',
+      'Created Date': dayjs(record.created_at).format('YYYY-MM-DD HH:mm'),
+      'Last Updated': dayjs(record.updated_at).format('YYYY-MM-DD HH:mm')
+    }));
+
+    const csvContent = [
+      Object.keys(exportData[0]).join(','),
+      ...exportData.map(record => 
+        Object.values(record).map(value => 
+          `"${String(value).replace(/"/g, '""')}"`
+        ).join(',')
+      )
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `health-records-${dayjs().format('YYYY-MM-DD-HHmm')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportExcel = () => {
+    if (filteredRecords.length === 0) {
+      alert('No health records to export');
+      return;
+    }
+
+    const exportData = filteredRecords.map(record => ({
+      'ID': record.id,
+      'Type': record.record_type === 'MEDICAL' ? 'Medical' : 'Dental',
+      'Visit Date': record.visit_date,
+      'Patient': record.patient_name || 'Unknown',
+      'Patient ID': record.patient_id || '',
+      'USC ID': record.patient_usc_id || '',
+      'Chief Complaint': record.chief_complaint || '',
+      'Present Illness': record.history_present_illness || '',
+      'Medical History': record.past_medical_history || '',
+      'Physical Exam': record.physical_examination || '',
+      'BP': record.blood_pressure || '',
+      'Temp': record.temperature || '',
+      'Pulse': record.pulse_rate || '',
+      'RR': record.respiratory_rate || '',
+      'Diagnosis': record.diagnosis || '',
+      'Treatment': record.treatment || '',
+      'Medications': record.medications || '',
+      'Lab Results': record.laboratory_results || '',
+      'Follow-up': record.follow_up_instructions || '',
+      'Notes': record.notes || '',
+      'Created': record.created_at,
+      'Updated': record.updated_at
+    }));
+
+    const tsvContent = [
+      Object.keys(exportData[0]).join('\t'),
+      ...exportData.map(record => 
+        Object.values(record).map(value => 
+          String(value).replace(/\t/g, ' ').replace(/\n/g, ' ')
+        ).join('\t')
+      )
+    ].join('\n');
+
+    const blob = new Blob([tsvContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `health-records-${dayjs().format('YYYY-MM-DD-HHmm')}.xls`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePrintReport = () => {
+    if (filteredRecords.length === 0) {
+      alert('No health records to print');
+      return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>USC-PIS Health Records Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.4; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #1976d2; padding-bottom: 20px; }
+            .header h1 { color: #1976d2; margin: 10px 0; font-size: 24px; }
+            .header h2 { color: #1976d2; margin: 5px 0; font-size: 20px; }
+            .header p { margin: 5px 0; color: #666; }
+            .summary { background: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px; }
+            .record { border: 1px solid #ddd; margin: 15px 0; padding: 15px; border-radius: 5px; page-break-inside: avoid; }
+            .record-header { background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c8 100%); padding: 10px; margin: -15px -15px 15px -15px; border-radius: 5px 5px 0 0; }
+            .record-type { display: inline-block; background: #2e7d32; color: white; padding: 3px 8px; border-radius: 3px; font-size: 12px; margin-right: 10px; }
+            .record-title { font-weight: bold; color: #2e7d32; font-size: 16px; margin-top: 5px; }
+            .record-meta { color: #666; font-size: 14px; margin-top: 5px; }
+            .record-body { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+            .field-group { margin-bottom: 15px; }
+            .field-group h4 { color: #2e7d32; margin-bottom: 8px; font-size: 14px; border-bottom: 1px solid #e0e0e0; padding-bottom: 3px; }
+            .field { margin-bottom: 6px; }
+            .field-label { font-weight: bold; color: #333; display: inline-block; min-width: 120px; }
+            .field-value { color: #666; }
+            .vitals { background: #f0f8f0; padding: 10px; border-radius: 3px; margin: 10px 0; }
+            .footer { text-align: center; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px; color: #666; }
+            @media print { body { margin: 0; } .no-print { display: none; } .record { page-break-inside: avoid; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>University of Southern California</h1>
+            <h2>Patient Information System</h2>
+            <h2>Comprehensive Health Records Report</h2>
+            <p>Generated on: ${dayjs().format('MMMM DD, YYYY [at] HH:mm')}</p>
+            <p>Total Records: ${filteredRecords.length}</p>
+          </div>
+          
+          <div class="summary">
+            <h3>Report Summary</h3>
+            <p><strong>Total Records:</strong> ${filteredRecords.length}</p>
+            <p><strong>Medical Records:</strong> ${filteredRecords.filter(r => r.record_type === 'MEDICAL').length}</p>
+            <p><strong>Dental Records:</strong> ${filteredRecords.filter(r => r.record_type === 'DENTAL').length}</p>
+            <p><strong>Date Filter:</strong> ${selectedDate ? dayjs(selectedDate).format('MMMM DD, YYYY') : 'All dates'}</p>
+            <p><strong>Search Term:</strong> ${searchTerm || 'None'}</p>
+          </div>
+          
+          ${filteredRecords.map(record => `
+            <div class="record">
+              <div class="record-header">
+                <span class="record-type">${record.record_type === 'MEDICAL' ? 'MEDICAL' : 'DENTAL'}</span>
+                <div class="record-title">${record.patient_name || 'Unknown Patient'}</div>
+                <div class="record-meta">
+                  Record #${record.id} | Visit: ${dayjs(record.visit_date).format('MMM DD, YYYY')} | 
+                  USC ID: ${record.patient_usc_id || 'N/A'}
+                </div>
+              </div>
+              <div class="record-body">
+                <div>
+                  <div class="field-group">
+                    <h4>Clinical Assessment</h4>
+                    <div class="field">
+                      <span class="field-label">Chief Complaint:</span>
+                      <span class="field-value">${record.chief_complaint || 'Not specified'}</span>
+                    </div>
+                    <div class="field">
+                      <span class="field-label">Present Illness:</span>
+                      <span class="field-value">${record.history_present_illness || 'Not documented'}</span>
+                    </div>
+                    <div class="field">
+                      <span class="field-label">Physical Exam:</span>
+                      <span class="field-value">${record.physical_examination || 'Not performed'}</span>
+                    </div>
+                  </div>
+                  <div class="vitals">
+                    <h4>Vital Signs</h4>
+                    <div class="field">
+                      <span class="field-label">Blood Pressure:</span>
+                      <span class="field-value">${record.blood_pressure || 'N/A'}</span>
+                    </div>
+                    <div class="field">
+                      <span class="field-label">Temperature:</span>
+                      <span class="field-value">${record.temperature || 'N/A'}°C</span>
+                    </div>
+                    <div class="field">
+                      <span class="field-label">Pulse Rate:</span>
+                      <span class="field-value">${record.pulse_rate || 'N/A'} bpm</span>
+                    </div>
+                    <div class="field">
+                      <span class="field-label">Respiratory Rate:</span>
+                      <span class="field-value">${record.respiratory_rate || 'N/A'}/min</span>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div class="field-group">
+                    <h4>Treatment & Diagnosis</h4>
+                    <div class="field">
+                      <span class="field-label">Diagnosis:</span>
+                      <span class="field-value">${record.diagnosis || 'No diagnosis'}</span>
+                    </div>
+                    <div class="field">
+                      <span class="field-label">Treatment:</span>
+                      <span class="field-value">${record.treatment || 'No treatment'}</span>
+                    </div>
+                    <div class="field">
+                      <span class="field-label">Medications:</span>
+                      <span class="field-value">${record.medications || 'None prescribed'}</span>
+                    </div>
+                    <div class="field">
+                      <span class="field-label">Lab Results:</span>
+                      <span class="field-value">${record.laboratory_results || 'None ordered'}</span>
+                    </div>
+                    <div class="field">
+                      <span class="field-label">Notes:</span>
+                      <span class="field-value">${record.notes || 'No additional notes'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+          
+          <div class="footer">
+            <p>University of Southern California Patient Information System</p>
+            <p>This report contains confidential medical information</p>
+            <p>Generated by USC-PIS on ${dayjs().format('MMMM DD, YYYY')}</p>
+          </div>
+        </body>
+      </html>
+    `;
+    
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" component="h1" gutterBottom>
@@ -616,6 +872,40 @@ Treatment: ${r.treatment || 'N/A'}
             >
               Patient Dashboard
             </Button>
+            
+            {/* Export Actions */}
+            <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+              <Button
+                variant="outlined"
+                startIcon={<CsvIcon />}
+                onClick={handleExportCSV}
+                disabled={filteredRecords.length === 0}
+                size="small"
+                sx={{ borderColor: '#2e7d32', color: '#2e7d32', '&:hover': { borderColor: '#1b5e20', bgcolor: '#f1f8e9' } }}
+              >
+                CSV
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<ExcelIcon />}
+                onClick={handleExportExcel}
+                disabled={filteredRecords.length === 0}
+                size="small"
+                sx={{ borderColor: '#0d7c34', color: '#0d7c34', '&:hover': { borderColor: '#0d7c34', bgcolor: '#f0f9f0' } }}
+              >
+                Excel
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<PrintIcon />}
+                onClick={handlePrintReport}
+                disabled={filteredRecords.length === 0}
+                size="small"
+                sx={{ borderColor: '#d32f2f', color: '#d32f2f', '&:hover': { borderColor: '#d32f2f', bgcolor: '#fff0f0' } }}
+              >
+                Print
+              </Button>
+            </Box>
           </Box>
         </CardContent>
       </Card>

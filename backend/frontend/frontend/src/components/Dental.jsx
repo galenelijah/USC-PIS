@@ -56,7 +56,12 @@ import {
   CalendarToday as CalendarIcon,
   Person as PersonIcon,
   LocalHospital as MedicalIcon,
-  Warning as WarningIcon
+  Warning as WarningIcon,
+  GetApp as ExportIcon,
+  PictureAsPdf as PdfIcon,
+  TableChart as ExcelIcon,
+  InsertDriveFile as CsvIcon,
+  Assessment as ReportIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -304,6 +309,243 @@ const Dental = () => {
     return `₱${parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
   };
 
+  // Export Functions
+  const handleExportCSV = () => {
+    if (filteredRecords.length === 0) {
+      setError('No dental records to export');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    const exportData = filteredRecords.map(record => ({
+      'Record ID': record.id,
+      'Patient Name': record.patient_name || 'Unknown',
+      'USC ID': record.patient_usc_id || 'N/A',
+      'Visit Date': formatDate(record.visit_date),
+      'Procedure': record.procedure_performed_display || 'N/A',
+      'Tooth Number': record.tooth_number || 'N/A',
+      'Diagnosis': record.diagnosis || 'N/A',
+      'Treatment': record.treatment_performed || 'N/A',
+      'Priority': getPriorityLabel(record.priority),
+      'Pain Level': record.pain_level || 'N/A',
+      'Cost': formatCurrency(record.cost),
+      'Insurance Covered': record.insurance_covered ? 'Yes' : 'No',
+      'Follow-up Required': record.follow_up_required ? 'Yes' : 'No',
+      'Follow-up Date': record.follow_up_date ? formatDate(record.follow_up_date) : 'N/A',
+      'Notes': record.notes || 'N/A',
+      'Created': formatDate(record.created_at),
+      'Last Updated': formatDate(record.updated_at)
+    }));
+
+    const csvContent = [
+      Object.keys(exportData[0]).join(','),
+      ...exportData.map(record => 
+        Object.values(record).map(value => 
+          `"${String(value).replace(/"/g, '""')}"`
+        ).join(',')
+      )
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `dental-records-${dayjs().format('YYYY-MM-DD-HHmm')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    setSuccess(`Exported ${filteredRecords.length} dental records to CSV`);
+    setTimeout(() => setSuccess(null), 3000);
+  };
+
+  const handleExportExcel = async () => {
+    if (filteredRecords.length === 0) {
+      setError('No dental records to export');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    try {
+      // Create a more comprehensive Excel-compatible format
+      const exportData = filteredRecords.map(record => ({
+        'Record ID': record.id,
+        'Patient Information': record.patient_name || 'Unknown',
+        'USC ID': record.patient_usc_id || '',
+        'Visit Date': record.visit_date,
+        'Dental Procedure': record.procedure_performed_display || '',
+        'Tooth/Area': record.tooth_number || '',
+        'Clinical Diagnosis': record.diagnosis || '',
+        'Treatment Performed': record.treatment_performed || '',
+        'Priority Level': getPriorityLabel(record.priority),
+        'Pain Assessment (1-10)': record.pain_level || '',
+        'Total Cost (₱)': record.cost || 0,
+        'Insurance Coverage': record.insurance_covered ? 'Covered' : 'Not Covered',
+        'Follow-up Required': record.follow_up_required ? 'Yes' : 'No',
+        'Follow-up Date': record.follow_up_date || '',
+        'Clinical Notes': record.notes || '',
+        'Record Created': record.created_at,
+        'Last Modified': record.updated_at
+      }));
+
+      // Convert to tab-separated values for better Excel compatibility
+      const tsvContent = [
+        Object.keys(exportData[0]).join('\t'),
+        ...exportData.map(record => 
+          Object.values(record).map(value => 
+            String(value).replace(/\t/g, ' ').replace(/\n/g, ' ')
+          ).join('\t')
+        )
+      ].join('\n');
+
+      const blob = new Blob([tsvContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `dental-records-${dayjs().format('YYYY-MM-DD-HHmm')}.xls`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      setSuccess(`Exported ${filteredRecords.length} dental records to Excel format`);
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      setError('Failed to export to Excel format');
+      setTimeout(() => setError(null), 3000);
+    }
+  };
+
+  const handlePrintReport = () => {
+    if (filteredRecords.length === 0) {
+      setError('No dental records to print');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>USC-PIS Dental Records Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #1976d2; padding-bottom: 20px; }
+            .header h1 { color: #1976d2; margin: 10px 0; }
+            .header p { margin: 5px 0; color: #666; }
+            .summary { background: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px; }
+            .record { border: 1px solid #ddd; margin: 15px 0; padding: 15px; border-radius: 5px; }
+            .record-header { background: #e3f2fd; padding: 10px; margin: -15px -15px 15px -15px; border-radius: 5px 5px 0 0; }
+            .record-title { font-weight: bold; color: #1976d2; font-size: 16px; }
+            .record-meta { color: #666; font-size: 14px; margin-top: 5px; }
+            .record-body { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+            .field { margin-bottom: 8px; }
+            .field-label { font-weight: bold; color: #333; }
+            .field-value { color: #666; }
+            .priority-urgent { color: #f44336; font-weight: bold; }
+            .priority-high { color: #ff9800; font-weight: bold; }
+            .priority-medium { color: #2196f3; }
+            .priority-low { color: #4caf50; }
+            .footer { text-align: center; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px; color: #666; }
+            @media print { body { margin: 0; } .no-print { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>University of Southern California</h1>
+            <h2>Patient Information System</h2>
+            <h3>Dental Records Report</h3>
+            <p>Generated on: ${dayjs().format('MMMM DD, YYYY [at] HH:mm')}</p>
+            <p>Total Records: ${filteredRecords.length}</p>
+          </div>
+          
+          <div class="summary">
+            <h3>Report Summary</h3>
+            <p><strong>Date Range:</strong> ${selectedDate ? dayjs(selectedDate).format('MMMM DD, YYYY') : 'All dates'}</p>
+            <p><strong>Procedure Filter:</strong> ${procedureFilter || 'All procedures'}</p>
+            <p><strong>Priority Filter:</strong> ${priorityFilter ? getPriorityLabel(priorityFilter) : 'All priorities'}</p>
+            <p><strong>Search Term:</strong> ${searchTerm || 'None'}</p>
+          </div>
+          
+          ${filteredRecords.map(record => `
+            <div class="record">
+              <div class="record-header">
+                <div class="record-title">${record.patient_name || 'Unknown Patient'}</div>
+                <div class="record-meta">
+                  Record #${record.id} | Visit: ${formatDate(record.visit_date)} | 
+                  Priority: <span class="priority-${(record.priority || 'low').toLowerCase()}">${getPriorityLabel(record.priority)}</span>
+                </div>
+              </div>
+              <div class="record-body">
+                <div>
+                  <div class="field">
+                    <span class="field-label">USC ID:</span>
+                    <span class="field-value">${record.patient_usc_id || 'N/A'}</span>
+                  </div>
+                  <div class="field">
+                    <span class="field-label">Procedure:</span>
+                    <span class="field-value">${record.procedure_performed_display || 'N/A'}</span>
+                  </div>
+                  <div class="field">
+                    <span class="field-label">Tooth Number:</span>
+                    <span class="field-value">${record.tooth_number || 'N/A'}</span>
+                  </div>
+                  <div class="field">
+                    <span class="field-label">Diagnosis:</span>
+                    <span class="field-value">${record.diagnosis || 'N/A'}</span>
+                  </div>
+                  <div class="field">
+                    <span class="field-label">Treatment:</span>
+                    <span class="field-value">${record.treatment_performed || 'N/A'}</span>
+                  </div>
+                </div>
+                <div>
+                  <div class="field">
+                    <span class="field-label">Pain Level:</span>
+                    <span class="field-value">${record.pain_level || 'N/A'}/10</span>
+                  </div>
+                  <div class="field">
+                    <span class="field-label">Cost:</span>
+                    <span class="field-value">${formatCurrency(record.cost)}</span>
+                  </div>
+                  <div class="field">
+                    <span class="field-label">Insurance:</span>
+                    <span class="field-value">${record.insurance_covered ? 'Covered' : 'Not Covered'}</span>
+                  </div>
+                  <div class="field">
+                    <span class="field-label">Follow-up:</span>
+                    <span class="field-value">${record.follow_up_required ? `Required (${formatDate(record.follow_up_date)})` : 'Not Required'}</span>
+                  </div>
+                  <div class="field">
+                    <span class="field-label">Notes:</span>
+                    <span class="field-value">${record.notes || 'No additional notes'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+          
+          <div class="footer">
+            <p>University of Southern California Patient Information System</p>
+            <p>This report contains confidential medical information</p>
+          </div>
+        </body>
+      </html>
+    `;
+    
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -320,16 +562,48 @@ const Dental = () => {
           <Typography variant="h4" gutterBottom>
             Dental Records Management
           </Typography>
-          {canEdit && (
+          <Box display="flex" gap={2} alignItems="center">
+            {/* Export Buttons */}
             <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => handleOpenDialog()}
-              sx={{ bgcolor: '#1976d2' }}
+              variant="outlined"
+              startIcon={<CsvIcon />}
+              onClick={handleExportCSV}
+              disabled={filteredRecords.length === 0}
+              size="small"
             >
-              New Dental Record
+              CSV
             </Button>
-          )}
+            <Button
+              variant="outlined"
+              startIcon={<ExcelIcon />}
+              onClick={handleExportExcel}
+              disabled={filteredRecords.length === 0}
+              size="small"
+              sx={{ color: '#0d7c34', borderColor: '#0d7c34', '&:hover': { borderColor: '#0d7c34', bgcolor: '#f0f9f0' } }}
+            >
+              Excel
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<PrintIcon />}
+              onClick={handlePrintReport}
+              disabled={filteredRecords.length === 0}
+              size="small"
+              sx={{ color: '#d32f2f', borderColor: '#d32f2f', '&:hover': { borderColor: '#d32f2f', bgcolor: '#fff0f0' } }}
+            >
+              Print
+            </Button>
+            {canEdit && (
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => handleOpenDialog()}
+                sx={{ bgcolor: '#1976d2' }}
+              >
+                New Dental Record
+              </Button>
+            )}
+          </Box>
         </Box>
 
         {/* Alerts */}

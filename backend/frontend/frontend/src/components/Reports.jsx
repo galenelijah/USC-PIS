@@ -354,119 +354,380 @@ const Reports = () => {
 
         {selectedTab === 0 && (
           <Grid container spacing={3}>
-            {templates.map((template) => (
-              <Grid item xs={12} sm={6} md={4} key={template.id}>
-                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Typography variant="h6" gutterBottom>
-                      {template.name}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" paragraph>
-                      {template.description}
-                    </Typography>
-                    <Chip
-                      label={template.report_type.replace('_', ' ')}
-                      size="small"
-                      variant="outlined"
-                      sx={{ mb: 1 }}
-                    />
-                    <Typography variant="caption" display="block">
-                      Generated {template.generation_count} times
-                    </Typography>
-                  </CardContent>
-                  <Box sx={{ p: 2, pt: 0 }}>
-                    <Button
-                      fullWidth
-                      variant="contained"
-                      startIcon={<AddIcon />}
-                      onClick={() => {
-                        setSelectedTemplate(template);
-                        setReportForm(prev => ({ ...prev, title: `${template.name} - ${new Date().toLocaleDateString()}` }));
-                        setGenerateDialogOpen(true);
-                      }}
-                    >
-                      Generate Report
-                    </Button>
-                  </Box>
-                </Card>
-              </Grid>
-            ))}
+            {templates.map((template) => {
+              const getReportTypeColor = (type) => {
+                switch (type) {
+                  case 'PATIENT_SUMMARY': return '#1976d2';
+                  case 'MEDICAL_RECORDS': return '#2e7d32';
+                  case 'DENTAL_RECORDS': return '#7b1fa2';
+                  case 'FINANCIAL': return '#f57c00';
+                  case 'ANALYTICS': return '#d32f2f';
+                  case 'COMPREHENSIVE': return '#5d4037';
+                  default: return '#616161';
+                }
+              };
+
+              const getReportTypeIcon = (type) => {
+                switch (type) {
+                  case 'PATIENT_SUMMARY': return '👤';
+                  case 'MEDICAL_RECORDS': return '🏥';
+                  case 'DENTAL_RECORDS': return '🦷';
+                  case 'FINANCIAL': return '💰';
+                  case 'ANALYTICS': return '📊';
+                  case 'COMPREHENSIVE': return '📋';
+                  default: return '📄';
+                }
+              };
+
+              return (
+                <Grid item xs={12} sm={6} md={4} key={template.id}>
+                  <Card sx={{ 
+                    height: '100%', 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    border: '1px solid #e0e0e0',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                      borderColor: getReportTypeColor(template.report_type)
+                    }
+                  }}>
+                    <Box sx={{ 
+                      background: `linear-gradient(135deg, ${getReportTypeColor(template.report_type)}22 0%, ${getReportTypeColor(template.report_type)}11 100%)`,
+                      p: 2,
+                      borderBottom: '1px solid #f0f0f0'
+                    }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                        <Typography variant="h3" sx={{ mr: 1 }}>
+                          {getReportTypeIcon(template.report_type)}
+                        </Typography>
+                        <Typography variant="h6" sx={{ fontWeight: 600, color: getReportTypeColor(template.report_type) }}>
+                          {template.name}
+                        </Typography>
+                      </Box>
+                      <Chip
+                        label={template.report_type.replace('_', ' ')}
+                        size="small"
+                        sx={{ 
+                          backgroundColor: getReportTypeColor(template.report_type),
+                          color: 'white',
+                          fontWeight: 500,
+                          fontSize: '0.75rem'
+                        }}
+                      />
+                    </Box>
+                    
+                    <CardContent sx={{ flexGrow: 1, pt: 2 }}>
+                      <Typography variant="body2" color="text.secondary" paragraph sx={{ lineHeight: 1.6 }}>
+                        {template.description}
+                      </Typography>
+                      
+                      <Divider sx={{ my: 2 }} />
+                      
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Typography variant="caption" color="text.secondary">
+                            📈 Usage:
+                          </Typography>
+                          <Chip
+                            label={`${template.generation_count || 0} times`}
+                            size="small"
+                            variant="outlined"
+                            color={template.generation_count > 10 ? 'success' : template.generation_count > 5 ? 'warning' : 'default'}
+                          />
+                        </Box>
+                        
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Typography variant="caption" color="text.secondary">
+                            ⏱️ Est. Time:
+                          </Typography>
+                          <Typography variant="caption" sx={{ 
+                            color: getReportTypeColor(template.report_type),
+                            fontWeight: 500 
+                          }}>
+                            {template.estimated_duration || '2-5 min'}
+                          </Typography>
+                        </Box>
+                        
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Typography variant="caption" color="text.secondary">
+                            📄 Formats:
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 0.5 }}>
+                            <Chip label="PDF" size="small" variant="outlined" sx={{ fontSize: '0.65rem', height: 20 }} />
+                            <Chip label="Excel" size="small" variant="outlined" sx={{ fontSize: '0.65rem', height: 20, color: '#0d7c34' }} />
+                            <Chip label="CSV" size="small" variant="outlined" sx={{ fontSize: '0.65rem', height: 20 }} />
+                          </Box>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                    
+                    <Box sx={{ p: 2, pt: 0 }}>
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        startIcon={<AddIcon />}
+                        onClick={() => {
+                          setSelectedTemplate(template);
+                          setReportForm(prev => ({ 
+                            ...prev, 
+                            title: `${template.name} - ${new Date().toLocaleDateString('en-US', { 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            })}` 
+                          }));
+                          setGenerateDialogOpen(true);
+                        }}
+                        sx={{ 
+                          backgroundColor: getReportTypeColor(template.report_type),
+                          '&:hover': {
+                            backgroundColor: getReportTypeColor(template.report_type) + 'dd',
+                            transform: 'translateY(-1px)',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                          },
+                          transition: 'all 0.2s ease',
+                          fontWeight: 600,
+                          borderRadius: 2
+                        }}
+                      >
+                        Generate Report
+                      </Button>
+                    </Box>
+                  </Card>
+                </Grid>
+              );
+            })}
           </Grid>
         )}
 
         {selectedTab === 1 && (
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Title</TableCell>
-                  <TableCell>Template</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Format</TableCell>
-                  <TableCell>Created</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {reports.map((report) => (
-                  <TableRow key={report.id}>
-                    <TableCell>{report.title}</TableCell>
-                    <TableCell>{report.template_name}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={report.status}
-                        color={getStatusColor(report.status)}
-                        size="small"
-                      />
-                      {report.status === 'GENERATING' && (
-                        <Box sx={{ mt: 1 }}>
-                          <LinearProgress
-                            variant="determinate"
-                            value={report.progress_percentage || 0}
-                            sx={{ 
-                              height: 8, 
-                              borderRadius: 4,
-                              backgroundColor: 'rgba(0,0,0,0.1)',
-                              '& .MuiLinearProgress-bar': {
-                                borderRadius: 4,
-                                background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
-                              }
-                            }}
-                          />
-                          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                            {report.progress_percentage || 0}% complete
+          <Box>
+            {/* Enhanced My Reports Header */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: '#1976d2' }}>
+                📊 My Generated Reports ({reports.length})
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<FilterIcon />}
+                  onClick={() => {/* Add filter functionality */}}
+                >
+                  Filter
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<RefreshIcon />}
+                  onClick={fetchData}
+                  disabled={loading}
+                >
+                  Refresh
+                </Button>
+              </Box>
+            </Box>
+
+            <TableContainer component={Paper} sx={{ borderRadius: 2, overflow: 'hidden' }}>
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ backgroundColor: '#f8f9fa' }}>
+                    <TableCell sx={{ fontWeight: 600, color: '#1976d2' }}>📋 Report Details</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#1976d2' }}>📊 Template</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#1976d2' }}>⚡ Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#1976d2' }}>📄 Format & Size</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#1976d2' }}>📅 Timeline</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#1976d2' }}>🎯 Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {reports.map((report, index) => (
+                    <TableRow 
+                      key={report.id}
+                      sx={{ 
+                        '&:nth-of-type(odd)': { backgroundColor: '#fafafa' },
+                        '&:hover': { backgroundColor: '#f5f5f5' },
+                        transition: 'background-color 0.2s ease'
+                      }}
+                    >
+                      <TableCell>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                            {report.title}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Report #{report.id} • Generated {index + 1} of {reports.length}
                           </Typography>
                         </Box>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" alignItems="center">
-                        {getFormatIcon(report.export_format)}
-                        <Typography variant="body2" sx={{ ml: 1 }}>
-                          {report.export_format}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(report.created_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      {report.status === 'COMPLETED' && (
-                        <Tooltip title="Download Report">
-                          <IconButton
-                            onClick={() => handleDownloadReport(report.id)}
+                      </TableCell>
+                      
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body2" sx={{ mr: 1 }}>
+                            {report.template_name}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      
+                      <TableCell>
+                        <Box>
+                          <Chip
+                            label={report.status}
+                            color={getStatusColor(report.status)}
                             size="small"
+                            sx={{ 
+                              fontWeight: 500,
+                              minWidth: 80,
+                              '& .MuiChip-label': { fontSize: '0.75rem' }
+                            }}
+                          />
+                          {report.status === 'GENERATING' && (
+                            <Box sx={{ mt: 1, width: '100%' }}>
+                              <LinearProgress
+                                variant="determinate"
+                                value={report.progress_percentage || 0}
+                                sx={{ 
+                                  height: 6, 
+                                  borderRadius: 3,
+                                  backgroundColor: 'rgba(0,0,0,0.08)',
+                                  '& .MuiLinearProgress-bar': {
+                                    borderRadius: 3,
+                                    background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+                                  }
+                                }}
+                              />
+                              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block', fontSize: '0.7rem' }}>
+                                {report.progress_percentage || 0}% complete • Est. {Math.ceil((100 - (report.progress_percentage || 0)) / 20)} min remaining
+                              </Typography>
+                            </Box>
+                          )}
+                          {report.status === 'FAILED' && (
+                            <Typography variant="caption" color="error" sx={{ display: 'block', mt: 0.5 }}>
+                              ⚠️ Generation failed - Click retry
+                            </Typography>
+                          )}
+                        </Box>
+                      </TableCell>
+                      
+                      <TableCell>
+                        <Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                            {getFormatIcon(report.export_format)}
+                            <Typography variant="body2" sx={{ ml: 1, fontWeight: 500 }}>
+                              {report.export_format}
+                            </Typography>
+                          </Box>
+                          <Typography variant="caption" color="text.secondary">
+                            {report.file_size ? `${(report.file_size / 1024).toFixed(1)} KB` : 'Size calculating...'}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      
+                      <TableCell>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            {new Date(report.created_at).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {new Date(report.created_at).toLocaleTimeString('en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </Typography>
+                          {report.status === 'GENERATING' && (
+                            <Typography variant="caption" color="primary" sx={{ display: 'block', mt: 0.5 }}>
+                              ⏳ Processing...
+                            </Typography>
+                          )}
+                        </Box>
+                      </TableCell>
+                      
+                      <TableCell>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          {report.status === 'COMPLETED' && (
+                            <Tooltip title="Download Report">
+                              <IconButton
+                                onClick={() => handleDownloadReport(report.id)}
+                                size="small"
+                                sx={{ 
+                                  color: '#1976d2',
+                                  '&:hover': { backgroundColor: '#e3f2fd' }
+                                }}
+                              >
+                                <DownloadIcon />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          
+                          {report.status === 'COMPLETED' && (
+                            <Tooltip title="View Report Details">
+                              <IconButton
+                                onClick={() => {/* Add view functionality */}}
+                                size="small"
+                                sx={{ 
+                                  color: '#2e7d32',
+                                  '&:hover': { backgroundColor: '#e8f5e9' }
+                                }}
+                              >
+                                <ViewIcon />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          
+                          {report.status === 'FAILED' && (
+                            <Tooltip title="Retry Generation">
+                              <IconButton
+                                onClick={() => {
+                                  setSelectedTemplate({ id: report.template_id, name: report.template_name });
+                                  setReportForm(prev => ({ ...prev, title: report.title }));
+                                  setGenerateDialogOpen(true);
+                                }}
+                                size="small"
+                                sx={{ 
+                                  color: '#f57c00',
+                                  '&:hover': { backgroundColor: '#fff3e0' }
+                                }}
+                              >
+                                <RefreshIcon />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  
+                  {reports.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4 }}>
+                        <Box>
+                          <Typography variant="h6" color="text.secondary" gutterBottom>
+                            📝 No Reports Generated Yet
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" paragraph>
+                            Start by generating your first report from the Templates tab
+                          </Typography>
+                          <Button
+                            variant="contained"
+                            onClick={() => setSelectedTab(0)}
+                            sx={{ mt: 2 }}
                           >
-                            <DownloadIcon />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                            Browse Templates
+                          </Button>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
         )}
 
         {selectedTab === 2 && (
