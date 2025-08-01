@@ -32,6 +32,7 @@ import {
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { medicalCertificateService } from '../../services/api';
+import { formatDatePH } from '../../utils/dateUtils';
 
 const approvalStatusColors = {
   draft: 'default',
@@ -66,7 +67,7 @@ const CertificateCard = ({ certificate, onView, onEdit, onDelete, userRole }) =>
       <Box className="mobile-table-row">
         <Typography className="mobile-table-label">Valid Period:</Typography>
         <Typography className="mobile-table-value">
-          {format(new Date(certificate.valid_from), 'MMM d, yyyy')} - {format(new Date(certificate.valid_until), 'MMM d, yyyy')}
+          {formatDatePH(certificate.valid_from)} - {formatDatePH(certificate.valid_until)}
         </Typography>
       </Box>
       
@@ -290,8 +291,8 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole, refreshTri
                     {certificate.patient_details?.first_name} {certificate.patient_details?.last_name}
                   </TableCell>
                   <TableCell>{certificate.diagnosis}</TableCell>
-                  <TableCell>{format(new Date(certificate.valid_from), 'MMM d, yyyy')}</TableCell>
-                  <TableCell>{format(new Date(certificate.valid_until), 'MMM d, yyyy')}</TableCell>
+                  <TableCell>{formatDatePH(certificate.valid_from)}</TableCell>
+                  <TableCell>{formatDatePH(certificate.valid_until)}</TableCell>
                   <TableCell>
                     <Chip
                       label={certificate.fitness_status === 'fit' ? 'Fit' : 'Not Fit'}

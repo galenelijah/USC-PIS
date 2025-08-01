@@ -23,6 +23,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { reportService } from '../services/api';
+import { formatDateTimePH, formatDatePH } from '../utils/dateUtils';
 
 const Reports = () => {
   const [templates, setTemplates] = useState([]);
@@ -709,16 +710,15 @@ const Reports = () => {
                       <TableCell>
                         <Box>
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {new Date(report.created_at).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric'
-                            })}
+                            {formatDatePH(report.created_at)}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {new Date(report.created_at).toLocaleTimeString('en-US', {
-                              hour: '2-digit',
-                              minute: '2-digit'
+                            {formatDateTimePH(report.created_at, { 
+                              timeStyle: 'short',
+                              dateStyle: undefined,
+                              year: undefined,
+                              month: undefined,
+                              day: undefined 
                             })}
                           </Typography>
                           {report.status === 'GENERATING' && (
@@ -933,7 +933,7 @@ const Reports = () => {
                               }}
                             />
                             <Typography variant="caption" color="text.secondary">
-                              {new Date(trend.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              {formatDatePH(trend.date, { month: 'short', day: 'numeric' })}
                             </Typography>
                             <Typography variant="caption" color="primary">
                               {trend.reports}

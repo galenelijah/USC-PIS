@@ -67,6 +67,7 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { healthRecordsService, dentalRecordService, patientService } from '../services/api';
 import { useSelector } from 'react-redux';
+import { formatDateComprehensive, formatDatePH, formatDateTimePH } from '../utils/dateUtils';
 
 dayjs.extend(relativeTime);
 
@@ -266,14 +267,12 @@ const MedicalRecordsPage = () => {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return { formatted: 'N/A', relative: 'N/A' };
     try {
-      const date = dayjs(dateString);
-      return {
-        formatted: date.format('MMM DD, YYYY'),
-        relative: date.fromNow()
-      };
-    } catch {
+      // Use our centralized date utilities for consistent Philippines timezone handling
+      return formatDateComprehensive(dateString);
+    } catch (error) {
+      console.error('Error formatting date:', dateString, error);
       return { formatted: dateString, relative: '' };
     }
   };

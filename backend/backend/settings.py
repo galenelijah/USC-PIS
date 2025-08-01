@@ -231,7 +231,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+# Set timezone to Philippines (Cebu City, USC-DC location)
+TIME_ZONE = 'Asia/Manila'
 
 USE_I18N = True
 
