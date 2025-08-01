@@ -23,6 +23,9 @@ import {
   CardContent,
   Collapse,
   Divider,
+  Avatar,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -60,7 +63,72 @@ const PatientRow = memo(({ patient, onEdit, onDelete }) => (
 
 PatientRow.displayName = 'PatientRow';
 
+// Mobile Patient Card Component
+const PatientCard = memo(({ patient, onEdit, onDelete }) => (
+  <Card className="mobile-table-card" sx={{ mb: 2 }}>
+    <CardContent>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+        <Avatar sx={{ mr: 2, bgcolor: 'primary.main' }}>
+          {patient.first_name?.charAt(0)}{patient.last_name?.charAt(0)}
+        </Avatar>
+        <Box sx={{ flexGrow: 1 }}>
+          <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
+            {`${patient.first_name} ${patient.last_name}`}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {patient.usc_id || 'No USC ID'}
+          </Typography>
+        </Box>
+      </Box>
+      
+      <Box className="mobile-table-row">
+        <Typography className="mobile-table-label">Email:</Typography>
+        <Typography className="mobile-table-value">{patient.email}</Typography>
+      </Box>
+      
+      <Box className="mobile-table-row">
+        <Typography className="mobile-table-label">Phone:</Typography>
+        <Typography className="mobile-table-value">{patient.phone_number || 'N/A'}</Typography>
+      </Box>
+      
+      <Box className="mobile-table-row">
+        <Typography className="mobile-table-label">Date of Birth:</Typography>
+        <Typography className="mobile-table-value">{patient.date_of_birth}</Typography>
+      </Box>
+      
+      <Box className="mobile-table-row">
+        <Typography className="mobile-table-label">Gender:</Typography>
+        <Typography className="mobile-table-value">{getSexLabel(patient.gender)}</Typography>
+      </Box>
+      
+      <Box className="mobile-actions">
+        <Button
+          variant="outlined"
+          startIcon={<EditIcon />}
+          onClick={() => onEdit(patient)}
+          size="small"
+        >
+          Edit
+        </Button>
+        <Button
+          variant="outlined"
+          color="error"
+          startIcon={<DeleteIcon />}
+          onClick={() => onDelete(patient.id)}
+          size="small"
+        >
+          Delete
+        </Button>
+      </Box>
+    </CardContent>
+  </Card>
+));
+
+PatientCard.displayName = 'PatientCard';
+
 const PatientList = memo(({ patients, onEdit, onDelete }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [genderFilter, setGenderFilter] = useState('');
@@ -328,54 +396,89 @@ const PatientList = memo(({ patients, onEdit, onDelete }) => {
         </Box>
 
         <Divider sx={{ mb: 2 }} />
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>USC ID</TableCell>
-              <TableCell>Name</TableCell>
-              <TableCell>Date of Birth</TableCell>
-              <TableCell>Gender</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Phone</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredAndSearchedPatients.length > 0 ? (
-              filteredAndSearchedPatients.map((patient) => (
-                <PatientRow 
-                  key={patient.id} 
-                  patient={patient} 
-                  onEdit={onEdit} 
-                  onDelete={onDelete} 
-                />
-              ))
-            ) : (
+
+        {/* Desktop Table View */}
+        <TableContainer component={Paper} className="desktop-table">
+          <Table>
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                  <Typography variant="body1" color="text.secondary">
-                    {activeFilterCount > 0 
-                      ? 'No patients match the current search criteria. Try adjusting your filters.'
-                      : 'No patients found in the system.'
-                    }
-                  </Typography>
-                  {activeFilterCount > 0 && (
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={clearAllFilters}
-                      sx={{ mt: 1 }}
-                    >
-                      Clear All Filters
-                    </Button>
-                  )}
-                </TableCell>
+                <TableCell>USC ID</TableCell>
+                <TableCell>Name</TableCell>
+                <TableCell>Date of Birth</TableCell>
+                <TableCell>Gender</TableCell>
+                <TableCell>Email</TableCell>
+                <TableCell>Phone</TableCell>
+                <TableCell>Actions</TableCell>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {filteredAndSearchedPatients.length > 0 ? (
+                filteredAndSearchedPatients.map((patient) => (
+                  <PatientRow 
+                    key={patient.id} 
+                    patient={patient} 
+                    onEdit={onEdit} 
+                    onDelete={onDelete} 
+                  />
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                    <Typography variant="body1" color="text.secondary">
+                      {activeFilterCount > 0 
+                        ? 'No patients match the current search criteria. Try adjusting your filters.'
+                        : 'No patients found in the system.'
+                      }
+                    </Typography>
+                    {activeFilterCount > 0 && (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={clearAllFilters}
+                        sx={{ mt: 1 }}
+                      >
+                        Clear All Filters
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        {/* Mobile Card View */}
+        <Box className="mobile-table-card" sx={{ display: { xs: 'block', md: 'none' } }}>
+          {filteredAndSearchedPatients.length > 0 ? (
+            filteredAndSearchedPatients.map((patient) => (
+              <PatientCard 
+                key={patient.id} 
+                patient={patient} 
+                onEdit={onEdit} 
+                onDelete={onDelete} 
+              />
+            ))
+          ) : (
+            <Card sx={{ p: 4, textAlign: 'center' }}>
+              <Typography variant="body1" color="text.secondary">
+                {activeFilterCount > 0 
+                  ? 'No patients match the current search criteria. Try adjusting your filters.'
+                  : 'No patients found in the system.'
+                }
+              </Typography>
+              {activeFilterCount > 0 && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={clearAllFilters}
+                  sx={{ mt: 2 }}
+                >
+                  Clear All Filters
+                </Button>
+              )}
+            </Card>
+          )}
+        </Box>
       </Box>
     </LocalizationProvider>
   );

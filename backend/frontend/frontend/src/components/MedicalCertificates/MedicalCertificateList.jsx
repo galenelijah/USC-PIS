@@ -15,6 +15,12 @@ import {
   TextField,
   MenuItem,
   Stack,
+  Card,
+  CardContent,
+  Avatar,
+  Button,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import { 
   Visibility as VisibilityIcon,
@@ -36,7 +42,103 @@ const fitnessStatusColors = {
   not_fit: 'error',
 };
 
+// Mobile Certificate Card Component
+const CertificateCard = ({ certificate, onView, onEdit, onDelete, userRole }) => (
+  <Card className="mobile-table-card" sx={{ mb: 2 }}>
+    <CardContent>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+        <Avatar sx={{ mr: 2, bgcolor: 'secondary.main' }}>
+          {certificate.patient_details?.first_name?.charAt(0)}{certificate.patient_details?.last_name?.charAt(0)}
+        </Avatar>
+        <Box sx={{ flexGrow: 1 }}>
+          <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
+            {certificate.patient_details?.first_name} {certificate.patient_details?.last_name}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {certificate.diagnosis}
+          </Typography>
+        </Box>
+      </Box>
+      
+      <Box className="mobile-table-row">
+        <Typography className="mobile-table-label">Valid Period:</Typography>
+        <Typography className="mobile-table-value">
+          {format(new Date(certificate.valid_from), 'MMM d, yyyy')} - {format(new Date(certificate.valid_until), 'MMM d, yyyy')}
+        </Typography>
+      </Box>
+      
+      <Box className="mobile-table-row">
+        <Typography className="mobile-table-label">Fitness Status:</Typography>
+        <Box className="mobile-table-value">
+          <Chip
+            label={certificate.fitness_status === 'fit' ? 'Fit' : 'Not Fit'}
+            color={fitnessStatusColors[certificate.fitness_status]}
+            size="small"
+            variant={certificate.fitness_status === 'not_fit' ? 'filled' : 'outlined'}
+          />
+        </Box>
+      </Box>
+      
+      <Box className="mobile-table-row">
+        <Typography className="mobile-table-label">Approval Status:</Typography>
+        <Box className="mobile-table-value">
+          <Chip
+            label={certificate.approval_status_display || certificate.approval_status?.replace('_', ' ')}
+            color={approvalStatusColors[certificate.approval_status]}
+            size="small"
+          />
+        </Box>
+      </Box>
+      
+      {certificate.fitness_reason && certificate.fitness_status === 'not_fit' && (
+        <Box className="mobile-table-row">
+          <Typography className="mobile-table-label">Reason:</Typography>
+          <Typography className="mobile-table-value" sx={{ fontSize: '0.75rem' }}>
+            {certificate.fitness_reason.substring(0, 100)}...
+          </Typography>
+        </Box>
+      )}
+      
+      <Box className="mobile-actions">
+        <Button
+          variant="outlined"
+          startIcon={<VisibilityIcon />}
+          onClick={() => onView(certificate)}
+          size="small"
+        >
+          View
+        </Button>
+        {(certificate.approval_status === 'draft' || 
+          ((userRole === 'DOCTOR' || userRole === 'ADMIN' || userRole === 'STAFF' || userRole === 'NURSE') && 
+           certificate.approval_status !== 'approved')) && (
+          <Button
+            variant="outlined"
+            startIcon={<EditIcon />}
+            onClick={() => onEdit(certificate)}
+            size="small"
+          >
+            Edit
+          </Button>
+        )}
+        {certificate.approval_status === 'draft' && (
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<DeleteIcon />}
+            onClick={() => onDelete(certificate)}
+            size="small"
+          >
+            Delete
+          </Button>
+        )}
+      </Box>
+    </CardContent>
+  </Card>
+);
+
 const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [certificates, setCertificates] = useState([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -127,7 +229,8 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole }) => {
         </TextField>
       </Stack>
 
-      <TableContainer component={Paper}>
+      {/* Desktop Table View */}
+      <TableContainer component={Paper} className="desktop-table">
         <Table>
           <TableHead>
             <TableRow>
@@ -207,6 +310,41 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole }) => {
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
       </TableContainer>
+
+      {/* Mobile Card View */}
+      <Box className="mobile-table-card" sx={{ display: { xs: 'block', md: 'none' } }}>
+        {filteredCertificates
+          .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+          .map((certificate) => (
+            <CertificateCard 
+              key={certificate.id} 
+              certificate={certificate} 
+              onView={onView}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              userRole={userRole}
+            />
+          ))}
+        
+        {/* Mobile Pagination */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25]}
+            component="div"
+            count={filteredCertificates.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            sx={{
+              '& .MuiTablePagination-toolbar': {
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+              },
+            }}
+          />
+        </Box>
+      </Box>
     </Box>
   );
 };
