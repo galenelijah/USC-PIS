@@ -62,7 +62,6 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import MedicalRecord from './MedicalRecord';
 import { healthRecordsService, dentalRecordService, patientService } from '../services/api';
 import { useSelector } from 'react-redux';
 
@@ -92,7 +91,6 @@ const MedicalRecordsPage = () => {
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedRecordId, setSelectedRecordId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [tabValue, setTabValue] = useState(0);
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -152,19 +150,39 @@ const MedicalRecordsPage = () => {
   };
 
   const filterRecords = () => {
-    // Filter medical records
+    // Enhanced search functionality
+    const searchLower = searchTerm.toLowerCase().trim();
+    
+    // Filter medical records with enhanced multi-field search
     let filteredMedical = medicalRecords;
     
     if (selectedPatient) {
       filteredMedical = filteredMedical.filter(record => record.patient?.id === selectedPatient.id);
     }
     
-    if (searchTerm.trim() !== '') {
+    if (searchLower !== '') {
       filteredMedical = filteredMedical.filter(record => 
-        record.patient_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.diagnosis?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.treatment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.notes?.toLowerCase().includes(searchTerm.toLowerCase())
+        // Patient information
+        record.patient_name?.toLowerCase().includes(searchLower) ||
+        record.patient?.first_name?.toLowerCase().includes(searchLower) ||
+        record.patient?.last_name?.toLowerCase().includes(searchLower) ||
+        record.patient?.email?.toLowerCase().includes(searchLower) ||
+        record.patient_usc_id?.toLowerCase().includes(searchLower) ||
+        
+        // Medical information
+        record.diagnosis?.toLowerCase().includes(searchLower) ||
+        record.treatment?.toLowerCase().includes(searchLower) ||
+        record.chief_complaint?.toLowerCase().includes(searchLower) ||
+        record.medications?.toLowerCase().includes(searchLower) ||
+        record.notes?.toLowerCase().includes(searchLower) ||
+        
+        // Vital signs search
+        record.temperature?.toString().includes(searchLower) ||
+        record.blood_pressure?.toLowerCase().includes(searchLower) ||
+        record.pulse_rate?.toString().includes(searchLower) ||
+        
+        // Full name search
+        `${record.patient?.first_name} ${record.patient?.last_name}`.toLowerCase().includes(searchLower)
       );
     }
     
@@ -182,19 +200,37 @@ const MedicalRecordsPage = () => {
     
     setFilteredMedicalRecords(filteredMedical.sort((a, b) => new Date(b.visit_date) - new Date(a.visit_date)));
     
-    // Filter dental records
+    // Filter dental records with enhanced search
     let filteredDental = dentalRecords;
     
     if (selectedPatient) {
       filteredDental = filteredDental.filter(record => record.patient?.id === selectedPatient.id);
     }
     
-    if (searchTerm.trim() !== '') {
+    if (searchLower !== '') {
       filteredDental = filteredDental.filter(record => 
-        record.patient_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.diagnosis?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.treatment_performed?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.procedure_performed_display?.toLowerCase().includes(searchTerm.toLowerCase())
+        // Patient information
+        record.patient_name?.toLowerCase().includes(searchLower) ||
+        record.patient?.first_name?.toLowerCase().includes(searchLower) ||
+        record.patient?.last_name?.toLowerCase().includes(searchLower) ||
+        record.patient?.email?.toLowerCase().includes(searchLower) ||
+        record.patient_usc_id?.toLowerCase().includes(searchLower) ||
+        
+        // Dental information
+        record.diagnosis?.toLowerCase().includes(searchLower) ||
+        record.treatment_performed?.toLowerCase().includes(searchLower) ||
+        record.procedure_performed_display?.toLowerCase().includes(searchLower) ||
+        record.procedure_performed?.toLowerCase().includes(searchLower) ||
+        record.chief_complaint?.toLowerCase().includes(searchLower) ||
+        record.notes?.toLowerCase().includes(searchLower) ||
+        record.affected_teeth_display?.toLowerCase().includes(searchLower) ||
+        
+        // Priority and other fields
+        record.priority?.toLowerCase().includes(searchLower) ||
+        record.cost?.toString().includes(searchLower) ||
+        
+        // Full name search
+        `${record.patient?.first_name} ${record.patient?.last_name}`.toLowerCase().includes(searchLower)
       );
     }
     
@@ -221,19 +257,6 @@ const MedicalRecordsPage = () => {
     setFilteredDentalRecords(filteredDental.sort((a, b) => new Date(b.visit_date) - new Date(a.visit_date)));
   };
 
-  const handleRecordSelect = (id) => {
-    setSelectedRecordId(id);
-  };
-
-  const handleCreateNew = () => {
-    setSelectedRecordId(null);
-  };
-
-  const handleRecordSaved = () => {
-    // Refresh the records list after a record is saved
-    fetchMedicalRecords();
-    fetchDentalRecords();
-  };
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -448,12 +471,12 @@ const MedicalRecordsPage = () => {
       <Box sx={{ p: 3, maxWidth: 1400, mx: 'auto' }}>
         <Box sx={{ mb: 4 }}>
           <Typography variant="h4" gutterBottom color="primary">
-            Medical Records Management
+            Patient Medical History
           </Typography>
           <Typography variant="body1" color="text.secondary">
             {isStaffOrMedical 
-              ? 'Comprehensive medical and dental records management system for all patients.' 
-              : 'View your complete medical and dental records, plus personalized health insights.'
+              ? 'Browse and search through patient medical and dental history records with advanced filtering capabilities.' 
+              : 'View your complete medical and dental records history, plus personalized health insights.'
             }
           </Typography>
         </Box>
@@ -490,10 +513,10 @@ const MedicalRecordsPage = () => {
             🔍 Search & Filters
           </Typography>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={3}>
+            <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
-                label="Search records"
+                label="Search medical records"
                 variant="outlined"
                 size="small"
                 value={searchTerm}
@@ -505,9 +528,51 @@ const MedicalRecordsPage = () => {
                     </InputAdornment>
                   ),
                 }}
-                placeholder="Search by patient, diagnosis, treatment..."
+                placeholder="Search by patient name, diagnosis, treatment, medications, notes..."
+                helperText="Search across all medical and dental records"
               />
             </Grid>
+            
+            {/* Enhanced Patient Filter for Staff */}
+            {isStaffOrMedical && (
+              <Grid item xs={12} md={4}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Filter by Patient</InputLabel>
+                  <Select
+                    value={selectedPatient?.id || ''}
+                    label="Filter by Patient"
+                    onChange={(e) => {
+                      const patient = patients.find(p => p.id === e.target.value);
+                      setSelectedPatient(patient || null);
+                    }}
+                    startAdornment={<PersonIcon sx={{ color: 'action.active', mr: 1 }} />}
+                  >
+                    <MenuItem value="">
+                      <em>All Patients ({patients.length} total)</em>
+                    </MenuItem>
+                    {patients.map((patient) => (
+                      <MenuItem key={patient.id} value={patient.id}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Avatar sx={{ width: 24, height: 24, fontSize: '0.7rem', bgcolor: 'primary.main' }}>
+                            {patient.first_name?.[0]}{patient.last_name?.[0]}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="body2">
+                              {patient.first_name} {patient.last_name}
+                            </Typography>
+                            {patient.usc_id && (
+                              <Typography variant="caption" color="text.secondary">
+                                USC ID: {patient.usc_id}
+                              </Typography>
+                            )}
+                          </Box>
+                        </Box>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
             
             <Grid item xs={12} md={2}>
               <DatePicker
@@ -585,30 +650,6 @@ const MedicalRecordsPage = () => {
           <>
             {/* Medical Records Tab */}
             <TabPanel value={tabValue} index={0}>
-              {/* Medical Record Form */}
-              {isStaffOrMedical && (
-                <Paper sx={{ p: 3, mb: 4, borderRadius: 2, boxShadow: 3 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                    <Typography variant="h5" color="primary">
-                      {selectedRecordId ? 'Medical Record Details' : 'New Medical Record'}
-                    </Typography>
-                    <Button 
-                      variant="contained" 
-                      color="primary" 
-                      onClick={handleCreateNew}
-                      disabled={!selectedRecordId}
-                      sx={{ borderRadius: 2 }}
-                    >
-                      Create New Record
-                    </Button>
-                  </Box>
-                  <MedicalRecord 
-                    medicalRecordId={selectedRecordId} 
-                    onRecordSaved={handleRecordSaved}
-                  />
-                </Paper>
-              )}
-              
               {/* Medical Records List */}
               <Paper sx={{ borderRadius: 2, boxShadow: 3 }}>
                 <Box sx={{ p: 3, borderBottom: '1px solid #e0e0e0' }}>
@@ -616,12 +657,43 @@ const MedicalRecordsPage = () => {
                     <Typography variant="h6" color="primary">
                       Medical Records History
                     </Typography>
-                    <Chip 
-                      label={`${filteredMedicalRecords.length} record${filteredMedicalRecords.length !== 1 ? 's' : ''}`}
-                      color="primary"
-                      variant="outlined"
-                    />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Chip 
+                        label={`${filteredMedicalRecords.length} record${filteredMedicalRecords.length !== 1 ? 's' : ''}`}
+                        color="primary"
+                        variant="outlined"
+                      />
+                      {isStaffOrMedical && (
+                        <Button
+                          variant="contained"
+                          startIcon={<AddIcon />}
+                          onClick={() => window.open('/health-records', '_blank')}
+                          sx={{ 
+                            bgcolor: 'primary.main',
+                            '&:hover': { bgcolor: 'primary.dark' }
+                          }}
+                        >
+                          Create New
+                        </Button>
+                      )}
+                    </Box>
                   </Box>
+                  {isStaffOrMedical && (
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      <Typography variant="body2">
+                        <strong>📝 Create New Records:</strong> Use the "Create New" button above or visit the{' '}
+                        <Button 
+                          variant="text" 
+                          size="small" 
+                          onClick={() => window.open('/health-records', '_blank')}
+                          sx={{ textTransform: 'none', p: 0, textDecoration: 'underline' }}
+                        >
+                          Health Records page
+                        </Button>{' '}
+                        to create new medical records for patients.
+                      </Typography>
+                    </Alert>
+                  )}
                 </Box>
 
                 <Box sx={{ p: 3 }}>
@@ -659,7 +731,6 @@ const MedicalRecordsPage = () => {
                             )}
                             <TableCell sx={{ fontWeight: 'bold' }}>Diagnosis</TableCell>
                             <TableCell sx={{ fontWeight: 'bold' }}>Treatment</TableCell>
-                            <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -667,10 +738,8 @@ const MedicalRecordsPage = () => {
                             <TableRow 
                               key={record.id} 
                               hover
-                              selected={selectedRecordId === record.id}
                               sx={{ 
-                                '&:hover': { backgroundColor: '#f9f9f9' },
-                                backgroundColor: selectedRecordId === record.id ? '#e3f2fd' : 'inherit'
+                                '&:hover': { backgroundColor: '#f9f9f9' }
                               }}
                             >
                               <TableCell>
@@ -718,17 +787,6 @@ const MedicalRecordsPage = () => {
                                 >
                                   {record.treatment || 'No treatment recorded'}
                                 </Typography>
-                              </TableCell>
-                              <TableCell>
-                                <Button 
-                                  size="small" 
-                                  variant={selectedRecordId === record.id ? "contained" : "outlined"}
-                                  color="primary"
-                                  onClick={() => handleRecordSelect(record.id)}
-                                  sx={{ borderRadius: 2 }}
-                                >
-                                  {selectedRecordId === record.id ? 'Selected' : 'View'}
-                                </Button>
                               </TableCell>
                             </TableRow>
                           ))}
