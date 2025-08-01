@@ -733,30 +733,77 @@ def dashboard_stats(request):
 
 
 def calculate_profile_completion(user, patient):
-    """Calculate profile completion percentage for a user and patient."""
+    """
+    Calculate profile completion percentage for a user.
+    Fixed to properly calculate completion without duplicate counting and with correct field names.
+    """
     total_fields = 0
     completed_fields = 0
     
-    # User fields to check
-    user_fields = [
-        'first_name', 'last_name', 'email', 'phone', 'birthday',
+    def field_has_value(obj, field_name):
+        """Check if a field has a meaningful value (not None, empty string, or whitespace)."""
+        try:
+            field_value = getattr(obj, field_name, None)
+            if field_value is None:
+                return False
+            # Convert to string and check if it's not just whitespace
+            str_value = str(field_value).strip()
+            return len(str_value) > 0 and str_value.lower() not in ['none', 'null', '']
+        except:
+            return False
+    
+    # Essential profile fields (required for basic profile completion)
+    essential_fields = [
+        'first_name', 'last_name', 'email', 'birthday', 'sex', 
         'address_present', 'emergency_contact', 'emergency_contact_number'
     ]
     
-    for field in user_fields:
-        total_fields += 1
-        if getattr(user, field, None):
-            completed_fields += 1
-    
-    # Patient fields to check
-    patient_fields = [
-        'first_name', 'last_name', 'email', 'phone_number', 'date_of_birth',
-        'gender', 'address'
+    # Important profile fields (good to have for complete profile)
+    important_fields = [
+        'middle_name', 'id_number', 'course', 'year_level', 'school',
+        'civil_status', 'nationality', 'phone'
     ]
     
-    for field in patient_fields:
+    # Medical information fields (important for healthcare records)
+    medical_fields = [
+        'allergies', 'existing_medical_condition', 'medications',
+        'weight', 'height', 'father_name', 'mother_name'
+    ]
+    
+    # Optional fields (nice to have)
+    optional_fields = [
+        'religion', 'address_permanent', 'childhood_diseases', 
+        'hospitalization_history', 'surgical_procedures'
+    ]
+    
+    # Weight essential fields more heavily (they count as 3 points each)
+    for field in essential_fields:
+        total_fields += 3
+        if field_has_value(user, field):
+            completed_fields += 3
+    
+    # Important fields count as 2 points each
+    for field in important_fields:
+        total_fields += 2
+        if field_has_value(user, field):
+            completed_fields += 2
+    
+    # Medical fields count as 2 points each (important for health records)
+    for field in medical_fields:
+        total_fields += 2
+        if field_has_value(user, field):
+            completed_fields += 2
+    
+    # Optional fields count as 1 point each
+    for field in optional_fields:
         total_fields += 1
-        if getattr(patient, field, None):
+        if field_has_value(user, field):
             completed_fields += 1
     
-    return int((completed_fields / total_fields) * 100) if total_fields > 0 else 0
+    # Calculate percentage
+    if total_fields > 0:
+        percentage = int((completed_fields / total_fields) * 100)
+        # Ensure percentage doesn't exceed 100%
+        return min(percentage, 100)
+    else:
+        return 0

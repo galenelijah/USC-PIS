@@ -56,7 +56,6 @@ const App = () => {
   const dispatch = useDispatch();
 
   const [patients, setPatients] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
 
   // Memoized user role checks
   const userRoles = useMemo(() => ({
@@ -85,34 +84,6 @@ const App = () => {
     }
   }, [dispatch]);
 
-  const handleSearch = useCallback(async (query) => {
-    setSearchQuery(query);
-    try {
-      const response = await patientService.search(query);
-      if (response && response.data && Array.isArray(response.data)) {
-        setPatients(response.data);
-      } else {
-        console.warn('PatientService.search() did not return an array in response.data. Response:', response);
-        setPatients([]);
-      }
-    } catch (error) {
-      console.error('Error searching patients:', error);
-      setPatients([]);
-    }
-  }, []);
-
-  const handleEdit = useCallback((patient) => {
-    alert(`Edit functionality for patient ${patient.id} not yet implemented.`);
-  }, []);
-
-  const handleDelete = useCallback(async (id) => {
-    try {
-      await patientService.delete(id);
-      loadPatients();
-    } catch (error) {
-      console.error('Error deleting patient:', error);
-    }
-  }, [loadPatients]);
 
   const handleLogout = useCallback(() => {
     dispatch(logout());
@@ -188,7 +159,7 @@ const App = () => {
             path="/home"
             element={
               <RequireAuth isAuthenticated={isAuthenticated}>
-                <Layout onSearch={handleSearch}>
+                <Layout>
                   <Suspense fallback={<PageLoader />}>
                     <Dashboard user={user} />
                   </Suspense>
@@ -203,7 +174,7 @@ const App = () => {
             element={
               <RequireAuth isAuthenticated={isAuthenticated}>
                 {userRoles.isAdminOrStaffOrDoctor ? (
-                  <Layout onSearch={handleSearch}>
+                  <Layout>
                     <Suspense fallback={<PageLoader />}>
                       <DatabaseMonitor />
                     </Suspense>
@@ -222,12 +193,10 @@ const App = () => {
               <RequireAuth isAuthenticated={isAuthenticated}>
                 <RequireProfileSetup>
                   {userRoles.isAdminOrStaff || userRoles.isDoctor || userRoles.isNurse ? (
-                    <Layout onSearch={handleSearch}>
+                    <Layout>
                       <Suspense fallback={<PageLoader />}>
                         <PatientList
                           patients={patients}
-                          onEdit={handleEdit}
-                          onDelete={handleDelete}
                         />
                       </Suspense>
                     </Layout>
@@ -244,7 +213,7 @@ const App = () => {
             element={
               <RequireAuth isAuthenticated={isAuthenticated}>
                 <RequireProfileSetup>
-                  <Layout onSearch={handleSearch}>
+                  <Layout>
                     <Suspense fallback={<PageLoader />}>
                       <HealthInfo />
                     </Suspense>
@@ -259,7 +228,7 @@ const App = () => {
             element={
               <RequireAuth isAuthenticated={isAuthenticated}>
                 <RequireProfileSetup>
-                  <Layout onSearch={handleSearch}>
+                  <Layout>
                     <Suspense fallback={<PageLoader />}>
                       <Campaigns />
                     </Suspense>
@@ -275,7 +244,7 @@ const App = () => {
               <RequireAuth isAuthenticated={isAuthenticated}>
                 <RequireProfileSetup>
                   {userRoles.isAdminOrStaff || userRoles.isDoctor || userRoles.isNurse ? (
-                    <Layout onSearch={handleSearch}>
+                    <Layout>
                       <Suspense fallback={<PageLoader />}>
                         <StudentRecords />
                       </Suspense>
@@ -294,7 +263,7 @@ const App = () => {
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
-                <Layout onSearch={handleSearch}>
+                <Layout>
                   <HealthRecords />
                 </Layout>
               </RequireProfileSetup>
@@ -308,7 +277,7 @@ const App = () => {
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
-                <Layout onSearch={handleSearch}>
+                <Layout>
                   <Dental />
                 </Layout>
               </RequireProfileSetup>
@@ -322,7 +291,7 @@ const App = () => {
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
-                <Layout onSearch={handleSearch}>
+                <Layout>
                   <ConsultationHistory />
                 </Layout>
               </RequireProfileSetup>
@@ -337,7 +306,7 @@ const App = () => {
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
                 {!userRoles.isStudent ? (
-                  <Layout onSearch={handleSearch}>
+                  <Layout>
                     <Medical />
                   </Layout>
                 ) : (
@@ -354,7 +323,7 @@ const App = () => {
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
                 {!userRoles.isStudent ? (
-                  <Layout onSearch={handleSearch}>
+                  <Layout>
                     <Dental />
                   </Layout>
                 ) : (
@@ -371,7 +340,7 @@ const App = () => {
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
-                <Layout onSearch={handleSearch}>
+                <Layout>
                   <Profile />
                 </Layout>
               </RequireProfileSetup>
@@ -400,7 +369,7 @@ const App = () => {
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
                 <ErrorBoundary>
-                  <Layout onSearch={handleSearch}>
+                  <Layout>
                     <Notifications />
                   </Layout>
                 </ErrorBoundary>
@@ -415,7 +384,7 @@ const App = () => {
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
-                <Layout onSearch={handleSearch}>
+                <Layout>
                   <FeedbackSelector />
                 </Layout>
               </RequireProfileSetup>
@@ -428,7 +397,7 @@ const App = () => {
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
-                <Layout onSearch={handleSearch}>
+                <Layout>
                   <FeedbackForm medicalRecordId="general" />
                 </Layout>
               </RequireProfileSetup>
@@ -442,7 +411,7 @@ const App = () => {
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
-                <Layout onSearch={handleSearch}>
+                <Layout>
                   <Suspense fallback={<PageLoader />}>
                     <FeedbackFormWrapper />
                   </Suspense>
@@ -459,7 +428,7 @@ const App = () => {
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
                 {userRoles.isAdminOrStaffOrDoctor ? (
-                  <Layout onSearch={handleSearch}>
+                  <Layout>
                     <AdminFeedbackList />
                   </Layout>
                 ) : (
@@ -505,7 +474,7 @@ const App = () => {
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
                 {userRoles.isAdminOrStaff || userRoles.isDoctor || userRoles.isNurse || userRoles.isStudent ? (
-                  <Layout onSearch={handleSearch}>
+                  <Layout>
                     <MedicalCertificatesPage />
                   </Layout>
                 ) : (
@@ -522,7 +491,7 @@ const App = () => {
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
-                <Layout onSearch={handleSearch}>
+                <Layout>
                   <Suspense fallback={<PageLoader />}>
                     <MedicalRecordsPage />
                   </Suspense>
@@ -538,7 +507,7 @@ const App = () => {
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
-                <Layout onSearch={handleSearch}>
+                <Layout>
                   <Suspense fallback={<PageLoader />}>
                     <MedicalHistoryPage />
                   </Suspense>
@@ -554,7 +523,7 @@ const App = () => {
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
-                <Layout onSearch={handleSearch}>
+                <Layout>
                   <Suspense fallback={<PageLoader />}>
                     <PatientMedicalDashboard />
                   </Suspense>
@@ -571,7 +540,7 @@ const App = () => {
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
                 {userRoles.isAdminOrStaff || userRoles.isDoctor || userRoles.isNurse ? (
-                  <Layout onSearch={handleSearch}>
+                  <Layout>
                     <Reports />
                   </Layout>
                 ) : (

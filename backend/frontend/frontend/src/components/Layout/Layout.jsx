@@ -3,7 +3,7 @@ import { Box, CssBaseline, Container, Paper } from '@mui/material';
 import Header from './Header';
 import Sidebar from './Sidebar';
 
-const Layout = ({ children, onSearch }) => {
+const Layout = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleDrawerToggle = () => {
@@ -24,7 +24,7 @@ const Layout = ({ children, onSearch }) => {
           flexDirection: 'column',
         }}
       >
-        <Header onSearch={onSearch || (() => {})} handleDrawerToggle={handleDrawerToggle} />
+        <Header handleDrawerToggle={handleDrawerToggle} />
         <Container 
           maxWidth="xl" 
           sx={{ 

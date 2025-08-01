@@ -3,7 +3,6 @@ import {
   AppBar,
   Toolbar,
   Typography,
-  InputBase,
   IconButton,
   Box,
   Badge,
@@ -13,16 +12,13 @@ import {
   ListItemIcon,
   Avatar,
   Tooltip,
-  Button,
 } from '@mui/material';
 import {
-  Search as SearchIcon,
   Notifications as NotificationsIcon,
   Person as PersonIcon,
   Settings as SettingsIcon,
   ExitToApp as LogoutIcon,
   Help as HelpIcon,
-  Clear as ClearIcon,
   Menu as MenuIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -30,12 +26,11 @@ import { useSelector, useDispatch } from 'react-redux';
 import { logout, logoutUser } from '../../features/authentication/authSlice';
 import { notificationService } from '../../services/api';
 
-const Header = ({ onSearch, handleDrawerToggle }) => {
+const Header = ({ handleDrawerToggle }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector(state => state.auth?.user);
   
-  const [searchValue, setSearchValue] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const open = Boolean(anchorEl);
@@ -84,16 +79,6 @@ const Header = ({ onSearch, handleDrawerToggle }) => {
     handleMenuClose();
   };
 
-  const handleSearchChange = (e) => {
-    const value = e.target.value;
-    setSearchValue(value);
-    onSearch(value);
-  };
-
-  const clearSearch = () => {
-    setSearchValue('');
-    onSearch('');
-  };
 
   return (
     <AppBar
@@ -118,33 +103,9 @@ const Header = ({ onSearch, handleDrawerToggle }) => {
           <MenuIcon />
         </IconButton>
 
-        <Box
-          sx={{
-            backgroundColor: '#f5f5f5',
-            borderRadius: 2,
-            p: '2px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            width: { xs: '200px', sm: '300px', md: '400px' },
-            boxShadow: 'inset 0px 0px 5px rgba(0,0,0,0.05)',
-          }}
-        >
-          <SearchIcon sx={{ color: 'action.active', mr: 1 }} />
-          <InputBase
-            placeholder="Search patients..."
-            value={searchValue}
-            onChange={handleSearchChange}
-            sx={{ ml: 1, flex: 1 }}
-            fullWidth
-          />
-          {searchValue && (
-            <IconButton size="small" onClick={clearSearch}>
-              <ClearIcon fontSize="small" />
-            </IconButton>
-          )}
-        </Box>
-        
-        <Box sx={{ flexGrow: 1 }} />
+        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+          USC Patient Information System
+        </Typography>
         
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <Tooltip title="Help">
