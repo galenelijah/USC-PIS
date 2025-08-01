@@ -85,12 +85,14 @@ Welcome to the USC Patient Information System (USC-PIS). This comprehensive guid
 - Quick access to common tasks
 
 ### Medical Records
-- View complete medical history (medical and dental records combined)
-- Add new medical records
-- Update existing records
-- Attach documents and lab results
-- Search and filter records
-- **Interface Update**: Medical and dental records are now displayed together in a single "All Records" view for simplified navigation
+- **Revolutionary Tabbed Interface** (August 2025 Update)
+- **Medical Records Tab**: Complete medical record management with advanced search and filtering
+- **Dental Records Tab**: Comprehensive dental history with visual priority indicators
+- **Health Insights Tab**: Personalized analytics with visit frequency and health trend analysis
+- Add new medical and dental records with enhanced patient search
+- Advanced search across diagnosis, treatment, medications, and clinical notes
+- Export medical history to CSV format with professional formatting
+- Date range filtering with Material-UI date pickers
 
 ### Appointments
 - Schedule new appointments
@@ -130,13 +132,80 @@ Welcome to the USC Patient Information System (USC-PIS). This comprehensive guid
 3. Update desired information
 4. Click "Save Changes"
 
-### Viewing Medical Records
-1. Navigate to "Medical Records"
-2. **All Records Tab**: View both medical and dental records together in a single, unified timeline
-3. **Health Insights Tab** (Students only): Access personalized health analytics and recommendations based on your medical history
-4. Use the search bar to find specific records by diagnosis, treatment, or complaint
-5. Click on a record to expand and view detailed information including vital signs and clinical notes
-6. Use the print icon to generate a PDF of your medical history
+### Navigating the New Medical Records Interface (August 2025 Update)
+
+#### **Using the Tabbed Interface**
+1. Navigate to "Medical Records" to see the new three-tab interface
+2. **Medical Records Tab**: 
+   - View all medical records with enhanced search and filtering
+   - Use advanced search across diagnosis, treatment, medications, and clinical notes
+   - Apply date range filters using the professional date picker interface
+   - Export medical history to CSV format with complete patient data
+   - Create new medical records (medical staff only)
+3. **Dental Records Tab**:
+   - View dental procedures with visual priority indicators (Low/Medium/High/Urgent)
+   - See pain levels displayed as star ratings (1-10 scale)
+   - View cost information with insurance status indicators
+   - Access affected teeth information and treatment notes
+4. **Health Insights Tab** (All users):
+   - **Summary Statistics**: View total records and recent activity (last 30 days)
+   - **Visit Frequency Analysis**: See 6-month visit patterns with visual progress bars
+   - **Common Conditions**: Identify recurring health issues and patterns
+   - **Personalized Recommendations**: Get health advice based on your visit history
+
+#### **Advanced Search and Filtering**
+1. Use the unified search bar to find records across both medical and dental data
+2. Apply date range filters:
+   - Click the "From Date" and "To Date" fields
+   - Select dates using the Material-UI date picker
+   - View active filters as removable chips
+   - Use "Clear Filters" to reset all applied filters
+3. Search across multiple fields: patient names, diagnosis, treatment, medications, notes
+4. View real-time results as you type
+
+#### **Export and Print Features**
+1. Click the "Export CSV" button to download your complete medical history
+2. Files are automatically named with current date for easy organization
+3. Exported data includes patient demographics, diagnosis, treatment, medications, and clinical notes
+
+### Creating Medical Certificates with Smart Patient Search (August 2025 Update)
+
+#### **Revolutionary Single-Step Patient Search**
+Medical staff can now create medical certificates using an intuitive, professional patient search interface that eliminates the previous clunky two-step process.
+
+#### **Using the Smart Search Interface**
+1. Navigate to "Medical Certificates" → "Create New Certificate"
+2. **Patient Search & Selection**:
+   - Start typing in the "Search and Select Patient" field
+   - **Multi-Field Search**: Search by patient name, email, USC ID, or ID number
+   - **Real-Time Results**: See filtered results instantly as you type
+   - **Professional Patient Cards**: View patient information with avatars, names, emails, and ID badges
+   - **Visual Selection**: Click on the desired patient card to select
+
+#### **Patient Search Tips**
+- **Full Names**: Type first name, last name, or both (e.g., "John Doe", "John", or "Doe")
+- **Email Addresses**: Use full or partial email addresses (e.g., "john.doe@usc.edu.ph" or "john.doe")
+- **USC ID Numbers**: Enter USC ID for quick lookup (e.g., "USC2024001")
+- **Alternative ID**: Use ID numbers when USC ID is not available
+- **Partial Matching**: The system finds results even with partial information
+
+#### **Selected Patient Confirmation**
+- After selecting a patient, you'll see a green confirmation panel
+- The panel displays: patient avatar, full name, email, USC ID, and alternative ID
+- This ensures you've selected the correct patient before proceeding
+- You can change your selection by typing in the search field again
+
+#### **Professional Features**
+- **Visual Patient Cards**: Each search result shows patient avatar, name, email, and ID badges
+- **No More Steps**: Gone are the days of separate search → select → confirm steps
+- **Error Prevention**: Clear visual confirmation prevents patient mix-ups
+- **Fast Performance**: Instant search results with no server delays
+- **Mobile Optimized**: Works perfectly on tablets and mobile devices
+
+#### **For Different User Roles**
+- **Doctors**: Can immediately set fitness status and approve certificates during creation
+- **Staff/Admin**: Certificates automatically submitted for doctor approval after creation
+- **All Roles**: Same professional search experience regardless of role
 
 ### Submitting Feedback (Patient/Student)
 1. Click "Feedback" in the navigation sidebar.
@@ -227,14 +296,21 @@ USC-PIS features comprehensive form validation to ensure data accuracy and provi
   - Height/Weight/BMI: Must be positive numbers
 - **Physical Examination**: All fields optional
 
-#### **Medical Certificate Form**
-- **Patient**: Required selection from dropdown
-- **Template**: Required selection
+#### **Medical Certificate Form** (Enhanced August 2025)
+- **Patient Search & Selection**: Use the new smart search interface
+  - Type patient name, email, USC ID, or ID number
+  - Select from real-time filtered results with professional patient cards
+  - Confirm selection in the green confirmation panel
+- **Template**: Required selection from available certificate templates
 - **Diagnosis**: Required, cannot be empty
 - **Recommendations**: Required, cannot be empty
-- **Valid From Date**: Required
+- **Valid From Date**: Required, use the date picker
 - **Valid Until Date**: Required, must be after the "Valid From" date
 - **Additional Notes**: Optional
+- **Doctor-Only Fields** (when creating as a doctor):
+  - **Medical Fitness Status**: Choose "Fit" or "Not Fit"
+  - **Approval Status**: Set to "Approved" or "Rejected"
+  - **Fitness Reason**: Required detailed explanation when selecting "Not Fit"
 
 #### **Feedback Form**
 - **Rating**: Required, must select 1-5 stars
