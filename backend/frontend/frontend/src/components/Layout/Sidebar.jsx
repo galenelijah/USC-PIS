@@ -21,8 +21,6 @@ import {
   Storage as StorageIcon,
   HealthAndSafety as HealthInfoIcon,
   Feedback as FeedbackIcon,
-  CloudUpload as UploadIcon,
-  Download as DownloadIcon,
   Person as PersonIcon,
   MedicalInformation as MedicalInformationIcon,
   Notifications as NotificationsIcon,
@@ -94,7 +92,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
     { text: 'Patients', icon: <PeopleIcon />, path: '/patients', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'] },
     { text: 'Patient Medical Dashboard', icon: <MedicalInformationIcon />, path: '/patient-dashboard' },
     { text: 'Patient Medical History', icon: <LocalHospitalIcon />, path: '/medical-records', description: 'Browse and search patient medical and dental history records' },
-    { text: 'My Health Records', icon: <LocalHospitalIcon />, path: '/health-records', description: 'View your personal health records and medical history' },
+    { text: 'Medical Records', icon: <LocalHospitalIcon />, path: '/health-records', description: 'View your personal medical records and history' },
     { text: 'Dental Records', icon: <DentalIcon />, path: '/dental-records' },
     { text: 'Medical Certificates', icon: <MedicalInformationIcon />, path: '/medical-certificates', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE', 'STUDENT'] },
   ];
@@ -111,8 +109,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
   ];
 
   const fileItems = [
-    { text: 'File Uploads', icon: <UploadIcon />, path: '/uploads' },
-    { text: 'File Downloads', icon: <DownloadIcon />, path: '/downloads' },
+    // File upload/download functionality removed from navigation
   ];
 
   const adminItems = [
@@ -260,7 +257,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
       <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', my: 1 }} />
       {renderMenuSection(reportItems, 'ANALYTICS')}
       <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', my: 1 }} />
-      {renderMenuSection(fileItems, "FILES")}
+      {/* File upload/download section removed */}
       {isAdminOrStaffOrDoctor && renderMenuSection(adminItems, "ADMINISTRATION")}
 
       <Box sx={{ flexGrow: 1 }} />

@@ -780,7 +780,7 @@ const MedicalRecordsPage = () => {
       <Box sx={{ p: 3, maxWidth: 1400, mx: 'auto' }}>
         <Box sx={{ mb: 4 }}>
           <Typography variant="h4" gutterBottom color="primary">
-            Patient Medical History
+            {isStudent ? 'Patient History' : 'Patient Medical History'}
           </Typography>
           <Typography variant="body1" color="text.secondary">
             {isStaffOrMedical 

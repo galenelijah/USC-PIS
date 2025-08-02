@@ -87,8 +87,11 @@ const StudentHealthRecords = () => {
     setLoading(true);
     try {
       const response = await healthRecordsService.getAll();
-      // Backend already filters records for students, so we can use the data directly
-      setRecords(response.data || []);
+      // Backend already filters records for students, filter for medical records only
+      const medicalRecords = (response.data || []).filter(record => 
+        record.record_type === 'MEDICAL' || record.chief_complaint
+      );
+      setRecords(medicalRecords);
     } catch (error) {
       console.error('Error fetching my health records:', error);
     } finally {
@@ -104,7 +107,7 @@ const StudentHealthRecords = () => {
     setExpandedRecord(isExpanded ? panel : false);
   };
 
-  // Filter records based on search term, selected date, and tab
+  // Filter records based on search term and selected date (only medical records)
   const filteredRecords = records.filter(record => {
     const searchMatch = 
       (record.diagnosis || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -114,53 +117,41 @@ const StudentHealthRecords = () => {
     
     const dateMatch = selectedDate ? record.visit_date === dayjs(selectedDate).format('YYYY-MM-DD') : true;
     
-    // Filter based on tab selection
-    let typeMatch = true;
-    if (tabValue === 1) { // Medical only
-      typeMatch = record.record_type === 'MEDICAL' || record.chief_complaint;
-    } else if (tabValue === 2) { // Dental only
-      typeMatch = record.record_type === 'DENTAL' || record.procedure_performed_display;
-    }
-    
-    return searchMatch && dateMatch && typeMatch;
+    return searchMatch && dateMatch;
   });
 
   // Get health insights for the student
   const getHealthInsights = () => {
     const insights = [];
     const totalRecords = records.length;
-    const medicalRecords = records.filter(r => r.record_type === 'MEDICAL' || r.chief_complaint).length;
-    const dentalRecords = records.filter(r => r.record_type === 'DENTAL' || r.procedure_performed_display).length;
     const recentRecords = records.filter(r => dayjs(r.visit_date).isAfter(dayjs().subtract(90, 'day'))).length;
     
     if (totalRecords === 0) {
       insights.push({
         type: 'info',
-        message: 'No health records found. Visit the clinic for your first health checkup!',
+        message: 'No medical records found. Visit the clinic for your first medical checkup!',
         icon: <HospitalIcon />
       });
     } else {
       insights.push({
         type: 'success',
-        message: `You have ${totalRecords} total health record${totalRecords > 1 ? 's' : ''} in our system.`,
+        message: `You have ${totalRecords} medical record${totalRecords > 1 ? 's' : ''} in our system.`,
         icon: <HeartIcon />
       });
       
       if (recentRecords > 0) {
         insights.push({
           type: 'info',
-          message: `${recentRecords} visit${recentRecords > 1 ? 's' : ''} in the last 3 months. Keep up with regular health checkups!`,
+          message: `${recentRecords} medical visit${recentRecords > 1 ? 's' : ''} in the last 3 months. Keep up with regular health checkups!`,
           icon: <CalendarIcon />
         });
       }
       
-      if (dentalRecords > 0) {
-        insights.push({
-          type: 'info',
-          message: `${dentalRecords} dental record${dentalRecords > 1 ? 's' : ''} found. Remember to visit for regular dental checkups every 6 months.`,
-          icon: <HealingIcon />
-        });
-      }
+      insights.push({
+        type: 'info',
+        message: 'For dental records, please visit the dedicated Dental Records page.',
+        icon: <HealingIcon />
+      });
     }
     
     return insights;
@@ -212,11 +203,11 @@ const StudentHealthRecords = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" component="h1" gutterBottom>
-        My Health Records
+        My Medical Records
       </Typography>
       
       <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-        View your complete medical and dental history from USC clinic visits.
+        View your complete medical history from USC clinic visits.
       </Typography>
 
       {/* Health Insights */}
@@ -249,43 +240,19 @@ const StudentHealthRecords = () => {
 
       {/* Quick Stats */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={3}>
+        <Grid item xs={12} sm={4}>
           <Card elevation={1}>
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Typography variant="h4" color="primary">
                 {records.length}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Total Records
+                Total Medical Records
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={3}>
-          <Card elevation={1}>
-            <CardContent sx={{ textAlign: 'center', py: 2 }}>
-              <Typography variant="h4" color="primary">
-                {records.filter(r => r.record_type === 'MEDICAL' || r.chief_complaint).length}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Medical Records
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={3}>
-          <Card elevation={1}>
-            <CardContent sx={{ textAlign: 'center', py: 2 }}>
-              <Typography variant="h4" color="primary">
-                {records.filter(r => r.record_type === 'DENTAL' || r.procedure_performed_display).length}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Dental Records
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={3}>
+        <Grid item xs={12} sm={4}>
           <Card elevation={1}>
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Typography variant="h4" color="primary">
@@ -293,6 +260,18 @@ const StudentHealthRecords = () => {
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Last 30 Days
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={4}>
+          <Card elevation={1}>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <Typography variant="h4" color="primary">
+                {records.filter(r => dayjs(r.visit_date).isAfter(dayjs().subtract(90, 'day'))).length}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Last 90 Days
               </Typography>
             </CardContent>
           </Card>
@@ -313,6 +292,14 @@ const StudentHealthRecords = () => {
               size="small"
             >
               Request Medical Certificate
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<HealingIcon />}
+              onClick={() => window.open('/dental-records', '_blank')}
+              size="small"
+            >
+              View Dental Records
             </Button>
             <Button
               variant="outlined"
@@ -362,28 +349,15 @@ const StudentHealthRecords = () => {
         </LocalizationProvider>
       </Box>
 
-      {/* Tabs for record types */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-        <Tabs value={tabValue} onChange={handleTabChange} aria-label="health record tabs">
-          <Tab 
-            label={`All Records (${records.length})`} 
-            id="health-record-tab-0" 
-            icon={<TimelineIcon />} 
-            iconPosition="start" 
-          />
-          <Tab 
-            label={`Medical (${records.filter(r => r.record_type === 'MEDICAL' || r.chief_complaint).length})`} 
-            id="health-record-tab-1" 
-            icon={<MedicalIcon />} 
-            iconPosition="start" 
-          />
-          <Tab 
-            label={`Dental (${records.filter(r => r.record_type === 'DENTAL' || r.procedure_performed_display).length})`} 
-            id="health-record-tab-2" 
-            icon={<HealingIcon />} 
-            iconPosition="start" 
-          />
-        </Tabs>
+      {/* Medical Records Header */}
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h5" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <MedicalIcon color="primary" />
+          Medical Records ({records.length})
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Your complete medical visit history and treatment records
+        </Typography>
       </Box>
 
       {/* Records Display */}
@@ -392,7 +366,6 @@ const StudentHealthRecords = () => {
       ) : filteredRecords.length > 0 ? (
         <Box sx={{ mt: 2 }}>
           {filteredRecords.map((record, index) => {
-            const isMedical = record.record_type === 'MEDICAL' || record.chief_complaint;
             return (
               <Accordion 
                 key={record.id} 
@@ -405,13 +378,13 @@ const StudentHealthRecords = () => {
                   aria-controls={`panel${index}bh-content`}
                   id={`panel${index}bh-header`}
                   sx={{ 
-                    backgroundColor: isMedical ? 'rgba(25, 118, 210, 0.05)' : 'rgba(156, 39, 176, 0.05)',
-                    '&:hover': { backgroundColor: isMedical ? 'rgba(25, 118, 210, 0.1)' : 'rgba(156, 39, 176, 0.1)' }
+                    backgroundColor: 'rgba(25, 118, 210, 0.05)',
+                    '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.1)' }
                   }}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
-                    <Avatar sx={{ bgcolor: isMedical ? 'primary.main' : 'secondary.main', width: 40, height: 40 }}>
-                      {isMedical ? <MedicalIcon /> : <HealingIcon />}
+                    <Avatar sx={{ bgcolor: 'primary.main', width: 40, height: 40 }}>
+                      <MedicalIcon />
                     </Avatar>
                     <Box sx={{ flexGrow: 1 }}>
                       <Typography variant="h6" fontWeight="bold">
@@ -422,8 +395,8 @@ const StudentHealthRecords = () => {
                       </Typography>
                     </Box>
                     <Chip 
-                      label={isMedical ? 'Medical' : 'Dental'} 
-                      color={isMedical ? 'primary' : 'secondary'} 
+                      label="Medical Record" 
+                      color="primary" 
                       size="small" 
                     />
                   </Box>
@@ -436,7 +409,7 @@ const StudentHealthRecords = () => {
                         Clinical Information
                       </Typography>
                       
-                      {isMedical && record.chief_complaint && (
+                      {record.chief_complaint && (
                         <Box sx={{ mb: 2 }}>
                           <Typography variant="body2" fontWeight="bold">Chief Complaint:</Typography>
                           <Typography variant="body2" color="text.secondary">
@@ -455,7 +428,7 @@ const StudentHealthRecords = () => {
                       <Box sx={{ mb: 2 }}>
                         <Typography variant="body2" fontWeight="bold">Treatment:</Typography>
                         <Typography variant="body2" color="text.secondary">
-                          {record.treatment || record.treatment_performed || 'No treatment recorded'}
+                          {record.treatment || 'No treatment recorded'}
                         </Typography>
                       </Box>
 
@@ -468,7 +441,7 @@ const StudentHealthRecords = () => {
                         </Box>
                       )}
 
-                      {isMedical && record.medications && (
+                      {record.medications && (
                         <Box sx={{ mb: 2 }}>
                           <Typography variant="body2" fontWeight="bold">Medications:</Typography>
                           <Typography variant="body2" color="text.secondary">
@@ -480,83 +453,37 @@ const StudentHealthRecords = () => {
 
                     {/* Right Column */}
                     <Grid item xs={12} md={6}>
-                      {isMedical ? (
-                        <>
-                          <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>
-                            Vital Signs
+                      <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>
+                        Vital Signs
+                      </Typography>
+                      <Box sx={{ backgroundColor: 'rgba(25, 118, 210, 0.05)', p: 2, borderRadius: 1 }}>
+                        <Grid container spacing={2}>
+                          <Grid item xs={6}>
+                            <Typography variant="body2" fontWeight="bold">Blood Pressure:</Typography>
+                            <Typography variant="body2">{record.blood_pressure || 'Not recorded'}</Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Typography variant="body2" fontWeight="bold">Temperature:</Typography>
+                            <Typography variant="body2">{record.temperature ? `${record.temperature}°C` : 'Not recorded'}</Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Typography variant="body2" fontWeight="bold">Pulse Rate:</Typography>
+                            <Typography variant="body2">{record.pulse_rate ? `${record.pulse_rate} bpm` : 'Not recorded'}</Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Typography variant="body2" fontWeight="bold">Respiratory Rate:</Typography>
+                            <Typography variant="body2">{record.respiratory_rate ? `${record.respiratory_rate}/min` : 'Not recorded'}</Typography>
+                          </Grid>
+                        </Grid>
+                      </Box>
+                      
+                      {record.follow_up_instructions && (
+                        <Box sx={{ mt: 2 }}>
+                          <Typography variant="body2" fontWeight="bold">Follow-up Instructions:</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {record.follow_up_instructions}
                           </Typography>
-                          <Box sx={{ backgroundColor: 'rgba(25, 118, 210, 0.05)', p: 2, borderRadius: 1 }}>
-                            <Grid container spacing={2}>
-                              <Grid item xs={6}>
-                                <Typography variant="body2" fontWeight="bold">Blood Pressure:</Typography>
-                                <Typography variant="body2">{record.blood_pressure || 'Not recorded'}</Typography>
-                              </Grid>
-                              <Grid item xs={6}>
-                                <Typography variant="body2" fontWeight="bold">Temperature:</Typography>
-                                <Typography variant="body2">{record.temperature ? `${record.temperature}°C` : 'Not recorded'}</Typography>
-                              </Grid>
-                              <Grid item xs={6}>
-                                <Typography variant="body2" fontWeight="bold">Pulse Rate:</Typography>
-                                <Typography variant="body2">{record.pulse_rate ? `${record.pulse_rate} bpm` : 'Not recorded'}</Typography>
-                              </Grid>
-                              <Grid item xs={6}>
-                                <Typography variant="body2" fontWeight="bold">Respiratory Rate:</Typography>
-                                <Typography variant="body2">{record.respiratory_rate ? `${record.respiratory_rate}/min` : 'Not recorded'}</Typography>
-                              </Grid>
-                            </Grid>
-                          </Box>
-                          
-                          {record.follow_up_instructions && (
-                            <Box sx={{ mt: 2 }}>
-                              <Typography variant="body2" fontWeight="bold">Follow-up Instructions:</Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                {record.follow_up_instructions}
-                              </Typography>
-                            </Box>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <Typography variant="h6" gutterBottom sx={{ color: 'secondary.main', fontWeight: 'bold' }}>
-                            Dental Information
-                          </Typography>
-                          <Box sx={{ backgroundColor: 'rgba(156, 39, 176, 0.05)', p: 2, borderRadius: 1 }}>
-                            {record.procedure_performed_display && (
-                              <Box sx={{ mb: 1 }}>
-                                <Typography variant="body2" fontWeight="bold">Procedure:</Typography>
-                                <Typography variant="body2">{record.procedure_performed_display}</Typography>
-                              </Box>
-                            )}
-                            {record.tooth_number && (
-                              <Box sx={{ mb: 1 }}>
-                                <Typography variant="body2" fontWeight="bold">Tooth Number:</Typography>
-                                <Typography variant="body2">{record.tooth_number}</Typography>
-                              </Box>
-                            )}
-                            {record.priority && (
-                              <Box sx={{ mb: 1 }}>
-                                <Typography variant="body2" fontWeight="bold">Priority:</Typography>
-                                <Typography variant="body2">{record.priority}</Typography>
-                              </Box>
-                            )}
-                            {record.pain_level && (
-                              <Box sx={{ mb: 1 }}>
-                                <Typography variant="body2" fontWeight="bold">Pain Level:</Typography>
-                                <Typography variant="body2">{record.pain_level}/10</Typography>
-                              </Box>
-                            )}
-                            {record.cost && (
-                              <Box sx={{ mb: 1 }}>
-                                <Typography variant="body2" fontWeight="bold">Cost:</Typography>
-                                <Typography variant="body2">₱{parseFloat(record.cost).toLocaleString('en-US', { minimumFractionDigits: 2 })}</Typography>
-                              </Box>
-                            )}
-                            <Box>
-                              <Typography variant="body2" fontWeight="bold">Insurance:</Typography>
-                              <Typography variant="body2">{record.insurance_covered ? 'Covered' : 'Not Covered'}</Typography>
-                            </Box>
-                          </Box>
-                        </>
+                        </Box>
                       )}
                       
                       <Divider sx={{ my: 2 }} />
