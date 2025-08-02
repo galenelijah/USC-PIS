@@ -100,7 +100,11 @@ const StudentHealthRecords = () => {
                          record.blood_pressure ||
                          record.temperature ||
                          record.pulse_rate ||
-                         record.medications;
+                         record.medications ||
+                         record.vital_signs?.blood_pressure ||
+                         record.vital_signs?.temperature ||
+                         record.vital_signs?.heart_rate ||
+                         record.vital_signs?.respiratory_rate;
         
         // Exclude if it's explicitly marked as DENTAL or has dental-specific fields  
         const isDental = record.record_type === 'DENTAL' ||
@@ -483,19 +487,30 @@ const StudentHealthRecords = () => {
                         <Grid container spacing={2}>
                           <Grid item xs={6}>
                             <Typography variant="body2" fontWeight="bold">Blood Pressure:</Typography>
-                            <Typography variant="body2">{record.blood_pressure || 'Not recorded'}</Typography>
+                            <Typography variant="body2">
+                              {record.vital_signs?.blood_pressure || record.blood_pressure || 'Not recorded'}
+                            </Typography>
                           </Grid>
                           <Grid item xs={6}>
                             <Typography variant="body2" fontWeight="bold">Temperature:</Typography>
-                            <Typography variant="body2">{record.temperature ? `${record.temperature}°C` : 'Not recorded'}</Typography>
+                            <Typography variant="body2">
+                              {record.vital_signs?.temperature || record.temperature ? 
+                                `${record.vital_signs?.temperature || record.temperature}°C` : 'Not recorded'}
+                            </Typography>
                           </Grid>
                           <Grid item xs={6}>
                             <Typography variant="body2" fontWeight="bold">Pulse Rate:</Typography>
-                            <Typography variant="body2">{record.pulse_rate ? `${record.pulse_rate} bpm` : 'Not recorded'}</Typography>
+                            <Typography variant="body2">
+                              {record.vital_signs?.heart_rate || record.pulse_rate || record.heart_rate ? 
+                                `${record.vital_signs?.heart_rate || record.pulse_rate || record.heart_rate} bpm` : 'Not recorded'}
+                            </Typography>
                           </Grid>
                           <Grid item xs={6}>
                             <Typography variant="body2" fontWeight="bold">Respiratory Rate:</Typography>
-                            <Typography variant="body2">{record.respiratory_rate ? `${record.respiratory_rate}/min` : 'Not recorded'}</Typography>
+                            <Typography variant="body2">
+                              {record.vital_signs?.respiratory_rate || record.respiratory_rate ? 
+                                `${record.vital_signs?.respiratory_rate || record.respiratory_rate}/min` : 'Not recorded'}
+                            </Typography>
                           </Grid>
                         </Grid>
                       </Box>
