@@ -87,10 +87,33 @@ const StudentHealthRecords = () => {
     setLoading(true);
     try {
       const response = await healthRecordsService.getAll();
+      console.log('API Response for student health records:', response.data);
+      console.log('Current user:', user);
+      
       // Backend already filters records for students, filter for medical records only
-      const medicalRecords = (response.data || []).filter(record => 
-        record.record_type === 'MEDICAL' || record.chief_complaint
-      );
+      const medicalRecords = (response.data || []).filter(record => {
+        // Include if it's explicitly marked as MEDICAL or has medical-specific fields
+        const isMedical = record.record_type === 'MEDICAL' || 
+                         record.chief_complaint || 
+                         record.history_present_illness ||
+                         record.physical_examination ||
+                         record.blood_pressure ||
+                         record.temperature ||
+                         record.pulse_rate ||
+                         record.medications;
+        
+        // Exclude if it's explicitly marked as DENTAL or has dental-specific fields  
+        const isDental = record.record_type === 'DENTAL' ||
+                        record.procedure_performed ||
+                        record.procedure_performed_display ||
+                        record.tooth_number ||
+                        record.pain_level !== undefined ||
+                        record.cost !== undefined;
+        
+        // Include if it's medical OR if it's not clearly dental
+        return isMedical || !isDental;
+      });
+      console.log('Filtered medical records:', medicalRecords);
       setRecords(medicalRecords);
     } catch (error) {
       console.error('Error fetching my health records:', error);
