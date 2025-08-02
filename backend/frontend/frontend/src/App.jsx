@@ -28,6 +28,7 @@ const ProfileSetup = lazy(() => import('./components/ProfileSetup'));
 const DatabaseMonitor = lazy(() => import('./components/DatabaseMonitor'));
 const HealthInfo = lazy(() => import('./components/HealthInfo/HealthInfo'));
 const HealthRecords = lazy(() => import('./components/HealthRecords'));
+const StudentHealthRecords = lazy(() => import('./components/StudentHealthRecords'));
 const ConsultationHistory = lazy(() => import('./components/ConsultationHistory'));
 const Notifications = lazy(() => import('./components/Notifications'));
 const Campaigns = lazy(() => import('./components/Campaigns'));
@@ -257,14 +258,20 @@ const App = () => {
             }
           />
         
-        {/* Health Records Route */}
+        {/* Health Records Route - Role-based access */}
         <Route
           path="/health-records"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
                 <Layout>
-                  <HealthRecords />
+                  <Suspense fallback={<PageLoader />}>
+                    {userRoles.isStudent ? (
+                      <StudentHealthRecords />
+                    ) : (
+                      <HealthRecords />
+                    )}
+                  </Suspense>
                 </Layout>
               </RequireProfileSetup>
             </RequireAuth>
