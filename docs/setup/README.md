@@ -1,4 +1,10 @@
-# USC-PIS Setup Guide
+# USC-PIS Setup Guide (Updated: August 2, 2025)
+
+## Recent Setup Changes
+- ✅ **Updated File Structure**: Reflects current project organization
+- ✅ **Role-Based Testing**: Enhanced test user creation for different roles
+- ✅ **Debug Tools**: Added console logging for troubleshooting student record issues
+- ✅ **Data Migration**: Support for nested vital signs JSON structure
 
 ## Prerequisites
 
@@ -19,40 +25,49 @@ cd USC-PIS
 ### 2. Set Up Python Environment
 
 ```bash
+# Navigate to backend directory
+cd USC-PIS/backend
+
 # Create and activate virtual environment
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install development dependencies
-pip install -r requirements/dev.txt
+# Install dependencies
+pip install -r requirements.txt
 ```
 
 ### 3. Configure Environment Variables
 
 ```bash
-# Copy example environment file
-cp config/settings/.env.example .env
+# Create .env file in backend directory
+touch .env
 
-# Edit .env file with your settings
-nano .env
+# Add required environment variables
+echo "DEBUG=True" >> .env
+echo "SECRET_KEY=your-secret-key-here" >> .env
+echo "DATABASE_URL=sqlite:///db.sqlite3" >> .env
 ```
 
 ### 4. Set Up Database
 
 ```bash
-# Apply migrations
-cd src/backend
+# Apply migrations (from backend directory)
 python manage.py migrate
 
-# Create test users
-python manage.py create_testusers
+# Create superuser
+python manage.py createsuperuser
+
+# Optional: Load sample data
+python manage.py loaddata fixtures/sample_data.json
 ```
 
 ### 5. Set Up Frontend
 
 ```bash
+# Navigate to frontend directory
+cd ../backend/frontend/frontend
+
 # Install dependencies
-cd src/frontend
 npm install
 
 # Start development server
@@ -64,12 +79,37 @@ npm run dev
 In separate terminals:
 
 ```bash
-# Backend (from src/backend)
+# Backend (from USC-PIS/backend)
+source venv/bin/activate  # Windows: venv\Scripts\activate
 python manage.py runserver
 
-# Frontend (from src/frontend)
+# Frontend (from USC-PIS/backend/frontend/frontend)
 npm run dev
 ```
+
+## Testing Student Record Functionality
+
+### Create Test Student User
+1. Register a new user with role "STUDENT"
+2. Create a Patient profile linked to the student user
+3. Create medical records for that patient
+4. Test student login and verify records appear in `/health-records`
+
+### Debug Student Record Issues
+If records don't show for students:
+1. Check browser console logs for API responses
+2. Verify Patient profile has `user` field set to student User
+3. Ensure medical records have correct `patient` field
+4. Check vital signs are in proper JSON format:
+   ```json
+   {
+     "vital_signs": {
+       "blood_pressure": "120/80",
+       "temperature": "36.5",
+       "heart_rate": "72"
+     }
+   }
+   ```
 
 ## Production Setup
 

@@ -1,5 +1,20 @@
 # USC-PIS API Documentation
 
+[![API Version](https://img.shields.io/badge/API-v1.0-blue)]()
+[![Status](https://img.shields.io/badge/Status-Production-success)]()
+[![Framework](https://img.shields.io/badge/Django_REST-3.14.0-green)]()
+
+## Overview
+USC Patient Information System REST API provides comprehensive healthcare management functionality with enterprise-grade security and role-based access control.
+
+## 🆕 Recent Updates (August 2025)
+- **✅ Enhanced Dashboard**: Campaigns & announcements API integration
+- **✅ Advanced Validation**: Comprehensive date validation across endpoints
+- **✅ Student Optimization**: Role-based filtering and data access patterns  
+- **✅ Data Compatibility**: Enhanced JSON handling for nested medical data
+- **✅ Search Enhancement**: USC ID search across all medical endpoints
+- **✅ Export APIs**: Professional CSV/PDF export with clinical formatting
+
 ## Authentication Endpoints
 
 ### Register User
@@ -41,14 +56,16 @@
 ## Patient Endpoints
 
 ### List Patients
-- **URL**: `/api/patients/`
+- **URL**: `/api/patients/patients/`
 - **Method**: `GET`
 - **Headers**: `Authorization: Token <token>`
+- **Role Access**: Admin, Staff, Doctor, Nurse
 
 ### Create Patient
-- **URL**: `/api/patients/`
+- **URL**: `/api/patients/patients/`
 - **Method**: `POST`
 - **Headers**: `Authorization: Token <token>`
+- **Role Access**: Admin, Staff, Doctor, Nurse
 - **Data**:
   ```json
   {
@@ -58,24 +75,139 @@
     "gender": "M",
     "email": "patient@example.com",
     "phone_number": "1234567890",
-    "address": "123 Main St"
+    "address": "123 Main St",
+    "user": 1  // Optional: Link to User account for students
   }
   ```
 
 ### Get Patient Details
-- **URL**: `/api/patients/<id>/`
+- **URL**: `/api/patients/patients/<id>/`
+- **Method**: `GET`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: Admin, Staff, Doctor, Nurse
+
+## Medical Records Endpoints
+
+### List Medical Records
+- **URL**: `/api/patients/medical-records/`
+- **Method**: `GET`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: All authenticated users
+- **Filtering**: 
+  - Students: Only their own records (requires linked Patient profile)
+  - Medical Staff: All records
+
+### Create Medical Record
+- **URL**: `/api/patients/medical-records/`
+- **Method**: `POST`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: Admin, Staff, Doctor, Nurse
+- **Data**:
+  ```json
+  {
+    "patient": 1,
+    "visit_date": "2025-08-02",
+    "diagnosis": "Common cold",
+    "treatment": "Rest and fluids",
+    "notes": "Patient advised to rest",
+    "vital_signs": {
+      "blood_pressure": "120/80",
+      "temperature": "36.5",
+      "heart_rate": "72",
+      "respiratory_rate": "16"
+    }
+  }
+  ```
+
+### Get Medical Record Details
+- **URL**: `/api/patients/medical-records/<id>/`
 - **Method**: `GET`
 - **Headers**: `Authorization: Token <token>`
 
-### Update Patient
-- **URL**: `/api/patients/<id>/`
-- **Method**: `PUT`
-- **Headers**: `Authorization: Token <token>`
+## Dental Records Endpoints
 
-### Delete Patient
-- **URL**: `/api/patients/<id>/`
-- **Method**: `DELETE`
+### List Dental Records
+- **URL**: `/api/patients/dental-records/`
+- **Method**: `GET`
 - **Headers**: `Authorization: Token <token>`
+- **Role Access**: All authenticated users
+- **Filtering**: Same as medical records
+
+### Create Dental Record
+- **URL**: `/api/patients/dental-records/`
+- **Method**: `POST`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: Admin, Staff, Doctor, Nurse
+- **Data**:
+  ```json
+  {
+    "patient": 1,
+    "visit_date": "2025-08-02",
+    "procedure_performed": "CLEANING",
+    "tooth_number": "14",
+    "diagnosis": "Routine cleaning",
+    "treatment_performed": "Professional dental cleaning",
+    "pain_level": 0,
+    "cost": "50.00",
+    "insurance_covered": true
+  }
+  ```
+
+## Health Information & Campaign Endpoints (Updated August 3, 2025)
+
+### Get Featured Campaigns
+- **URL**: `/api/health-info/campaigns/featured/`
+- **Method**: `GET`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: All authenticated users
+- **Description**: Returns up to 3 featured campaigns for dashboard display
+- **Response**:
+  ```json
+  [
+    {
+      "id": 1,
+      "title": "Flu Vaccination Campaign",
+      "category": "VACCINATION",
+      "description": "Annual flu vaccination program for all students",
+      "created_at": "2025-08-01T10:00:00Z",
+      "status": "ACTIVE"
+    }
+  ]
+  ```
+
+### Get Health Information
+- **URL**: `/api/health-info/health-information/`
+- **Method**: `GET`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: All authenticated users
+
+### Dashboard Stats with Campaign Integration
+- **URL**: `/api/auth/dashboard-stats/`
+- **Method**: `GET`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: All authenticated users
+- **Enhanced Response** (includes announcements for dashboard):
+  ```json
+  {
+    "total_patients": 150,
+    "total_records": 300,
+    "recent_patients": [...],
+    "visits_by_month": [...],
+    "appointments_today": 5,
+    "pending_requests": 3,
+    "next_appointment": {...},
+    "recent_health_info": {...},
+    "profile_completion": 85,
+    "announcements": [
+      {
+        "id": 1,
+        "title": "Clinic Hours Update",
+        "content": "New clinic hours effective next week",
+        "created_at": "2025-08-03T09:00:00Z"
+      }
+    ]
+  }
+  ```
 
 ## Response Formats
 

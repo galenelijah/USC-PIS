@@ -1,5 +1,19 @@
 # USC-PIS User Guide
 
+[![System Status](https://img.shields.io/badge/Status-Production%20Ready-success)]()
+[![Version](https://img.shields.io/badge/Version-August%202025-blue)]()
+[![Users](https://img.shields.io/badge/Active%20Users-7-green)]()
+
+## 🆕 Latest Updates (August 2025)
+
+### **System Enhancements**
+- **✅ Enhanced Dashboard**: Campaigns & announcements integration on home page
+- **✅ Advanced Validation**: Comprehensive date validation across all forms  
+- **✅ Student Specialization**: Dedicated medical vs dental record interfaces
+- **✅ Smart Search**: USC ID search across all medical forms
+- **✅ Export System**: Professional CSV/PDF export capabilities
+- **✅ Clinical Safety**: Allergy alerts and medication tracking features
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Getting Started](#getting-started)
@@ -23,11 +37,11 @@ Welcome to the USC Patient Information System (USC-PIS). This comprehensive guid
 - Screen resolution of 1280x720 or higher
 
 ### Accessing the System
-1. Visit https://usc-pis-5f030223f7a8.herokuapp.com/
-2. Click "Login" in the top right corner
-3. Enter your email and password
-4. Select "Remember me" if desired
-5. Click "Sign In"
+1. **Visit**: [usc-pis.herokuapp.com](https://usc-pis.herokuapp.com)
+2. **Login**: Click "Login" in the top right corner
+3. **Credentials**: Enter your USC email and password
+4. **Options**: Select "Remember me" for convenience (optional)
+5. **Sign In**: Click "Sign In" to access the system
 
 ### First-Time Setup
 1. Upon first login, you'll be prompted to complete your profile using a multi-step form.
@@ -42,11 +56,12 @@ Welcome to the USC Patient Information System (USC-PIS). This comprehensive guid
 **Important Update (July 24, 2025):** Doctor roles now have full administrative access identical to Staff and Admin users, ensuring consistent experience across all medical professionals.
 
 ### Student
-- View personal medical records
-- Schedule appointments
-- Update personal information
-- View appointment history
-- Access health forms and documents
+- **Medical Records**: Access dedicated medical records page (`/health-records`) showing only medical visits
+- **Dental Records**: Access dedicated dental records page (`/dental-records`) for dental care history  
+- **Patient History**: Comprehensive view of all medical and dental records (`/medical-records`)
+- **Medical Certificates**: Request and track medical certificates for school/work
+- **Health Information**: Access health campaigns and wellness resources
+- **Profile Management**: Update personal information and account settings
 
 ### Doctor
 - **Full Administrative Access** (identical to Staff/Admin)
@@ -77,12 +92,18 @@ Welcome to the USC Patient Information System (USC-PIS). This comprehensive guid
 
 ## Main Features
 
-### Dashboard
-- Quick overview of important information
-- Recent activities
-- Upcoming appointments
-- Important notifications
-- Quick access to common tasks
+### Dashboard (Updated August 3, 2025)
+- **Enhanced Layout**: New 8-4 column responsive layout for better space utilization
+- **Quick Overview**: Statistics cards showing important metrics (patients, records, appointments)
+- **Recent Activities**: Display of recent medical activities and updates
+- **Campaigns & Announcements Side Section**: 
+  - **Featured Campaigns**: Up to 3 featured health campaigns with icons, titles, categories, and descriptions
+  - **Recent Announcements**: Up to 2 recent announcements with timestamps and content previews
+  - **Visual Design**: Blue icons for campaigns, orange icons for announcements
+  - **Quick Access**: "View All" buttons for detailed campaign/announcement views
+- **Upcoming Appointments**: Next appointment details with date, time, and doctor information
+- **Quick Actions**: Role-based action buttons for common tasks
+- **Real-time Updates**: Refresh functionality to get latest dashboard data
 
 ### Medical Records
 - **Revolutionary Tabbed Interface** (August 2025 Update)
@@ -206,6 +227,95 @@ Medical staff can now create medical certificates using an intuitive, profession
 - **Doctors**: Can immediately set fitness status and approve certificates during creation
 - **Staff/Admin**: Certificates automatically submitted for doctor approval after creation
 - **All Roles**: Same professional search experience regardless of role
+
+### Navigating Student Health Records (August 2025 Update)
+
+Students now have a specialized health records interface designed specifically for personal medical history management.
+
+#### **Medical Records Page (/health-records) - Students Only**
+This page is exclusively for students and shows only medical records (no dental records).
+
+**Key Features:**
+1. **Health Insights Dashboard**:
+   - Personalized health guidance with colored alert cards
+   - Statistics showing total medical records and recent visit patterns
+   - Direct link to dental records page for comprehensive care
+
+2. **Quick Stats Overview**:
+   - **Total Medical Records**: Shows your complete medical visit count
+   - **Last 30 Days**: Recent medical visits for health tracking
+   - **Last 90 Days**: Extended recent activity for trend analysis
+
+3. **Quick Actions Panel**:
+   - **Request Medical Certificate**: Direct link to certificate request form
+   - **View Dental Records**: Navigate to dedicated dental records page
+   - **Health Information**: Access wellness resources and health campaigns
+   - **Export My Records**: Download your medical history as CSV file
+
+4. **Medical Records Display**:
+   - **Clean Accordion Interface**: Expandable cards for each medical visit
+   - **Comprehensive Information**: Shows visit date, diagnosis, treatment, vital signs
+   - **Vital Signs Section**: Professional display of blood pressure, temperature, pulse rate, respiratory rate
+   - **Clinical Notes**: Treatment details, medications, and follow-up instructions
+   - **Record Timestamps**: Creation dates for record tracking
+
+#### **Patient History Page (/medical-records) - All Users**
+This page provides the complete medical and dental history view.
+
+**For Students:**
+- **Page Title**: "Patient History" (simplified title)
+- **Three-Tab Interface**: Medical Records, Dental Records, and Health Insights
+- **Comprehensive Data**: Complete view of all medical and dental visits
+- **Advanced Search**: Filter across all record types
+- **Export Options**: Download complete health history
+
+#### **Key Differences Between Pages**
+
+| Feature | /health-records (Students) | /medical-records (All Users) |
+|---------|---------------------------|------------------------------|
+| **Purpose** | Medical records only | Complete health history |
+| **Interface** | Single-page accordion | Three-tab interface |
+| **Records Shown** | Medical visits only | Medical + Dental records |
+| **Quick Actions** | Medical certificate, dental link | Advanced search, exports |
+| **Target Audience** | Students only | All authenticated users |
+| **Navigation** | "Medical Records" in sidebar | "Patient Medical History" in sidebar |
+
+#### **Using the Student Medical Records Interface**
+
+1. **Accessing Your Records**:
+   - Click "Medical Records" in the sidebar (available to all students)
+   - View your personalized health insights at the top
+   - Review quick statistics for recent activity
+
+2. **Reading Medical Records**:
+   - Click on any visit date card to expand details
+   - Review diagnosis, treatment, and clinical notes
+   - Check vital signs in the professional blue-tinted section
+   - Note any medications or follow-up instructions
+
+3. **Quick Actions**:
+   - Use "Request Medical Certificate" for school/work documentation
+   - Click "View Dental Records" to see dental care history
+   - Access "Health Information" for wellness resources
+   - Export your records using "Export My Records" button
+
+4. **Health Insights**:
+   - Review personalized health guidance messages
+   - Track your medical visit frequency
+   - Get reminders about dental care if needed
+
+#### **Troubleshooting Student Records**
+
+**If your medical records don't appear:**
+1. **Check Browser Console**: Press F12 and look for error messages
+2. **Verify Patient Profile**: Ensure your student account is linked to a patient profile
+3. **Contact Medical Staff**: Ask them to verify your patient records are properly linked
+4. **Clear Browser Cache**: Refresh the page and try again
+
+**If vital signs show "Not recorded" despite being entered:**
+1. **Data Format Issue**: The system checks both direct fields and nested JSON format
+2. **Medical Staff**: Can verify the data format in the admin interface
+3. **Recent Records**: New records should automatically use the correct format
 
 ### Submitting Feedback (Patient/Student)
 1. Click "Feedback" in the navigation sidebar.
@@ -347,9 +457,14 @@ USC-PIS features comprehensive form validation to ensure data accuracy and provi
 - **"Passwords do not match"**: Password confirmation doesn't match original
 - **"Please select an option"**: You must choose from the dropdown/radio options
 
-#### **Date Validation Messages**
+#### **Date Validation Messages (Updated August 3, 2025)**
 - **"[Date field] is required"**: You must select a date
 - **"[End date] must be after [start date]"**: End date cannot be before start date
+- **"Date cannot be in the future"**: For medical records, dental records, and past visits
+- **"Date of birth cannot be in the future"**: Birthday validation for profile setup
+- **"Must be at least 10 years old"**: Minimum age requirement for birthdate validation
+- **"Please enter a valid date of birth"**: Age must be within reasonable limits (10-120 years)
+- **"Cannot be more than 1 year in the future"**: For consultation appointments and certificate validity
 
 ### Tips for Successful Form Completion
 

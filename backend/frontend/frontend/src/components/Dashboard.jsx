@@ -34,9 +34,11 @@ import {
   PersonAdd as PersonAddIcon,
   EventNote as EventNoteIcon,
   Storage as StorageIcon,
+  Campaign as CampaignIcon,
+  Announcement as AnnouncementIcon,
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
-import { authService } from '../services/api';
+import { authService, campaignService } from '../services/api';
 import { useDispatch } from 'react-redux';
 import { logout } from '../features/authentication/authSlice';
 import LoadingState from './utils/LoadingState';
@@ -55,6 +57,8 @@ const Dashboard = memo(({ user }) => {
     nextAppointment: null,
     recentHealthInfo: null,
     profileCompletion: null,
+    featuredCampaigns: [],
+    announcements: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -71,25 +75,31 @@ const Dashboard = memo(({ user }) => {
       setError(null);
       
       console.log('Fetching dashboard data for user role:', user?.role);
-      const response = await authService.getDashboardStats();
+      const [dashboardResponse, campaignsResponse] = await Promise.all([
+        authService.getDashboardStats(),
+        campaignService.getFeaturedCampaigns().catch(() => ({ data: [] }))
+      ]);
       
-      if (!response || !response.data) {
+      if (!dashboardResponse || !dashboardResponse.data) {
         throw new Error('Invalid response from server');
       }
 
-      console.log('Dashboard data received:', response.data);
+      console.log('Dashboard data received:', dashboardResponse.data);
+      console.log('Campaigns data received:', campaignsResponse.data);
       
       // Safely handle the response data with fallbacks for all properties
       setStats({
-        totalPatients: response.data.total_patients || 0,
-        totalRecords: response.data.total_records || 0,
-        recentPatients: Array.isArray(response.data.recent_patients) ? response.data.recent_patients : [],
-        visitsByMonth: Array.isArray(response.data.visits_by_month) ? response.data.visits_by_month : [],
-        appointmentsToday: response.data.appointments_today || 0,
-        pendingRequests: response.data.pending_requests || 0,
-        nextAppointment: response.data.next_appointment || null,
-        recentHealthInfo: response.data.recent_health_info || null,
-        profileCompletion: response.data.profile_completion || 0,
+        totalPatients: dashboardResponse.data.total_patients || 0,
+        totalRecords: dashboardResponse.data.total_records || 0,
+        recentPatients: Array.isArray(dashboardResponse.data.recent_patients) ? dashboardResponse.data.recent_patients : [],
+        visitsByMonth: Array.isArray(dashboardResponse.data.visits_by_month) ? dashboardResponse.data.visits_by_month : [],
+        appointmentsToday: dashboardResponse.data.appointments_today || 0,
+        pendingRequests: dashboardResponse.data.pending_requests || 0,
+        nextAppointment: dashboardResponse.data.next_appointment || null,
+        recentHealthInfo: dashboardResponse.data.recent_health_info || null,
+        profileCompletion: dashboardResponse.data.profile_completion || 0,
+        featuredCampaigns: Array.isArray(campaignsResponse.data) ? campaignsResponse.data.slice(0, 3) : [],
+        announcements: Array.isArray(dashboardResponse.data.announcements) ? dashboardResponse.data.announcements : [],
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -516,7 +526,7 @@ const Dashboard = memo(({ user }) => {
 
       {renderRoleBasedActions()}
 
-      <Grid item xs={12} md={7}>
+      <Grid item xs={12} md={8}>
         <Paper sx={{ p: 3, height: '100%', borderRadius: 3 }}>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
             <Typography variant="h6" fontWeight="bold">
@@ -558,8 +568,96 @@ const Dashboard = memo(({ user }) => {
         </Paper>
       </Grid>
 
-      <Grid item xs={12} md={5}>
+      <Grid item xs={12} md={4}>
         <Paper sx={{ p: 3, height: '100%', borderRadius: 3 }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Typography variant="h6" fontWeight="bold">
+              Campaigns & Announcements
+            </Typography>
+            <Button
+              component={Link}
+              to="/health-info"
+              size="small"
+              endIcon={<ArrowForwardIcon />}
+            >
+              View All
+            </Button>
+          </Box>
+          <Divider sx={{ mb: 2 }} />
+          
+          {/* Featured Campaigns */}
+          {stats.featuredCampaigns.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
+                Featured Campaigns
+              </Typography>
+              {stats.featuredCampaigns.map((campaign, index) => (
+                <Box key={campaign.id || index} sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', mr: 1.5 }}>
+                      <CampaignIcon sx={{ fontSize: 18 }} />
+                    </Avatar>
+                    <Box sx={{ flexGrow: 1 }}>
+                      <Typography variant="body2" fontWeight="medium" sx={{ lineHeight: 1.2 }}>
+                        {campaign.title}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {campaign.category}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 5 }}>
+                    {campaign.description?.substring(0, 80)}
+                    {campaign.description?.length > 80 ? '...' : ''}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          )}
+
+          {/* Announcements */}
+          {stats.announcements.length > 0 && (
+            <Box>
+              <Typography variant="subtitle2" color="warning.main" sx={{ mb: 1, fontWeight: 'bold' }}>
+                Announcements
+              </Typography>
+              {stats.announcements.slice(0, 2).map((announcement, index) => (
+                <Box key={announcement.id || index} sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <Avatar sx={{ width: 32, height: 32, bgcolor: 'warning.main', mr: 1.5 }}>
+                      <AnnouncementIcon sx={{ fontSize: 18 }} />
+                    </Avatar>
+                    <Box sx={{ flexGrow: 1 }}>
+                      <Typography variant="body2" fontWeight="medium" sx={{ lineHeight: 1.2 }}>
+                        {announcement.title}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {new Date(announcement.created_at).toLocaleDateString()}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 5 }}>
+                    {announcement.content?.substring(0, 80)}
+                    {announcement.content?.length > 80 ? '...' : ''}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          )}
+
+          {/* Empty State */}
+          {stats.featuredCampaigns.length === 0 && stats.announcements.length === 0 && (
+            <Box textAlign="center" py={3}>
+              <Typography color="text.secondary" variant="body2">
+                No campaigns or announcements available
+              </Typography>
+            </Box>
+          )}
+        </Paper>
+      </Grid>
+
+      <Grid item xs={12}>
+        <Paper sx={{ p: 3, borderRadius: 3 }}>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
             <Typography variant="h6" fontWeight="bold">
               Next Appointment

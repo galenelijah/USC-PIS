@@ -55,6 +55,7 @@ import dayjs from 'dayjs';
 import StepConnector, { stepConnectorClasses } from '@mui/material/StepConnector';
 import { styled } from '@mui/material/styles';
 import * as Yup from 'yup';
+import { commonValidation } from '../utils/validationSchemas';
 import { authService } from '../services/api';
 import { useDispatch, useSelector } from 'react-redux';
 import { setCredentials, selectAuthToken, selectCurrentUser } from '../features/authentication/authSlice';
@@ -185,7 +186,7 @@ const createValidationSchema = (role) => {
     middle_name: Yup.string().nullable(),
     sex: Yup.string().required('Sex is required'),
     civil_status: Yup.string().required('Civil status is required'),
-    birthday: Yup.date().required('Birthday is required').nullable(),
+    birthday: commonValidation.birthdate,
     address_permanent: Yup.string().required('Permanent address is required'),
     phone: Yup.string().required('Phone number is required'),
     email: Yup.string().email('Invalid email').required('Email is required'),

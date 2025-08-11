@@ -51,6 +51,34 @@ export const commonValidation = {
     .required(`${fieldName} is required`)
     .nullable(),
 
+  // Past date validation (cannot be in the future)
+  pastDate: (fieldName) => yup
+    .date()
+    .required(`${fieldName} is required`)
+    .nullable()
+    .max(new Date(), `${fieldName} cannot be in the future`),
+
+  // Birthdate validation (reasonable age limits)
+  birthdate: yup
+    .date()
+    .required('Date of birth is required')
+    .nullable()
+    .max(new Date(), 'Date of birth cannot be in the future')
+    .min(new Date(new Date().getFullYear() - 120, 0, 1), 'Please enter a valid date of birth')
+    .test('minimum-age', 'Must be at least 10 years old', function(value) {
+      if (!value) return false;
+      const today = new Date();
+      const tenYearsAgo = new Date(today.getFullYear() - 10, today.getMonth(), today.getDate());
+      return value <= tenYearsAgo;
+    }),
+
+  // Visit/appointment date validation (cannot be more than 1 year in the future)
+  visitDate: (fieldName) => yup
+    .date()
+    .required(`${fieldName} is required`)
+    .nullable()
+    .max(new Date(new Date().getFullYear() + 1, 11, 31), `${fieldName} cannot be more than 1 year in the future`),
+
   // Date range validation
   dateAfter: (fieldName, afterField) => yup
     .date()
@@ -106,7 +134,7 @@ export const registerSchema = yup.object().shape({
 // Medical Record schema
 export const medicalRecordSchema = yup.object().shape({
   patient: commonValidation.requiredText('Patient selection'),
-  visit_date: commonValidation.requiredDate('Visit date'),
+  visit_date: commonValidation.pastDate('Visit date'),
   diagnosis: commonValidation.requiredText('Diagnosis'),
   treatment: commonValidation.optionalText,
   notes: commonValidation.optionalText,
@@ -138,12 +166,13 @@ const baseMedicalCertificateSchema = {
   template: commonValidation.requiredText('Template selection'),
   diagnosis: commonValidation.requiredText('Diagnosis'),
   recommendations: commonValidation.requiredText('Recommendations'),
-  valid_from: commonValidation.requiredDate('Valid from date'),
+  valid_from: commonValidation.pastDate('Valid from date'),
   valid_until: yup
     .date()
     .required('Valid until date is required')
     .nullable()
-    .min(yup.ref('valid_from'), 'Valid until date must be after valid from date'),
+    .min(yup.ref('valid_from'), 'Valid until date must be after valid from date')
+    .max(new Date(new Date().getFullYear() + 1, 11, 31), 'Valid until date cannot be more than 1 year in the future'),
   additional_notes: commonValidation.optionalText,
 };
 
@@ -199,7 +228,7 @@ export const feedbackSchema = yup.object().shape({
 // Consultation schema
 export const consultationSchema = yup.object().shape({
   patient: commonValidation.requiredText('Patient selection'),
-  date_time: commonValidation.requiredDate('Consultation date and time'),
+  date_time: commonValidation.visitDate('Consultation date and time'),
   chief_complaints: commonValidation.requiredText('Chief complaints'),
   treatment_plan: commonValidation.requiredText('Treatment plan'),
   remarks: commonValidation.optionalText,
@@ -215,7 +244,7 @@ export const healthInfoSchema = yup.object().shape({
 // Dental Record schema
 export const dentalRecordSchema = yup.object().shape({
   patient: commonValidation.requiredText('Patient selection'),
-  visit_date: commonValidation.requiredDate('Visit date'),
+  visit_date: commonValidation.pastDate('Visit date'),
   procedure_performed: commonValidation.requiredText('Procedure performed'),
   tooth_numbers: commonValidation.optionalText,
   diagnosis: commonValidation.requiredText('Diagnosis'),
