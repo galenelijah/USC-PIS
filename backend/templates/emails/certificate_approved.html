@@ -1,0 +1,62 @@
+{% extends 'emails/base.html' %}
+
+{% block title %}Medical Certificate Approved - USC-PIS{% endblock %}
+
+{% block content %}
+<h2>Medical Certificate Approved! 🎉</h2>
+
+<p>Dear {{ patient.user.first_name|default:patient.user.email }},</p>
+
+<p>Great news! Your medical certificate has been approved and is now ready for download.</p>
+
+<div class="success-box">
+    <strong>Certificate Details:</strong><br>
+    <strong>Certificate ID:</strong> {{ certificate.id }}<br>
+    <strong>Approved:</strong> {{ certificate.updated_at|date:"F d, Y at g:i A" }}<br>
+    <strong>Valid Until:</strong> {{ certificate.valid_until|date:"F d, Y" }}<br>
+    <strong>Status:</strong> ✅ Approved
+</div>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ site_url }}/medical-certificates/{{ certificate.id }}/download" class="button">Download Certificate</a>
+</div>
+
+<h3>Certificate Information:</h3>
+<ul>
+    <li><strong>Purpose:</strong> {{ certificate.purpose|default:"General Medical Certificate" }}</li>
+    <li><strong>Fitness Status:</strong> {{ certificate.fitness_status|title }}</li>
+    <li><strong>Valid From:</strong> {{ certificate.valid_from|date:"F d, Y" }}</li>
+    <li><strong>Valid Until:</strong> {{ certificate.valid_until|date:"F d, Y" }}</li>
+</ul>
+
+<div class="info-box">
+    <strong>Important Notes:</strong>
+    <ul>
+        <li>Keep multiple copies of your certificate (digital and physical)</li>
+        <li>Present this certificate to the requesting institution/organization</li>
+        <li>Contact us if you need additional copies</li>
+        <li>This certificate is valid until the expiration date shown above</li>
+    </ul>
+</div>
+
+<h3>Need another certificate?</h3>
+<p>You can request additional medical certificates anytime through your portal:</p>
+
+<div style="text-align: center; margin: 20px 0;">
+    <a href="{{ site_url }}/medical-certificates/new" class="button" style="background-color: #4caf50;">Request New Certificate</a>
+</div>
+
+<h3>Questions or concerns?</h3>
+<p>If you have any questions about your certificate:</p>
+<ul>
+    <li>📧 Email us at <a href="mailto:{{ support_email }}">{{ support_email }}</a></li>
+    <li>🏥 Visit the USC Health Center</li>
+    <li>📞 Call us during business hours</li>
+</ul>
+
+<p>Thank you for choosing USC-PIS for your healthcare documentation needs.</p>
+
+<p>Best regards,<br>
+<strong>USC Medical Team</strong><br>
+University of San Carlos Health Center</p>
+{% endblock %}

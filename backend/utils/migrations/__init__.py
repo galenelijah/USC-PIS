@@ -1,0 +1,1 @@
+# Django migrations module for utils app

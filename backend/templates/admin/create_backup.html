@@ -1,0 +1,271 @@
+{% extends "admin/base_site.html" %}
+{% load admin_urls static %}
+
+{% block title %}Create Manual Backup - USC-PIS Administration{% endblock %}
+
+{% block extrastyle %}
+<style>
+    .backup-form {
+        margin: 20px 0;
+        max-width: 800px;
+    }
+    
+    .form-section {
+        background: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin: 20px 0;
+        padding: 20px;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+        color: #333;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    
+    .form-radio {
+        margin-bottom: 10px;
+    }
+    
+    .form-radio label {
+        font-weight: normal;
+        margin-left: 8px;
+        cursor: pointer;
+    }
+    
+    .form-radio input[type="radio"] {
+        margin-right: 8px;
+        cursor: pointer;
+    }
+    
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        margin-top: 15px;
+    }
+    
+    .checkbox-group input[type="checkbox"] {
+        margin-right: 8px;
+        cursor: pointer;
+    }
+    
+    .checkbox-group label {
+        font-weight: normal;
+        cursor: pointer;
+    }
+    
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 14px;
+        transition: background-color 0.3s;
+        margin-right: 10px;
+    }
+    
+    .btn-primary {
+        background-color: #417690;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: #205067;
+        color: white;
+    }
+    
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #5a6268;
+        color: white;
+    }
+    
+    .backup-info {
+        background: #e3f2fd;
+        border-left: 4px solid #2196f3;
+        padding: 15px;
+        margin: 20px 0;
+    }
+    
+    .backup-type-description {
+        font-size: 13px;
+        color: #666;
+        margin-top: 5px;
+        padding-left: 24px;
+    }
+    
+    .form-actions {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #ddd;
+    }
+    
+    .alert {
+        padding: 12px;
+        margin: 15px 0;
+        border: 1px solid transparent;
+        border-radius: 4px;
+    }
+    
+    .alert-info {
+        color: #0c5460;
+        background-color: #d1ecf1;
+        border-color: #bee5eb;
+    }
+    
+    .icon {
+        font-size: 16px;
+        margin-right: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="backup-form">
+    <h1>🔧 Create Manual Backup</h1>
+    <p>Create an immediate backup of USC-PIS data with verification and integrity checking</p>
+    
+    <div class="backup-info">
+        <h3>📋 What happens during backup creation:</h3>
+        <ul>
+            <li><strong>Database Backup:</strong> Complete export of all patient records, medical data, and system configurations</li>
+            <li><strong>Media Files Backup:</strong> All uploaded files, images, and documents</li>
+            <li><strong>Verification:</strong> Integrity checking and checksum validation</li>
+            <li><strong>Notification:</strong> Email alerts on completion or failure</li>
+        </ul>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-section">
+            <h2>🎯 Backup Configuration</h2>
+            
+            <div class="form-group">
+                <label class="form-label">
+                    <span class="icon">📦</span>
+                    Backup Type
+                </label>
+                {% for value, display in backup_types %}
+                <div class="form-radio">
+                    <input type="radio" 
+                           name="backup_type" 
+                           value="{{ value }}" 
+                           id="type_{{ value }}"
+                           {% if forloop.last %}checked{% endif %}>
+                    <label for="type_{{ value }}">
+                        {% if value == 'database' %}🗄️
+                        {% elif value == 'media' %}📁
+                        {% else %}💾
+                        {% endif %}
+                        {{ display }}
+                    </label>
+                    <div class="backup-type-description">
+                        {% if value == 'database' %}
+                            Export all database tables including patient records, medical data, user accounts, and system settings.
+                        {% elif value == 'media' %}
+                            Backup all uploaded files, campaign images, medical certificates, and user documents.
+                        {% else %}
+                            Complete system backup including both database and all media files. Recommended for full protection.
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" name="verify" id="verify_backup" checked>
+                <label for="verify_backup">
+                    <span class="icon">✅</span>
+                    <strong>Verify backup integrity after creation</strong>
+                    <div style="font-size: 13px; color: #666; margin-top: 3px;">
+                        Recommended: Performs checksum validation and ensures backup files are not corrupted
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>⚡ Backup Process</h2>
+            <div class="alert alert-info">
+                <strong>📍 Important Notes:</strong>
+                <ul style="margin: 10px 0; padding-left: 20px;">
+                    <li>Backup creation typically takes 1-5 minutes depending on data size</li>
+                    <li>The process runs in the background - you can continue using the admin interface</li>
+                    <li>You'll receive an email notification when the backup completes</li>
+                    <li>Backup files are stored securely and include integrity checksums</li>
+                    <li>Failed backups trigger automatic alert notifications</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <span class="icon">🚀</span>
+                Create Backup Now
+            </button>
+            
+            <a href="{% url 'admin:backup_dashboard' %}" class="btn btn-secondary">
+                <span class="icon">📊</span>
+                Back to Dashboard
+            </a>
+            
+            <a href="{% url 'admin:utils_backupstatus_changelist' %}" class="btn btn-secondary">
+                <span class="icon">📋</span>
+                View Backup History
+            </a>
+        </div>
+    </form>
+
+    <div class="form-section" style="margin-top: 40px;">
+        <h2>🔍 Troubleshooting</h2>
+        <details>
+            <summary style="cursor: pointer; font-weight: bold; padding: 5px 0;">
+                Common Issues and Solutions
+            </summary>
+            <div style="margin-top: 10px; padding-left: 15px;">
+                <h4>❌ Backup Creation Fails</h4>
+                <ul>
+                    <li>Check available disk space (backups require temporary storage)</li>
+                    <li>Verify database connectivity and permissions</li>
+                    <li>Ensure SendGrid email service is configured for notifications</li>
+                </ul>
+                
+                <h4>⚠️ Verification Fails</h4>
+                <ul>
+                    <li>Backup files may be corrupted during creation</li>
+                    <li>Disk I/O errors or insufficient permissions</li>
+                    <li>Try recreating the backup without verification first</li>
+                </ul>
+                
+                <h4>📧 No Email Notifications</h4>
+                <ul>
+                    <li>Check SendGrid API key configuration in settings</li>
+                    <li>Verify BACKUP_ALERT_EMAIL environment variable is set</li>
+                    <li>Check spam folder for backup notification emails</li>
+                </ul>
+            </div>
+        </details>
+    </div>
+</div>
+{% endblock %}

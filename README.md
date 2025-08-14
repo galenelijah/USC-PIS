@@ -1,27 +1,58 @@
 # USC Patient Information System (USC-PIS)
 
-[![Production Status](https://img.shields.io/badge/Status-Production%20Ready-success)](https://usc-pis.herokuapp.com)
-[![Grade](https://img.shields.io/badge/Grade-A+-brightgreen)]()
+[![Production Status](https://img.shields.io/badge/Status-Technically%20Functional-yellow)](https://usc-pis.herokuapp.com)
+[![Grade](https://img.shields.io/badge/Grade-B%20(Missing%20Core%20Systems)-orange)]()
 [![Django](https://img.shields.io/badge/Django-5.0.2-blue)](https://djangoproject.com)
 [![React](https://img.shields.io/badge/React-18-blue)](https://reactjs.org)
 
 A comprehensive healthcare management system for the University of Southern California clinic operations. Developed as an undergraduate thesis project by Computer Engineering students.
 
-## 🚀 Current Status (August 2025)
+## ⚠️ **IMPORTANT SYSTEM STATUS UPDATE** (August 12, 2025)
 
-**System Grade: A+ (Production Ready)**  
+**🚨 CRITICAL DISCOVERY**: Comprehensive system analysis revealed that while technically functional, **core healthcare workflow systems are missing or incomplete**.
+
+### **System Grade: B (Technically Functional, Missing Core Healthcare Systems)**  
 - ✅ **7 Active Users** (5 students, 2 admins) with 100% USC email compliance  
-- ✅ **Complete Medical System** - 5 patients, 3 medical records, 1 dental record  
-- ✅ **Operational Workflows** - 4 approved medical certificates, 5 campaign templates  
+- ✅ **Record Management** - 5 patients, 3 medical records, 1 dental record  
+- ✅ **Certificate Workflows** - 4 approved medical certificates, 5 campaign templates  
 - ✅ **Enterprise Security** - HSTS, CSP, rate limiting, RBAC implementation  
-- ✅ **Performance Optimized** - 90%+ improvement with caching and indexing  
+- ✅ **Performance Optimized** - 90%+ improvement with caching and indexing
+
+### **🚨 CRITICAL GAPS IDENTIFIED**:
+- ❌ **APPOINTMENT/SCHEDULING SYSTEM**: **COMPLETELY MISSING** - Dashboard shows "appointments today" but no appointment system exists
+- ❌ **INVENTORY MANAGEMENT**: No medical supplies, medication, or equipment tracking
+- ❌ **COMPREHENSIVE BILLING**: Only basic cost field in dental records, no financial management
+- ❌ **DATA BACKUP**: No confirmed backup strategy - risk of catastrophic data loss
+- ❌ **TESTING COVERAGE**: Minimal testing framework - system reliability at risk
+
+**Impact**: Healthcare operations are **incomplete without appointment scheduling** - the most critical healthcare workflow component.  
 
 ### Latest Features (August 2025)
+- **🆕 Email Notification System**: Automated email communications with professional templates
 - **Enhanced Dashboard**: Campaigns & announcements integration on home page
-- **Advanced Validation**: Comprehensive date validation across all forms
+- **Advanced Validation**: Comprehensive date validation across all forms (prevents future dates)
 - **Student Specialization**: Dedicated medical vs dental record interfaces  
 - **Smart Search**: USC ID search across all medical forms
 - **Export System**: Professional CSV/PDF export with clinical formatting
+
+### 🚀 **REVISED Next Priority Features** (Updated August 12, 2025)
+
+#### **🔥 CRISIS RESOLUTION (Immediate - Week 1-2)**
+- **Appointment/Scheduling System**: **MOST CRITICAL** - Patient booking, provider calendars, appointment management
+- **Data Backup & Disaster Recovery**: Essential infrastructure protection to prevent data loss  
+- **Testing Coverage Foundation**: System reliability framework (target 60%+ coverage)
+- **Email System Setup**: SendGrid API key configuration (code complete, needs deployment)
+
+#### **🏥 CORE HEALTHCARE SYSTEMS (Week 3-6)**
+- **Inventory Management System**: Medical supplies, medication tracking, stock alerts
+- **Billing & Financial Management**: Comprehensive patient billing, insurance processing, payment tracking
+
+#### **⚡ USER EXPERIENCE ENHANCEMENTS (Week 7+ - After Core Systems Stable)**
+- **Role-Based ID System**: Numeric IDs for students, alphanumeric for staff (moved to Phase 2)
+- **In-App Notifications**: Real-time notification center with appointment reminders (moved to Phase 2)
+- **Enhanced Feedback Automation**: Multi-channel feedback prompts (moved to Phase 2)
+
+**📊 Reference**: See **[CURRENT_PRIORITIES_ROADMAP.md](CURRENT_PRIORITIES_ROADMAP.md)** for detailed 8-week implementation plan
 
 ## 🏥 Core Features
 
@@ -40,6 +71,13 @@ A comprehensive healthcare management system for the University of Southern Cali
 - **Doctor Approval System** - Streamlined certificate approval by medical doctors
 - **Automated Workflows** - Auto-submission for non-doctor created certificates
 - **Fitness Assessment** - Comprehensive medical fitness evaluation
+
+### **Email Notification System** 📧
+- **Automated Welcome Emails** - Professional onboarding for new users
+- **Medical Certificate Notifications** - Status updates for students and doctors
+- **Feedback Request Automation** - 24-hour post-visit feedback collection
+- **Password Reset Security** - Secure token-based password recovery
+- **Professional Templates** - USC-PIS branded, mobile-responsive email design
 
 ### **Advanced Analytics & Reporting**
 - **Real-Time Dashboard** - Live system statistics and health insights
@@ -181,6 +219,7 @@ GET    /api/system/health/        # System monitoring
 - **[API Documentation](docs/api/README.md)** - Complete API reference
 - **[Development History](docs/history/)** - Implementation timeline
 - **[Strategic Plan](USC_PIS_STRATEGIC_DEVELOPMENT_PLAN.md)** - Project roadmap
+- **[Priority Features Plan](PRIORITY_FEATURES_PLAN.md)** - Next phase development plan
 
 ## 📄 License
 
@@ -188,6 +227,39 @@ This project is developed as part of an undergraduate thesis at the University o
 
 ---
 
-**Last Updated**: August 11, 2025  
-**System Status**: Production-ready with enhanced user experience  
-**Live Demo**: [usc-pis.herokuapp.com](https://usc-pis.herokuapp.com)
+## 📧 Email Notification Features
+
+The system includes comprehensive automated email notifications:
+
+### **Email Types**
+- ✅ **Welcome Emails** - Automatically sent to new users upon registration
+- ✅ **Medical Certificate Updates** - Status notifications for students and doctors
+- ✅ **Feedback Requests** - Automated 24-hour post-visit feedback collection
+- ✅ **Password Reset** - Secure token-based password recovery emails
+- ✅ **Professional Templates** - Mobile-responsive design with USC-PIS branding
+
+### **Management Commands**
+```bash
+# Test email system
+python manage.py test_email --email your@email.com
+
+# Send automated feedback emails
+python manage.py send_feedback_emails --hours 24
+```
+
+### **Setup Guide**
+See **[EMAIL_SETUP_GUIDE.md](EMAIL_SETUP_GUIDE.md)** for complete deployment instructions including SendGrid integration and Heroku configuration.
+
+---
+
+**Last Updated**: August 12, 2025 - **MAJOR REVISION**  
+**Critical Discovery**: Appointment system completely missing - healthcare operations incomplete  
+**System Status**: Technically functional but **missing essential healthcare workflows**  
+**Live Demo**: [usc-pis.herokuapp.com](https://usc-pis.herokuapp.com)  
+**Latest Achievement**: Critical system gaps identified, comprehensive 8-week implementation roadmap created  
+**Next Milestone**: Functional appointment booking system operational within 7 days
+
+### **📊 Critical References**
+- **[CURRENT_PRIORITIES_ROADMAP.md](CURRENT_PRIORITIES_ROADMAP.md)** - Active implementation plan with crisis resolution focus
+- **[COMPREHENSIVE_SYSTEM_ANALYSIS_REPORT.md](COMPREHENSIVE_SYSTEM_ANALYSIS_REPORT.md)** - Complete system analysis with identified gaps
+- **[PRIORITY_FEATURES_PLAN.md](PRIORITY_FEATURES_PLAN.md)** - Original planned features (now Phase 2 after core systems)

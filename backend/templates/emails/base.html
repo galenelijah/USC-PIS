@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}USC-PIS Healthcare System{% endblock %}</title>
+    <style>
+        /* Email-safe CSS styles */
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        
+        .email-container {
+            background-color: white;
+            margin: 20px;
+            padding: 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 300;
+        }
+        
+        .header .subtitle {
+            margin: 5px 0 0 0;
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px 20px;
+        }
+        
+        .content h2 {
+            color: #1976d2;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        
+        .content p {
+            margin-bottom: 16px;
+            font-size: 16px;
+        }
+        
+        .button {
+            display: inline-block;
+            background-color: #1976d2;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .button:hover {
+            background-color: #1565c0;
+        }
+        
+        .info-box {
+            background-color: #e3f2fd;
+            border-left: 4px solid #1976d2;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .success-box {
+            background-color: #e8f5e8;
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .warning-box {
+            background-color: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .footer {
+            background-color: #f5f5f5;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+            border-radius: 0 0 8px 8px;
+        }
+        
+        .footer a {
+            color: #1976d2;
+            text-decoration: none;
+        }
+        
+        .social-links {
+            margin: 15px 0;
+        }
+        
+        .social-links a {
+            display: inline-block;
+            margin: 0 10px;
+            color: #1976d2;
+            text-decoration: none;
+        }
+        
+        /* Mobile responsive */
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                margin: 10px;
+            }
+            
+            .header, .content, .footer {
+                padding: 20px 15px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .content h2 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>USC-PIS</h1>
+            <div class="subtitle">Healthcare Management System</div>
+        </div>
+        
+        <!-- Content -->
+        <div class="content">
+            {% block content %}
+            {% endblock %}
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>University of Southern California</strong><br>
+            Patient Information System</p>
+            
+            <div class="social-links">
+                <a href="{{ site_url }}">Visit Portal</a> |
+                <a href="mailto:{{ support_email|default:'support@usc-pis.herokuapp.com' }}">Contact Support</a>
+            </div>
+            
+            <p style="font-size: 12px; color: #999; margin-top: 20px;">
+                This email was sent from USC-PIS Healthcare System.<br>
+                If you did not expect this email, please contact our support team.
+            </p>
+            
+            <p style="font-size: 11px; color: #999;">
+                © 2025 University of San Carlos. All rights reserved.<br>
+                This system is developed as part of an undergraduate thesis project.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

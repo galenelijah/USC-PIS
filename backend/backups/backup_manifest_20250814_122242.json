@@ -1,0 +1,10 @@
+{
+  "timestamp": "20250814_122242",
+  "backup_type": "database",
+  "created_at": "2025-08-14T12:22:42.386053+00:00",
+  "django_version": "unknown",
+  "database_engine": "django.db.backends.postgresql",
+  "files": [
+    "C:\\Users\\sgale\\OneDrive\\Documents\\GitHubProjects\\USC-PIS\\USC-PIS\\backend\\backups\\database_backup_20250814_122242.json"
+  ]
+}

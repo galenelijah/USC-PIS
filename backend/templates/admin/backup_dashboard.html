@@ -1,0 +1,319 @@
+{% extends "admin/base_site.html" %}
+{% load admin_urls static %}
+
+{% block title %}Backup System Dashboard - USC-PIS Administration{% endblock %}
+
+{% block extrastyle %}
+<style>
+    .backup-dashboard {
+        margin: 20px 0;
+    }
+    
+    .dashboard-section {
+        background: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin: 20px 0;
+        padding: 20px;
+    }
+    
+    .health-summary {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    .health-status {
+        padding: 8px 16px;
+        border-radius: 20px;
+        color: white;
+        font-weight: bold;
+        margin-right: 15px;
+    }
+    
+    .health-healthy { background-color: #28a745; }
+    .health-warning { background-color: #ffc107; color: #212529; }
+    .health-critical { background-color: #dc3545; }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin: 20px 0;
+    }
+    
+    .stat-card {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 15px;
+        text-align: center;
+    }
+    
+    .stat-number {
+        font-size: 2em;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .stat-label {
+        color: #666;
+        font-size: 0.9em;
+    }
+    
+    .recent-backups {
+        overflow-x: auto;
+    }
+    
+    .backup-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+    
+    .backup-table th,
+    .backup-table td {
+        padding: 8px 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    .backup-table th {
+        background-color: #f5f5f5;
+        font-weight: bold;
+    }
+    
+    .backup-type {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .status-success { color: #28a745; font-weight: bold; }
+    .status-failed { color: #dc3545; font-weight: bold; }
+    .status-in_progress { color: #ffc107; font-weight: bold; }
+    .status-warning { color: #fd7e14; font-weight: bold; }
+    
+    .action-buttons {
+        margin-top: 20px;
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 14px;
+        transition: background-color 0.3s;
+    }
+    
+    .btn-primary {
+        background-color: #417690;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: #205067;
+        color: white;
+    }
+    
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #5a6268;
+        color: white;
+    }
+    
+    .alert {
+        padding: 12px;
+        margin: 15px 0;
+        border: 1px solid transparent;
+        border-radius: 4px;
+    }
+    
+    .alert-danger {
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+    }
+    
+    .alert-warning {
+        color: #856404;
+        background-color: #fff3cd;
+        border-color: #ffeaa7;
+    }
+    
+    .alert-success {
+        color: #155724;
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="backup-dashboard">
+    <h1>🛡️ Backup System Dashboard</h1>
+    <p>Monitor and manage USC-PIS data backups and system health</p>
+
+    <!-- System Health Summary -->
+    <div class="dashboard-section">
+        <h2>📊 System Health Status</h2>
+        {% if health_summary %}
+            <div class="health-summary">
+                <span class="health-status health-{{ health_summary.overall_health }}">
+                    {% if health_summary.overall_health == 'healthy' %}
+                        ✅ Healthy
+                    {% elif health_summary.overall_health == 'warning' %}
+                        ⚠️ Warning
+                    {% else %}
+                        🚨 Critical
+                    {% endif %}
+                </span>
+                <span>Last checked: {{ health_summary.timestamp|slice:":19" }} UTC</span>
+            </div>
+            
+            <!-- Health Issues -->
+            {% if health_summary.issues %}
+                {% for issue in health_summary.issues %}
+                    <div class="alert alert-{% if issue.severity == 'critical' %}danger{% elif issue.severity == 'warning' %}warning{% else %}success{% endif %}">
+                        <strong>{{ issue.severity|title }}:</strong> {{ issue.message }}
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-success">
+                    ✅ No issues detected. Backup system is operating normally.
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="alert alert-warning">
+                ⚠️ Unable to load system health data. Check backup monitoring service.
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Backup Statistics -->
+    <div class="dashboard-section">
+        <h2>📈 Backup Statistics</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">{{ stats.total_backups }}</div>
+                <div class="stat-label">Total Backups</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ stats.successful_backups }}</div>
+                <div class="stat-label">Successful</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ stats.failed_backups }}</div>
+                <div class="stat-label">Failed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ stats.success_rate }}%</div>
+                <div class="stat-label">Success Rate</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Backups -->
+    <div class="dashboard-section">
+        <h2>📋 Recent Backup Activity</h2>
+        {% if recent_backups %}
+            <div class="recent-backups">
+                <table class="backup-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Started</th>
+                            <th>Duration</th>
+                            <th>Size</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for backup in recent_backups %}
+                        <tr>
+                            <td>
+                                <div class="backup-type">
+                                    {% if backup.backup_type == 'database' %}🗄️
+                                    {% elif backup.backup_type == 'media' %}📁
+                                    {% elif backup.backup_type == 'full' %}💾
+                                    {% elif backup.backup_type == 'verification' %}✅
+                                    {% elif backup.backup_type == 'heroku' %}🌐
+                                    {% else %}📄
+                                    {% endif %}
+                                    {{ backup.get_backup_type_display }}
+                                </div>
+                            </td>
+                            <td class="status-{{ backup.status }}">
+                                {{ backup.get_status_display }}
+                            </td>
+                            <td>{{ backup.started_at|date:"M d, H:i" }}</td>
+                            <td>
+                                {% if backup.duration_seconds %}
+                                    {% if backup.duration_seconds < 60 %}
+                                        {{ backup.duration_seconds|floatformat:0 }}s
+                                    {% else %}
+                                        {% widthratio backup.duration_seconds 60 1 %}m
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if backup.file_size %}
+                                    {% if backup.file_size_mb < 1 %}
+                                        {{ backup.file_size }} bytes
+                                    {% elif backup.file_size_mb < 1024 %}
+                                        {{ backup.file_size_mb|floatformat:1 }} MB
+                                    {% else %}
+                                        {% widthratio backup.file_size_mb 1024 1 %} GB
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'admin:utils_backupstatus_change' backup.id %}" class="btn" style="padding: 4px 8px; font-size: 12px;">View</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-warning">
+                ⚠️ No recent backup activity found. Consider creating a manual backup.
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="dashboard-section">
+        <h2>⚡ Quick Actions</h2>
+        <div class="action-buttons">
+            <a href="{% url 'admin:create_backup' %}" class="btn btn-primary">
+                🔧 Create Manual Backup
+            </a>
+            <a href="{% url 'admin:system_health' %}" class="btn btn-secondary">
+                💊 Check System Health
+            </a>
+            <a href="{% url 'admin:utils_backupstatus_changelist' %}" class="btn btn-secondary">
+                📋 View All Backups
+            </a>
+            <a href="{% url 'admin:utils_backupschedule_changelist' %}" class="btn btn-secondary">
+                📅 Manage Schedules
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,29 +1,53 @@
 # USC-PIS User Guide
 
-[![System Status](https://img.shields.io/badge/Status-Production%20Ready-success)]()
+[![System Status](https://img.shields.io/badge/Status-Technically%20Functional-yellow)]()
 [![Version](https://img.shields.io/badge/Version-August%202025-blue)]()
 [![Users](https://img.shields.io/badge/Active%20Users-7-green)]()
 
 ## 🆕 Latest Updates (August 2025)
 
 ### **System Enhancements**
+- **✅ Email Notification System**: Automated email communications with professional templates
 - **✅ Enhanced Dashboard**: Campaigns & announcements integration on home page
-- **✅ Advanced Validation**: Comprehensive date validation across all forms  
+- **✅ Advanced Validation**: Comprehensive date validation across all forms (prevents future dates)
 - **✅ Student Specialization**: Dedicated medical vs dental record interfaces
 - **✅ Smart Search**: USC ID search across all medical forms
 - **✅ Export System**: Professional CSV/PDF export capabilities
 - **✅ Clinical Safety**: Allergy alerts and medication tracking features
 
+### **⚠️ CRITICAL SYSTEM STATUS UPDATE (August 12, 2025)**
+**Comprehensive system analysis revealed critical healthcare workflow gaps that require immediate attention.**
+
+### **🚀 REVISED Coming Soon - Priority Features (Updated August 12, 2025)**
+
+#### **🔥 CRISIS RESOLUTION (Immediate - Week 1-2)**
+- **Appointment/Scheduling System**: **MOST CRITICAL** - Complete patient booking, provider calendars, appointment management *(Dashboard currently shows "appointments today" but no appointment system exists)*
+- **Data Backup & Disaster Recovery**: Essential infrastructure protection to prevent catastrophic data loss
+- **Testing Coverage Foundation**: System reliability framework to reduce production bugs
+- **Email System Setup**: SendGrid API key configuration *(code complete, needs deployment)*
+
+#### **🏥 CORE HEALTHCARE SYSTEMS (Week 3-6)**
+- **Inventory Management System**: Medical supplies tracking, medication management, stock alerts
+- **Billing & Financial Management**: Comprehensive patient billing, insurance processing, payment tracking
+
+#### **⚡ USER EXPERIENCE ENHANCEMENTS (Week 7+ - After Core Systems Stable)**
+- **Role-Based ID System**: Students will use numeric IDs, staff will use alphanumeric IDs *(moved to Phase 2)*
+- **In-App Notifications**: Real-time notification center with appointment reminders and updates *(moved to Phase 2)*
+- **Enhanced Feedback Automation**: Multi-channel feedback prompts *(moved to Phase 2)*
+
+**📊 Reference**: See **[CURRENT_PRIORITIES_ROADMAP.md](CURRENT_PRIORITIES_ROADMAP.md)** for complete implementation details.
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Getting Started](#getting-started)
-3. [User Roles](#user-roles)
-4. [Main Features](#main-features)
-5. [Common Tasks](#common-tasks)
-6. [Form Validation Guide](#form-validation-guide)
-7. [Best Practices](#best-practices)
-8. [Troubleshooting](#troubleshooting)
-9. [Support](#support)
+3. [Email Notifications](#email-notifications)
+4. [User Roles](#user-roles)
+5. [Main Features](#main-features)
+6. [Common Tasks](#common-tasks)
+7. [Form Validation Guide](#form-validation-guide)
+8. [Best Practices](#best-practices)
+9. [Troubleshooting](#troubleshooting)
+10. [Support](#support)
 
 ## Introduction
 
@@ -50,6 +74,87 @@ Welcome to the USC Patient Information System (USC-PIS). This comprehensive guid
 4. Upload a profile photo (optional).
 5. Click "Save" to complete setup.
 6. After successful setup, you will be redirected to the dashboard.
+
+## Email Notifications
+
+USC-PIS includes a comprehensive email notification system to keep you informed about important system activities and healthcare updates.
+
+### **Automatic Email Notifications**
+
+#### **Welcome Email** 📧
+- **When**: Automatically sent when you create a new account
+- **Content**: System welcome message, overview of features, and next steps
+- **Action Required**: None - informational only
+
+#### **Medical Certificate Notifications** 🏥
+- **Certificate Request Confirmation**: Sent immediately when you submit a medical certificate request
+- **Approval Notifications**: Sent when your certificate is approved by a doctor
+- **Status Updates**: Notifications for any changes to your certificate status
+
+#### **Feedback Requests** 💭
+- **When**: Sent 24 hours after your medical visit
+- **Purpose**: Collect your feedback to improve healthcare services
+- **Content**: Quick rating buttons and link to detailed feedback form
+- **Action**: Optional - helps improve clinic services
+
+#### **Password Reset** 🔒
+- **When**: Sent when you request a password reset
+- **Content**: Secure link to reset your password (valid for 24 hours)
+- **Action Required**: Click the link to reset your password
+
+### **Email Features**
+
+#### **Professional Design**
+- All emails feature USC-PIS branding and professional formatting
+- Mobile-responsive design works on all devices
+- Clear, easy-to-read layouts with important information highlighted
+
+#### **Security & Privacy**
+- All email links are secure and expire after 24 hours
+- Emails are sent only to your registered USC email address
+- No sensitive medical information is included in emails
+
+#### **One-Click Actions**
+- Feedback emails include quick rating buttons (⭐⭐⭐⭐⭐)
+- Password reset with single-click secure links
+- Direct links to relevant system pages
+
+### **Email Settings & Preferences**
+
+#### **Checking Your Email**
+- Check your USC email inbox regularly for important notifications
+- Look in your spam/junk folder if you don't receive expected emails
+- All emails are sent from `noreply@usc-pis.herokuapp.com`
+
+#### **Email Delivery Issues**
+If you're not receiving emails:
+1. **Check Spam Folder**: Automated emails sometimes go to spam
+2. **Verify Email Address**: Ensure your profile has the correct USC email
+3. **Contact Support**: Email support if you continue having issues
+
+#### **Types of Emails You'll Receive**
+- ✅ **Registration Welcome** (once, when you first sign up)
+- ✅ **Certificate Updates** (when status changes occur)
+- ✅ **Feedback Requests** (24 hours after medical visits)
+- ✅ **Password Reset** (only when requested)
+- ✅ **Important System Updates** (rarely, for major announcements)
+
+### **Email Etiquette & Best Practices**
+
+#### **Responding to Feedback Requests**
+- Feedback helps improve healthcare services for all students
+- Your responses are confidential and help the clinic provide better care
+- Takes only 2-3 minutes to complete
+
+#### **Password Reset Security**
+- Never share password reset links with others
+- Reset links expire in 24 hours for security
+- Contact support if you didn't request a password reset
+
+#### **Staying Informed**
+- Read welcome emails to learn about new features
+- Keep your contact information updated in your profile
+- Check email regularly for important healthcare notifications
 
 ## User Roles
 

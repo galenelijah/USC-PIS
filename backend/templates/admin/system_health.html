@@ -1,0 +1,395 @@
+{% extends "admin/base_site.html" %}
+{% load admin_urls static %}
+
+{% block title %}Backup System Health - USC-PIS Administration{% endblock %}
+
+{% block extrastyle %}
+<style>
+    .health-monitor {
+        margin: 20px 0;
+    }
+    
+    .health-section {
+        background: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin: 20px 0;
+        padding: 20px;
+    }
+    
+    .health-status-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }
+    
+    .health-indicator {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .status-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+    }
+    
+    .status-healthy { background-color: #28a745; }
+    .status-warning { background-color: #ffc107; color: #212529; }
+    .status-critical { background-color: #dc3545; }
+    
+    .refresh-info {
+        font-size: 13px;
+        color: #666;
+    }
+    
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin: 20px 0;
+    }
+    
+    .metric-card {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 15px;
+    }
+    
+    .metric-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+        font-weight: bold;
+        color: #333;
+    }
+    
+    .metric-value {
+        font-size: 1.5em;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    
+    .metric-description {
+        font-size: 13px;
+        color: #666;
+    }
+    
+    .issues-list {
+        margin: 20px 0;
+    }
+    
+    .issue-item {
+        padding: 12px;
+        margin: 10px 0;
+        border-left: 4px solid;
+        border-radius: 0 4px 4px 0;
+    }
+    
+    .issue-critical {
+        background-color: #f8d7da;
+        border-color: #dc3545;
+        color: #721c24;
+    }
+    
+    .issue-warning {
+        background-color: #fff3cd;
+        border-color: #ffc107;
+        color: #856404;
+    }
+    
+    .issue-info {
+        background-color: #d1ecf1;
+        border-color: #17a2b8;
+        color: #0c5460;
+    }
+    
+    .recommendations-list {
+        background: #e8f5e8;
+        border: 1px solid #c3e6cb;
+        border-radius: 4px;
+        padding: 15px;
+        margin: 20px 0;
+    }
+    
+    .recommendation-item {
+        margin: 8px 0;
+        padding-left: 15px;
+        position: relative;
+    }
+    
+    .recommendation-item::before {
+        content: "💡";
+        position: absolute;
+        left: 0;
+    }
+    
+    .action-buttons {
+        margin-top: 20px;
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 14px;
+        transition: background-color 0.3s;
+    }
+    
+    .btn-primary {
+        background-color: #417690;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: #205067;
+        color: white;
+    }
+    
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+    }
+    
+    .btn-success:hover {
+        background-color: #218838;
+        color: white;
+    }
+    
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #5a6268;
+        color: white;
+    }
+    
+    .health-summary {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .timestamp {
+        font-family: monospace;
+        background: #f5f5f5;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 12px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="health-monitor">
+    <h1>💊 Backup System Health Monitor</h1>
+    <p>Real-time monitoring and diagnostics for USC-PIS backup infrastructure</p>
+
+    {% if health_status %}
+        <!-- Overall Health Status -->
+        <div class="health-summary">
+            <div class="health-status-header">
+                <div class="health-indicator">
+                    <span class="status-badge status-{{ health_status.overall_health }}">
+                        {% if health_status.overall_health == 'healthy' %}
+                            ✅ System Healthy
+                        {% elif health_status.overall_health == 'warning' %}
+                            ⚠️ Issues Detected
+                        {% else %}
+                            🚨 Critical Issues
+                        {% endif %}
+                    </span>
+                    <div>
+                        <div><strong>Last Check:</strong> <span class="timestamp">{{ health_status.timestamp|slice:":19" }} UTC</span></div>
+                        <div class="refresh-info">Health status updates every 5 minutes</div>
+                    </div>
+                </div>
+                <div>
+                    <a href="{{ refresh_url }}" class="btn btn-secondary">
+                        🔄 Refresh Status
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Metrics -->
+        {% if health_status.metrics %}
+        <div class="health-section">
+            <h2>📊 System Metrics</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-header">
+                        📋 Recent Activity
+                    </div>
+                    <div class="metric-value">{{ health_status.metrics.recent_backups_24h }}</div>
+                    <div class="metric-description">Backups in last 24 hours</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-header">
+                        ❌ Failures
+                    </div>
+                    <div class="metric-value" style="color: {% if health_status.metrics.failed_backups_24h > 0 %}#dc3545{% else %}#28a745{% endif %};">
+                        {{ health_status.metrics.failed_backups_24h }}
+                    </div>
+                    <div class="metric-description">Failed backups in last 24 hours</div>
+                </div>
+                
+                {% if health_status.metrics.hours_since_last_backup %}
+                <div class="metric-card">
+                    <div class="metric-header">
+                        ⏰ Last Backup
+                    </div>
+                    <div class="metric-value" style="color: {% if health_status.metrics.hours_since_last_backup > 24 %}#dc3545{% elif health_status.metrics.hours_since_last_backup > 12 %}#ffc107{% else %}#28a745{% endif %};">
+                        {{ health_status.metrics.hours_since_last_backup }}h
+                    </div>
+                    <div class="metric-description">Hours since last successful backup</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Issues and Alerts -->
+        {% if health_status.issues %}
+        <div class="health-section">
+            <h2>🚨 Detected Issues</h2>
+            <div class="issues-list">
+                {% for issue in health_status.issues %}
+                <div class="issue-item issue-{{ issue.severity }}">
+                    <strong>
+                        {% if issue.severity == 'critical' %}🚨
+                        {% elif issue.severity == 'warning' %}⚠️
+                        {% else %}ℹ️
+                        {% endif %}
+                        {{ issue.severity|title }}:
+                    </strong>
+                    {{ issue.message }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="health-section">
+            <h2>✅ System Status</h2>
+            <div class="issue-item" style="background-color: #d4edda; border-color: #28a745; color: #155724;">
+                <strong>✅ All Good:</strong> No issues detected. Backup system is operating normally.
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Recommendations -->
+        {% if health_status.recommendations %}
+        <div class="health-section">
+            <h2>💡 Recommendations</h2>
+            <div class="recommendations-list">
+                {% for rec in health_status.recommendations %}
+                <div class="recommendation-item">
+                    {{ rec.message }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- System Actions -->
+        <div class="health-section">
+            <h2>⚡ System Actions</h2>
+            <div class="action-buttons">
+                {% if health_status.overall_health != 'healthy' %}
+                <a href="{% url 'admin:create_backup' %}" class="btn btn-success">
+                    🔧 Create Emergency Backup
+                </a>
+                {% endif %}
+                
+                <a href="{% url 'admin:create_backup' %}" class="btn btn-primary">
+                    💾 Create Manual Backup
+                </a>
+                
+                <a href="{% url 'admin:utils_backupstatus_changelist' %}" class="btn btn-secondary">
+                    📋 View Backup History
+                </a>
+                
+                <a href="{% url 'admin:backup_dashboard' %}" class="btn btn-secondary">
+                    📊 Back to Dashboard
+                </a>
+                
+                <a href="{% url 'admin:utils_systemhealthmetric_changelist' %}" class="btn btn-secondary">
+                    📈 View Health Metrics
+                </a>
+            </div>
+        </div>
+
+        <!-- Diagnostic Information -->
+        <div class="health-section">
+            <h2>🔍 Diagnostic Information</h2>
+            <details>
+                <summary style="cursor: pointer; font-weight: bold; padding: 10px 0;">
+                    View Raw Health Data
+                </summary>
+                <div style="margin-top: 15px;">
+                    <pre style="background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto; font-size: 12px;">{{ health_status|pprint }}</pre>
+                </div>
+            </details>
+            
+            <details style="margin-top: 15px;">
+                <summary style="cursor: pointer; font-weight: bold; padding: 10px 0;">
+                    Troubleshooting Guide
+                </summary>
+                <div style="margin-top: 15px; padding-left: 15px;">
+                    <h4>🚨 Critical Issues</h4>
+                    <ul>
+                        <li><strong>No backups found:</strong> Create an immediate manual backup and set up automated schedules</li>
+                        <li><strong>Multiple backup failures:</strong> Check disk space, database connectivity, and email configuration</li>
+                        <li><strong>Stale backups (>48h):</strong> Investigate backup schedule automation and system resources</li>
+                    </ul>
+                    
+                    <h4>⚠️ Warning Issues</h4>
+                    <ul>
+                        <li><strong>Recent failures:</strong> Check error messages in backup status logs</li>
+                        <li><strong>Old backups (>24h):</strong> Verify backup schedules are active and functioning</li>
+                    </ul>
+                    
+                    <h4>📞 Need Help?</h4>
+                    <ul>
+                        <li>Check the backup documentation in the project repository</li>
+                        <li>Review system logs for detailed error messages</li>
+                        <li>Contact the system administrator if issues persist</li>
+                    </ul>
+                </div>
+            </details>
+        </div>
+
+    {% else %}
+        <div class="health-section">
+            <div class="issue-item issue-critical">
+                <strong>🚨 Error:</strong> Unable to load health status data. The backup monitoring service may be unavailable.
+            </div>
+            <div class="action-buttons">
+                <a href="{{ refresh_url }}" class="btn btn-primary">
+                    🔄 Retry Health Check
+                </a>
+                <a href="{% url 'admin:backup_dashboard' %}" class="btn btn-secondary">
+                    📊 Back to Dashboard
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

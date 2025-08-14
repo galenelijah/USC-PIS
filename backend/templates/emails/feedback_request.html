@@ -1,0 +1,90 @@
+{% extends 'emails/base.html' %}
+
+{% block title %}Share Your Healthcare Experience - USC-PIS{% endblock %}
+
+{% block content %}
+<h2>How was your visit? 📝</h2>
+
+<p>Dear {{ patient.user.first_name|default:patient.user.email }},</p>
+
+<p>Thank you for visiting USC Health Center recently. Your feedback helps us improve our healthcare services and provide better care for all students.</p>
+
+<div class="info-box">
+    <strong>Your Recent Visit:</strong><br>
+    <strong>Date:</strong> {{ medical_record.visit_date|date:"F d, Y" }}<br>
+    <strong>Visit Type:</strong> {{ medical_record.visit_type|default:"Medical Consultation" }}<br>
+    {% if medical_record.diagnosis %}
+    <strong>Consultation:</strong> {{ medical_record.diagnosis|truncatechars:50 }}
+    {% endif %}
+</div>
+
+<p>We'd love to hear about your experience! Your feedback takes just 2 minutes and helps us:</p>
+
+<ul>
+    <li>✅ <strong>Improve our medical services</strong> and patient care quality</li>
+    <li>✅ <strong>Enhance patient experience</strong> and reduce waiting times</li>
+    <li>✅ <strong>Train our staff better</strong> to serve you more effectively</li>
+    <li>✅ <strong>Maintain high healthcare standards</strong> across all services</li>
+</ul>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ feedback_url }}" class="button">Share Your Feedback</a>
+</div>
+
+<h3>Quick Feedback Options:</h3>
+<div style="text-align: center; margin: 20px 0;">
+    <p><strong>Rate your overall experience:</strong></p>
+    
+    <div style="margin: 15px 0;">
+        <a href="{{ feedback_url }}&rating=5" style="display: inline-block; background-color: #4caf50; color: white; padding: 8px 15px; margin: 5px; text-decoration: none; border-radius: 20px; font-size: 14px;">
+            ⭐⭐⭐⭐⭐ Excellent
+        </a>
+        <a href="{{ feedback_url }}&rating=4" style="display: inline-block; background-color: #8bc34a; color: white; padding: 8px 15px; margin: 5px; text-decoration: none; border-radius: 20px; font-size: 14px;">
+            ⭐⭐⭐⭐ Good
+        </a>
+    </div>
+    
+    <div style="margin: 15px 0;">
+        <a href="{{ feedback_url }}&rating=3" style="display: inline-block; background-color: #ff9800; color: white; padding: 8px 15px; margin: 5px; text-decoration: none; border-radius: 20px; font-size: 14px;">
+            ⭐⭐⭐ Average
+        </a>
+        <a href="{{ feedback_url }}&rating=2" style="display: inline-block; background-color: #f44336; color: white; padding: 8px 15px; margin: 5px; text-decoration: none; border-radius: 20px; font-size: 14px;">
+            ⭐⭐ Poor
+        </a>
+        <a href="{{ feedback_url }}&rating=1" style="display: inline-block; background-color: #d32f2f; color: white; padding: 8px 15px; margin: 5px; text-decoration: none; border-radius: 20px; font-size: 14px;">
+            ⭐ Very Poor
+        </a>
+    </div>
+</div>
+
+<div class="info-box">
+    <strong>What we're asking:</strong>
+    <ul>
+        <li>How satisfied were you with your overall experience?</li>
+        <li>Was our medical staff courteous and helpful?</li>
+        <li>How would you rate the quality of care you received?</li>
+        <li>Would you recommend our services to other students?</li>
+        <li>Any suggestions for improvement?</li>
+    </ul>
+</div>
+
+<h3>Your privacy is important</h3>
+<p>Your feedback is:</p>
+<ul>
+    <li>🔒 <strong>Confidential:</strong> Only used to improve our services</li>
+    <li>📊 <strong>Anonymous option available:</strong> You can provide feedback without identifying yourself</li>
+    <li>🛡️ <strong>Secure:</strong> All feedback is stored securely and handled professionally</li>
+</ul>
+
+<p>Thank you for taking the time to help us serve you better. Your opinion matters to us!</p>
+
+<p>Best regards,<br>
+<strong>USC Healthcare Quality Team</strong><br>
+University of San Carlos Health Center</p>
+
+<hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+
+<p style="font-size: 12px; color: #666; text-align: center;">
+    If you don't want to receive feedback requests, you can <a href="{{ site_url }}/profile/preferences">update your email preferences</a> anytime.
+</p>
+{% endblock %}

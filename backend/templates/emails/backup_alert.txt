@@ -1,0 +1,38 @@
+USC-PIS BACKUP SYSTEM ALERT
+============================
+
+System Status: {{ monitoring_results.overall_health|upper }}
+Timestamp: {{ timestamp|date:"Y-m-d H:i T" }}
+
+{% if monitoring_results.issues %}
+ISSUES FOUND:
+{% for issue in monitoring_results.issues %}
+- {{ issue.severity|upper }}: {{ issue.message }}
+{% endfor %}
+
+{% endif %}
+{% if monitoring_results.recommendations %}
+RECOMMENDATIONS:
+{% for rec in monitoring_results.recommendations %}
+- {{ rec.message }}
+{% endfor %}
+
+{% endif %}
+BACKUP SUMMARY:
+- Last 24 hours: {{ monitoring_results.backup_summary.last_24h_successful }}/{{ monitoring_results.backup_summary.last_24h_backups }} successful backups
+- Last week: {{ monitoring_results.backup_summary.last_week_successful }}/{{ monitoring_results.backup_summary.last_week_backups }} successful backups
+- Success rate: {{ monitoring_results.backup_summary.health_score|floatformat:1 }}%
+- Last database backup: {% if monitoring_results.backup_summary.latest_database_backup %}{{ monitoring_results.backup_summary.latest_database_backup.started_at|timesince }} ago{% else %}Never{% endif %}
+
+NEXT STEPS:
+1. Review the issues listed above
+2. Check the USC-PIS admin panel for detailed backup status
+3. Take corrective action as needed
+
+Admin Panel: https://usc-pis.herokuapp.com/admin/utils/backupstatus/
+
+This is an automated alert from the USC-PIS backup monitoring system.
+If you believe this is an error, please check the admin panel or contact the system administrator.
+
+USC Patient Information System
+University of Southern California

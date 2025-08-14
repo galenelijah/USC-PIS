@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USC-PIS Backup Alert</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        .alert-status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+            text-align: center;
+            text-transform: uppercase;
+        }
+        .healthy { background-color: #d4edda; color: #155724; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        .critical { background-color: #f8d7da; color: #721c24; }
+        .section {
+            margin: 25px 0;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1976d2;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+        }
+        .issue-item, .recommendation-item {
+            background-color: #f8f9fa;
+            padding: 12px;
+            margin: 10px 0;
+            border-left: 4px solid #6c757d;
+            border-radius: 3px;
+        }
+        .issue-critical {
+            border-left-color: #dc3545;
+            background-color: #f8d7da;
+        }
+        .issue-warning {
+            border-left-color: #ffc107;
+            background-color: #fff3cd;
+        }
+        .recommendation-item {
+            border-left-color: #28a745;
+            background-color: #d1ecf1;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1976d2;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            text-align: center;
+            color: #6c757d;
+            font-size: 12px;
+        }
+        .action-button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #1976d2;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .timestamp {
+            color: #6c757d;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🏥 USC-PIS</div>
+            <h1>Backup System Alert</h1>
+            <div class="timestamp">{{ timestamp|date:"Y-m-d H:i T" }}</div>
+        </div>
+
+        <div class="alert-status {{ monitoring_results.overall_health }}">
+            System Status: {{ monitoring_results.overall_health|upper }}
+        </div>
+
+        {% if monitoring_results.issues %}
+        <div class="section">
+            <div class="section-title">🚨 Issues Found</div>
+            {% for issue in monitoring_results.issues %}
+            <div class="issue-item issue-{{ issue.severity }}">
+                <strong>{{ issue.severity|upper }}:</strong> {{ issue.message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if monitoring_results.recommendations %}
+        <div class="section">
+            <div class="section-title">💡 Recommendations</div>
+            {% for rec in monitoring_results.recommendations %}
+            <div class="recommendation-item">
+                {{ rec.message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="section">
+            <div class="section-title">📊 Backup Summary</div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">{{ monitoring_results.backup_summary.last_24h_successful }}/{{ monitoring_results.backup_summary.last_24h_backups }}</div>
+                    <div class="stat-label">Last 24 Hours</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ monitoring_results.backup_summary.last_week_successful }}/{{ monitoring_results.backup_summary.last_week_backups }}</div>
+                    <div class="stat-label">Last Week</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ monitoring_results.backup_summary.health_score|floatformat:1 }}%</div>
+                    <div class="stat-label">Success Rate</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">
+                        {% if monitoring_results.backup_summary.latest_database_backup %}
+                            {{ monitoring_results.backup_summary.latest_database_backup.started_at|timesince }}
+                        {% else %}
+                            Never
+                        {% endif %}
+                    </div>
+                    <div class="stat-label">Last DB Backup</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" style="text-align: center;">
+            <a href="https://usc-pis.herokuapp.com/admin/utils/backupstatus/" class="action-button">
+                View Admin Panel
+            </a>
+        </div>
+
+        <div class="footer">
+            <p>This is an automated alert from the USC-PIS backup monitoring system.</p>
+            <p>If you believe this is an error, please check the admin panel or contact the system administrator.</p>
+            <p><strong>USC Patient Information System</strong> | University of Southern California</p>
+        </div>
+    </div>
+</body>
+</html>

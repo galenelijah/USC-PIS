@@ -29,6 +29,9 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.views.decorators.http import require_http_methods
 
+# Import email service
+from utils.email_service import EmailService
+
 logger = logging.getLogger(__name__)
 
 def get_client_ip(request):
@@ -107,6 +110,14 @@ def register_user(request):
                     
                     # Log successful registration
                     logger.info(f"User registered successfully: {user.email} with role {user.role}")
+                    
+                    # Send welcome email
+                    try:
+                        EmailService.send_welcome_email(user)
+                        logger.info(f"Welcome email sent to {user.email}")
+                    except Exception as email_error:
+                        logger.error(f"Failed to send welcome email to {user.email}: {str(email_error)}")
+                        # Don't fail registration if email fails
                     
                     # Record successful attempt
                     rate_limiter.record_attempt(client_ip, 'register', success=True)
