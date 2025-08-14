@@ -255,6 +255,40 @@ export const authService = {
       handleApiError(error);
     }
   },
+  
+  // Backup Management Functions
+  getBackupHealth: async () => {
+    try {
+      const response = await api.get('/utils/backup-health/');
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+  
+  triggerManualBackup: async (backupType = 'full', verify = true) => {
+    try {
+      const response = await api.post('/utils/trigger-backup/', {
+        backup_type: backupType,
+        verify: verify
+      });
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+  
+  getBackupStatus: async (backupId) => {
+    try {
+      const response = await api.get(`/utils/backup-status/${backupId}/`);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
 };
 
 export const patientService = {
