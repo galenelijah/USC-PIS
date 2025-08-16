@@ -312,6 +312,16 @@ if os.environ.get('USE_CLOUDINARY') == 'True':
         # Use Cloudinary for media file storage
         DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
         
+        # Force override for existing models (Django 4.2+ compatibility)
+        STORAGES = {
+            "default": {
+                "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+            },
+            "staticfiles": {
+                "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+            },
+        }
+        
         # Set Cloudinary MEDIA_URL
         MEDIA_URL = f"https://res.cloudinary.com/{os.environ.get('CLOUDINARY_CLOUD_NAME')}/image/upload/"
         
@@ -331,6 +341,14 @@ if os.environ.get('USE_CLOUDINARY') == 'True':
         print("Warning: Cloudinary packages not installed. Using local file storage.")
         # Fall back to local storage if Cloudinary packages are not available
         MEDIA_URL = '/media/'
+        STORAGES = {
+            "default": {
+                "BACKEND": "django.core.files.storage.FileSystemStorage",
+            },
+            "staticfiles": {
+                "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+            },
+        }
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
