@@ -39,7 +39,7 @@ def health_info_image_upload_path(instance, filename):
 class HealthInformation(models.Model):
     title = models.CharField(max_length=200)
     content = models.TextField()
-    category = models.CharField(max_length=100)
+    category = models.CharField(max_length=200)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
