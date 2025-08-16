@@ -313,8 +313,8 @@ if os.environ.get('USE_CLOUDINARY') == 'True':
         # Use Cloudinary for media file storage
         DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
         
-        # Update media URL for Cloudinary
-        MEDIA_URL = f"https://res.cloudinary.com/{os.environ.get('CLOUDINARY_CLOUD_NAME')}/"
+        # Update media URL for Cloudinary with proper structure
+        MEDIA_URL = f"https://res.cloudinary.com/{os.environ.get('CLOUDINARY_CLOUD_NAME')}/image/upload/"
         
         # Optional: Customize Cloudinary settings
         CLOUDINARY_STORAGE = {

@@ -19,7 +19,11 @@ def pubmat_upload_path(instance, filename):
 
 def health_info_image_upload_path(instance, filename):
     """Generate upload path for health info images"""
-    return f'health_info/{instance.id}/{filename}'
+    # Use timestamp if instance.id is None (during creation)
+    from django.utils import timezone
+    import uuid
+    identifier = instance.id if instance.id else f"temp_{uuid.uuid4().hex[:8]}"
+    return f'health_info/{identifier}/{filename}'
 
 class HealthInformation(models.Model):
     title = models.CharField(max_length=200)
