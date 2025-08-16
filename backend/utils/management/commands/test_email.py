@@ -61,16 +61,29 @@ USC-PIS Email System Test
 """
 
         try:
-            # Send test email
+            # Send test email with USC branding
             self.stdout.write('Sending test email...')
             
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[email],
-                fail_silently=False,
+            # Create professional display name and headers
+            usc_display_name = f"USC Patient Information System <{settings.DEFAULT_FROM_EMAIL}>"
+            
+            from django.core.mail import EmailMultiAlternatives
+            
+            msg = EmailMultiAlternatives(
+                subject=f"[USC-PIS] {subject}",
+                body=message,
+                from_email=usc_display_name,
+                to=[email]
             )
+            
+            # Add USC headers
+            msg.extra_headers = {
+                'Reply-To': 'noreply@usc.edu.ph',
+                'X-Mailer': 'USC Patient Information System',
+                'Organization': 'University of Southern California'
+            }
+            
+            msg.send()
             
             self.stdout.write(
                 self.style.SUCCESS(f'✅ Email sent successfully to {email}')

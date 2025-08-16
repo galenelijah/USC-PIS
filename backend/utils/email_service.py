@@ -16,7 +16,7 @@ class EmailService:
     @staticmethod
     def send_template_email(template_name, context, recipient_email, subject, from_email=None):
         """
-        Send an email using a template
+        Send an email using a template with USC-PIS branding
         
         Args:
             template_name (str): Template file name without extension
@@ -32,20 +32,31 @@ class EmailService:
             if from_email is None:
                 from_email = settings.DEFAULT_FROM_EMAIL
             
+            # Create professional USC-PIS display name
+            usc_display_name = f"USC Patient Information System <{from_email}>"
+            
             # Render HTML template
             html_content = render_to_string(f'emails/{template_name}.html', context)
             
             # Create plain text version
             text_content = strip_tags(html_content)
             
-            # Create email message
+            # Create email message with USC branding
             msg = EmailMultiAlternatives(
-                subject=subject,
+                subject=f"[USC-PIS] {subject}",
                 body=text_content,
-                from_email=from_email,
+                from_email=usc_display_name,
                 to=[recipient_email]
             )
             msg.attach_alternative(html_content, "text/html")
+            
+            # Add USC reply-to and headers
+            msg.extra_headers = {
+                'Reply-To': 'noreply@usc.edu.ph',
+                'X-Mailer': 'USC Patient Information System',
+                'X-Priority': '3',
+                'Organization': 'University of Southern California'
+            }
             
             # Send email
             result = msg.send()
