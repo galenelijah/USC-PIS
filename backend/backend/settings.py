@@ -313,8 +313,7 @@ if os.environ.get('USE_CLOUDINARY') == 'True':
         # Use Cloudinary for media file storage
         DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
         
-        # Update media URL for Cloudinary with proper structure
-        MEDIA_URL = f"https://res.cloudinary.com/{os.environ.get('CLOUDINARY_CLOUD_NAME')}/image/upload/"
+        # Let cloudinary_storage handle MEDIA_URL automatically
         
         # Optional: Customize Cloudinary settings
         CLOUDINARY_STORAGE = {
@@ -322,10 +321,10 @@ if os.environ.get('USE_CLOUDINARY') == 'True':
             'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
             'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
             'SECURE': True,
-            'MEDIA_TAG': 'media',  # Optional: tag all uploads
+            'MEDIA_TAG': 'usc-pis-media',  # Tag all uploads
             'INVALID_VIDEO_ERROR_MESSAGE': 'Please upload a valid video file.',
             'EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS': (),
-            'FOLDER': 'usc-pis',  # Optional: organize uploads in folder
+            'FOLDER': 'usc-pis-media',  # Organize uploads in folder
         }
         
     except ImportError:
