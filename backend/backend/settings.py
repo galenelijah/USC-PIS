@@ -291,8 +291,7 @@ STATICFILES_DIRS = [
 # Whitenoise settings
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Media files (User uploads)
-MEDIA_URL = '/media/' # URL prefix for user-uploaded files
+# Media files (User uploads) - Default settings
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media') # Absolute filesystem path to the directory for user-uploaded files
 
 # Cloudinary configuration for production media storage
@@ -313,7 +312,8 @@ if os.environ.get('USE_CLOUDINARY') == 'True':
         # Use Cloudinary for media file storage
         DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
         
-        # Let cloudinary_storage handle MEDIA_URL automatically
+        # Set Cloudinary MEDIA_URL
+        MEDIA_URL = f"https://res.cloudinary.com/{os.environ.get('CLOUDINARY_CLOUD_NAME')}/image/upload/"
         
         # Optional: Customize Cloudinary settings
         CLOUDINARY_STORAGE = {
@@ -330,6 +330,7 @@ if os.environ.get('USE_CLOUDINARY') == 'True':
     except ImportError:
         print("Warning: Cloudinary packages not installed. Using local file storage.")
         # Fall back to local storage if Cloudinary packages are not available
+        MEDIA_URL = '/media/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
