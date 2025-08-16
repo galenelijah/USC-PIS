@@ -273,31 +273,36 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media') # Absolute filesystem path to the d
 # Cloudinary configuration for production media storage
 # Only activate when explicitly enabled via environment variable
 if os.environ.get('USE_CLOUDINARY') == 'True':
-    import cloudinary
-    import cloudinary.uploader
-    import cloudinary.api
-    
-    cloudinary.config(
-        cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
-        api_key=os.environ.get('CLOUDINARY_API_KEY'),
-        api_secret=os.environ.get('CLOUDINARY_API_SECRET'),
-        secure=True
-    )
-    
-    # Use Cloudinary for media file storage
-    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-    
-    # Optional: Customize Cloudinary settings
-    CLOUDINARY_STORAGE = {
-        'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
-        'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
-        'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
-        'SECURE': True,
-        'MEDIA_TAG': 'media',  # Optional: tag all uploads
-        'INVALID_VIDEO_ERROR_MESSAGE': 'Please upload a valid video file.',
-        'EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS': (),
-        'FOLDER': 'usc-pis',  # Optional: organize uploads in folder
-    }
+    try:
+        import cloudinary
+        import cloudinary.uploader
+        import cloudinary.api
+        
+        cloudinary.config(
+            cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
+            api_key=os.environ.get('CLOUDINARY_API_KEY'),
+            api_secret=os.environ.get('CLOUDINARY_API_SECRET'),
+            secure=True
+        )
+        
+        # Use Cloudinary for media file storage
+        DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+        
+        # Optional: Customize Cloudinary settings
+        CLOUDINARY_STORAGE = {
+            'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
+            'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
+            'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
+            'SECURE': True,
+            'MEDIA_TAG': 'media',  # Optional: tag all uploads
+            'INVALID_VIDEO_ERROR_MESSAGE': 'Please upload a valid video file.',
+            'EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS': (),
+            'FOLDER': 'usc-pis',  # Optional: organize uploads in folder
+        }
+        
+    except ImportError:
+        print("Warning: Cloudinary packages not installed. Using local file storage.")
+        # Fall back to local storage if Cloudinary packages are not available
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
