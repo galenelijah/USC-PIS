@@ -21,18 +21,35 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Email Configuration
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.sendgrid.net')
-EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
-EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'apikey')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@usc-pis.herokuapp.com')
-SERVER_EMAIL = DEFAULT_FROM_EMAIL
+# Email Configuration - AWS SES
+USE_AWS_SES = os.environ.get('USE_AWS_SES', 'False') == 'True'
 
-# Email settings for development
-if not EMAIL_HOST_PASSWORD:
+if USE_AWS_SES:
+    # AWS SES Configuration
+    EMAIL_BACKEND = 'django_ses.SESBackend'
+    AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+    AWS_SES_REGION_NAME = os.environ.get('AWS_SES_REGION_NAME', 'us-east-1')
+    AWS_SES_REGION_ENDPOINT = f'email.{AWS_SES_REGION_NAME}.amazonaws.com'
+    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@usc-pis.com')
+    SERVER_EMAIL = DEFAULT_FROM_EMAIL
+    
+    # Optional: Configuration for bounce and complaint handling
+    AWS_SES_AUTO_THROTTLE = 0.5  # Throttle sending rate
+    
+else:
+    # Fallback to SMTP (SendGrid or other)
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.sendgrid.net')
+    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+    EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'apikey')
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@usc-pis.herokuapp.com')
+    SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+# Development fallback
+if not USE_AWS_SES and not os.environ.get('EMAIL_HOST_PASSWORD'):
     # Fall back to console backend for development
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 

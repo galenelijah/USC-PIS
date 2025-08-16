@@ -21,3 +21,6 @@ requests>=2.31.0
 # Cloudinary for production media storage (install when needed)
 cloudinary==1.36.0
 django-cloudinary-storage==0.3.0
+# AWS SES for email service
+django-ses>=3.5.0
+boto3>=1.35.0

@@ -38,7 +38,7 @@ import {
   AccountCircle,
   Home,
   Badge,
-  Health,
+  HealthAndSafety,
   Save,
   Edit
 } from '@mui/icons-material';

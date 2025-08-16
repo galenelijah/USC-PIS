@@ -1,104 +1,107 @@
 """
-Management command to test email functionality
-Usage: python manage.py test_email --email your@email.com
+Management command to test email functionality with AWS SES or other backends.
 """
+
 from django.core.management.base import BaseCommand
-from utils.email_service import EmailService
-from authentication.models import User
+from django.core.mail import send_mail
+from django.conf import settings
+import os
+
 
 class Command(BaseCommand):
-    help = 'Test email functionality by sending a test email'
-    
+    help = 'Test email functionality with current email backend'
+
     def add_arguments(self, parser):
         parser.add_argument(
             '--email',
             type=str,
-            required=True,
-            help='Email address to send test email to'
+            help='Email address to send test email to (required)',
+            required=True
         )
         parser.add_argument(
-            '--type',
+            '--subject',
             type=str,
-            default='welcome',
-            choices=['welcome', 'password_reset', 'test'],
-            help='Type of email to send (default: welcome)'
+            default='USC-PIS Email System Test',
+            help='Subject line for test email'
         )
-    
+
     def handle(self, *args, **options):
         email = options['email']
-        email_type = options['type']
+        subject = options['subject']
         
-        self.stdout.write(f"Testing email functionality...")
-        self.stdout.write(f"Recipient: {email}")
-        self.stdout.write(f"Email type: {email_type}")
+        # Get current email backend info
+        backend = settings.EMAIL_BACKEND
+        use_aws_ses = os.environ.get('USE_AWS_SES', 'False') == 'True'
         
+        self.stdout.write(
+            self.style.HTTP_INFO(f'Testing email with backend: {backend}')
+        )
+        
+        if use_aws_ses:
+            self.stdout.write(
+                self.style.HTTP_INFO(f'AWS SES Region: {getattr(settings, "AWS_SES_REGION_NAME", "Not set")}')
+            )
+            self.stdout.write(
+                self.style.HTTP_INFO(f'AWS Access Key: {getattr(settings, "AWS_ACCESS_KEY_ID", "Not set")[:10]}...')
+            )
+        
+        # Test email content
+        message = f"""
+This is a test email from the USC Patient Information System.
+
+Email Backend: {backend}
+Environment: {'Production' if not settings.DEBUG else 'Development'}
+From Email: {settings.DEFAULT_FROM_EMAIL}
+AWS SES Enabled: {use_aws_ses}
+
+If you received this email, the email system is working correctly!
+
+---
+USC-PIS Email System Test
+"""
+
         try:
-            if email_type == 'welcome':
-                # Create a temporary user object for testing
-                test_user = type('User', (), {
-                    'email': email,
-                    'first_name': 'Test',
-                    'last_name': 'User'
-                })()
-                
-                success = EmailService.send_welcome_email(test_user)
-                
-            elif email_type == 'test':
-                # Send a basic test email
-                success = EmailService.send_template_email(
-                    template_name='welcome',  # Reuse welcome template for testing
-                    context={
-                        'user': {
-                            'email': email,
-                            'first_name': 'Test'
-                        },
-                        'site_url': 'https://usc-pis.herokuapp.com',
-                        'support_email': 'support@usc-pis.herokuapp.com'
-                    },
-                    recipient_email=email,
-                    subject='USC-PIS Email Test'
-                )
-                
-            elif email_type == 'password_reset':
-                test_user = type('User', (), {
-                    'email': email,
-                    'first_name': 'Test'
-                })()
-                
-                success = EmailService.send_password_reset_email(
-                    test_user,
-                    'https://usc-pis.herokuapp.com/reset-password/test-token'
+            # Send test email
+            self.stdout.write('Sending test email...')
+            
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+            
+            self.stdout.write(
+                self.style.SUCCESS(f'✅ Email sent successfully to {email}')
+            )
+            self.stdout.write(
+                self.style.SUCCESS(f'📧 From: {settings.DEFAULT_FROM_EMAIL}')
+            )
+            self.stdout.write(
+                self.style.SUCCESS(f'🔧 Backend: {backend}')
+            )
+            
+            if use_aws_ses:
+                self.stdout.write(
+                    self.style.SUCCESS('☁️ Using AWS SES for delivery')
                 )
             
-            if success:
-                self.stdout.write(
-                    self.style.SUCCESS(f"✅ Test email sent successfully to {email}")
-                )
-                self.stdout.write("Check your inbox (and spam folder) for the test email.")
-            else:
-                self.stdout.write(
-                    self.style.ERROR(f"❌ Failed to send test email to {email}")
-                )
-                self.stdout.write("Check your email configuration and SMTP settings.")
-                
         except Exception as e:
             self.stdout.write(
-                self.style.ERROR(f"❌ Error sending test email: {str(e)}")
+                self.style.ERROR(f'❌ Email sending failed: {str(e)}')
             )
-            self.stdout.write("Check your email configuration in settings.py")
-            
-        # Show current email settings
-        from django.conf import settings
-        self.stdout.write("\n📧 Current Email Configuration:")
-        self.stdout.write(f"EMAIL_BACKEND: {settings.EMAIL_BACKEND}")
-        self.stdout.write(f"EMAIL_HOST: {getattr(settings, 'EMAIL_HOST', 'Not set')}")
-        self.stdout.write(f"EMAIL_PORT: {getattr(settings, 'EMAIL_PORT', 'Not set')}")
-        self.stdout.write(f"DEFAULT_FROM_EMAIL: {getattr(settings, 'DEFAULT_FROM_EMAIL', 'Not set')}")
-        
-        if settings.EMAIL_BACKEND == 'django.core.mail.backends.console.EmailBackend':
             self.stdout.write(
-                self.style.WARNING(
-                    "\n⚠️  You're using console email backend. "
-                    "Emails will be printed to console instead of sent."
-                )
+                self.style.ERROR('Check your email configuration and try again.')
             )
+            
+            # Provide debugging info
+            self.stdout.write('\n' + self.style.WARNING('Debugging Information:'))
+            self.stdout.write(f'Backend: {backend}')
+            self.stdout.write(f'From email: {settings.DEFAULT_FROM_EMAIL}')
+            self.stdout.write(f'USE_AWS_SES: {use_aws_ses}')
+            
+            if use_aws_ses:
+                self.stdout.write(f'AWS_ACCESS_KEY_ID: {"Set" if getattr(settings, "AWS_ACCESS_KEY_ID", None) else "Not set"}')
+                self.stdout.write(f'AWS_SECRET_ACCESS_KEY: {"Set" if getattr(settings, "AWS_SECRET_ACCESS_KEY", None) else "Not set"}')
+                self.stdout.write(f'AWS_SES_REGION_NAME: {getattr(settings, "AWS_SES_REGION_NAME", "Not set")}')
