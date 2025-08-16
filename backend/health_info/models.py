@@ -5,6 +5,17 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 import os
 
+def get_media_storage():
+    """Get the appropriate storage backend for media files"""
+    if os.environ.get('USE_CLOUDINARY') == 'True':
+        try:
+            from cloudinary_storage.storage import MediaCloudinaryStorage
+            return MediaCloudinaryStorage()
+        except ImportError:
+            pass
+    from django.core.files.storage import default_storage
+    return default_storage
+
 def campaign_image_upload_path(instance, filename):
     """Generate upload path for campaign images"""
     return f'campaigns/{instance.campaign_type}/{filename}'
@@ -41,6 +52,7 @@ class HealthInformationImage(models.Model):
     health_info = models.ForeignKey(HealthInformation, related_name='images', on_delete=models.CASCADE)
     image = models.ImageField(
         upload_to=health_info_image_upload_path,
+        storage=get_media_storage,
         validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'gif'])]
     )
     caption = models.CharField(max_length=255, blank=True)
@@ -102,11 +114,13 @@ class CampaignTemplate(models.Model):
     # Template images
     banner_image = models.ImageField(
         upload_to='campaign_templates/banners/',
+        storage=get_media_storage,
         validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'gif'])],
         null=True, blank=True
     )
     thumbnail_image = models.ImageField(
         upload_to='campaign_templates/thumbnails/',
+        storage=get_media_storage,
         validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png'])],
         null=True, blank=True
     )
@@ -196,18 +210,21 @@ class HealthCampaign(models.Model):
     # Visual Content
     banner_image = models.ImageField(
         upload_to=banner_upload_path,
+        storage=get_media_storage,
         validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'gif'])],
         null=True, blank=True,
         help_text="Main banner image for the campaign"
     )
     pubmat_image = models.ImageField(
         upload_to=pubmat_upload_path,
+        storage=get_media_storage,
         validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'pdf'])],
         null=True, blank=True,
         help_text="PubMat (Public Material) for printing and distribution"
     )
     thumbnail_image = models.ImageField(
         upload_to=campaign_image_upload_path,
+        storage=get_media_storage,
         validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png'])],
         null=True, blank=True,
         help_text="Thumbnail image for campaign listing"
@@ -331,6 +348,7 @@ class CampaignResource(models.Model):
     resource_type = models.CharField(max_length=15, choices=RESOURCE_TYPES)
     file = models.FileField(
         upload_to='campaign_resources/',
+        storage=get_media_storage,
         validators=[FileExtensionValidator(allowed_extensions=[
             'pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'gif', 'mp4', 'avi', 'mov'
         ])]
