@@ -106,12 +106,20 @@ INSTALLED_APPS = [
     'utils',  # Add utils app for system monitoring and management commands
 ]
 
-# Add Cloudinary apps only when enabled
+# Add Cloudinary apps only when enabled and packages are available
 if os.environ.get('USE_CLOUDINARY') == 'True':
-    # Insert cloudinary apps before local apps that use file uploads
-    local_apps_start = INSTALLED_APPS.index('patients')
-    INSTALLED_APPS.insert(local_apps_start, 'cloudinary_storage')
-    INSTALLED_APPS.insert(local_apps_start + 1, 'cloudinary')
+    try:
+        # Test if cloudinary packages are available
+        import cloudinary_storage
+        import cloudinary
+        
+        # Insert cloudinary apps before local apps that use file uploads
+        local_apps_start = INSTALLED_APPS.index('patients')
+        INSTALLED_APPS.insert(local_apps_start, 'cloudinary_storage')
+        INSTALLED_APPS.insert(local_apps_start + 1, 'cloudinary')
+        
+    except ImportError:
+        print("Warning: Cloudinary packages not installed. Skipping Cloudinary apps in INSTALLED_APPS.")
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
