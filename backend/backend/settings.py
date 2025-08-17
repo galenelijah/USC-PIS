@@ -288,8 +288,7 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'frontend', 'frontend', 'dist'),  # Add the frontend build directory
 ]
 
-# Whitenoise settings
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Whitenoise settings - handled by STORAGES configuration below
 
 # Media files (User uploads) - Default settings
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media') # Absolute filesystem path to the directory for user-uploaded files
@@ -318,9 +317,6 @@ try:
         },
     }
     
-    # Legacy setting for Django < 4.2 compatibility
-    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-    
     # Cloudinary-specific settings
     CLOUDINARY_STORAGE = {
         'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
@@ -345,7 +341,6 @@ except ImportError:
             "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         },
     }
-    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
     MEDIA_URL = '/media/'
 
 # Default primary key field type
