@@ -5,6 +5,10 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 import os
 
+def get_media_storage():
+    """Get the appropriate storage backend for media files - TEMPORARY for migration compatibility"""
+    from django.core.files.storage import default_storage
+    return default_storage
 
 def campaign_image_upload_path(instance, filename):
     """Generate upload path for campaign images"""
