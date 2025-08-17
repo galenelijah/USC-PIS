@@ -216,20 +216,20 @@ const DatabaseMonitor = () => {
                         <Paper sx={{ p: 2, mb: 3 }}>
                             <Typography variant="h6" gutterBottom>Database Status</Typography>
                             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                {getHealthStatusIcon(dbData?.status)}
+                                {getHealthStatusIcon(dbData?.overall_status)}
                                 <Typography variant="body1" sx={{ ml: 1, mr: 2 }}>Status:</Typography>
                                 <Typography 
                                     variant="body1" 
                                     sx={{ 
-                                        color: dbData?.status === 'healthy' ? 'green' : 'red',
+                                        color: dbData?.overall_status === 'healthy' ? 'green' : 'red',
                                         fontWeight: 'bold'
                                     }}
                                 >
-                                    {dbData?.status?.toUpperCase() || 'UNKNOWN'}
+                                    {dbData?.overall_status?.toUpperCase() || 'UNKNOWN'}
                                 </Typography>
                             </Box>
-                            <Typography variant="body1">Database Size: {dbData?.database_size || 'Unknown'}</Typography>
-                            <Typography variant="body1">Active Connections: {dbData?.connection_count || 'Unknown'}</Typography>
+                            <Typography variant="body1">Database Size: {dbData?.checks?.storage?.size || 'Unknown'}</Typography>
+                            <Typography variant="body1">Active Connections: {dbData?.checks?.connection?.active_connections || 'Unknown'}</Typography>
                         </Paper>
 
                         <Paper sx={{ p: 2 }}>
