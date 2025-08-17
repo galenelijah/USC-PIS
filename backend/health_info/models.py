@@ -5,36 +5,54 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 import os
 
-def get_media_storage():
-    """Get the appropriate storage backend for media files"""
-    if os.environ.get('USE_CLOUDINARY') == 'True':
-        try:
-            from cloudinary_storage.storage import MediaCloudinaryStorage
-            return MediaCloudinaryStorage()
-        except ImportError:
-            pass
-    from django.core.files.storage import default_storage
-    return default_storage
 
 def campaign_image_upload_path(instance, filename):
     """Generate upload path for campaign images"""
-    return f'campaigns/{instance.campaign_type}/{filename}'
+    import os
+    # Clean filename
+    name, ext = os.path.splitext(filename)
+    safe_name = "".join(c for c in name if c.isalnum() or c in '-_').rstrip()
+    safe_filename = f"{safe_name}{ext}"
+    return f'campaigns/{instance.campaign_type}/thumbnails/{safe_filename}'
 
 def banner_upload_path(instance, filename):
     """Generate upload path for banner images"""
-    return f'banners/{filename}'
+    import os
+    # Clean filename
+    name, ext = os.path.splitext(filename)
+    safe_name = "".join(c for c in name if c.isalnum() or c in '-_').rstrip()
+    safe_filename = f"{safe_name}{ext}"
+    return f'campaigns/banners/{safe_filename}'
 
 def pubmat_upload_path(instance, filename):
     """Generate upload path for PubMat images"""
-    return f'pubmats/{filename}'
+    import os
+    # Clean filename
+    name, ext = os.path.splitext(filename)
+    safe_name = "".join(c for c in name if c.isalnum() or c in '-_').rstrip()
+    safe_filename = f"{safe_name}{ext}"
+    return f'campaigns/pubmats/{safe_filename}'
 
 def health_info_image_upload_path(instance, filename):
     """Generate upload path for health info images"""
-    # Use timestamp if instance.id is None (during creation)
-    from django.utils import timezone
     import uuid
-    identifier = instance.id if instance.id else f"temp_{uuid.uuid4().hex[:8]}"
-    return f'health_info/{identifier}/{filename}'
+    from django.utils import timezone
+    
+    # Create a unique identifier for the health info
+    if instance.health_info and instance.health_info.id:
+        folder_id = str(instance.health_info.id)
+    else:
+        # Use timestamp + UUID for new instances
+        timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+        folder_id = f"{timestamp}_{uuid.uuid4().hex[:8]}"
+    
+    # Clean filename for cloud storage
+    import os
+    name, ext = os.path.splitext(filename)
+    safe_name = "".join(c for c in name if c.isalnum() or c in '-_').rstrip()
+    safe_filename = f"{safe_name}{ext}"
+    
+    return f'health_info/{folder_id}/{safe_filename}'
 
 class HealthInformation(models.Model):
     title = models.CharField(max_length=200)
@@ -52,7 +70,6 @@ class HealthInformationImage(models.Model):
     health_info = models.ForeignKey(HealthInformation, related_name='images', on_delete=models.CASCADE)
     image = models.ImageField(
         upload_to=health_info_image_upload_path,
-        storage=get_media_storage,
         validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'gif'])]
     )
     caption = models.CharField(max_length=255, blank=True)
@@ -113,14 +130,12 @@ class CampaignTemplate(models.Model):
     
     # Template images
     banner_image = models.ImageField(
-        upload_to='campaign_templates/banners/',
-        storage=get_media_storage,
+        upload_to='templates/banners/',
         validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'gif'])],
         null=True, blank=True
     )
     thumbnail_image = models.ImageField(
-        upload_to='campaign_templates/thumbnails/',
-        storage=get_media_storage,
+        upload_to='templates/thumbnails/',
         validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png'])],
         null=True, blank=True
     )
@@ -210,21 +225,18 @@ class HealthCampaign(models.Model):
     # Visual Content
     banner_image = models.ImageField(
         upload_to=banner_upload_path,
-        storage=get_media_storage,
         validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'gif'])],
         null=True, blank=True,
         help_text="Main banner image for the campaign"
     )
     pubmat_image = models.ImageField(
         upload_to=pubmat_upload_path,
-        storage=get_media_storage,
         validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'pdf'])],
         null=True, blank=True,
         help_text="PubMat (Public Material) for printing and distribution"
     )
     thumbnail_image = models.ImageField(
         upload_to=campaign_image_upload_path,
-        storage=get_media_storage,
         validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png'])],
         null=True, blank=True,
         help_text="Thumbnail image for campaign listing"
@@ -347,8 +359,7 @@ class CampaignResource(models.Model):
     description = models.TextField(blank=True)
     resource_type = models.CharField(max_length=15, choices=RESOURCE_TYPES)
     file = models.FileField(
-        upload_to='campaign_resources/',
-        storage=get_media_storage,
+        upload_to='resources/',
         validators=[FileExtensionValidator(allowed_extensions=[
             'pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'gif', 'mp4', 'avi', 'mov'
         ])]

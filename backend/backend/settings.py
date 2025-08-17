@@ -294,61 +294,59 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Media files (User uploads) - Default settings
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media') # Absolute filesystem path to the directory for user-uploaded files
 
-# Cloudinary configuration for production media storage
-# Only activate when explicitly enabled via environment variable
-if os.environ.get('USE_CLOUDINARY') == 'True':
-    try:
-        import cloudinary
-        import cloudinary.uploader
-        import cloudinary.api
-        
-        cloudinary.config(
-            cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
-            api_key=os.environ.get('CLOUDINARY_API_KEY'),
-            api_secret=os.environ.get('CLOUDINARY_API_SECRET'),
-            secure=True
-        )
-        
-        # Use Cloudinary for media file storage
-        DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-        
-        # Force override for existing models (Django 4.2+ compatibility)
-        STORAGES = {
-            "default": {
-                "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
-            },
-            "staticfiles": {
-                "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-            },
-        }
-        
-        # Set Cloudinary MEDIA_URL
-        MEDIA_URL = f"https://res.cloudinary.com/{os.environ.get('CLOUDINARY_CLOUD_NAME')}/image/upload/"
-        
-        # Optional: Customize Cloudinary settings
-        CLOUDINARY_STORAGE = {
-            'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
-            'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
-            'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
-            'SECURE': True,
-            'MEDIA_TAG': 'usc-pis-media',  # Tag all uploads
-            'INVALID_VIDEO_ERROR_MESSAGE': 'Please upload a valid video file.',
-            'EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS': (),
-            'FOLDER': 'usc-pis-media',  # Organize uploads in folder
-        }
-        
-    except ImportError:
-        print("Warning: Cloudinary packages not installed. Using local file storage.")
-        # Fall back to local storage if Cloudinary packages are not available
-        MEDIA_URL = '/media/'
-        STORAGES = {
-            "default": {
-                "BACKEND": "django.core.files.storage.FileSystemStorage",
-            },
-            "staticfiles": {
-                "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-            },
-        }
+# Cloudinary configuration - Always enabled in production
+try:
+    import cloudinary
+    import cloudinary.uploader
+    import cloudinary.api
+    
+    # Configure Cloudinary connection
+    cloudinary.config(
+        cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
+        api_key=os.environ.get('CLOUDINARY_API_KEY'),
+        api_secret=os.environ.get('CLOUDINARY_API_SECRET'),
+        secure=True
+    )
+    
+    # Django 4.2+ Storage Configuration - PRIMARY METHOD
+    STORAGES = {
+        "default": {
+            "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+    
+    # Legacy setting for Django < 4.2 compatibility
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    
+    # Cloudinary-specific settings
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
+        'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
+        'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
+        'SECURE': True,
+        'MEDIA_TAG': 'usc-pis',
+        'INVALID_VIDEO_ERROR_MESSAGE': 'Please upload a valid video file.',
+        'EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS': (),
+    }
+    
+    # Let Cloudinary handle MEDIA_URL automatically
+    print("✅ Cloudinary storage configured successfully")
+    
+except ImportError:
+    print("❌ Cloudinary packages not available - using local storage")
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+    MEDIA_URL = '/media/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

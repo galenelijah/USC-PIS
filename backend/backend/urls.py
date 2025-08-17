@@ -47,7 +47,8 @@ urlpatterns = [
     path('api/medical-certificates/', include('medical_certificates.urls')),
     path('api/notifications/', include('notifications.urls')),
     path('api/reports/', include('reports.urls')),
-    path('api/system/', include('utils.urls')),
+    path('api/utils/', include('utils.urls')),
+    path('api/system/', include('utils.urls')),  # Keep both for compatibility
     
     # Media files serving
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
