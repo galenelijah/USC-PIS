@@ -13,6 +13,7 @@ from django.views import View
 from django.utils import timezone
 from authentication.models import User
 from .system_monitors import get_system_health, db_monitor, resource_monitor, performance_monitor
+from .health_checks import HealthChecker, quick_health_check
 from .models import BackupStatus, BackupSchedule, SystemHealthMetric
 import logging
 import json
@@ -270,8 +271,9 @@ def trigger_manual_backup(request):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        backup_type = request.data.get('backup_type', 'full')
+        backup_type = request.data.get('backup_type', 'database')
         verify = request.data.get('verify', True)
+        quick_backup = request.data.get('quick_backup', False)
         
         # Validate backup type
         valid_types = ['database', 'media', 'full']
@@ -289,12 +291,38 @@ def trigger_manual_backup(request):
             metadata={
                 'triggered_manually': True,
                 'verify_requested': verify,
+                'quick_backup': quick_backup,
                 'triggered_by_user': request.user.id
             }
         )
         
-        # Trigger backup asynchronously (in a real implementation, you'd use Celery or similar)
-        # For now, we'll return the backup ID and let the user check the status
+        # Execute backup immediately in background using management command
+        import subprocess
+        import threading
+        
+        def execute_backup_async():
+            """Execute backup in background thread"""
+            try:
+                # Use subprocess to execute the management command
+                subprocess.run([
+                    './venv/Scripts/python.exe',
+                    'manage.py',
+                    'execute_backup',
+                    '--backup-id',
+                    str(backup_record.id)
+                ], check=True, cwd=settings.BASE_DIR)
+            except subprocess.CalledProcessError as e:
+                logger.error(f"Backup execution failed: {e}")
+                # Update backup record to failed
+                backup_record.status = 'failed'
+                backup_record.completed_at = timezone.now()
+                backup_record.error_message = f"Execution failed: {e}"
+                backup_record.save()
+        
+        # Start backup execution in background thread
+        backup_thread = threading.Thread(target=execute_backup_async)
+        backup_thread.daemon = True
+        backup_thread.start()
         
         return Response({
             'message': 'Manual backup triggered successfully',
@@ -302,7 +330,7 @@ def trigger_manual_backup(request):
             'backup_type': backup_type,
             'verify': verify,
             'status_check_url': f'/api/utils/backup-status/{backup_record.id}/',
-            'note': 'Check backup status using the provided URL or admin panel'
+            'note': 'Backup is executing in the background. Check status using the provided URL.'
         }, status=status.HTTP_202_ACCEPTED)
         
     except Exception as e:
@@ -808,4 +836,79 @@ def _perform_backup_restore(backup_data, restore_plan, user):
         logger.error(f"Transaction failed during restore: {str(e)}")
         raise
     
-    return restore_result 
+    return restore_result
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def comprehensive_health_check(request):
+    """
+    Comprehensive health check endpoint with detailed system analysis.
+    Admin/Staff only.
+    """
+    try:
+        user = request.user
+        if user.role not in [User.Role.ADMIN, User.Role.STAFF]:
+            return Response({
+                'detail': 'Permission denied. Admin/Staff access required.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        health_checker = HealthChecker()
+        health_status = health_checker.run_all_checks()
+        
+        return Response(health_status, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Comprehensive health check failed: {str(e)}")
+        return Response({
+            'overall_status': 'error',
+            'timestamp': timezone.now().isoformat(),
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def quick_health_api(request):
+    """
+    Quick health check endpoint for load balancers and monitoring.
+    No authentication required.
+    """
+    health_status = quick_health_check()
+    
+    # Return appropriate HTTP status based on health
+    if health_status['status'] == 'healthy':
+        return Response(health_status, status=status.HTTP_200_OK)
+    else:
+        return Response(health_status, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def system_metrics(request):
+    """
+    Get detailed system performance metrics.
+    Admin/Staff only.
+    """
+    try:
+        user = request.user
+        if user.role not in [User.Role.ADMIN, User.Role.STAFF]:
+            return Response({
+                'detail': 'Permission denied. Admin/Staff access required.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Get performance metrics from monitoring system
+        metrics = {
+            'database': db_monitor(),
+            'resources': resource_monitor(),
+            'performance': performance_monitor(),
+            'timestamp': timezone.now().isoformat()
+        }
+        
+        return Response(metrics, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"System metrics check failed: {str(e)}")
+        return Response({
+            'error': str(e),
+            'timestamp': timezone.now().isoformat()
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 

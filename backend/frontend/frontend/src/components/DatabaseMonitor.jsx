@@ -77,8 +77,9 @@ const DatabaseMonitor = () => {
     const [error, setError] = useState(null);
     const [backupError, setBackupError] = useState(null);
     const [backupDialogOpen, setBackupDialogOpen] = useState(false);
-    const [backupType, setBackupType] = useState('full');
+    const [backupType, setBackupType] = useState('database');
     const [verifyBackup, setVerifyBackup] = useState(true);
+    const [quickBackup, setQuickBackup] = useState(false);
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
     const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
     const [selectedBackupId, setSelectedBackupId] = useState(null);
@@ -123,7 +124,7 @@ const DatabaseMonitor = () => {
     const handleCreateBackup = async () => {
         setBackupLoading(true);
         try {
-            const result = await authService.triggerManualBackup(backupType, verifyBackup);
+            const result = await authService.triggerManualBackup(backupType, verifyBackup, quickBackup);
             setSnackbar({
                 open: true,
                 message: `Backup initiated successfully! Backup ID: ${result.backup_id}`,
@@ -609,10 +610,26 @@ const DatabaseMonitor = () => {
                             label="Verify backup integrity after creation"
                         />
                         
+                        {backupType === 'database' && (
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={quickBackup}
+                                        onChange={(e) => setQuickBackup(e.target.checked)}
+                                    />
+                                }
+                                label="Quick backup (exclude logs and reports for faster completion)"
+                            />
+                        )}
+                        
                         <Alert severity="info" sx={{ mt: 2 }}>
-                            {backupType === 'database' && 'Creates a complete export of all database tables including patient records and system settings.'}
+                            {backupType === 'database' && (
+                                quickBackup 
+                                    ? 'Creates a fast database export of essential data (patient records, users, campaigns). Excludes logs and reports for faster completion.'
+                                    : 'Creates a complete export of all database tables including patient records and system settings.'
+                            )}
                             {backupType === 'media' && 'Backs up all uploaded files, images, and documents.'}
-                            {backupType === 'full' && 'Creates a complete system backup including both database and media files.'}
+                            {backupType === 'full' && 'Creates a complete system backup including both database and media files. Note: This may take longer due to file uploads.'}
                         </Alert>
                     </Box>
                 </DialogContent>

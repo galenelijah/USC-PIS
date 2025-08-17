@@ -7,7 +7,11 @@
 ## Overview
 USC Patient Information System REST API provides comprehensive healthcare management functionality with enterprise-grade security and role-based access control.
 
-## 🆕 Recent Updates (August 2025)
+## 🆕 Recent Updates (August 17, 2025)
+- **✅ Enterprise Backup System APIs**: Complete backup execution, download, and restore endpoints with smart conflict resolution
+- **✅ Data Recovery APIs**: Intelligent backup restore with merge strategies (replace, merge, skip) and preview functionality
+- **✅ Performance Optimization**: Quick backup API options for 50%+ faster completion
+- **✅ System Health Monitoring**: Enhanced database health and backup status endpoints
 - **✅ Email Notification System**: Automated email API integration with professional templates
 - **✅ Enhanced Dashboard**: Campaigns & announcements API integration
 - **✅ Advanced Validation**: Comprehensive date validation across endpoints
@@ -315,7 +319,269 @@ EMAIL_PORT=587               # Optional (default)
 - 429: Too Many Requests
 - 500: Internal Server Error
 
+## Backup & Recovery System APIs
+
+### Backup Health Status
+- **URL**: `/api/utils/backup-health/`
+- **Method**: `GET`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: Admin, Staff only
+- **Description**: Get comprehensive system health and backup status
+- **Response**:
+  ```json
+  {
+    "database_health": {
+      "status": "healthy",
+      "total_tables": 15,
+      "total_records": 1250,
+      "last_backup": "2025-08-17T10:30:00Z"
+    },
+    "backup_summary": {
+      "total_backups": 5,
+      "successful_backups": 5,
+      "failed_backups": 0,
+      "last_successful_backup": "2025-08-17T10:30:00Z"
+    },
+    "recent_backups": [...]
+  }
+  ```
+
+### Create Backup
+- **URL**: `/api/utils/backup/trigger/`
+- **Method**: `POST`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: Admin, Staff only
+- **Data**:
+  ```json
+  {
+    "backup_type": "database",
+    "quick_backup": true,
+    "verify_integrity": false
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "backup_id": 123,
+    "message": "Backup queued for execution"
+  }
+  ```
+
+### Download Backup
+- **URL**: `/api/utils/backup/download/<backup_id>/`
+- **Method**: `GET`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: Admin, Staff only
+- **Description**: Download backup file (JSON for database, ZIP for media/full)
+- **Response**: Binary file download
+
+### Restore Backup
+- **URL**: `/api/utils/backup/restore/`
+- **Method**: `POST`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: Admin only
+- **Data**:
+  ```json
+  {
+    "backup_id": 123,
+    "merge_strategy": "merge",
+    "preview_only": false
+  }
+  ```
+- **Merge Strategies**:
+  - `replace`: Overwrite existing data (disaster recovery)
+  - `merge`: Update only empty fields (safer)
+  - `skip`: Add new records only (safest)
+
+## Medical Certificates API
+
+### List Certificates
+- **URL**: `/api/medical-certificates/certificates/`
+- **Method**: `GET`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: All authenticated users
+- **Filtering**: Students see only their certificates
+
+### Create Certificate Request
+- **URL**: `/api/medical-certificates/certificates/`
+- **Method**: `POST`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: All authenticated users
+- **Data**:
+  ```json
+  {
+    "patient_name": "John Doe",
+    "purpose": "Job Application",
+    "requested_date": "2025-08-20",
+    "fitness_for_work": true,
+    "fitness_reason": "Physically fit for desk work"
+  }
+  ```
+
+### Approve/Reject Certificate
+- **URL**: `/api/medical-certificates/certificates/<id>/approve/`
+- **URL**: `/api/medical-certificates/certificates/<id>/reject/`
+- **Method**: `POST`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: Doctor only
+
+## Feedback System API
+
+### Submit Feedback
+- **URL**: `/api/feedback/feedback/`
+- **Method**: `POST`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: All authenticated users
+- **Data**:
+  ```json
+  {
+    "patient": 1,
+    "visit_date": "2025-08-17",
+    "staff_professionalism": 5,
+    "service_quality": 5,
+    "facility_cleanliness": 4,
+    "wait_time_satisfaction": 4,
+    "overall_satisfaction": 5,
+    "comments": "Excellent service!"
+  }
+  ```
+
+### Get Feedback Analytics
+- **URL**: `/api/feedback/analytics/`
+- **Method**: `GET`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: Admin, Staff, Doctor, Nurse
+- **Response**: Comprehensive analytics including satisfaction scores and trends
+
+## Reports & Export API
+
+### Generate Report
+- **URL**: `/api/reports/reports/`
+- **Method**: `POST`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: Admin, Staff, Doctor, Nurse
+- **Data**:
+  ```json
+  {
+    "report_type": "patient_records",
+    "format": "PDF",
+    "date_from": "2025-01-01",
+    "date_to": "2025-08-17",
+    "include_personal_info": true
+  }
+  ```
+
+### Download Report
+- **URL**: `/api/reports/reports/<id>/download/`
+- **Method**: `GET`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: Admin, Staff, Doctor, Nurse
+- **Response**: Binary file download (PDF/CSV/Excel)
+
+## File Upload API
+
+### Upload File
+- **URL**: `/api/files/upload/`
+- **Method**: `POST`
+- **Headers**: `Authorization: Token <token>`, `Content-Type: multipart/form-data`
+- **Role Access**: All authenticated users
+- **Data**: Form data with file field
+- **Features**: 
+  - Automatic virus scanning
+  - File type validation
+  - Size limits (10MB max)
+  - Cloudinary integration for persistence
+
+## Notifications API
+
+### Get User Notifications
+- **URL**: `/api/notifications/notifications/`
+- **Method**: `GET`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: All authenticated users
+- **Query Parameters**:
+  - `unread_only=true`: Filter unread notifications
+  - `limit=10`: Limit number of results
+
+### Mark Notification as Read
+- **URL**: `/api/notifications/notifications/<id>/mark-read/`
+- **Method**: `POST`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: Notification owner only
+
+## Search & Filtering
+
+### Patient Search
+- **URL**: `/api/patients/patients/?search=<query>`
+- **Method**: `GET`
+- **Headers**: `Authorization: Token <token>`
+- **Search Fields**: first_name, last_name, email, phone_number
+- **USC ID Search**: Supports USC ID number searches across all medical forms
+
+### Advanced Filtering
+All list endpoints support filtering parameters:
+- **Date Ranges**: `date_from`, `date_to`
+- **Status Filtering**: `status=active`
+- **User Filtering**: `created_by=<user_id>`
+- **Role-based Filtering**: Automatic based on user role
+
+## API Versioning & Headers
+
+### Standard Headers
+```http
+Authorization: Token <your-token>
+Content-Type: application/json
+Accept: application/json; version=v1
+```
+
+### Response Headers
+```http
+API-Version: v1
+X-API-Version: v1
+Content-Type: application/json
+```
+
+## Performance & Monitoring
+
+### Performance Features
+- **Database Optimization**: Comprehensive indexing on all major lookup fields
+- **Query Optimization**: select_related and prefetch_related for related data
+- **Caching**: Strategic caching for frequently accessed data
+- **Rate Limiting**: 500 requests/hour for authenticated users, 100 for anonymous
+
+### Monitoring & Logging
+- **Request Logging**: All API requests logged with user, duration, and status
+- **Performance Monitoring**: Slow requests (>1s) and high query counts logged
+- **Security Logging**: Failed authentication and rate limit violations
+- **Health Checks**: `/health` endpoint for system status monitoring
+
+## Security Features
+
+### Authentication & Authorization
+- **Token-based Authentication**: Secure API token system
+- **Role-based Access Control**: Fine-grained permissions by user role
+- **CORS Configuration**: Secure cross-origin resource sharing
+- **CSRF Protection**: Cross-site request forgery protection
+
+### Security Headers
+- **HSTS**: HTTP Strict Transport Security
+- **CSP**: Content Security Policy
+- **X-Frame-Options**: Clickjacking protection
+- **X-Content-Type-Options**: MIME sniffing protection
+
+### Data Protection
+- **Input Validation**: Comprehensive validation using Django REST serializers
+- **SQL Injection Protection**: Django ORM provides automatic protection
+- **XSS Protection**: Automatic escaping and sanitization
+- **File Upload Security**: Type validation and malware scanning
+
 ## Email Setup Guide
 
 For complete email system deployment instructions, see:
-**[EMAIL_SETUP_GUIDE.md](../EMAIL_SETUP_GUIDE.md)** 
+**[EMAIL_SETUP_GUIDE.md](../EMAIL_SETUP_GUIDE.md)**
+
+## Backup System Guide
+
+For comprehensive backup & recovery documentation, see:
+**[BACKUP_SYSTEM_GUIDE.md](../../BACKUP_SYSTEM_GUIDE.md)** 

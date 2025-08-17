@@ -11,5 +11,8 @@
   "scripts": {
     "build": "cd backend/frontend/frontend && npm install && npm run build",
     "heroku-postbuild": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server-sequential-thinking": "^2025.7.1"
   }
-} 
+}

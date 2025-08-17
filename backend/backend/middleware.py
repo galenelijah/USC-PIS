@@ -131,6 +131,7 @@ class RequestLoggingMiddleware:
         import time
         
         logger = logging.getLogger('api.requests')
+        performance_logger = logging.getLogger('performance')
         start_time = time.time()
         
         # Log request
@@ -139,10 +140,21 @@ class RequestLoggingMiddleware:
         
         response = self.get_response(request)
         
-        # Log response
+        # Log response and performance metrics
         if request.path.startswith('/api/'):
             duration = time.time() - start_time
             logger.info(f"API Response: {response.status_code} - Duration: {duration:.3f}s")
+            
+            # Log slow requests (>1 second)
+            if duration > 1.0:
+                performance_logger.warning(f"Slow API request: {request.method} {request.path} - {duration:.3f}s - User: {getattr(request.user, 'email', 'Anonymous')}")
+            
+            # Log database query performance (if available)
+            from django.db import connection
+            if hasattr(connection, 'queries'):
+                num_queries = len(connection.queries)
+                if num_queries > 10:  # Log if more than 10 queries
+                    performance_logger.warning(f"High query count: {request.path} - {num_queries} queries in {duration:.3f}s")
         
         return response
 

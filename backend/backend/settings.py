@@ -144,7 +144,7 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Add whitenoise middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
-    # 'backend.middleware.RateLimitMiddleware',  # Temporarily disabled - will be re-enabled in deployment
+    # 'backend.middleware.RateLimitMiddleware',  # Rate limiting disabled per user request
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -477,10 +477,29 @@ FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173') # Default
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'detailed': {
+            'format': '{levelname} {asctime} {name} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {name} {message}',
+            'style': '{',
+        },
+    },
     'handlers': {
         'console': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
+            'formatter': 'detailed',
+        },
+        'file': {
+            'level': 'WARNING',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'usc-pis.log'),
+            'maxBytes': 10*1024*1024,  # 10MB
+            'backupCount': 5,
+            'formatter': 'detailed',
         },
     },
     'loggers': {
@@ -489,21 +508,40 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
-        'authentication': { # Log messages from your authentication app
+        'django.db.backends': {
             'handlers': ['console'],
+            'level': 'WARNING' if not DEBUG else 'DEBUG',
+            'propagate': False,
+        },
+        'authentication': {
+            'handlers': ['console', 'file'],
             'level': 'INFO', 
             'propagate': False,
         },
-        'api.requests': { # Log API requests
+        'api.requests': {
             'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
-        'security': { # Log security-related events
-            'handlers': ['console'],
+        'performance': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'security': {
+            'handlers': ['console', 'file'],
             'level': 'WARNING',
             'propagate': False,
         },
-        # Add other app loggers if needed
+        'system.health': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'backup.system': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }

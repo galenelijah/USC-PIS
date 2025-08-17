@@ -32,6 +32,11 @@ class BackupStatus(models.Model):
         blank=True, 
         help_text="Total size of backup files in bytes"
     )
+    duration_seconds_stored = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Duration of backup operation in seconds"
+    )
     checksum = models.CharField(
         max_length=64, 
         blank=True,
@@ -76,6 +81,10 @@ class BackupStatus(models.Model):
     @property
     def duration_seconds(self):
         """Get duration in seconds"""
+        # Return stored duration if available
+        if self.duration_seconds_stored is not None:
+            return self.duration_seconds_stored
+        # Otherwise calculate from timestamps
         duration = self.duration
         return duration.total_seconds() if duration else None
 

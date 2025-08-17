@@ -29,13 +29,16 @@
       "Bash(mkdir:*)",
       "Bash(touch:*)",
       "Bash(npm run dev:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(./venv/Scripts/python.exe manage.py execute_backup --backup-id 9)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
   },
   "enabledMcpjsonServers": [
     "context7",
-    "puppeteer"
-  ]
+    "puppeteer",
+    "sequential-thinking"
+  ],
+  "enableAllProjectMcpServers": true
 }

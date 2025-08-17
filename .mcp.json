@@ -9,6 +9,14 @@
       "command": "npx",
       "args": ["@modelcontextprotocol/server-puppeteer"],
       "transport": "stdio"
-    }
+    },
+      "sequential-thinking": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-sequential-thinking"
+        ],
+        "transport": "stdio"
+      }
   }
 }

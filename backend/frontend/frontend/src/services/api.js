@@ -267,11 +267,12 @@ export const authService = {
     }
   },
   
-  triggerManualBackup: async (backupType = 'full', verify = true) => {
+  triggerManualBackup: async (backupType = 'database', verify = true, quickBackup = false) => {
     try {
       const response = await api.post('/utils/backup/trigger/', {
         backup_type: backupType,
-        verify: verify
+        verify: verify,
+        quick_backup: quickBackup
       });
       return response.data;
     } catch (error) {
