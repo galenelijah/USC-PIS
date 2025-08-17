@@ -329,10 +329,10 @@ try:
     }
     
     # Let Cloudinary handle MEDIA_URL automatically
-    print("✅ Cloudinary storage configured successfully")
+    print("Cloudinary storage configured successfully")
     
 except ImportError:
-    print("❌ Cloudinary packages not available - using local storage")
+    print("Cloudinary packages not available - using local storage")
     STORAGES = {
         "default": {
             "BACKEND": "django.core.files.storage.FileSystemStorage",

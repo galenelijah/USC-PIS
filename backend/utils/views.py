@@ -120,24 +120,75 @@ def backup_health_check(request):
     try:
         # Check if user has permission to view backup status
         user = request.user
+        logger.info(f"Backup health check requested by user: {user.email if user else 'anonymous'}")
+        
+        if not user or not hasattr(user, 'role'):
+            logger.error(f"User has no role attribute: {user}")
+            return Response(
+                {'error': 'User role not found'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
         if user.role not in [User.Role.ADMIN, User.Role.STAFF]:
+            logger.error(f"User {user.email} with role {user.role} denied access to backup health")
             return Response(
                 {'error': 'Permission denied'}, 
                 status=status.HTTP_403_FORBIDDEN
             )
         
+        logger.info("Starting backup health data collection...")
+        
         # Get backup health summary
         health_summary = BackupStatus.get_backup_health_summary()
+        logger.info(f"Health summary retrieved: {health_summary}")
+        
+        # Serialize backup objects in health_summary for JSON response
+        if health_summary['latest_database_backup']:
+            health_summary['latest_database_backup'] = {
+                'id': health_summary['latest_database_backup'].id,
+                'backup_type': health_summary['latest_database_backup'].backup_type,
+                'status': health_summary['latest_database_backup'].status,
+                'started_at': health_summary['latest_database_backup'].started_at.isoformat(),
+                'completed_at': health_summary['latest_database_backup'].completed_at.isoformat() if health_summary['latest_database_backup'].completed_at else None,
+            }
+        
+        if health_summary['latest_media_backup']:
+            health_summary['latest_media_backup'] = {
+                'id': health_summary['latest_media_backup'].id,
+                'backup_type': health_summary['latest_media_backup'].backup_type,
+                'status': health_summary['latest_media_backup'].status,
+                'started_at': health_summary['latest_media_backup'].started_at.isoformat(),
+                'completed_at': health_summary['latest_media_backup'].completed_at.isoformat() if health_summary['latest_media_backup'].completed_at else None,
+            }
+        
+        if health_summary['latest_full_backup']:
+            health_summary['latest_full_backup'] = {
+                'id': health_summary['latest_full_backup'].id,
+                'backup_type': health_summary['latest_full_backup'].backup_type,
+                'status': health_summary['latest_full_backup'].status,
+                'started_at': health_summary['latest_full_backup'].started_at.isoformat(),
+                'completed_at': health_summary['latest_full_backup'].completed_at.isoformat() if health_summary['latest_full_backup'].completed_at else None,
+            }
+        
+        if health_summary['latest_verification']:
+            health_summary['latest_verification'] = {
+                'id': health_summary['latest_verification'].id,
+                'backup_type': health_summary['latest_verification'].backup_type,
+                'status': health_summary['latest_verification'].status,
+                'started_at': health_summary['latest_verification'].started_at.isoformat(),
+                'completed_at': health_summary['latest_verification'].completed_at.isoformat() if health_summary['latest_verification'].completed_at else None,
+            }
         
         # Get recent backup statuses
         recent_backups = BackupStatus.objects.filter(
             started_at__gte=timezone.now() - timezone.timedelta(days=7)
         ).order_by('-started_at')[:10]
+        logger.info(f"Recent backups query completed: {recent_backups.count()} records")
         
         # Serialize recent backups data
         recent_backups_data = []
         for backup in recent_backups:
-            recent_backups_data.append({
+            backup_data = {
                 'id': backup.id,
                 'backup_type': backup.backup_type,
                 'status': backup.status,
@@ -146,19 +197,25 @@ def backup_health_check(request):
                 'duration_seconds': backup.duration_seconds,
                 'file_size_mb': backup.file_size_mb,
                 'is_recent': backup.is_recent
-            })
+            }
+            recent_backups_data.append(backup_data)
+        logger.info(f"Recent backups serialized: {len(recent_backups_data)} records")
         
         # Get active schedules
         active_schedules = BackupSchedule.objects.filter(is_active=True)
+        logger.info(f"Active schedules query completed: {active_schedules.count()} records")
+        
         schedules_data = []
         for schedule in active_schedules:
-            schedules_data.append({
+            schedule_data = {
                 'backup_type': schedule.backup_type,
                 'schedule_type': schedule.schedule_type,
                 'schedule_time': schedule.schedule_time.strftime('%H:%M'),
                 'retention_days': schedule.retention_days,
                 'next_run_time': schedule.next_run_time.isoformat() if schedule.next_run_time else None
-            })
+            }
+            schedules_data.append(schedule_data)
+        logger.info(f"Schedules serialized: {len(schedules_data)} records")
         
         # Calculate system health indicators
         system_health = {
@@ -169,7 +226,11 @@ def backup_health_check(request):
         }
         
         if health_summary['latest_database_backup']:
-            system_health['last_successful_backup'] = health_summary['latest_database_backup'].started_at.isoformat()
+            system_health['last_successful_backup'] = health_summary['latest_database_backup']['started_at']
+        
+        logger.info("Getting health recommendations...")
+        health_recommendations = _get_health_recommendations(health_summary)
+        logger.info(f"Health recommendations generated: {len(health_recommendations)} items")
         
         response_data = {
             'timestamp': timezone.now().isoformat(),
@@ -177,12 +238,14 @@ def backup_health_check(request):
             'backup_summary': health_summary,
             'recent_backups': recent_backups_data,
             'active_schedules': schedules_data,
-            'health_recommendations': _get_health_recommendations(health_summary)
+            'health_recommendations': health_recommendations
         }
         
+        logger.info("Backup health check completed successfully")
         return Response(response_data, status=status.HTTP_200_OK)
         
     except Exception as e:
+        logger.error(f"Backup health check failed: {str(e)}", exc_info=True)
         return Response(
             {'error': f'Failed to get backup health status: {str(e)}'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
