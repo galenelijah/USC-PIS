@@ -33,5 +33,9 @@
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
-  }
+  },
+  "enabledMcpjsonServers": [
+    "context7",
+    "puppeteer"
+  ]
 }

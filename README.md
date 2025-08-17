@@ -1,36 +1,42 @@
 # USC Patient Information System (USC-PIS)
 
-[![Production Status](https://img.shields.io/badge/Status-Technically%20Functional-yellow)](https://usc-pis.herokuapp.com)
-[![Grade](https://img.shields.io/badge/Grade-B%20(Missing%20Core%20Systems)-orange)]()
+[![Production Status](https://img.shields.io/badge/Status-CRITICALLY%20IMPAIRED-red)](https://usc-pis.herokuapp.com)
+[![Grade](https://img.shields.io/badge/Grade-C--_(Administrative_Interfaces_Broken)-red)]()
 [![Django](https://img.shields.io/badge/Django-5.0.2-blue)](https://djangoproject.com)
 [![React](https://img.shields.io/badge/React-18-blue)](https://reactjs.org)
 
 A comprehensive healthcare management system for the University of Southern California clinic operations. Developed as an undergraduate thesis project by Computer Engineering students.
 
-## ✅ **SYSTEM STATUS UPDATE** (August 16, 2025)
+## 🚨 **EMERGENCY SYSTEM STATUS** (August 17, 2025)
 
-**🎯 INFRASTRUCTURE COMPLETE**: All core infrastructure systems have been successfully implemented and deployed.
+**❌ CRITICAL SYSTEM FAILURES**: Administrative interfaces completely broken due to API endpoint mismatches.
 
-### **System Grade: B+ (Infrastructure Complete, Core Healthcare Workflows Missing)**  
-- ✅ **7 Active Users** (5 students, 2 admins) with 100% USC email compliance  
-- ✅ **Record Management** - 9 patients, 3 medical records, 1 dental record  
-- ✅ **Certificate Workflows** - 4 approved medical certificates, 5 campaign templates  
-- ✅ **Enterprise Security** - HSTS, CSP, rate limiting, RBAC implementation  
-- ✅ **Infrastructure Systems** - Complete backup, email, and media storage
+### **System Grade: C- (Administrative Systems Broken, Emergency Repairs Required)**  
+- ❌ **Database Monitor** - 500 errors prevent system health monitoring
+- ❌ **Backup Web Interface** - Cannot access backup management through web UI
+- ⚠️ **Database Migration** - Pending migration needs to be applied on Heroku
+- ❓ **Media Storage** - Cloudinary overhaul completed but requires testing
+- ✅ **User Authentication** - 7 active users, login/logout working properly
+- ✅ **Core Patient Records** - Basic medical workflow still functional
 
-### **✅ INFRASTRUCTURE ACHIEVEMENTS**:
-- ✅ **DATA BACKUP SYSTEM**: **COMPREHENSIVE** - Automated backups with disaster recovery
+### **🚨 EMERGENCY REPAIRS REQUIRED**:
+- **🔥 Priority 1**: Fix database monitor page API endpoints (30 minutes)
+- **🔥 Priority 2**: Apply pending database migration on Heroku (10 minutes)
+- **🔥 Priority 3**: Test Cloudinary storage functionality (30 minutes)
+- **🔥 Priority 4**: Restore backup system web interface access
+
+### **✅ STILL FUNCTIONAL SYSTEMS**:
+- ✅ **Command-line Backups**: Management commands working
 - ✅ **EMAIL SYSTEM**: **AWS SES** - 62,000 free emails/month with SMTP fallback  
-- ✅ **MEDIA STORAGE**: **CLOUDINARY** - 25GB persistent storage with global CDN
-- ✅ **TESTING FRAMEWORK**: Enhanced testing commands and management tools
-- ✅ **ERROR HANDLING**: Graceful fallbacks and comprehensive monitoring
+- ✅ **USER AUTHENTICATION**: 7 active users, RBAC working
+- ✅ **BASIC PATIENT RECORDS**: Core medical workflow intact
 
-### **🚨 REMAINING CRITICAL GAPS**:
+### **🚨 CORE HEALTHCARE GAPS** (After Emergency Fixes):
 - ❌ **APPOINTMENT/SCHEDULING SYSTEM**: **COMPLETELY MISSING** - Dashboard shows "appointments today" but no appointment system exists
 - ❌ **INVENTORY MANAGEMENT**: No medical supplies, medication, or equipment tracking
 - ❌ **COMPREHENSIVE BILLING**: Only basic cost field in dental records, no financial management
 
-**Impact**: With infrastructure secured, **appointment scheduling remains the critical gap** preventing complete healthcare operations.  
+**Impact**: **Emergency repairs must be completed before any new development.** Administrative oversight is completely compromised.  
 
 ### Latest Infrastructure Features (August 2025)
 - **🆕 AWS SES Email System**: Production-ready email delivery with 62,000 free emails/month
@@ -39,9 +45,15 @@ A comprehensive healthcare management system for the University of Southern Cali
 - **🆕 Enhanced Error Handling**: Graceful fallbacks and comprehensive system monitoring
 - **🆕 Email Testing Tools**: Management commands for production email testing
 
-### 🚀 **CURRENT DEVELOPMENT PRIORITIES** (Updated August 16, 2025)
+### 🚀 **DEVELOPMENT PRIORITIES** (Updated August 17, 2025)
 
-#### **🔥 CRITICAL DEVELOPMENT (Immediate - Week 1-2)**
+#### **🚨 EMERGENCY REPAIRS (This Session - 1-2 hours)**
+- **Database Monitor API Fix**: Deploy corrected frontend API endpoints
+- **Database Migration**: Apply pending health_info category field migration
+- **Cloudinary Testing**: Verify image upload functionality after overhaul
+- **Backup Interface Restoration**: Restore web access to backup management
+
+#### **🔥 CRITICAL DEVELOPMENT (After Emergency Fixes - Week 1-2)**
 - **Appointment/Scheduling System**: **MOST CRITICAL** - Patient booking, provider calendars, appointment management
 - **Testing Coverage Enhancement**: Comprehensive test suite development (target 60%+ coverage)
 

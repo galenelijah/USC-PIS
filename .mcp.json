@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["@upstash/context7-mcp"],
+      "transport": "stdio"
+    },
+    "puppeteer": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-puppeteer"],
+      "transport": "stdio"
+    }
+  }
+}

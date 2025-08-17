@@ -119,7 +119,8 @@ def backup_health_check(request):
     """
     try:
         # Check if user has permission to view backup status
-        if not request.user.is_staff and request.user.role not in ['ADMIN', 'STAFF']:
+        user = request.user
+        if user.role not in [User.Role.ADMIN, User.Role.STAFF]:
             return Response(
                 {'error': 'Permission denied'}, 
                 status=status.HTTP_403_FORBIDDEN
@@ -197,7 +198,8 @@ def trigger_manual_backup(request):
     """
     try:
         # Check permissions
-        if not request.user.is_staff and request.user.role not in ['ADMIN', 'STAFF']:
+        user = request.user
+        if user.role not in [User.Role.ADMIN, User.Role.STAFF]:
             return Response(
                 {'error': 'Permission denied'}, 
                 status=status.HTTP_403_FORBIDDEN
@@ -253,7 +255,8 @@ def backup_status_detail(request, backup_id):
     """
     try:
         # Check permissions
-        if not request.user.is_staff and request.user.role not in ['ADMIN', 'STAFF']:
+        user = request.user
+        if user.role not in [User.Role.ADMIN, User.Role.STAFF]:
             return Response(
                 {'error': 'Permission denied'}, 
                 status=status.HTTP_403_FORBIDDEN
