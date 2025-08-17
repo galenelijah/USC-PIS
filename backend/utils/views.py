@@ -2,7 +2,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.conf import settings
+import os
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
@@ -397,4 +399,413 @@ def _get_health_recommendations(health_summary):
             'action': 'Set up media backups'
         })
     
-    return recommendations 
+    return recommendations
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def download_backup(request, backup_id):
+    """
+    Download a specific backup file
+    Requires admin/staff permissions
+    """
+    try:
+        # Check if user has permission to download backups
+        user = request.user
+        if user.role not in [User.Role.ADMIN, User.Role.STAFF]:
+            return Response(
+                {'error': 'Permission denied. Admin/Staff access required.'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get the backup record
+        try:
+            backup = BackupStatus.objects.get(id=backup_id)
+        except BackupStatus.DoesNotExist:
+            return Response(
+                {'error': 'Backup not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check if backup completed successfully
+        if backup.status != 'success':
+            return Response(
+                {'error': f'Backup is not available for download. Status: {backup.status}'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Determine backup file path based on backup type
+        backup_dir = os.path.join(settings.BASE_DIR, 'backups')
+        timestamp = backup.started_at.strftime('%Y%m%d_%H%M%S')
+        
+        if backup.backup_type == 'database':
+            backup_file = os.path.join(backup_dir, f'database_backup_{timestamp}.json')
+            content_type = 'application/json'
+            filename = f'database_backup_{backup.started_at.strftime("%Y-%m-%d_%H-%M-%S")}.json'
+        elif backup.backup_type == 'media':
+            # For media backups, we'll create a zip file
+            import zipfile
+            import tempfile
+            
+            media_backup_dir = os.path.join(backup_dir, f'media_backup_{timestamp}')
+            if not os.path.exists(media_backup_dir):
+                return Response(
+                    {'error': 'Media backup files not found'}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Create a temporary zip file
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as temp_zip:
+                with zipfile.ZipFile(temp_zip.name, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                    for root, dirs, files in os.walk(media_backup_dir):
+                        for file in files:
+                            file_path = os.path.join(root, file)
+                            arcname = os.path.relpath(file_path, media_backup_dir)
+                            zipf.write(file_path, arcname)
+                
+                backup_file = temp_zip.name
+                content_type = 'application/zip'
+                filename = f'media_backup_{backup.started_at.strftime("%Y-%m-%d_%H-%M-%S")}.zip'
+        elif backup.backup_type == 'full':
+            # For full backups, we'll include both database and manifest
+            import zipfile
+            import tempfile
+            
+            db_file = os.path.join(backup_dir, f'database_backup_{timestamp}.json')
+            manifest_file = os.path.join(backup_dir, f'backup_manifest_{timestamp}.json')
+            
+            # Create a temporary zip file
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as temp_zip:
+                with zipfile.ZipFile(temp_zip.name, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                    if os.path.exists(db_file):
+                        zipf.write(db_file, f'database_backup_{timestamp}.json')
+                    if os.path.exists(manifest_file):
+                        zipf.write(manifest_file, f'backup_manifest_{timestamp}.json')
+                    
+                    # Add media files if they exist
+                    media_backup_dir = os.path.join(backup_dir, f'media_backup_{timestamp}')
+                    if os.path.exists(media_backup_dir):
+                        for root, dirs, files in os.walk(media_backup_dir):
+                            for file in files:
+                                file_path = os.path.join(root, file)
+                                arcname = os.path.join('media', os.path.relpath(file_path, media_backup_dir))
+                                zipf.write(file_path, arcname)
+                
+                backup_file = temp_zip.name
+                content_type = 'application/zip'
+                filename = f'full_backup_{backup.started_at.strftime("%Y-%m-%d_%H-%M-%S")}.zip'
+        else:
+            return Response(
+                {'error': f'Unknown backup type: {backup.backup_type}'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if file exists
+        if not os.path.exists(backup_file):
+            return Response(
+                {'error': 'Backup file not found on disk'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Create HTTP response with file
+        try:
+            with open(backup_file, 'rb') as f:
+                response = HttpResponse(f.read(), content_type=content_type)
+                response['Content-Disposition'] = f'attachment; filename="{filename}"'
+                
+                # Add file size header
+                file_size = os.path.getsize(backup_file)
+                response['Content-Length'] = str(file_size)
+                
+                # Clean up temporary zip files
+                if backup.backup_type in ['media', 'full'] and backup_file.endswith('.zip'):
+                    os.unlink(backup_file)
+                
+                logger.info(f"Backup {backup_id} downloaded by user {user.email}")
+                return response
+                
+        except Exception as e:
+            logger.error(f"Error reading backup file {backup_file}: {e}")
+            return Response(
+                {'error': 'Error reading backup file'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+    except Exception as e:
+        logger.error(f"Backup download failed: {str(e)}", exc_info=True)
+        return Response(
+            {'error': f'Failed to download backup: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def restore_backup(request):
+    """
+    Restore data from a backup with smart merge options
+    Requires admin permissions and provides data conflict resolution
+    """
+    try:
+        # Check if user has permission to restore backups
+        user = request.user
+        if user.role != User.Role.ADMIN:
+            return Response(
+                {'error': 'Permission denied. Admin access required for backup restoration.'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get request data
+        backup_id = request.data.get('backup_id')
+        merge_strategy = request.data.get('merge_strategy', 'replace')  # replace, merge, skip
+        preview_only = request.data.get('preview_only', False)
+        
+        if not backup_id:
+            return Response(
+                {'error': 'backup_id is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate merge strategy
+        valid_strategies = ['replace', 'merge', 'skip']
+        if merge_strategy not in valid_strategies:
+            return Response(
+                {'error': f'Invalid merge_strategy. Must be one of: {valid_strategies}'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get the backup record
+        try:
+            backup = BackupStatus.objects.get(id=backup_id)
+        except BackupStatus.DoesNotExist:
+            return Response(
+                {'error': 'Backup not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check if backup completed successfully
+        if backup.status != 'success':
+            return Response(
+                {'error': f'Backup is not available for restoration. Status: {backup.status}'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Only support database backups for now
+        if backup.backup_type != 'database':
+            return Response(
+                {'error': 'Only database backups can be restored at this time'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Load backup data
+        backup_dir = os.path.join(settings.BASE_DIR, 'backups')
+        timestamp = backup.started_at.strftime('%Y%m%d_%H%M%S')
+        backup_file = os.path.join(backup_dir, f'database_backup_{timestamp}.json')
+        
+        if not os.path.exists(backup_file):
+            return Response(
+                {'error': 'Backup file not found on disk'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Read backup data
+        import json
+        with open(backup_file, 'r') as f:
+            backup_data = json.load(f)
+        
+        # Analyze conflicts and prepare restore plan
+        restore_plan = _analyze_backup_conflicts(backup_data, merge_strategy)
+        
+        if preview_only:
+            return Response({
+                'message': 'Restore preview generated successfully',
+                'backup_info': {
+                    'id': backup.id,
+                    'backup_type': backup.backup_type,
+                    'started_at': backup.started_at.isoformat(),
+                    'file_size_mb': backup.file_size_mb
+                },
+                'restore_plan': restore_plan,
+                'preview_only': True
+            }, status=status.HTTP_200_OK)
+        
+        # Perform the actual restore
+        restore_result = _perform_backup_restore(backup_data, restore_plan, user)
+        
+        # Log the restore operation
+        logger.info(f"Backup {backup_id} restored by user {user.email} with strategy '{merge_strategy}'")
+        
+        return Response({
+            'message': 'Backup restored successfully',
+            'backup_info': {
+                'id': backup.id,
+                'backup_type': backup.backup_type,
+                'started_at': backup.started_at.isoformat(),
+            },
+            'restore_result': restore_result
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Backup restore failed: {str(e)}", exc_info=True)
+        return Response(
+            {'error': f'Failed to restore backup: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+def _analyze_backup_conflicts(backup_data, merge_strategy):
+    """
+    Analyze potential conflicts between backup data and current data
+    Django fixtures format: [{"model": "app.model", "pk": 1, "fields": {...}}, ...]
+    """
+    from django.apps import apps
+    conflicts = []
+    summary = {
+        'total_records': 0,
+        'new_records': 0,
+        'existing_records': 0,
+        'conflicts': 0,
+        'models_affected': []
+    }
+    
+    # Group records by model for easier processing
+    models_data = {}
+    for record in backup_data:
+        model_name = record['model']
+        if model_name not in models_data:
+            models_data[model_name] = []
+        models_data[model_name].append(record)
+    
+    for model_name, records in models_data.items():
+        app_label, model_class = model_name.split('.')
+        
+        try:
+            Model = apps.get_model(app_label, model_class)
+            if model_name not in summary['models_affected']:
+                summary['models_affected'].append(model_name)
+            
+            for record in records:
+                summary['total_records'] += 1
+                pk = record['pk']
+                backup_fields = record['fields']
+                
+                # Check if record exists
+                if Model.objects.filter(pk=pk).exists():
+                    summary['existing_records'] += 1
+                    
+                    # Get current record for comparison
+                    current_record = Model.objects.get(pk=pk)
+                    
+                    # Check for field conflicts
+                    field_conflicts = []
+                    for field_name, backup_value in backup_fields.items():
+                        if hasattr(current_record, field_name):
+                            current_value = getattr(current_record, field_name)
+                            if str(current_value) != str(backup_value):
+                                field_conflicts.append({
+                                    'field': field_name,
+                                    'current_value': str(current_value),
+                                    'backup_value': str(backup_value)
+                                })
+                    
+                    if field_conflicts:
+                        summary['conflicts'] += 1
+                        conflicts.append({
+                            'model': model_name,
+                            'pk': pk,
+                            'action': merge_strategy,
+                            'field_conflicts': field_conflicts
+                        })
+                else:
+                    summary['new_records'] += 1
+                    
+        except Exception as e:
+            logger.error(f"Error analyzing model {model_name}: {e}")
+    
+    return {
+        'summary': summary,
+        'conflicts': conflicts,
+        'merge_strategy': merge_strategy,
+        'safe_to_restore': summary['conflicts'] == 0 or merge_strategy in ['replace', 'merge']
+    }
+
+
+def _perform_backup_restore(backup_data, restore_plan, user):
+    """
+    Perform the actual backup restoration with conflict resolution
+    Django fixtures format: [{"model": "app.model", "pk": 1, "fields": {...}}, ...]
+    """
+    from django.apps import apps
+    from django.db import transaction
+    
+    restore_result = {
+        'records_created': 0,
+        'records_updated': 0,
+        'records_skipped': 0,
+        'errors': []
+    }
+    
+    try:
+        with transaction.atomic():
+            # Group records by model for easier processing
+            models_data = {}
+            for record in backup_data:
+                model_name = record['model']
+                if model_name not in models_data:
+                    models_data[model_name] = []
+                models_data[model_name].append(record)
+            
+            for model_name, records in models_data.items():
+                app_label, model_class = model_name.split('.')
+                
+                try:
+                    Model = apps.get_model(app_label, model_class)
+                    
+                    for record in records:
+                        pk = record['pk']
+                        fields = record['fields']
+                        
+                        try:
+                            if Model.objects.filter(pk=pk).exists():
+                                # Handle existing record based on strategy
+                                if restore_plan['merge_strategy'] == 'replace':
+                                    Model.objects.filter(pk=pk).update(**fields)
+                                    restore_result['records_updated'] += 1
+                                elif restore_plan['merge_strategy'] == 'merge':
+                                    # Merge only non-conflicting fields
+                                    current_obj = Model.objects.get(pk=pk)
+                                    updated_fields = {}
+                                    
+                                    for field_name, value in fields.items():
+                                        if hasattr(current_obj, field_name):
+                                            current_value = getattr(current_obj, field_name)
+                                            if current_value is None or current_value == '':
+                                                updated_fields[field_name] = value
+                                    
+                                    if updated_fields:
+                                        Model.objects.filter(pk=pk).update(**updated_fields)
+                                        restore_result['records_updated'] += 1
+                                    else:
+                                        restore_result['records_skipped'] += 1
+                                else:  # skip
+                                    restore_result['records_skipped'] += 1
+                            else:
+                                # Create new record
+                                Model.objects.create(pk=pk, **fields)
+                                restore_result['records_created'] += 1
+                                
+                        except Exception as e:
+                            error_msg = f"Error restoring {model_name}[{pk}]: {str(e)}"
+                            restore_result['errors'].append(error_msg)
+                            logger.error(error_msg)
+                            
+                except Exception as e:
+                    error_msg = f"Error processing model {model_name}: {str(e)}"
+                    restore_result['errors'].append(error_msg)
+                    logger.error(error_msg)
+                    
+    except Exception as e:
+        logger.error(f"Transaction failed during restore: {str(e)}")
+        raise
+    
+    return restore_result 

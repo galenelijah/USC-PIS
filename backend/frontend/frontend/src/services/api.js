@@ -289,6 +289,69 @@ export const authService = {
       throw error;
     }
   },
+
+  downloadBackup: async (backupId) => {
+    try {
+      const response = await api.get(`/utils/backup/download/${backupId}/`, {
+        responseType: 'blob', // Important for file downloads
+      });
+      
+      // Extract filename from Content-Disposition header
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = `backup_${backupId}.json`; // Default filename
+      
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+      
+      // Create blob URL and trigger download
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      return { success: true, filename };
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  previewRestore: async (backupId, mergeStrategy = 'replace') => {
+    try {
+      const response = await api.post('/utils/backup/restore/', {
+        backup_id: backupId,
+        merge_strategy: mergeStrategy,
+        preview_only: true
+      });
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  restoreBackup: async (backupId, mergeStrategy = 'replace') => {
+    try {
+      const response = await api.post('/utils/backup/restore/', {
+        backup_id: backupId,
+        merge_strategy: mergeStrategy,
+        preview_only: false
+      });
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
 };
 
 export const patientService = {

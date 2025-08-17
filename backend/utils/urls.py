@@ -11,4 +11,6 @@ urlpatterns = [
     path('backup-health/', views.backup_health_check, name='backup_health'),
     path('backup/trigger/', views.trigger_manual_backup, name='trigger_backup'),
     path('backup-status/<int:backup_id>/', views.backup_status_detail, name='backup_status_detail'),
+    path('backup/download/<int:backup_id>/', views.download_backup, name='download_backup'),
+    path('backup/restore/', views.restore_backup, name='restore_backup'),
 ] 

@@ -44,7 +44,9 @@ import {
     Refresh,
     Settings,
     History,
-    Security
+    Security,
+    Download,
+    Restore
 } from '@mui/icons-material';
 import { authService } from '../services/api';
 
@@ -78,6 +80,11 @@ const DatabaseMonitor = () => {
     const [backupType, setBackupType] = useState('full');
     const [verifyBackup, setVerifyBackup] = useState(true);
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+    const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
+    const [selectedBackupId, setSelectedBackupId] = useState(null);
+    const [mergeStrategy, setMergeStrategy] = useState('replace');
+    const [restorePreview, setRestorePreview] = useState(null);
+    const [restoreLoading, setRestoreLoading] = useState(false);
 
     const fetchData = async () => {
         setLoading(true);
@@ -133,6 +140,91 @@ const DatabaseMonitor = () => {
             });
         } finally {
             setBackupLoading(false);
+        }
+    };
+
+    const handleDownloadBackup = async (backupId) => {
+        try {
+            setSnackbar({
+                open: true,
+                message: 'Starting download...',
+                severity: 'info'
+            });
+
+            const result = await authService.downloadBackup(backupId);
+            
+            setSnackbar({
+                open: true,
+                message: `Backup downloaded successfully: ${result.filename}`,
+                severity: 'success'
+            });
+        } catch (err) {
+            setSnackbar({
+                open: true,
+                message: `Failed to download backup: ${err.message}`,
+                severity: 'error'
+            });
+        }
+    };
+
+    const handleRestoreBackup = (backupId) => {
+        setSelectedBackupId(backupId);
+        setRestoreDialogOpen(true);
+        setRestorePreview(null);
+        setMergeStrategy('replace');
+    };
+
+    const handlePreviewRestore = async () => {
+        if (!selectedBackupId) return;
+        
+        setRestoreLoading(true);
+        try {
+            const preview = await authService.previewRestore(selectedBackupId, mergeStrategy);
+            setRestorePreview(preview);
+            
+            setSnackbar({
+                open: true,
+                message: 'Restore preview generated successfully',
+                severity: 'info'
+            });
+        } catch (err) {
+            setSnackbar({
+                open: true,
+                message: `Failed to preview restore: ${err.message}`,
+                severity: 'error'
+            });
+        } finally {
+            setRestoreLoading(false);
+        }
+    };
+
+    const handleConfirmRestore = async () => {
+        if (!selectedBackupId) return;
+        
+        setRestoreLoading(true);
+        try {
+            const result = await authService.restoreBackup(selectedBackupId, mergeStrategy);
+            
+            setSnackbar({
+                open: true,
+                message: `Backup restored successfully! Created: ${result.restore_result.records_created}, Updated: ${result.restore_result.records_updated}`,
+                severity: 'success'
+            });
+            
+            setRestoreDialogOpen(false);
+            setSelectedBackupId(null);
+            setRestorePreview(null);
+            
+            // Refresh data after restore
+            setTimeout(fetchData, 1000);
+        } catch (err) {
+            setSnackbar({
+                open: true,
+                message: `Failed to restore backup: ${err.message}`,
+                severity: 'error'
+            });
+        } finally {
+            setRestoreLoading(false);
         }
     };
 
@@ -414,6 +506,7 @@ const DatabaseMonitor = () => {
                                         <TableCell>Duration</TableCell>
                                         <TableCell>Size</TableCell>
                                         <TableCell>Recent</TableCell>
+                                        <TableCell>Actions</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -453,6 +546,29 @@ const DatabaseMonitor = () => {
                                                     color={backup.is_recent ? 'success' : 'default'}
                                                     size="small"
                                                 />
+                                            </TableCell>
+                                            <TableCell>
+                                                <Button
+                                                    variant="outlined"
+                                                    size="small"
+                                                    startIcon={<Download />}
+                                                    onClick={() => handleDownloadBackup(backup.id)}
+                                                    disabled={backup.status !== 'success'}
+                                                    sx={{ mr: 1 }}
+                                                >
+                                                    Download
+                                                </Button>
+                                                <Button
+                                                    variant="contained"
+                                                    size="small"
+                                                    startIcon={<Restore />}
+                                                    onClick={() => handleRestoreBackup(backup.id)}
+                                                    disabled={backup.status !== 'success' || backup.backup_type !== 'database'}
+                                                    color="warning"
+                                                    sx={{ mr: 1 }}
+                                                >
+                                                    Restore
+                                                </Button>
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -509,6 +625,133 @@ const DatabaseMonitor = () => {
                         startIcon={backupLoading ? <CircularProgress size={20} /> : <Backup />}
                     >
                         {backupLoading ? 'Creating...' : 'Create Backup'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Restore Backup Dialog */}
+            <Dialog open={restoreDialogOpen} onClose={() => setRestoreDialogOpen(false)} maxWidth="md" fullWidth>
+                <DialogTitle>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Restore sx={{ mr: 1 }} />
+                        Restore Backup
+                    </Box>
+                </DialogTitle>
+                <DialogContent>
+                    <Alert severity="warning" sx={{ mb: 3 }}>
+                        <strong>Warning:</strong> Restoring a backup will modify your current data. 
+                        This action cannot be undone. Please review the restore plan carefully.
+                    </Alert>
+
+                    <Box sx={{ pt: 2 }}>
+                        <FormControl fullWidth sx={{ mb: 3 }}>
+                            <InputLabel>Merge Strategy</InputLabel>
+                            <Select
+                                value={mergeStrategy}
+                                onChange={(e) => setMergeStrategy(e.target.value)}
+                                label="Merge Strategy"
+                            >
+                                <MenuItem value="replace">Replace - Overwrite existing data with backup data</MenuItem>
+                                <MenuItem value="merge">Merge - Only update empty/null fields</MenuItem>
+                                <MenuItem value="skip">Skip - Only add new records, skip existing ones</MenuItem>
+                            </Select>
+                        </FormControl>
+
+                        <Box sx={{ mb: 3 }}>
+                            <Button
+                                variant="outlined"
+                                onClick={handlePreviewRestore}
+                                disabled={restoreLoading || !selectedBackupId}
+                                startIcon={<Settings />}
+                                fullWidth
+                            >
+                                {restoreLoading ? 'Generating Preview...' : 'Preview Restore'}
+                            </Button>
+                        </Box>
+
+                        {restorePreview && (
+                            <Paper sx={{ p: 2, mb: 2, bgcolor: 'background.default' }}>
+                                <Typography variant="h6" gutterBottom>Restore Preview</Typography>
+                                
+                                <Grid container spacing={2} sx={{ mb: 2 }}>
+                                    <Grid item xs={3}>
+                                        <Box sx={{ textAlign: 'center' }}>
+                                            <Typography variant="h4" color="primary">
+                                                {restorePreview.restore_plan.summary.total_records}
+                                            </Typography>
+                                            <Typography variant="body2">Total Records</Typography>
+                                        </Box>
+                                    </Grid>
+                                    <Grid item xs={3}>
+                                        <Box sx={{ textAlign: 'center' }}>
+                                            <Typography variant="h4" color="success.main">
+                                                {restorePreview.restore_plan.summary.new_records}
+                                            </Typography>
+                                            <Typography variant="body2">New Records</Typography>
+                                        </Box>
+                                    </Grid>
+                                    <Grid item xs={3}>
+                                        <Box sx={{ textAlign: 'center' }}>
+                                            <Typography variant="h4" color="warning.main">
+                                                {restorePreview.restore_plan.summary.existing_records}
+                                            </Typography>
+                                            <Typography variant="body2">Existing Records</Typography>
+                                        </Box>
+                                    </Grid>
+                                    <Grid item xs={3}>
+                                        <Box sx={{ textAlign: 'center' }}>
+                                            <Typography variant="h4" color="error.main">
+                                                {restorePreview.restore_plan.summary.conflicts}
+                                            </Typography>
+                                            <Typography variant="body2">Conflicts</Typography>
+                                        </Box>
+                                    </Grid>
+                                </Grid>
+
+                                <Typography variant="body2" sx={{ mb: 1 }}>
+                                    <strong>Models Affected:</strong> {restorePreview.restore_plan.summary.models_affected.join(', ')}
+                                </Typography>
+
+                                <Typography variant="body2" sx={{ mb: 2 }}>
+                                    <strong>Strategy:</strong> {mergeStrategy.toUpperCase()} - {
+                                        mergeStrategy === 'replace' ? 'Existing data will be overwritten' :
+                                        mergeStrategy === 'merge' ? 'Only empty fields will be updated' :
+                                        'Existing records will be skipped'
+                                    }
+                                </Typography>
+
+                                {restorePreview.restore_plan.conflicts.length > 0 && (
+                                    <Alert severity="warning" sx={{ mt: 2 }}>
+                                        {restorePreview.restore_plan.conflicts.length} data conflicts detected. 
+                                        Review your merge strategy carefully.
+                                    </Alert>
+                                )}
+
+                                {restorePreview.restore_plan.safe_to_restore ? (
+                                    <Alert severity="success" sx={{ mt: 2 }}>
+                                        Safe to restore with current settings.
+                                    </Alert>
+                                ) : (
+                                    <Alert severity="error" sx={{ mt: 2 }}>
+                                        Review conflicts before proceeding.
+                                    </Alert>
+                                )}
+                            </Paper>
+                        )}
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setRestoreDialogOpen(false)} disabled={restoreLoading}>
+                        Cancel
+                    </Button>
+                    <Button 
+                        onClick={handleConfirmRestore}
+                        variant="contained"
+                        color="warning"
+                        disabled={restoreLoading || !restorePreview}
+                        startIcon={<Restore />}
+                    >
+                        {restoreLoading ? 'Restoring...' : 'Confirm Restore'}
                     </Button>
                 </DialogActions>
             </Dialog>
