@@ -295,7 +295,7 @@ class DatabaseHealthMonitor:
                         unused_count = result[0]
                         
                         status = 'healthy'
-                        if unused_count > 5:
+                        if unused_count > 200:  # More reasonable threshold for development
                             status = 'warning'
                         
                         return {

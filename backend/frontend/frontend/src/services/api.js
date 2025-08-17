@@ -269,7 +269,7 @@ export const authService = {
   
   triggerManualBackup: async (backupType = 'full', verify = true) => {
     try {
-      const response = await api.post('/utils/trigger-backup/', {
+      const response = await api.post('/utils/backup/trigger/', {
         backup_type: backupType,
         verify: verify
       });
