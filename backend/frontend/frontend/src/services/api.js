@@ -242,7 +242,7 @@ export const authService = {
       const token = localStorage.getItem('Token');
       console.log('Current token:', token);
       
-      const response = await api.get('/auth/database-health/', {
+      const response = await api.get('/utils/database-health/', {
         headers: {
           'Authorization': `Token ${token}`
         }
