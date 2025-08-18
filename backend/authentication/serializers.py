@@ -158,7 +158,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'id', 'email', 'role', 'completeSetup',
+            'id', 'email', 'role', 'completeSetup', 'is_active',
             # Personal Information
             'first_name', 'last_name', 'middle_name', 'id_number',
             'course', 'year_level', 'school', 'sex', 'civil_status',
