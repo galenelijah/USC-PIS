@@ -15,7 +15,7 @@ from rest_framework import status
 from django.contrib.auth.decorators import login_required
 from functools import wraps
 
-from .backup_engine import BackupEngine
+from .fast_backup_engine import FastBackupEngine
 from .models import BackupStatus
 
 logger = logging.getLogger(__name__)
@@ -53,8 +53,8 @@ def create_backup(request):
         quick_backup = data.get('quick_backup', True)
         verify_integrity = data.get('verify_integrity', False)
         
-        # Create backup engine with 5 minute timeout
-        engine = BackupEngine(timeout_seconds=300)
+        # Create fast backup engine with 2 minute timeout
+        engine = FastBackupEngine(timeout_seconds=120)
         
         # Create backup
         backup_id = engine.create_backup_async(
@@ -185,7 +185,7 @@ def verify_backup(request, backup_id):
             }, status=404)
         
         # Verify backup
-        engine = BackupEngine()
+        engine = FastBackupEngine()
         is_valid, message = engine.verify_backup(file_path)
         
         return JsonResponse({
