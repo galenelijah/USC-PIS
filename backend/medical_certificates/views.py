@@ -6,6 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import MedicalCertificate, CertificateTemplate
 from .serializers import MedicalCertificateSerializer, CertificateTemplateSerializer
+from utils.email_service import EmailService
 from xhtml2pdf import pisa
 from io import BytesIO
 from django.http import HttpResponse
@@ -105,11 +106,20 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
             elif 'status' in model_fields:
                 certificate_data['status'] = 'pending'
             
-            serializer.save(
+            certificate = serializer.save(
                 issued_by=user,
                 issued_at=timezone.now(),
                 **certificate_data
             )
+            
+            # Send email notification for certificate creation
+            try:
+                EmailService.send_medical_certificate_notification(certificate, 'created')
+            except Exception as e:
+                # Log error but don't fail the creation
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to send certificate creation email: {e}")
 
     @action(detail=True, methods=['get'])
     def render(self, request, pk=None):
@@ -172,6 +182,14 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
         certificate.approved_at = timezone.now()
         certificate.save()
         
+        # Send approval email notification
+        try:
+            EmailService.send_medical_certificate_notification(certificate, 'approved')
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send certificate approval email: {e}")
+        
         serializer = self.get_serializer(certificate)
         return Response(serializer.data)
 
@@ -195,6 +213,14 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
         certificate.approved_by = request.user
         certificate.approved_at = timezone.now()
         certificate.save()
+        
+        # Send rejection email notification
+        try:
+            EmailService.send_medical_certificate_notification(certificate, 'rejected')
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send certificate rejection email: {e}")
         
         serializer = self.get_serializer(certificate)
         return Response(serializer.data)

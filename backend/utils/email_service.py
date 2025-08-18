@@ -77,8 +77,8 @@ class EmailService:
         """Send welcome email to new users"""
         context = {
             'user': user,
-            'site_url': 'https://usc-pis.herokuapp.com',
-            'support_email': 'support@usc-pis.herokuapp.com'
+            'site_url': 'https://usc-pis-5f030223f7a8.herokuapp.com',
+            'support_email': 'sgalenelijah@gmail.com'
         }
         
         return EmailService.send_template_email(
@@ -94,7 +94,7 @@ class EmailService:
         context = {
             'user': user,
             'reset_url': reset_url,
-            'site_url': 'https://usc-pis.herokuapp.com'
+            'site_url': 'https://usc-pis-5f030223f7a8.herokuapp.com'
         }
         
         return EmailService.send_template_email(
@@ -118,7 +118,7 @@ class EmailService:
             context = {
                 'certificate': certificate,
                 'patient': certificate.patient,
-                'site_url': 'https://usc-pis.herokuapp.com'
+                'site_url': 'https://usc-pis-5f030223f7a8.herokuapp.com'
             }
             
             EmailService.send_template_email(
@@ -144,7 +144,7 @@ class EmailService:
             context = {
                 'certificate': certificate,
                 'patient': certificate.patient,
-                'site_url': 'https://usc-pis.herokuapp.com'
+                'site_url': 'https://usc-pis-5f030223f7a8.herokuapp.com'
             }
             
             EmailService.send_template_email(
@@ -158,7 +158,7 @@ class EmailService:
             context = {
                 'certificate': certificate,
                 'patient': certificate.patient,
-                'site_url': 'https://usc-pis.herokuapp.com'
+                'site_url': 'https://usc-pis-5f030223f7a8.herokuapp.com'
             }
             
             EmailService.send_template_email(
@@ -174,8 +174,9 @@ class EmailService:
         context = {
             'patient': medical_record.patient,
             'medical_record': medical_record,
-            'feedback_url': f'https://usc-pis.herokuapp.com/feedback?visit_id={medical_record.id}',
-            'site_url': 'https://usc-pis.herokuapp.com'
+            'feedback_url': f'https://usc-pis-5f030223f7a8.herokuapp.com/feedback?visit_id={medical_record.id}',
+            'site_url': 'https://usc-pis-5f030223f7a8.herokuapp.com',
+            'login_url': f'https://usc-pis-5f030223f7a8.herokuapp.com/login'
         }
         
         return EmailService.send_template_email(
@@ -191,7 +192,7 @@ class EmailService:
         context = {
             'appointment': appointment,
             'patient': appointment.patient,
-            'site_url': 'https://usc-pis.herokuapp.com'
+            'site_url': 'https://usc-pis-5f030223f7a8.herokuapp.com'
         }
         
         return EmailService.send_template_email(

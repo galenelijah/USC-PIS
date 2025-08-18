@@ -129,8 +129,8 @@ class HealthChecker:
         try:
             # Check recent backup status
             recent_backups = BackupStatus.objects.filter(
-                created_at__gte=timezone.now() - timezone.timedelta(days=7)
-            ).order_by('-created_at')[:5]
+                started_at__gte=timezone.now() - timezone.timedelta(days=7)
+            ).order_by('-started_at')[:5]
             
             if not recent_backups.exists():
                 return {
@@ -159,7 +159,7 @@ class HealthChecker:
                     'total_backups': recent_backups.count(),
                     'successful_backups': successful_backups,
                     'failed_backups': failed_backups,
-                    'last_backup': recent_backups.first().created_at.isoformat() if recent_backups.exists() else None
+                    'last_backup': recent_backups.first().started_at.isoformat() if recent_backups.exists() else None
                 }
             }
             

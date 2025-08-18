@@ -26,6 +26,7 @@ import {
   Notifications as NotificationsIcon,
   Campaign as CampaignIcon,
   Assessment as ReportsIcon,
+  Email as EmailIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
@@ -114,6 +115,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
 
   const adminItems = [
     { text: 'Database Monitor', icon: <StorageIcon />, path: '/database-monitor', requiredRole: ['ADMIN', 'STAFF'] },
+    { text: 'Email Administration', icon: <EmailIcon />, path: '/email-administration', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR'] },
   ];
 
   const userItems = [

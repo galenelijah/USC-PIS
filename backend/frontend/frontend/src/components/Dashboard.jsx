@@ -36,6 +36,7 @@ import {
   Storage as StorageIcon,
   Campaign as CampaignIcon,
   Announcement as AnnouncementIcon,
+  Email as EmailIcon,
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import { authService, campaignService } from '../services/api';
@@ -310,6 +311,15 @@ const Dashboard = memo(({ user }) => {
                 icon={<StorageIcon />}
                 to="/database-monitor"
                 color="warning"
+              />
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <QuickAction
+                title="Email Administration"
+                description="Manage email automation and notifications"
+                icon={<EmailIcon />}
+                to="/email-administration"
+                color="primary"
               />
             </Grid>
           </>

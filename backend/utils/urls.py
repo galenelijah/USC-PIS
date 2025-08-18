@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import email_admin_views
 
 urlpatterns = [
     # Legacy health endpoints
@@ -19,4 +20,11 @@ urlpatterns = [
     path('backup-status/<int:backup_id>/', views.backup_status_detail, name='backup_status_detail'),
     path('backup/download/<int:backup_id>/', views.download_backup, name='download_backup'),
     path('backup/restore/', views.restore_backup, name='restore_backup'),
+    
+    # Email administration endpoints
+    path('email/status/', email_admin_views.email_system_status, name='email_system_status'),
+    path('email/test/', email_admin_views.test_email_system, name='test_email_system'),
+    path('email/feedback/send/', email_admin_views.send_feedback_emails, name='send_feedback_emails'),
+    path('email/health-alert/send/', email_admin_views.send_health_alert, name='send_health_alert'),
+    path('email/stats/', email_admin_views.email_automation_stats, name='email_automation_stats'),
 ] 
