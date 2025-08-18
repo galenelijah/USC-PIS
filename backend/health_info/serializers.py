@@ -260,17 +260,25 @@ class HealthCampaignCreateUpdateSerializer(serializers.ModelSerializer):
         exclude = ('created_at', 'updated_at', 'created_by', 'last_modified_by', 'view_count', 'engagement_count')
     
     def validate(self, data):
-        """Validate campaign data"""
+        """Validate campaign data with enhanced error handling"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"Validating campaign data: {list(data.keys())}")
+        
         start_date = data.get('start_date')
         end_date = data.get('end_date')
         
         if start_date and end_date and start_date >= end_date:
+            logger.error(f"Date validation failed: start_date={start_date} >= end_date={end_date}")
             raise serializers.ValidationError("End date must be after start date")
         
         featured_until = data.get('featured_until')
         if featured_until and end_date and featured_until > end_date:
+            logger.error(f"Featured date validation failed: featured_until={featured_until} > end_date={end_date}")
             raise serializers.ValidationError("Featured until date cannot be after campaign end date")
         
+        logger.info("Campaign data validation passed")
         return data
 
 class CampaignFeedbackSerializer(serializers.ModelSerializer):
