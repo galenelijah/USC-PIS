@@ -224,7 +224,7 @@ class HealthCampaign(models.Model):
     
     # Content
     content = models.TextField(help_text="Detailed campaign content")
-    summary = models.CharField(max_length=500, help_text="Brief campaign summary")
+    summary = models.CharField(max_length=500, blank=True, help_text="Brief campaign summary")
     
     # Visual Content
     banner_image = models.ImageField(
@@ -247,9 +247,9 @@ class HealthCampaign(models.Model):
     )
     
     # Campaign Details
-    target_audience = models.CharField(max_length=200, help_text="Target audience description")
-    objectives = models.TextField(help_text="Campaign objectives and goals")
-    call_to_action = models.CharField(max_length=300, help_text="What action should people take?")
+    target_audience = models.CharField(max_length=200, blank=True, help_text="Target audience description")
+    objectives = models.TextField(blank=True, help_text="Campaign objectives and goals")
+    call_to_action = models.CharField(max_length=300, blank=True, help_text="What action should people take?")
     
     # Scheduling
     start_date = models.DateTimeField()

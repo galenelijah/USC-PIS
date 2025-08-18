@@ -213,11 +213,10 @@ export const formatDateComprehensive = (dateInput) => {
       timestamp: date.getTime(),
       date: formatDatePH(date),
       time: formatDateTimePH(date, { 
-        timeStyle: 'short',
-        dateStyle: undefined,
-        year: undefined,
-        month: undefined,
-        day: undefined 
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: PHILIPPINES_TIMEZONE
       })
     };
   } catch (error) {
