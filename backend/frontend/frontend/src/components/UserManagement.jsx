@@ -48,7 +48,7 @@ import {
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../features/authentication/authSlice';
-import api from '../services/api';
+import { userManagementService } from '../services/api';
 
 const UserManagement = () => {
   const currentUser = useSelector(selectCurrentUser);
@@ -91,7 +91,7 @@ const UserManagement = () => {
         role: roleFilter
       };
       
-      const response = await api.getAllUsers(params);
+      const response = await userManagementService.getAllUsers(params);
       setUsers(response.users || []);
       setTotalUsers(response.pagination?.total_users || 0);
       setRoleCounts(response.role_counts || {});
@@ -121,7 +121,7 @@ const UserManagement = () => {
 
   const handleRoleUpdate = async () => {
     try {
-      await api.updateUserRole(roleDialog.user.id, roleDialog.newRole);
+      await userManagementService.updateUserRole(roleDialog.user.id, roleDialog.newRole);
       setSuccess(`Role updated successfully for ${roleDialog.user.email}`);
       setRoleDialog({ open: false, user: null, newRole: '' });
       fetchUsers();
@@ -132,7 +132,7 @@ const UserManagement = () => {
 
   const handleToggleStatus = async (user) => {
     try {
-      await api.toggleUserStatus(user.id);
+      await userManagementService.toggleUserStatus(user.id);
       setSuccess(`User ${user.is_active ? 'deactivated' : 'activated'} successfully`);
       fetchUsers();
     } catch (err) {
@@ -142,7 +142,7 @@ const UserManagement = () => {
 
   const handleDeleteUser = async () => {
     try {
-      await api.deleteUser(deleteDialog.user.id);
+      await userManagementService.deleteUser(deleteDialog.user.id);
       setSuccess(`User ${deleteDialog.user.email} deleted successfully`);
       setDeleteDialog({ open: false, user: null });
       fetchUsers();

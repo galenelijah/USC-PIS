@@ -1432,10 +1432,10 @@ export const reportService = {
     return api.get('/reports/analytics/', { params });
   },
 
-  // ================================
-  // USER MANAGEMENT (Admin only)
-  // ================================
+};
 
+// User Management Service (Admin only)
+export const userManagementService = {
   // Get all users with pagination and filtering
   getAllUsers: async (params = {}) => {
     try {
