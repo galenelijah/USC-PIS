@@ -31,7 +31,15 @@ import {
     Tabs,
     Tab,
     IconButton,
-    Tooltip
+    Tooltip,
+    TextField,
+    Stack,
+    List,
+    ListItem,
+    ListItemText,
+    ListItemIcon,
+    ListItemSecondaryAction,
+    Divider
 } from '@mui/material';
 import { 
     Storage,
@@ -46,7 +54,11 @@ import {
     History,
     Security,
     Download,
-    Restore
+    Restore,
+    FileUpload,
+    Delete,
+    Visibility,
+    GetApp
 } from '@mui/icons-material';
 import { authService } from '../services/api';
 
@@ -86,14 +98,24 @@ const DatabaseMonitor = () => {
     const [mergeStrategy, setMergeStrategy] = useState('replace');
     const [restorePreview, setRestorePreview] = useState(null);
     const [restoreLoading, setRestoreLoading] = useState(false);
+    
+    // Upload-related state
+    const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+    const [uploadedBackups, setUploadedBackups] = useState([]);
+    const [uploadLoading, setUploadLoading] = useState(false);
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [uploadType, setUploadType] = useState('database');
+    const [uploadDescription, setUploadDescription] = useState('');
+    const [uploadProgress, setUploadProgress] = useState(0);
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [dbResponse, backupResponse, backupListResponse] = await Promise.all([
+            const [dbResponse, backupResponse, backupListResponse, uploadedBackupsResponse] = await Promise.all([
                 authService.getDatabaseHealth(),
                 authService.getBackupHealth(),
-                authService.getBackupList(15) // Get last 15 backups
+                authService.getBackupList(15), // Get last 15 backups
+                authService.getUploadedBackups(10) // Get last 10 uploaded backups
             ]);
             setDbData(dbResponse);
             
@@ -102,6 +124,8 @@ const DatabaseMonitor = () => {
                 ...backupResponse,
                 recent_backups: backupListResponse.backups || []
             });
+            
+            setUploadedBackups(uploadedBackupsResponse.backups || []);
             
             setError(null);
             setBackupError(null);
@@ -236,6 +260,115 @@ const DatabaseMonitor = () => {
         }
     };
 
+    // Upload handler functions
+    const handleFileSelect = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            setSelectedFile(file);
+        }
+    };
+
+    const handleUploadBackup = async () => {
+        if (!selectedFile) {
+            setSnackbar({
+                open: true,
+                message: 'Please select a backup file to upload',
+                severity: 'warning'
+            });
+            return;
+        }
+
+        setUploadLoading(true);
+        setUploadProgress(0);
+
+        try {
+            const result = await authService.uploadBackup(
+                selectedFile,
+                uploadType,
+                uploadDescription
+            );
+
+            setSnackbar({
+                open: true,
+                message: `Backup uploaded successfully! ID: ${result.backup_id}`,
+                severity: 'success'
+            });
+
+            // Reset form and close dialog
+            setSelectedFile(null);
+            setUploadDescription('');
+            setUploadDialogOpen(false);
+            
+            // Refresh data
+            setTimeout(fetchData, 1000);
+
+        } catch (err) {
+            setSnackbar({
+                open: true,
+                message: `Failed to upload backup: ${err.message}`,
+                severity: 'error'
+            });
+        } finally {
+            setUploadLoading(false);
+            setUploadProgress(0);
+        }
+    };
+
+    const handleRestoreUploadedBackup = async (backupId, previewOnly = true) => {
+        setRestoreLoading(true);
+        try {
+            const result = await authService.restoreUploadedBackup(
+                backupId,
+                mergeStrategy,
+                previewOnly
+            );
+
+            if (previewOnly) {
+                setRestorePreview(result);
+                setSnackbar({
+                    open: true,
+                    message: `Preview: Would restore ${result.total_records || result.file_count || 'multiple'} items`,
+                    severity: 'info'
+                });
+            } else {
+                setSnackbar({
+                    open: true,
+                    message: 'Backup restored successfully!',
+                    severity: 'success'
+                });
+                // Refresh data after restore
+                setTimeout(fetchData, 1000);
+            }
+        } catch (err) {
+            setSnackbar({
+                open: true,
+                message: `Failed to restore backup: ${err.message}`,
+                severity: 'error'
+            });
+        } finally {
+            setRestoreLoading(false);
+        }
+    };
+
+    const handleDeleteUploadedBackup = async (backupId) => {
+        try {
+            await authService.deleteUploadedBackup(backupId);
+            setSnackbar({
+                open: true,
+                message: 'Uploaded backup deleted successfully!',
+                severity: 'success'
+            });
+            // Refresh data
+            setTimeout(fetchData, 500);
+        } catch (err) {
+            setSnackbar({
+                open: true,
+                message: `Failed to delete backup: ${err.message}`,
+                severity: 'error'
+            });
+        }
+    };
+
     const getHealthStatusIcon = (status) => {
         switch (status?.toLowerCase()) {
             case 'healthy':
@@ -302,6 +435,11 @@ const DatabaseMonitor = () => {
                     <Tab 
                         icon={<History />} 
                         label="Backup History" 
+                        iconPosition="start"
+                    />
+                    <Tab 
+                        icon={<FileUpload />} 
+                        label="Upload & Restore" 
                         iconPosition="start"
                     />
                 </Tabs>
@@ -587,6 +725,191 @@ const DatabaseMonitor = () => {
                         <Alert severity="info">No backup history available</Alert>
                     )}
                 </Paper>
+            </TabPanel>
+
+            {/* Upload & Restore Tab */}
+            <TabPanel value={tabValue} index={3}>
+                <Grid container spacing={3}>
+                    {/* Upload Section */}
+                    <Grid item xs={12} md={6}>
+                        <Paper sx={{ p: 3 }}>
+                            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                                <FileUpload sx={{ mr: 1 }} />
+                                Upload Backup
+                            </Typography>
+                            <Stack spacing={2}>
+                                <Button
+                                    variant="contained"
+                                    component="label"
+                                    startIcon={<CloudUpload />}
+                                    fullWidth
+                                >
+                                    Select Backup File
+                                    <input
+                                        type="file"
+                                        hidden
+                                        accept=".json,.gz,.zip"
+                                        onChange={handleFileSelect}
+                                    />
+                                </Button>
+                                
+                                {selectedFile && (
+                                    <Alert severity="info">
+                                        Selected: {selectedFile.name} ({(selectedFile.size / (1024*1024)).toFixed(2)} MB)
+                                    </Alert>
+                                )}
+
+                                <FormControl fullWidth>
+                                    <InputLabel>Backup Type</InputLabel>
+                                    <Select
+                                        value={uploadType}
+                                        label="Backup Type"
+                                        onChange={(e) => setUploadType(e.target.value)}
+                                    >
+                                        <MenuItem value="database">Database (.json, .json.gz)</MenuItem>
+                                        <MenuItem value="media">Media Files (.zip)</MenuItem>
+                                        <MenuItem value="full">Full System (.zip)</MenuItem>
+                                    </Select>
+                                </FormControl>
+
+                                <TextField
+                                    label="Description (Optional)"
+                                    value={uploadDescription}
+                                    onChange={(e) => setUploadDescription(e.target.value)}
+                                    multiline
+                                    rows={2}
+                                    fullWidth
+                                />
+
+                                <Button
+                                    variant="contained"
+                                    onClick={handleUploadBackup}
+                                    disabled={!selectedFile || uploadLoading}
+                                    startIcon={uploadLoading ? <CircularProgress size={20} /> : <CloudUpload />}
+                                    fullWidth
+                                >
+                                    {uploadLoading ? 'Uploading...' : 'Upload Backup'}
+                                </Button>
+
+                                {uploadLoading && (
+                                    <LinearProgress variant="indeterminate" />
+                                )}
+                            </Stack>
+                        </Paper>
+                    </Grid>
+
+                    {/* Uploaded Backups List */}
+                    <Grid item xs={12} md={6}>
+                        <Paper sx={{ p: 3 }}>
+                            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                                <GetApp sx={{ mr: 1 }} />
+                                Uploaded Backups ({uploadedBackups.length})
+                            </Typography>
+                            
+                            {uploadedBackups.length > 0 ? (
+                                <List>
+                                    {uploadedBackups.map((backup, index) => (
+                                        <div key={backup.id}>
+                                            <ListItem>
+                                                <ListItemIcon>
+                                                    <Chip 
+                                                        label={backup.backup_type.toUpperCase()} 
+                                                        color="primary"
+                                                        size="small"
+                                                    />
+                                                </ListItemIcon>
+                                                <ListItemText
+                                                    primary={backup.original_filename || `Backup ${backup.id}`}
+                                                    secondary={
+                                                        <Box>
+                                                            <Typography variant="body2" color="text.secondary">
+                                                                {backup.description || 'No description'}
+                                                            </Typography>
+                                                            <Typography variant="caption" color="text.secondary">
+                                                                Size: {backup.file_size_mb?.toFixed(2)} MB | 
+                                                                Uploaded: {formatDateTime(backup.uploaded_at)} |
+                                                                Records: {backup.record_count || backup.file_count || 'N/A'}
+                                                            </Typography>
+                                                        </Box>
+                                                    }
+                                                />
+                                                <ListItemSecondaryAction>
+                                                    <Box sx={{ display: 'flex', gap: 1 }}>
+                                                        <Tooltip title="Preview Restore">
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={() => handleRestoreUploadedBackup(backup.id, true)}
+                                                                disabled={restoreLoading}
+                                                            >
+                                                                <Visibility />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                        <Tooltip title="Restore Backup">
+                                                            <IconButton
+                                                                size="small"
+                                                                color="primary"
+                                                                onClick={() => handleRestoreUploadedBackup(backup.id, false)}
+                                                                disabled={restoreLoading}
+                                                            >
+                                                                <Restore />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                        <Tooltip title="Delete">
+                                                            <IconButton
+                                                                size="small"
+                                                                color="error"
+                                                                onClick={() => handleDeleteUploadedBackup(backup.id)}
+                                                            >
+                                                                <Delete />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                    </Box>
+                                                </ListItemSecondaryAction>
+                                            </ListItem>
+                                            {index < uploadedBackups.length - 1 && <Divider />}
+                                        </div>
+                                    ))}
+                                </List>
+                            ) : (
+                                <Alert severity="info">
+                                    No uploaded backups available. Upload a backup file to get started.
+                                </Alert>
+                            )}
+                        </Paper>
+                    </Grid>
+
+                    {/* Upload Instructions */}
+                    <Grid item xs={12}>
+                        <Paper sx={{ p: 2 }}>
+                            <Typography variant="h6" gutterBottom>
+                                Upload Instructions
+                            </Typography>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12} sm={4}>
+                                    <Alert severity="info">
+                                        <Typography variant="subtitle2">Database Backups</Typography>
+                                        Upload .json or .json.gz files containing Django fixture data.
+                                        Max size: 500MB
+                                    </Alert>
+                                </Grid>
+                                <Grid item xs={12} sm={4}>
+                                    <Alert severity="info">
+                                        <Typography variant="subtitle2">Media Backups</Typography>
+                                        Upload .zip files containing media files with directory structure.
+                                        Max size: 500MB
+                                    </Alert>
+                                </Grid>
+                                <Grid item xs={12} sm={4}>
+                                    <Alert severity="warning">
+                                        <Typography variant="subtitle2">Full System Backups</Typography>
+                                        Upload .zip files containing both database JSON and media files.
+                                        Max size: 500MB
+                                    </Alert>
+                                </Grid>
+                            </Grid>
+                        </Paper>
+                    </Grid>
+                </Grid>
             </TabPanel>
 
             {/* Create Backup Dialog */}
