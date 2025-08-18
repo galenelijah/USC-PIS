@@ -6,7 +6,7 @@ import os
 import logging
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.views.decorators.http import require_http_methods
@@ -30,8 +30,9 @@ def admin_required(view_func):
         return view_func(request, *args, **kwargs)
     return wrapper
 
-@csrf_exempt
-@require_http_methods(["POST"])
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser])
 @admin_required
 def upload_backup(request):
     """
@@ -46,6 +47,7 @@ def upload_backup(request):
     - description: Optional description
     """
     try:
+        # Handle file upload data
         if 'backup_file' not in request.FILES:
             return JsonResponse({
                 'success': False,
@@ -224,8 +226,6 @@ def backup_upload_info(request):
     GET /api/utils/backup/upload-info/
     """
     try:
-        upload_dir = os.path.join(request.get_host(), 'backups', 'uploads')
-        
         return JsonResponse({
             'success': True,
             'supported_types': ['database', 'media', 'full'],
@@ -247,3 +247,16 @@ def backup_upload_info(request):
             'success': False,
             'error': str(e)
         }, status=500)
+
+@api_view(['GET']) 
+@permission_classes([IsAuthenticated])
+@admin_required
+def test_auth(request):
+    """Test authentication endpoint"""
+    return JsonResponse({
+        'success': True,
+        'message': 'Authentication working!',
+        'user': request.user.email,
+        'role': request.user.role
+    })
+

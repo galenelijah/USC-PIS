@@ -38,6 +38,7 @@ urlpatterns = [
     path('backup/uploaded/', backup_upload_views.uploaded_backups_list, name='uploaded_backups_list'),
     path('backup/uploaded/<int:backup_id>/', backup_upload_views.delete_uploaded_backup, name='delete_uploaded_backup'),
     path('backup/upload-info/', backup_upload_views.backup_upload_info, name='backup_upload_info'),
+    path('backup/test-auth/', backup_upload_views.test_auth, name='test_auth'),
     
     # Email administration endpoints
     path('email/status/', email_admin_views.email_system_status, name='email_system_status'),
