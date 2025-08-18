@@ -486,6 +486,79 @@ export const authService = {
       throw error;
     }
   },
+
+  // Backup Upload and Restore methods
+  uploadBackup: async (file, backupType, description = '') => {
+    try {
+      const token = localStorage.getItem('Token');
+      const formData = new FormData();
+      formData.append('backup_file', file);
+      formData.append('backup_type', backupType);
+      formData.append('description', description);
+
+      const response = await fetch('/api/utils/backup/upload/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  getUploadedBackups: async (limit = 20) => {
+    try {
+      const response = await api.get(`/utils/backup/uploaded/?limit=${limit}`);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  restoreUploadedBackup: async (backupId, mergeStrategy = 'replace', previewOnly = true) => {
+    try {
+      const response = await api.post('/utils/backup/restore-uploaded/', {
+        backup_id: backupId,
+        merge_strategy: mergeStrategy,
+        preview_only: previewOnly
+      });
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  deleteUploadedBackup: async (backupId) => {
+    try {
+      const response = await api.delete(`/utils/backup/uploaded/${backupId}/`);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  getBackupUploadInfo: async () => {
+    try {
+      const response = await api.get('/utils/backup/upload-info/');
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
 };
 
 export const patientService = {

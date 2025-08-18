@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from . import email_admin_views
 from . import backup_views
+from . import backup_upload_views
 
 urlpatterns = [
     # Legacy health endpoints
@@ -30,6 +31,13 @@ urlpatterns = [
     path('backup/list/', backup_views.backup_list, name='backup_list_v2'),
     path('backup/delete/<int:backup_id>/', backup_views.delete_backup, name='delete_backup'),
     path('backup/health/', backup_views.backup_system_health, name='backup_system_health'),
+    
+    # Backup upload and restore endpoints
+    path('backup/upload/', backup_upload_views.upload_backup, name='upload_backup'),
+    path('backup/restore-uploaded/', backup_upload_views.restore_backup, name='restore_uploaded_backup'),
+    path('backup/uploaded/', backup_upload_views.uploaded_backups_list, name='uploaded_backups_list'),
+    path('backup/uploaded/<int:backup_id>/', backup_upload_views.delete_uploaded_backup, name='delete_uploaded_backup'),
+    path('backup/upload-info/', backup_upload_views.backup_upload_info, name='backup_upload_info'),
     
     # Email administration endpoints
     path('email/status/', email_admin_views.email_system_status, name='email_system_status'),
