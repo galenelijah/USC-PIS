@@ -30,15 +30,16 @@
       "Bash(touch:*)",
       "Bash(npm run dev:*)",
       "Bash(node:*)",
-      "Bash(./venv/Scripts/python.exe manage.py execute_backup --backup-id 9)"
+      "Bash(./venv/Scripts/python.exe manage.py execute_backup --backup-id 9)",
+      "mcp__sequential-thinking__sequentialthinking"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "context7",
     "puppeteer",
     "sequential-thinking"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }

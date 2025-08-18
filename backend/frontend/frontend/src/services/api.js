@@ -259,19 +259,27 @@ export const authService = {
   // Backup Management Functions
   getBackupHealth: async () => {
     try {
-      const response = await api.get('/utils/backup-health/');
+      // Use new efficient health endpoint
+      const response = await api.get('/utils/backup/health/');
       return response.data;
     } catch (error) {
-      handleApiError(error);
-      throw error;
+      // Fallback to legacy endpoint if new one fails
+      try {
+        const response = await api.get('/utils/backup-health/');
+        return response.data;
+      } catch (fallbackError) {
+        handleApiError(error);
+        throw error;
+      }
     }
   },
   
-  triggerManualBackup: async (backupType = 'database', verify = true, quickBackup = false) => {
+  triggerManualBackup: async (backupType = 'database', verify = true, quickBackup = true) => {
     try {
-      const response = await api.post('/utils/backup/trigger/', {
+      // Use new efficient backup endpoint
+      const response = await api.post('/utils/backup/create/', {
         backup_type: backupType,
-        verify: verify,
+        verify_integrity: verify,
         quick_backup: quickBackup
       });
       return response.data;
@@ -293,7 +301,8 @@ export const authService = {
 
   downloadBackup: async (backupId) => {
     try {
-      const response = await api.get(`/utils/backup/download/${backupId}/`, {
+      // Use new efficient download endpoint
+      const response = await api.get(`/utils/backup/download-v2/${backupId}/`, {
         responseType: 'blob', // Important for file downloads
       });
       

@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import email_admin_views
+from . import backup_views
 
 urlpatterns = [
     # Legacy health endpoints
@@ -14,12 +15,21 @@ urlpatterns = [
     path('health/quick/', views.quick_health_api, name='quick_health'),
     path('metrics/', views.system_metrics, name='system_metrics'),
     
-    # Backup system endpoints
+    # Legacy backup system endpoints (for compatibility)
     path('backup-health/', views.backup_health_check, name='backup_health'),
     path('backup/trigger/', views.trigger_manual_backup, name='trigger_backup'),
     path('backup-status/<int:backup_id>/', views.backup_status_detail, name='backup_status_detail'),
     path('backup/download/<int:backup_id>/', views.download_backup, name='download_backup'),
     path('backup/restore/', views.restore_backup, name='restore_backup'),
+    
+    # New efficient backup endpoints
+    path('backup/create/', backup_views.create_backup, name='create_backup_v2'),
+    path('backup/status/<int:backup_id>/', backup_views.backup_status, name='backup_status_v2'),
+    path('backup/download-v2/<int:backup_id>/', backup_views.download_backup, name='download_backup_v2'),
+    path('backup/verify/<int:backup_id>/', backup_views.verify_backup, name='verify_backup'),
+    path('backup/list/', backup_views.backup_list, name='backup_list_v2'),
+    path('backup/delete/<int:backup_id>/', backup_views.delete_backup, name='delete_backup'),
+    path('backup/health/', backup_views.backup_system_health, name='backup_system_health'),
     
     # Email administration endpoints
     path('email/status/', email_admin_views.email_system_status, name='email_system_status'),
