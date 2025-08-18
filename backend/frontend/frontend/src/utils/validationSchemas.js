@@ -128,7 +128,6 @@ export const registerSchema = yup.object().shape({
     .string()
     .required('Please confirm your password')
     .oneOf([yup.ref('password')], 'Passwords do not match'),
-  role: commonValidation.requiredSelect('Role', ['STUDENT', 'DOCTOR', 'NURSE', 'STAFF']),
 });
 
 // Medical Record schema

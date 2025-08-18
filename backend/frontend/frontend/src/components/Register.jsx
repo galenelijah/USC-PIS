@@ -1,9 +1,5 @@
 import {
   Box,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
   Typography,
   Alert,
   CircularProgress,
@@ -21,7 +17,6 @@ import {
   PersonAdd,
   Email,
   Lock,
-  Badge,
   CheckCircle,
   ArrowBack
 } from '@mui/icons-material'
@@ -29,7 +24,7 @@ import MyTextField from './forms/MyTextField'
 import MyPassField from './forms/MyPassField'
 import MyButton from './forms/MyButton'
 import {Link, useNavigate} from 'react-router-dom'
-import {useForm, Controller} from 'react-hook-form'
+import {useForm} from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useDispatch, useSelector } from 'react-redux';
 import { registerUser, loginUser, selectAuthStatus, selectAuthError, resetAuthStatus } from '../features/authentication/authSlice';
@@ -43,8 +38,7 @@ const Register = () =>{
         defaultValues: {
             email: '',
             password: '',
-            password2: '',
-            role: 'STUDENT'
+            password2: ''
         }
     })
     const dispatch = useDispatch();
@@ -246,40 +240,22 @@ const Register = () =>{
                                         />
                                     </Box>
 
-                                    <Box>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                                            <Badge fontSize="small" color="primary" />
-                                            <Typography variant="body2" fontWeight="medium">
-                                                Role
-                                            </Typography>
-                                        </Box>
-                                        <Controller
-                                            name="role"
-                                            control={control}
-                                            render={({ field }) => (
-                                                <FormControl fullWidth>
-                                                    <Select 
-                                                        {...field} 
-                                                        displayEmpty
-                                                        sx={{
-                                                            borderRadius: 2,
-                                                            '& .MuiOutlinedInput-notchedOutline': {
-                                                                borderColor: alpha('#667eea', 0.3)
-                                                            },
-                                                            '&:hover .MuiOutlinedInput-notchedOutline': {
-                                                                borderColor: 'primary.main'
-                                                            }
-                                                        }}
-                                                    >
-                                                        <MenuItem value="STUDENT">Student</MenuItem>
-                                                        <MenuItem value="DOCTOR">Doctor</MenuItem>
-                                                        <MenuItem value="NURSE">Nurse</MenuItem>
-                                                        <MenuItem value="STAFF">Staff</MenuItem>
-                                                    </Select>
-                                                </FormControl>
-                                            )}
-                                        />
-                                    </Box>
+                                    {/* Automatic Role Assignment Info */}
+                                    <Alert 
+                                        severity="info" 
+                                        sx={{ 
+                                            borderRadius: 2,
+                                            '& .MuiAlert-icon': {
+                                                alignItems: 'center'
+                                            }
+                                        }}
+                                    >
+                                        <Typography variant="body2">
+                                            <strong>Automatic Role Assignment:</strong><br/>
+                                            • Student emails (with numbers): 21100727@usc.edu.ph<br/>
+                                            • Staff/Faculty emails (letters only): elfabian@usc.edu.ph
+                                        </Typography>
+                                    </Alert>
 
                                     {/* Error and success messages */}
                                     {serverError && (

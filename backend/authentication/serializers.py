@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import User
 from patients.models import Patient
 from .validators import email_validator, strict_email_validator, password_validator
+import re
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(write_only=True)
@@ -41,7 +42,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'email', 'password', 'password2', 'role',
+            'email', 'password', 'password2',
             'first_name', 'last_name', 'middle_name', 'id_number',
             'course', 'year_level', 'school', 'sex', 'civil_status',
             'birthday', 'nationality', 'religion', 'address_permanent',
@@ -56,7 +57,6 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         )
         extra_kwargs = {
             'password': {'write_only': True},
-            'role': {'required': False},
             'department': {'required': False},
             'phone_number': {'required': False},
             # All other fields are not required
@@ -73,6 +73,28 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(error_message)
         
         return value.lower().strip()
+    
+    def _determine_role_from_email(self, email):
+        """
+        Determine user role based on email pattern:
+        - Students: emails with numbers (e.g., 21100727@usc.edu.ph)
+        - Staff/Teachers: emails with only letters (e.g., elfabian@usc.edu.ph)
+        """
+        if not email:
+            return User.Role.STUDENT  # Default fallback
+        
+        # Extract the part before @ symbol
+        email_username = email.split('@')[0].lower()
+        
+        # Check if the username contains any digits
+        if re.search(r'\d', email_username):
+            # Contains numbers - likely a student ID
+            return User.Role.STUDENT
+        else:
+            # Only letters - likely staff/faculty
+            # Default to STAFF role for non-student emails
+            # Admin can later change specific users to DOCTOR, NURSE, etc. if needed
+            return User.Role.STAFF
     
     def validate_password(self, value):
         """Validate password with enhanced security checks."""
@@ -96,12 +118,15 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         # Extract and remove password2 from validated data
         validated_data.pop('password2', None)
         
-        # Extract role or use default STUDENT
-        role = validated_data.pop('role', User.Role.STUDENT)
-        
-        # Get email and password
+        # Get email and determine role automatically based on email pattern
         email = validated_data.get('email')
         password = validated_data.get('password')
+        
+        # Auto-assign role based on email pattern
+        role = self._determine_role_from_email(email)
+        
+        # Remove role from validated_data if it exists (ignore frontend role selection)
+        validated_data.pop('role', None)
         
         try:
             # Create user with minimal required fields
