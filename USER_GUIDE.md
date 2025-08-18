@@ -161,6 +161,129 @@ If you're not receiving emails:
 - Keep your contact information updated in your profile
 - Check email regularly for important healthcare notifications
 
+## Email Administration (Admin/Staff/Doctor Only)
+
+USC-PIS includes a comprehensive email administration interface for managing automated communications and monitoring system health.
+
+### **Accessing Email Administration**
+
+#### **Web Interface Access**
+- **Navigation**: Admin Dashboard → "Email Administration" menu item
+- **Direct URL**: `/email-administration`
+- **Role Access**: Admin, Staff, and Doctor roles only
+- **Icon**: 📧 Email icon in the sidebar and dashboard
+
+#### **Quick Access from Dashboard**
+- **Admin Dashboard**: Look for the "Email Administration" quick action card
+- **Features**: Direct access to email system management from the main dashboard
+
+### **Email Administration Features**
+
+#### **System Status Monitoring**
+- **Email Backend Status**: View current email configuration (SMTP/Console)
+- **System Mode**: See if system is in Development or Production mode
+- **SMTP Configuration**: Monitor email host and from address settings
+- **Real-time Health**: Check operational status with automatic refresh
+
+#### **Email Testing & Validation**
+- **Multi-Type Testing**: Test feedback, welcome, certificate, and health alert emails
+- **Dry Run Mode**: Preview emails without actually sending them
+- **Test Results**: View detailed success/failure reports for each email type
+- **Individual Email Testing**: Send test emails to specific addresses
+
+#### **Automation Controls**
+- **Feedback Email Automation**: Manually trigger feedback requests for visits from specific hours ago
+- **Health Alert System**: Send system health alerts with customizable severity levels
+- **Scheduling Integration**: Control when and how automated emails are sent
+
+#### **Statistics & Analytics**
+- **Visit Metrics**: Monitor visits today, yesterday, last 7 days, and last 30 days
+- **Email Activity**: Track estimated pending feedback emails
+- **System Health**: View overall system health percentage and check statuses
+- **Real-time Updates**: Get current statistics with automatic refresh
+
+### **Using the Email Administration Interface**
+
+#### **1. System Status Review**
+1. **Access Interface**: Navigate to Email Administration page
+2. **System Status Section**: Review email backend and configuration
+3. **Health Monitoring**: Check system mode and operational status
+4. **Refresh Data**: Use the refresh button for latest information
+
+#### **2. Testing Email System**
+1. **Test Button**: Click "Test Email System" in the automation controls
+2. **Email Configuration**:
+   - Enter test email address (e.g., `21100727@usc.edu.ph`)
+   - Select email types to test (feedback, welcome, certificate, health_alert)
+   - Enable "Dry Run" for preview mode or disable for actual sending
+3. **Execute Test**: Click "Preview Test" (dry run) or "Send Test" (actual)
+4. **Review Results**: Check the results table for success/failure status and messages
+
+#### **3. Manual Feedback Email Sending**
+1. **Feedback Button**: Click "Send Feedback Emails" in automation controls
+2. **Configuration**:
+   - Set "Hours Since Visit" (default: 24 hours)
+   - Enable "Dry Run" to preview without sending
+3. **Execute**: Click "Preview Emails" or "Send Emails"
+4. **Results**: Review sent count, error count, and detailed output
+
+#### **4. Health Alert Management**
+1. **Alert Button**: Click "Send Health Alert" in automation controls
+2. **Alert Configuration**:
+   - **Alert Level**: Choose "All Issues", "Warning & Above", or "Unhealthy Only"
+   - **Force Alert**: Send regardless of current system status
+   - **Dry Run**: Preview alert without sending
+3. **Send Alert**: Click "Preview Alert" or "Send Alert"
+4. **Confirmation**: Review alert status and delivery confirmation
+
+### **Email Administration Best Practices**
+
+#### **Regular Monitoring**
+- **Daily Check**: Review system status daily during business hours
+- **Weekly Testing**: Test email system weekly with dry run mode
+- **Health Alerts**: Monitor health alert frequency and response
+
+#### **Testing Protocol**
+- **Always Use Dry Run First**: Preview emails before sending to avoid spam
+- **Test Different Types**: Verify all email types (feedback, welcome, certificate, alerts)
+- **Use Valid Test Emails**: Test with actual USC email addresses for accurate results
+
+#### **Automation Management**
+- **Feedback Timing**: Send feedback emails 24-48 hours after visits for best response rates
+- **Health Alert Thresholds**: Use appropriate alert levels to avoid alert fatigue
+- **Documentation**: Log any manual email sends for audit purposes
+
+#### **Troubleshooting Email Issues**
+1. **Check System Status**: Verify email backend configuration in status section
+2. **Test Connectivity**: Use email testing feature to diagnose delivery issues
+3. **Review Statistics**: Check visit metrics to understand email volume patterns
+4. **Health Monitoring**: Monitor system health percentage for underlying issues
+
+### **Email Administration Permissions**
+
+#### **Role Access**
+- **Admin**: Full access to all email administration features
+- **Staff**: Complete email management and testing capabilities
+- **Doctor**: Full administrative access identical to Admin/Staff
+- **Nurse/Student**: No access to email administration interface
+
+#### **Security Features**
+- **Authentication Required**: Must be logged in with appropriate role
+- **API Protection**: Backend APIs use secure token-based authentication
+- **Audit Logging**: All email administration actions are logged for security
+
+### **API Integration for Advanced Users**
+
+The email administration interface uses RESTful API endpoints for all operations:
+
+- **GET** `/api/utils/email/status/` - System status
+- **POST** `/api/utils/email/test/` - Email testing
+- **POST** `/api/utils/email/feedback/send/` - Feedback automation
+- **POST** `/api/utils/email/health-alert/send/` - Health alerts
+- **GET** `/api/utils/email/stats/` - Statistics and analytics
+
+For complete API documentation, see **[API Documentation](docs/api/README.md#email-administration-apis)**.
+
 ## User Roles
 
 **Important Update (July 24, 2025):** Doctor roles now have full administrative access identical to Staff and Admin users, ensuring consistent experience across all medical professionals.

@@ -31,10 +31,17 @@ class Command(BaseCommand):
             action='store_true',
             help='Automatically execute all pending backups',
         )
+        parser.add_argument(
+            '--timeout-minutes',
+            type=int,
+            default=60,
+            help='Maximum time allowed for backup operation in minutes (default: 60)',
+        )
 
     def handle(self, *args, **options):
         backup_id = options.get('backup_id')
         auto_mode = options.get('auto')
+        self.timeout_minutes = options.get('timeout_minutes')
 
         if backup_id:
             self.execute_backup(backup_id)
@@ -79,6 +86,21 @@ class Command(BaseCommand):
             return
 
         start_time = time.time()
+        timeout_seconds = self.timeout_minutes * 60
+        
+        # Check if backup has already been running too long
+        elapsed_since_start = (timezone.now() - backup.started_at).total_seconds()
+        if elapsed_since_start > timeout_seconds:
+            backup.status = 'failed'
+            backup.completed_at = timezone.now()
+            backup.duration_seconds_stored = elapsed_since_start
+            backup.error_message = f'Backup timed out after {elapsed_since_start/60:.1f} minutes'
+            backup.save()
+            
+            self.stdout.write(
+                self.style.ERROR(f'Backup {backup_id} already timed out ({elapsed_since_start/60:.1f} minutes)')
+            )
+            return
         
         try:
             # Create backup directory if it doesn't exist
@@ -93,6 +115,11 @@ class Command(BaseCommand):
                 self.execute_full_backup(backup, backup_dir)
             else:
                 raise ValueError(f'Unknown backup type: {backup.backup_type}')
+            
+            # Final timeout check
+            total_duration = time.time() - start_time
+            if total_duration > timeout_seconds:
+                raise TimeoutError(f'Backup exceeded {self.timeout_minutes} minute timeout')
 
             # Update backup record with success
             backup.status = 'success'

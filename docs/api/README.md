@@ -7,7 +7,11 @@
 ## Overview
 USC Patient Information System REST API provides comprehensive healthcare management functionality with enterprise-grade security and role-based access control.
 
-## 🆕 Recent Updates (August 17, 2025)
+## 🆕 Recent Updates (August 18, 2025)
+- **✅ Email Administration APIs**: Complete email automation management endpoints with real-time testing and monitoring
+- **✅ Email System Testing**: Multi-type email testing API with dry-run capabilities (feedback, welcome, certificates, alerts)
+- **✅ Automated Email Controls**: API endpoints for manual email triggers with customizable settings
+- **✅ API Authentication Fix**: Resolved HTML redirect issues, proper JSON responses for all admin endpoints
 - **✅ Enterprise Backup System APIs**: Complete backup execution, download, and restore endpoints with smart conflict resolution
 - **✅ Data Recovery APIs**: Intelligent backup restore with merge strategies (replace, merge, skip) and preview functionality
 - **✅ Performance Optimization**: Quick backup API options for 50%+ faster completion
@@ -575,6 +579,155 @@ Content-Type: application/json
 - **SQL Injection Protection**: Django ORM provides automatic protection
 - **XSS Protection**: Automatic escaping and sanitization
 - **File Upload Security**: Type validation and malware scanning
+
+## Email Administration APIs
+
+### Get Email System Status
+- **URL**: `/api/utils/email/status/`
+- **Method**: `GET`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: Admin, Staff, Doctor only
+- **Description**: Get current email system configuration and status
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "email_backend": "django.core.mail.backends.smtp.EmailBackend",
+      "is_development_mode": false,
+      "smtp_host": "smtp.gmail.com",
+      "from_email": "noreply@usc-pis.herokuapp.com",
+      "recent_visits_7_days": 15,
+      "estimated_feedback_emails": 15,
+      "system_health": "operational",
+      "last_updated": "2025-08-18T10:30:00Z"
+    }
+  }
+  ```
+
+### Test Email System
+- **URL**: `/api/utils/email/test/`
+- **Method**: `POST`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: Admin, Staff, Doctor only
+- **Data**:
+  ```json
+  {
+    "email": "test@usc.edu.ph",
+    "types": ["feedback", "welcome", "certificate", "health_alert"],
+    "dry_run": true
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "sent": 2,
+      "failed": 0,
+      "skipped": 0,
+      "details": [
+        {
+          "type": "feedback",
+          "success": true,
+          "message": "Feedback email sent to test@usc.edu.ph"
+        }
+      ]
+    },
+    "dry_run": true
+  }
+  ```
+
+### Send Feedback Emails
+- **URL**: `/api/utils/email/feedback/send/`
+- **Method**: `POST`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: Admin, Staff, Doctor only
+- **Data**:
+  ```json
+  {
+    "hours": 24,
+    "dry_run": false
+  }
+  ```
+- **Description**: Manually trigger feedback emails for visits from X hours ago
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "sent_count": 3,
+      "error_count": 0,
+      "hours_ago": 24,
+      "dry_run": false,
+      "output": "Sent 3 feedback emails successfully"
+    }
+  }
+  ```
+
+### Send Health Alert
+- **URL**: `/api/utils/email/health-alert/send/`
+- **Method**: `POST`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: Admin, Staff, Doctor only
+- **Data**:
+  ```json
+  {
+    "alert_level": "warning",
+    "force_alert": false,
+    "dry_run": false
+  }
+  ```
+- **Alert Levels**: 
+  - `all`: Send alerts for all issues
+  - `warning`: Send for warning-level and above
+  - `unhealthy`: Send only for unhealthy status
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "alert_sent": true,
+      "alert_level": "warning",
+      "force_alert": false,
+      "dry_run": false,
+      "output": "Alert email sent to administrators"
+    }
+  }
+  ```
+
+### Get Email Automation Statistics
+- **URL**: `/api/utils/email/stats/`
+- **Method**: `GET`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: Admin, Staff, Doctor only
+- **Description**: Get statistics about email automation and system health
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "visits": {
+        "today": 5,
+        "yesterday": 8,
+        "last_7_days": 45,
+        "last_30_days": 180
+      },
+      "estimated_feedback_emails": {
+        "pending_today": 5,
+        "pending_yesterday": 8
+      },
+      "system_health": {
+        "overall_status": "healthy",
+        "health_percentage": 95.5,
+        "healthy_checks": 18,
+        "warning_checks": 1,
+        "unhealthy_checks": 0
+      },
+      "last_updated": "2025-08-18T10:30:00Z"
+    }
+  }
+  ```
 
 ## Email Setup Guide
 

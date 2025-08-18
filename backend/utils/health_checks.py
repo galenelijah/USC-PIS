@@ -127,27 +127,49 @@ class HealthChecker:
     def check_backup_system(self):
         """Check backup system health"""
         try:
-            # Check recent backup status
-            recent_backups = BackupStatus.objects.filter(
-                started_at__gte=timezone.now() - timezone.timedelta(days=7)
-            ).order_by('-started_at')[:5]
+            # Check for stuck backups first
+            stuck_backups = BackupStatus.objects.filter(
+                status='in_progress',
+                started_at__lt=timezone.now() - timezone.timedelta(minutes=30)
+            )
             
-            if not recent_backups.exists():
+            if stuck_backups.exists():
+                return {
+                    'status': 'unhealthy',
+                    'message': f'{stuck_backups.count()} backup(s) stuck for over 30 minutes',
+                    'metrics': {
+                        'stuck_backups': stuck_backups.count(),
+                        'stuck_backup_ids': list(stuck_backups.values_list('id', flat=True))
+                    }
+                }
+            
+            # Check recent backup status
+            recent_backups_qs = BackupStatus.objects.filter(
+                started_at__gte=timezone.now() - timezone.timedelta(days=7)
+            ).order_by('-started_at')
+            
+            if not recent_backups_qs.exists():
                 return {
                     'status': 'warning',
                     'message': 'No backups found in last 7 days',
                     'metrics': {'recent_backups': 0}
                 }
             
-            successful_backups = recent_backups.filter(status='completed').count()
-            failed_backups = recent_backups.filter(status='failed').count()
+            # Get counts before slicing
+            successful_backups = recent_backups_qs.filter(status='success').count()
+            failed_backups = recent_backups_qs.filter(status='failed').count()
+            in_progress_backups = recent_backups_qs.filter(status='in_progress').count()
+            total_recent = recent_backups_qs.count()
+            
+            # Get the latest 5 for display
+            recent_backups = recent_backups_qs[:5]
             
             if failed_backups > successful_backups:
                 status = 'unhealthy'
                 message = f'More failed ({failed_backups}) than successful ({successful_backups}) backups'
-            elif failed_backups > 0:
+            elif failed_backups > 0 or in_progress_backups > 0:
                 status = 'warning'
-                message = f'{successful_backups} successful, {failed_backups} failed backups in last 7 days'
+                message = f'{successful_backups} successful, {failed_backups} failed, {in_progress_backups} in progress'
             else:
                 status = 'healthy'
                 message = f'{successful_backups} successful backups in last 7 days'
@@ -156,10 +178,12 @@ class HealthChecker:
                 'status': status,
                 'message': message,
                 'metrics': {
-                    'total_backups': recent_backups.count(),
+                    'total_backups': total_recent,
                     'successful_backups': successful_backups,
                     'failed_backups': failed_backups,
-                    'last_backup': recent_backups.first().started_at.isoformat() if recent_backups.exists() else None
+                    'in_progress_backups': in_progress_backups,
+                    'stuck_backups': 0,
+                    'last_backup': recent_backups[0].started_at.isoformat() if recent_backups else None
                 }
             }
             
