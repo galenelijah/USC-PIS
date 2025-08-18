@@ -363,6 +363,16 @@ export const authService = {
     }
   },
 
+  getBackupList: async (limit = 10) => {
+    try {
+      const response = await api.get(`/utils/backup/list/?limit=${limit}`);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
   // Email Administration methods
   getEmailSystemStatus: async () => {
     try {

@@ -90,12 +90,19 @@ const DatabaseMonitor = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [dbResponse, backupResponse] = await Promise.all([
+            const [dbResponse, backupResponse, backupListResponse] = await Promise.all([
                 authService.getDatabaseHealth(),
-                authService.getBackupHealth()
+                authService.getBackupHealth(),
+                authService.getBackupList(15) // Get last 15 backups
             ]);
             setDbData(dbResponse);
-            setBackupData(backupResponse);
+            
+            // Merge backup health data with recent backups list
+            setBackupData({
+                ...backupResponse,
+                recent_backups: backupListResponse.backups || []
+            });
+            
             setError(null);
             setBackupError(null);
         } catch (err) {

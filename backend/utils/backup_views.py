@@ -224,6 +224,7 @@ def backup_list(request):
                 'completed_at': backup.completed_at.isoformat() if backup.completed_at else None,
                 'duration_seconds': backup.duration_seconds,
                 'file_size_mb': backup.file_size_mb,
+                'is_recent': backup.is_recent,
                 'has_file': bool(backup.metadata.get('file_path') and 
                                os.path.exists(backup.metadata.get('file_path', ''))),
                 'metadata': backup.metadata
