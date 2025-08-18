@@ -3,16 +3,16 @@ Admin views for email automation and system monitoring
 Provides web interface for managing email systems
 """
 from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.decorators import login_required
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
 from django.core.management import call_command
 from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
 from functools import wraps
 from io import StringIO
-import json
 import logging
 
 from authentication.models import User
@@ -35,8 +35,8 @@ def admin_required(view_func):
         return view_func(request, *args, **kwargs)
     return wrapper
 
-@require_http_methods(["GET"])
-@login_required
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 @admin_required
 def email_system_status(request):
     """Get current email system status and configuration"""
@@ -75,14 +75,13 @@ def email_system_status(request):
             'error': str(e)
         }, status=500)
 
-@require_http_methods(["POST"])
-@login_required
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 @admin_required
-@csrf_exempt
 def test_email_system(request):
     """Test email system by sending test emails"""
     try:
-        data = json.loads(request.body)
+        data = request.data
         test_email = data.get('email')
         test_types = data.get('types', ['feedback'])  # Default to feedback only
         dry_run = data.get('dry_run', False)
@@ -148,14 +147,13 @@ def test_email_system(request):
             'error': str(e)
         }, status=500)
 
-@require_http_methods(["POST"])
-@login_required
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 @admin_required
-@csrf_exempt
 def send_feedback_emails(request):
     """Manually trigger feedback email sending"""
     try:
-        data = json.loads(request.body)
+        data = request.data
         hours_ago = data.get('hours', 24)
         dry_run = data.get('dry_run', False)
         
@@ -212,14 +210,13 @@ def send_feedback_emails(request):
             'error': str(e)
         }, status=500)
 
-@require_http_methods(["POST"])
-@login_required
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 @admin_required
-@csrf_exempt
 def send_health_alert(request):
     """Manually trigger system health alert"""
     try:
-        data = json.loads(request.body)
+        data = request.data
         alert_level = data.get('alert_level', 'warning')
         force_alert = data.get('force_alert', False)
         dry_run = data.get('dry_run', False)
@@ -264,8 +261,8 @@ def send_health_alert(request):
             'error': str(e)
         }, status=500)
 
-@require_http_methods(["GET"])
-@login_required
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 @admin_required
 def email_automation_stats(request):
     """Get statistics about email automation"""

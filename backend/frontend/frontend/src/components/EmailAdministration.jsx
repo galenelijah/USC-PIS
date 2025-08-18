@@ -46,7 +46,7 @@ import {
   PlayArrow as PlayArrowIcon,
   Stop as StopIcon
 } from '@mui/icons-material';
-import { api } from '../services/api';
+import { authService } from '../services/api';
 
 const EmailAdministration = () => {
   const [emailStatus, setEmailStatus] = useState(null);
@@ -95,8 +95,8 @@ const EmailAdministration = () => {
     try {
       setLoading(true);
       const [statusResponse, statsResponse] = await Promise.all([
-        api.get('/utils/email/status/'),
-        api.get('/utils/email/stats/')
+        authService.getEmailSystemStatus(),
+        authService.getEmailStats()
       ]);
 
       setEmailStatus(statusResponse.data);
@@ -122,7 +122,7 @@ const EmailAdministration = () => {
 
     try {
       setActionLoading(true);
-      const response = await api.post('/utils/email/test/', testForm);
+      const response = await authService.testEmailSystem(testForm);
       setTestResults(response.data);
       
       setNotification({
@@ -142,7 +142,7 @@ const EmailAdministration = () => {
   const handleSendFeedbackEmails = async () => {
     try {
       setActionLoading(true);
-      const response = await api.post('/utils/email/feedback/send/', feedbackForm);
+      const response = await authService.sendFeedbackEmails(feedbackForm);
       setFeedbackResults(response.data);
       
       setNotification({
@@ -165,7 +165,7 @@ const EmailAdministration = () => {
   const handleSendHealthAlert = async () => {
     try {
       setActionLoading(true);
-      const response = await api.post('/utils/email/health-alert/send/', alertForm);
+      const response = await authService.sendHealthAlert(alertForm);
       setAlertResults(response.data);
       
       setNotification({

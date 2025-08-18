@@ -353,6 +353,120 @@ export const authService = {
       throw error;
     }
   },
+
+  // Email Administration methods
+  getEmailSystemStatus: async () => {
+    try {
+      const token = localStorage.getItem('Token');
+      const response = await fetch('/api/utils/email/status/', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  getEmailStats: async () => {
+    try {
+      const token = localStorage.getItem('Token');
+      const response = await fetch('/api/utils/email/stats/', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  testEmailSystem: async (testData) => {
+    try {
+      const token = localStorage.getItem('Token');
+      const response = await fetch('/api/utils/email/test/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(testData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  sendFeedbackEmails: async (feedbackData) => {
+    try {
+      const token = localStorage.getItem('Token');
+      const response = await fetch('/api/utils/email/feedback/send/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(feedbackData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  sendHealthAlert: async (alertData) => {
+    try {
+      const token = localStorage.getItem('Token');
+      const response = await fetch('/api/utils/email/health-alert/send/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(alertData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
 };
 
 export const patientService = {
