@@ -1430,6 +1430,65 @@ export const reportService = {
   // Get report analytics
   getReportAnalytics: (params = {}) => {
     return api.get('/reports/analytics/', { params });
+  },
+
+  // ================================
+  // USER MANAGEMENT (Admin only)
+  // ================================
+
+  // Get all users with pagination and filtering
+  getAllUsers: async (params = {}) => {
+    try {
+      const response = await api.get('/auth/admin/users/', { params });
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  // Get user details
+  getUserDetails: async (userId) => {
+    try {
+      const response = await api.get(`/auth/admin/users/${userId}/`);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  // Update user role
+  updateUserRole: async (userId, role) => {
+    try {
+      const response = await api.put(`/auth/admin/users/${userId}/role/`, { role });
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  // Toggle user active status
+  toggleUserStatus: async (userId) => {
+    try {
+      const response = await api.put(`/auth/admin/users/${userId}/status/`);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  // Delete user
+  deleteUser: async (userId) => {
+    try {
+      const response = await api.delete(`/auth/admin/users/${userId}/delete/`);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
   }
 };
 

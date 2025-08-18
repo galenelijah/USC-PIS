@@ -37,6 +37,7 @@ import {
   Campaign as CampaignIcon,
   Announcement as AnnouncementIcon,
   Email as EmailIcon,
+  AdminPanelSettings as UserManagementIcon,
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import { authService, campaignService } from '../services/api';
@@ -320,6 +321,15 @@ const Dashboard = memo(({ user }) => {
                 icon={<EmailIcon />}
                 to="/email-administration"
                 color="primary"
+              />
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <QuickAction
+                title="User Management"
+                description="Manage user roles and permissions"
+                icon={<UserManagementIcon />}
+                to="/user-management"
+                color="secondary"
               />
             </Grid>
           </>

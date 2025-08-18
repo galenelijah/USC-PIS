@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
+from . import user_management_views
 
 router = DefaultRouter()
 router.register(r'profile', views.ProfileViewSet, basename='profile')
@@ -21,6 +22,13 @@ urlpatterns = [
     path('password-reset/confirm/<uidb64>/<token>/', views.PasswordResetConfirmView.as_view(), name='password-reset-confirm'), # Traditional Django style path
     # Or, if we handle token/uid extraction purely in the view from POST data:
     # path('password-reset/confirm/', views.PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
+
+    # User Management URLs (Admin only)
+    path('admin/users/', user_management_views.get_all_users, name='admin-users'),
+    path('admin/users/<int:user_id>/', user_management_views.get_user_details, name='admin-user-details'),
+    path('admin/users/<int:user_id>/role/', user_management_views.update_user_role, name='admin-update-role'),
+    path('admin/users/<int:user_id>/status/', user_management_views.toggle_user_status, name='admin-toggle-status'),
+    path('admin/users/<int:user_id>/delete/', user_management_views.delete_user, name='admin-delete-user'),
 
     path('', include(router.urls)),
 ] 

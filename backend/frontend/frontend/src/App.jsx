@@ -27,6 +27,7 @@ const PasswordReset = lazy(() => import('./components/PasswordReset'));
 const ProfileSetup = lazy(() => import('./components/ProfileSetup'));
 const DatabaseMonitor = lazy(() => import('./components/DatabaseMonitor'));
 const EmailAdministration = lazy(() => import('./components/EmailAdministration'));
+const UserManagement = lazy(() => import('./components/UserManagement'));
 const HealthInfo = lazy(() => import('./components/HealthInfo/HealthInfo'));
 const HealthRecords = lazy(() => import('./components/HealthRecords'));
 const StudentHealthRecords = lazy(() => import('./components/StudentHealthRecords'));
@@ -196,6 +197,23 @@ const App = () => {
                   <Layout>
                     <Suspense fallback={<PageLoader />}>
                       <EmailAdministration />
+                    </Suspense>
+                  </Layout>
+                ) : (
+                  <Navigate to="/home" replace />
+                )}
+              </RequireAuth>
+            }
+          />
+          
+          <Route
+            path="/user-management"
+            element={
+              <RequireAuth isAuthenticated={isAuthenticated}>
+                {user?.role === 'ADMIN' ? (
+                  <Layout>
+                    <Suspense fallback={<PageLoader />}>
+                      <UserManagement />
                     </Suspense>
                   </Layout>
                 ) : (
