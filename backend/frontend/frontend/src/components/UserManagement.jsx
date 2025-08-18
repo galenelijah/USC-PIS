@@ -47,11 +47,11 @@ import {
   Refresh
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
-import { selectUser } from '../features/authentication/authSlice';
+import { selectCurrentUser } from '../features/authentication/authSlice';
 import authService from '../services/api';
 
 const UserManagement = () => {
-  const currentUser = useSelector(selectUser);
+  const currentUser = useSelector(selectCurrentUser);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
