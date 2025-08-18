@@ -2,6 +2,7 @@ from django.shortcuts import render
 from rest_framework import viewsets, status, permissions, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
+import logging
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Count, Avg, Sum
@@ -90,6 +91,23 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
     ordering_fields = ['created_at', 'start_date', 'view_count', 'engagement_count']
     ordering = ['-created_at']
     
+    def create(self, request, *args, **kwargs):
+        """Override create method with enhanced error handling"""
+        logger = logging.getLogger(__name__)
+        try:
+            logger.info(f"Campaign creation request from user: {request.user}")
+            logger.info(f"Request data keys: {list(request.data.keys())}")
+            logger.info(f"Request files keys: {list(request.FILES.keys())}")
+            
+            return super().create(request, *args, **kwargs)
+        except Exception as e:
+            logger.error(f"Campaign creation error: {str(e)}", exc_info=True)
+            logger.error(f"Request data: {request.data}")
+            return Response(
+                {'error': f'Campaign creation failed: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
     def get_serializer_class(self):
         if self.action == 'list':
             return HealthCampaignListSerializer
@@ -126,28 +144,35 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
         return queryset
     
     def perform_create(self, serializer):
-        # Save the campaign instance
-        campaign = serializer.save(created_by=self.request.user, last_modified_by=self.request.user)
-        
-        # Handle specific image field uploads (new approach)
-        if 'banner_image' in self.request.FILES:
-            campaign.banner_image = self.request.FILES['banner_image']
-        if 'thumbnail_image' in self.request.FILES:
-            campaign.thumbnail_image = self.request.FILES['thumbnail_image']
-        if 'pubmat_image' in self.request.FILES:
-            campaign.pubmat_image = self.request.FILES['pubmat_image']
-        
-        # Handle legacy generic image uploads for backward compatibility
-        images = self.request.FILES.getlist('images')
-        for image_file in images:
-            if not campaign.banner_image:
-                campaign.banner_image = image_file
-            elif not campaign.thumbnail_image:
-                campaign.thumbnail_image = image_file
-            elif not campaign.pubmat_image:
-                campaign.pubmat_image = image_file
-        
-        campaign.save()
+        try:
+            # Save the campaign instance with user info if available
+            user = self.request.user if self.request.user.is_authenticated else None
+            campaign = serializer.save(created_by=user, last_modified_by=user)
+            
+            # Handle specific image field uploads (new approach)
+            if 'banner_image' in self.request.FILES:
+                campaign.banner_image = self.request.FILES['banner_image']
+            if 'thumbnail_image' in self.request.FILES:
+                campaign.thumbnail_image = self.request.FILES['thumbnail_image']
+            if 'pubmat_image' in self.request.FILES:
+                campaign.pubmat_image = self.request.FILES['pubmat_image']
+            
+            # Handle legacy generic image uploads for backward compatibility
+            images = self.request.FILES.getlist('images')
+            for image_file in images:
+                if not campaign.banner_image:
+                    campaign.banner_image = image_file
+                elif not campaign.thumbnail_image:
+                    campaign.thumbnail_image = image_file
+                elif not campaign.pubmat_image:
+                    campaign.pubmat_image = image_file
+            
+            campaign.save()
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in perform_create: {str(e)}", exc_info=True)
+            raise
     
     def perform_update(self, serializer):
         # Save the campaign instance
