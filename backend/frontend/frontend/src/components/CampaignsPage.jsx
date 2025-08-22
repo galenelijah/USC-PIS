@@ -70,6 +70,7 @@ const CampaignsPage = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [publicPreviewOpen, setPublicPreviewOpen] = useState(false);
   const [campaignToDelete, setCampaignToDelete] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   
@@ -416,6 +417,11 @@ const CampaignsPage = () => {
     setViewDialogOpen(true);
   };
 
+  const openPublicPreview = (campaign) => {
+    setSelectedCampaign(campaign);
+    setPublicPreviewOpen(true);
+  };
+
   const handleMenuOpen = (event, campaign) => {
     setAnchorEl(event.currentTarget);
     setMenuCampaign(campaign);
@@ -749,6 +755,15 @@ const CampaignsPage = () => {
             <EditIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>Edit Campaign</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => {
+          handleMenuClose();
+          openPublicPreview(menuCampaign);
+        }}>
+          <ListItemIcon>
+            <VisibilityIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Public Preview</ListItemText>
         </MenuItem>
         <MenuItem onClick={() => openDeleteDialog(menuCampaign)} sx={{ color: 'error.main' }}>
           <ListItemIcon>
@@ -1681,6 +1696,16 @@ const CampaignsPage = () => {
                 <Box display="flex" gap={1}>
                   <Button
                     variant="outlined"
+                    startIcon={<VisibilityIcon />}
+                    onClick={() => {
+                      setViewDialogOpen(false);
+                      openPublicPreview(selectedCampaign);
+                    }}
+                  >
+                    Public Preview
+                  </Button>
+                  <Button
+                    variant="outlined"
                     startIcon={<EditIcon />}
                     onClick={() => {
                       setViewDialogOpen(false);
@@ -1704,6 +1729,268 @@ const CampaignsPage = () => {
               )}
               <Button onClick={() => setViewDialogOpen(false)}>
                 Close
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
+      {/* Public Preview Dialog */}
+      <Dialog 
+        open={publicPreviewOpen} 
+        onClose={() => setPublicPreviewOpen(false)}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{ 
+          sx: { 
+            borderRadius: 2,
+            backgroundColor: '#f8f9fa' // Light background to simulate public view
+          } 
+        }}
+      >
+        {selectedCampaign && (
+          <>
+            <DialogTitle sx={{ 
+              pb: 2, 
+              backgroundColor: 'primary.main', 
+              color: 'primary.contrastText',
+              position: 'relative'
+            }}>
+              <Box display="flex" justifyContent="space-between" alignItems="center">
+                <Box>
+                  <Typography variant="h4" fontWeight="bold">
+                    {selectedCampaign.title}
+                  </Typography>
+                  <Typography variant="subtitle1" sx={{ opacity: 0.9, mt: 0.5 }}>
+                    USC Health Campaign
+                  </Typography>
+                </Box>
+                <Chip 
+                  label={`${getCampaignTypeInfo(selectedCampaign.campaign_type).label}`}
+                  sx={{ 
+                    backgroundColor: 'rgba(255,255,255,0.2)', 
+                    color: 'primary.contrastText',
+                    fontWeight: 'bold'
+                  }}
+                />
+              </Box>
+              <IconButton 
+                onClick={() => setPublicPreviewOpen(false)}
+                sx={{ 
+                  position: 'absolute', 
+                  top: 8, 
+                  right: 8, 
+                  color: 'primary.contrastText' 
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </DialogTitle>
+            <DialogContent sx={{ p: 0, backgroundColor: '#f8f9fa' }}>
+              {/* Hero Image Section */}
+              {(selectedCampaign.banner_image_url || selectedCampaign.thumbnail_image_url) && (
+                <Box sx={{ position: 'relative' }}>
+                  <img
+                    src={selectedCampaign.banner_image_url || selectedCampaign.thumbnail_image_url}
+                    alt={selectedCampaign.title}
+                    style={{
+                      width: '100%',
+                      height: 300,
+                      objectFit: 'cover'
+                    }}
+                  />
+                  {/* Overlay gradient */}
+                  <Box 
+                    sx={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      height: 100,
+                      background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+                      display: 'flex',
+                      alignItems: 'end',
+                      p: 3
+                    }}
+                  >
+                    <Typography variant="h5" color="white" fontWeight="bold">
+                      {selectedCampaign.summary || selectedCampaign.title}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+
+              {/* Main Content */}
+              <Container maxWidth="md" sx={{ py: 4 }}>
+                <Grid container spacing={4}>
+                  {/* Campaign Summary Card */}
+                  <Grid item xs={12}>
+                    <Card elevation={2} sx={{ borderRadius: 3, overflow: 'visible' }}>
+                      <CardContent sx={{ p: 4 }}>
+                        <Box display="flex" justifyContent="space-between" alignItems="start" mb={3}>
+                          <Box>
+                            <Typography variant="h5" fontWeight="bold" gutterBottom>
+                              Campaign Details
+                            </Typography>
+                            <Typography variant="body1" color="text.secondary">
+                              {formatDate(selectedCampaign.start_date)} - {formatDate(selectedCampaign.end_date)}
+                            </Typography>
+                          </Box>
+                          <Box display="flex" gap={1}>
+                            <Chip 
+                              label={getStatusInfo(selectedCampaign.status).label}
+                              color={selectedCampaign.status === 'ACTIVE' ? 'success' : 'default'}
+                              size="small"
+                            />
+                            {selectedCampaign.priority !== 'MEDIUM' && (
+                              <Chip
+                                label={getPriorityInfo(selectedCampaign.priority).label}
+                                color={getPriorityInfo(selectedCampaign.priority).color}
+                                size="small"
+                              />
+                            )}
+                          </Box>
+                        </Box>
+
+                        {/* Description */}
+                        <Typography variant="body1" paragraph sx={{ fontSize: '1.1rem', lineHeight: 1.7 }}>
+                          {selectedCampaign.description}
+                        </Typography>
+
+                        {/* Content */}
+                        {selectedCampaign.content && (
+                          <Box mt={3}>
+                            <Typography variant="h6" fontWeight="bold" gutterBottom>
+                              More Information
+                            </Typography>
+                            <Typography variant="body1" paragraph sx={{ lineHeight: 1.7 }}>
+                              {selectedCampaign.content}
+                            </Typography>
+                          </Box>
+                        )}
+
+                        {/* Objectives */}
+                        {selectedCampaign.objectives && (
+                          <Box mt={3}>
+                            <Typography variant="h6" fontWeight="bold" gutterBottom>
+                              Goals & Objectives
+                            </Typography>
+                            <Typography variant="body1" paragraph sx={{ lineHeight: 1.7 }}>
+                              {selectedCampaign.objectives}
+                            </Typography>
+                          </Box>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Grid>
+
+                  {/* Call to Action & Contact */}
+                  {(selectedCampaign.call_to_action || selectedCampaign.contact_info || selectedCampaign.external_link) && (
+                    <Grid item xs={12}>
+                      <Card elevation={2} sx={{ borderRadius: 3, backgroundColor: 'primary.main', color: 'primary.contrastText' }}>
+                        <CardContent sx={{ p: 4 }}>
+                          {selectedCampaign.call_to_action && (
+                            <Box mb={3}>
+                              <Typography variant="h5" fontWeight="bold" gutterBottom>
+                                Take Action Now!
+                              </Typography>
+                              <Typography variant="h6" sx={{ opacity: 0.95 }}>
+                                {selectedCampaign.call_to_action}
+                              </Typography>
+                            </Box>
+                          )}
+
+                          <Grid container spacing={3}>
+                            {selectedCampaign.contact_info && (
+                              <Grid item xs={12} md={6}>
+                                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                                  Contact Information
+                                </Typography>
+                                <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                                  {selectedCampaign.contact_info}
+                                </Typography>
+                              </Grid>
+                            )}
+
+                            {selectedCampaign.external_link && (
+                              <Grid item xs={12} md={6}>
+                                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                                  Learn More
+                                </Typography>
+                                <Button
+                                  variant="outlined"
+                                  sx={{ 
+                                    borderColor: 'primary.contrastText', 
+                                    color: 'primary.contrastText',
+                                    '&:hover': {
+                                      backgroundColor: 'rgba(255,255,255,0.1)',
+                                      borderColor: 'primary.contrastText'
+                                    }
+                                  }}
+                                  href={selectedCampaign.external_link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  Visit Website
+                                </Button>
+                              </Grid>
+                            )}
+                          </Grid>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  )}
+
+                  {/* Tags */}
+                  {selectedCampaign.tags && (
+                    <Grid item xs={12}>
+                      <Box textAlign="center">
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Related Topics
+                        </Typography>
+                        <Box display="flex" gap={1} justifyContent="center" flexWrap="wrap">
+                          {selectedCampaign.tags && typeof selectedCampaign.tags === 'string' && 
+                            selectedCampaign.tags.split(',').map((tag, index) => (
+                              <Chip 
+                                key={index} 
+                                label={tag.trim()} 
+                                size="small" 
+                                variant="outlined" 
+                                sx={{ borderRadius: 2 }}
+                              />
+                            ))
+                          }
+                        </Box>
+                      </Box>
+                    </Grid>
+                  )}
+
+                  {/* Admin Preview Notice */}
+                  <Grid item xs={12}>
+                    <Alert severity="info" sx={{ borderRadius: 2 }}>
+                      <Typography variant="body2">
+                        <strong>Admin Preview:</strong> This is how the campaign will appear to the public when active. 
+                        The actual public view may vary slightly based on the platform and user device.
+                      </Typography>
+                    </Alert>
+                  </Grid>
+                </Grid>
+              </Container>
+            </DialogContent>
+            <DialogActions sx={{ p: 3, backgroundColor: '#f8f9fa' }}>
+              <Button onClick={() => setPublicPreviewOpen(false)} size="large">
+                Close Preview
+              </Button>
+              <Button 
+                variant="contained" 
+                onClick={() => {
+                  setPublicPreviewOpen(false);
+                  openEditDialog(selectedCampaign);
+                }}
+                startIcon={<EditIcon />}
+                size="large"
+              >
+                Edit Campaign
               </Button>
             </DialogActions>
           </>
