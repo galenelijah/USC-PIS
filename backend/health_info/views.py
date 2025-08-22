@@ -94,7 +94,7 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
     ordering = ['-created_at']
     
     def create(self, request, *args, **kwargs):
-        """Simplified create method without strict empty file validation"""
+        """Simplified create method with empty file handling"""
         logger = logging.getLogger(__name__)
         try:
             logger.info(f"Campaign creation request from user: {request.user}")
@@ -109,14 +109,39 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_400_BAD_REQUEST
                     )
             
-            logger.info(f"Request files: {list(request.FILES.keys())}")
+            # Remove empty files from request.FILES to prevent validation errors
+            files_to_remove = []
+            for file_key, file_obj in request.FILES.items():
+                if file_obj.size == 0:
+                    files_to_remove.append(file_key)
+                    logger.info(f"Removing empty file: {file_key}")
+            
+            for file_key in files_to_remove:
+                request.FILES.pop(file_key, None)
+            
+            logger.info(f"Request files after cleanup: {list(request.FILES.keys())}")
             return super().create(request, *args, **kwargs)
         except Exception as e:
-            logger.error(f"Campaign creation error: {str(e)}", exc_info=True)
-            return Response(
-                {'error': f'Campaign creation failed: {str(e)}'}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            # Check if the error is related to empty files and handle gracefully
+            error_str = str(e).lower()
+            if 'empty file' in error_str:
+                logger.warning(f"Empty file error caught and handled: {str(e)}")
+                # Try again without the problematic files
+                request.FILES.clear()
+                try:
+                    return super().create(request, *args, **kwargs)
+                except Exception as retry_e:
+                    logger.error(f"Retry failed: {str(retry_e)}", exc_info=True)
+                    return Response(
+                        {'error': f'Campaign creation failed: {str(retry_e)}'}, 
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+            else:
+                logger.error(f"Campaign creation error: {str(e)}", exc_info=True)
+                return Response(
+                    {'error': f'Campaign creation failed: {str(e)}'}, 
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
     
     def get_serializer_class(self):
         if self.action == 'list':
