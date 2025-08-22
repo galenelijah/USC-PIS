@@ -16,8 +16,13 @@ def campaign_image_upload_path(instance, filename):
     # Clean filename
     name, ext = os.path.splitext(filename)
     safe_name = "".join(c for c in name if c.isalnum() or c in '-_').rstrip()
+    # Handle empty filename case
+    if not safe_name:
+        safe_name = "thumbnail"
     safe_filename = f"{safe_name}{ext}"
-    return f'campaigns/{instance.campaign_type}/thumbnails/{safe_filename}'
+    # Use getattr with default to handle cases where campaign_type isn't set yet
+    campaign_type = getattr(instance, 'campaign_type', 'GENERAL') or 'GENERAL'
+    return f'campaigns/{campaign_type}/thumbnails/{safe_filename}'
 
 def banner_upload_path(instance, filename):
     """Generate upload path for banner images"""
@@ -25,8 +30,13 @@ def banner_upload_path(instance, filename):
     # Clean filename
     name, ext = os.path.splitext(filename)
     safe_name = "".join(c for c in name if c.isalnum() or c in '-_').rstrip()
+    # Handle empty filename case
+    if not safe_name:
+        safe_name = "banner"
     safe_filename = f"{safe_name}{ext}"
-    return f'campaigns/banners/{safe_filename}'
+    # Use getattr with default to handle cases where campaign_type isn't set yet
+    campaign_type = getattr(instance, 'campaign_type', 'GENERAL') or 'GENERAL'
+    return f'campaigns/{campaign_type}/banners/{safe_filename}'
 
 def pubmat_upload_path(instance, filename):
     """Generate upload path for PubMat images"""
@@ -34,8 +44,13 @@ def pubmat_upload_path(instance, filename):
     # Clean filename
     name, ext = os.path.splitext(filename)
     safe_name = "".join(c for c in name if c.isalnum() or c in '-_').rstrip()
+    # Handle empty filename case
+    if not safe_name:
+        safe_name = "pubmat"
     safe_filename = f"{safe_name}{ext}"
-    return f'campaigns/pubmats/{safe_filename}'
+    # Use getattr with default to handle cases where campaign_type isn't set yet
+    campaign_type = getattr(instance, 'campaign_type', 'GENERAL') or 'GENERAL'
+    return f'campaigns/{campaign_type}/pubmats/{safe_filename}'
 
 def health_info_image_upload_path(instance, filename):
     """Generate upload path for health info images"""
