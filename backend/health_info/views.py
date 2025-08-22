@@ -94,10 +94,6 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
     ordering_fields = ['created_at', 'start_date', 'view_count', 'engagement_count']
     ordering = ['-created_at']
     
-    def perform_create(self, serializer):
-        # Save the campaign instance with user info (same as health info)
-        user = self.request.user if self.request.user.is_authenticated else None
-        campaign = serializer.save(created_by=user, last_modified_by=user)
     
     def get_serializer_class(self):
         if self.action == 'list':
@@ -139,42 +135,37 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
         try:
             # Save the campaign instance with user info if available
             user = self.request.user if self.request.user.is_authenticated else None
-            campaign = serializer.save(created_by=user, last_modified_by=user)
             
-            # Handle specific image field uploads (like health_info does - simpler approach)
+            # Process files before creating the campaign to avoid Cloudinary empty file errors
+            file_data = {}
+            
+            # Handle specific image field uploads
             if 'banner_image' in self.request.FILES:
                 file_obj = self.request.FILES['banner_image']
-                if file_obj.size > 0:  # Only process non-empty files
-                    campaign.banner_image = file_obj
-                    logger.info(f"Set banner_image: {file_obj.name} ({file_obj.size} bytes)")
+                if file_obj and file_obj.size > 0:
+                    # Reset file pointer to beginning
+                    file_obj.seek(0)
+                    file_data['banner_image'] = file_obj
+                    logger.info(f"Prepared banner_image: {file_obj.name} ({file_obj.size} bytes)")
             
             if 'thumbnail_image' in self.request.FILES:
                 file_obj = self.request.FILES['thumbnail_image']
-                if file_obj.size > 0:  # Only process non-empty files
-                    campaign.thumbnail_image = file_obj
-                    logger.info(f"Set thumbnail_image: {file_obj.name} ({file_obj.size} bytes)")
+                if file_obj and file_obj.size > 0:
+                    # Reset file pointer to beginning
+                    file_obj.seek(0)
+                    file_data['thumbnail_image'] = file_obj
+                    logger.info(f"Prepared thumbnail_image: {file_obj.name} ({file_obj.size} bytes)")
             
             if 'pubmat_image' in self.request.FILES:
                 file_obj = self.request.FILES['pubmat_image']
-                if file_obj.size > 0:  # Only process non-empty files
-                    campaign.pubmat_image = file_obj
-                    logger.info(f"Set pubmat_image: {file_obj.name} ({file_obj.size} bytes)")
+                if file_obj and file_obj.size > 0:
+                    # Reset file pointer to beginning
+                    file_obj.seek(0)
+                    file_data['pubmat_image'] = file_obj
+                    logger.info(f"Prepared pubmat_image: {file_obj.name} ({file_obj.size} bytes)")
             
-            # Handle legacy generic image uploads for backward compatibility
-            images = self.request.FILES.getlist('images')
-            for image_file in images:
-                if image_file.size > 0:  # Only process non-empty files
-                    if not campaign.banner_image:
-                        campaign.banner_image = image_file
-                        logger.info(f"Set banner_image from legacy images: {image_file.name}")
-                    elif not campaign.thumbnail_image:
-                        campaign.thumbnail_image = image_file
-                        logger.info(f"Set thumbnail_image from legacy images: {image_file.name}")
-                    elif not campaign.pubmat_image:
-                        campaign.pubmat_image = image_file
-                        logger.info(f"Set pubmat_image from legacy images: {image_file.name}")
-            
-            campaign.save()
+            # Save campaign with file data included in serializer
+            campaign = serializer.save(created_by=user, last_modified_by=user, **file_data)
             logger.info(f"Campaign created successfully: {campaign.title} (ID: {campaign.id})")
             
         except Exception as e:
