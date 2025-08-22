@@ -1286,8 +1286,23 @@ export const campaignService = {
   // Create campaign
   createCampaign: (data) => {
     console.log('API createCampaign called with FormData');
-    // Don't set Content-Type explicitly - let browser set it with boundary
-    return api.post('/health-info/campaigns/', data);
+    console.log('FormData entries:');
+    if (data instanceof FormData) {
+      for (let [key, value] of data.entries()) {
+        if (value instanceof File) {
+          console.log(`  ${key}: File(${value.name}, ${value.size} bytes)`);
+        } else {
+          console.log(`  ${key}: ${value}`);
+        }
+      }
+    }
+    
+    // Use proper multipart configuration
+    return api.post('/health-info/campaigns/', data, {
+      headers: {
+        'Content-Type': undefined  // This forces axios to set the correct multipart boundary
+      }
+    });
   },
 
   // Update campaign

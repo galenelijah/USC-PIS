@@ -86,7 +86,7 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
     queryset = HealthCampaign.objects.all()
     permission_classes = [IsStaffOrReadOnly]
     pagination_class = CampaignPagination
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    parser_classes = [MultiPartParser, FormParser]  # Remove JSONParser to force multipart parsing
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['campaign_type', 'status', 'priority']
     search_fields = ['title', 'description', 'content', 'tags']
@@ -98,6 +98,10 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
         logger = logging.getLogger(__name__)
         try:
             logger.info(f"Campaign creation request from user: {request.user}")
+            logger.info(f"Request content type: {request.content_type}")
+            logger.info(f"Request META HTTP_CONTENT_TYPE: {request.META.get('HTTP_CONTENT_TYPE', 'Not set')}")
+            logger.info(f"Request data keys: {list(request.data.keys()) if hasattr(request, 'data') else 'No data attr'}")
+            logger.info(f"Request FILES keys: {list(request.FILES.keys()) if hasattr(request, 'FILES') else 'No FILES attr'}")
             
             # Validate required fields only
             required_fields = ['title', 'description', 'campaign_type', 'start_date', 'end_date']
