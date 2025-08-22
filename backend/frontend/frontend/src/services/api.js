@@ -1283,13 +1283,9 @@ export const campaignService = {
     return api.get(`/health-info/campaigns/${id}/`);
   },
 
-  // Create campaign (let axios set multipart boundary automatically)
+  // Create campaign (completely let axios handle multipart)
   createCampaign: (data) => {
-    return api.post('/health-info/campaigns/', data, {
-      headers: {
-        'Content-Type': undefined  // Let axios set multipart/form-data with boundary
-      }
-    });
+    return api.post('/health-info/campaigns/', data);
   },
 
   // Update campaign (same as health info approach)
