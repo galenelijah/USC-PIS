@@ -1283,7 +1283,7 @@ export const campaignService = {
     return api.get(`/health-info/campaigns/${id}/`);
   },
 
-  // Create campaign (same as health info approach)
+  // Create campaign (let axios handle multipart automatically)
   createCampaign: (data) => {
     return api.post('/health-info/campaigns/', data);
   },

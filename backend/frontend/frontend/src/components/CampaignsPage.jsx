@@ -312,11 +312,16 @@ const CampaignsPage = () => {
       console.log('FormData contents:');
       for (let [key, value] of formData.entries()) {
         if (value instanceof File) {
-          console.log(key, ':', value.name, value.size, 'bytes');
+          console.log(key, ':', value.name, value.size, 'bytes', 'type:', value.type);
         } else {
           console.log(key, ':', value);
         }
       }
+      
+      // Verify files are still valid File objects
+      console.log('bannerFile instanceof File:', bannerFile instanceof File);
+      console.log('thumbnailFile instanceof File:', thumbnailFile instanceof File);
+      console.log('pubmatFile instanceof File:', pubmatFile instanceof File);
 
       await campaignService.createCampaign(formData);
       showSnackbar('Campaign created successfully!', 'success');
