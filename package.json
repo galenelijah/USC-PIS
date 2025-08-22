@@ -13,6 +13,5 @@
     "heroku-postbuild": "npm run build"
   },
   "dependencies": {
-    "@modelcontextprotocol/server-sequential-thinking": "^2025.7.1"
   }
 }

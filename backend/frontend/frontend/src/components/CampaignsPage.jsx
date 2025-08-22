@@ -61,7 +61,7 @@ import { useSelector } from 'react-redux';
 import { campaignService } from '../services/api';
 
 const CampaignsPage = () => {
-  // State management
+  // State management - Initialize with empty arrays
   const [campaigns, setCampaigns] = useState([]);
   const [filteredCampaigns, setFilteredCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -150,9 +150,34 @@ const CampaignsPage = () => {
     try {
       setLoading(true);
       const response = await campaignService.getCampaigns();
-      setCampaigns(response.data || []);
+      
+      console.log('API Response:', response);
+      console.log('Response data:', response?.data);
+      
+      // Ensure we always have an array to work with
+      let campaignsData = [];
+      
+      if (response?.data) {
+        // Handle paginated response
+        if (response.data.results && Array.isArray(response.data.results)) {
+          campaignsData = response.data.results;
+        }
+        // Handle direct array response
+        else if (Array.isArray(response.data)) {
+          campaignsData = response.data;
+        }
+        // Handle other structures
+        else {
+          console.warn('Unexpected response structure:', response.data);
+          campaignsData = [];
+        }
+      }
+      
+      console.log('Setting campaigns:', campaignsData);
+      setCampaigns(campaignsData);
     } catch (error) {
       console.error('Error fetching campaigns:', error);
+      setCampaigns([]); // Ensure we set an empty array on error
       showSnackbar('Failed to load campaigns', 'error');
     } finally {
       setLoading(false);
@@ -160,25 +185,32 @@ const CampaignsPage = () => {
   };
 
   const filterCampaigns = () => {
+    // Ensure campaigns is always an array before filtering
+    if (!Array.isArray(campaigns)) {
+      console.warn('Campaigns is not an array in filterCampaigns:', campaigns);
+      setFilteredCampaigns([]);
+      return;
+    }
+
     let filtered = [...campaigns];
 
     // Search filter
     if (searchTerm) {
       filtered = filtered.filter(campaign =>
-        campaign.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        campaign.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        campaign.summary?.toLowerCase().includes(searchTerm.toLowerCase())
+        campaign?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        campaign?.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        campaign?.summary?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // Type filter
     if (filterType !== 'ALL') {
-      filtered = filtered.filter(campaign => campaign.campaign_type === filterType);
+      filtered = filtered.filter(campaign => campaign?.campaign_type === filterType);
     }
 
     // Status filter
     if (filterStatus !== 'ALL') {
-      filtered = filtered.filter(campaign => campaign.status === filterStatus);
+      filtered = filtered.filter(campaign => campaign?.status === filterStatus);
     }
 
     setFilteredCampaigns(filtered);
@@ -362,15 +394,30 @@ const CampaignsPage = () => {
   };
 
   const getCampaignTypeInfo = (type) => {
-    return CAMPAIGN_TYPES.find(t => t.value === type) || CAMPAIGN_TYPES[0];
+    try {
+      return CAMPAIGN_TYPES.find(t => t.value === type) || CAMPAIGN_TYPES[0];
+    } catch (error) {
+      console.error('Error in getCampaignTypeInfo:', error);
+      return { value: 'GENERAL', label: 'General Health Information', color: 'primary' };
+    }
   };
 
   const getPriorityInfo = (priority) => {
-    return PRIORITY_LEVELS.find(p => p.value === priority) || PRIORITY_LEVELS[1];
+    try {
+      return PRIORITY_LEVELS.find(p => p.value === priority) || PRIORITY_LEVELS[1];
+    } catch (error) {
+      console.error('Error in getPriorityInfo:', error);
+      return { value: 'MEDIUM', label: 'Medium', color: 'primary' };
+    }
   };
 
   const getStatusInfo = (status) => {
-    return STATUS_OPTIONS.find(s => s.value === status) || STATUS_OPTIONS[0];
+    try {
+      return STATUS_OPTIONS.find(s => s.value === status) || STATUS_OPTIONS[0];
+    } catch (error) {
+      console.error('Error in getStatusInfo:', error);
+      return { value: 'DRAFT', label: 'Draft', color: 'default' };
+    }
   };
 
   const formatDate = (dateString) => {
@@ -508,10 +555,23 @@ const CampaignsPage = () => {
         </Paper>
       ) : (
         <Grid container spacing={3}>
-          {filteredCampaigns.map((campaign) => {
-            const typeInfo = getCampaignTypeInfo(campaign.campaign_type);
-            const statusInfo = getStatusInfo(campaign.status);
-            const priorityInfo = getPriorityInfo(campaign.priority);
+          {(() => {
+            try {
+              if (!Array.isArray(filteredCampaigns)) {
+                console.warn('filteredCampaigns is not an array:', filteredCampaigns);
+                return null;
+              }
+              
+              return filteredCampaigns.map((campaign) => {
+            // Safety check for campaign object
+            if (!campaign || typeof campaign !== 'object' || !campaign.id) {
+              console.warn('Invalid campaign object:', campaign);
+              return null;
+            }
+
+            const typeInfo = getCampaignTypeInfo(campaign.campaign_type || 'GENERAL');
+            const statusInfo = getStatusInfo(campaign.status || 'DRAFT');
+            const priorityInfo = getPriorityInfo(campaign.priority || 'MEDIUM');
             
             return (
               <Grid item xs={12} sm={6} md={4} key={campaign.id}>
@@ -628,7 +688,18 @@ const CampaignsPage = () => {
                 </Card>
               </Grid>
             );
-          })}
+              });
+            } catch (error) {
+              console.error('Error rendering campaigns:', error);
+              return (
+                <Grid item xs={12}>
+                  <Alert severity="error">
+                    Error loading campaigns. Please refresh the page.
+                  </Alert>
+                </Grid>
+              );
+            }
+          })()}
         </Grid>
       )}
 
@@ -1400,9 +1471,11 @@ const CampaignsPage = () => {
                       Tags
                     </Typography>
                     <Box display="flex" gap={1} flexWrap="wrap">
-                      {selectedCampaign.tags.split(',').map((tag, index) => (
-                        <Chip key={index} label={tag.trim()} size="small" variant="outlined" />
-                      ))}
+                      {selectedCampaign.tags && typeof selectedCampaign.tags === 'string' && 
+                        selectedCampaign.tags.split(',').map((tag, index) => (
+                          <Chip key={index} label={tag.trim()} size="small" variant="outlined" />
+                        ))
+                      }
                     </Box>
                   </Grid>
                 )}
