@@ -762,14 +762,6 @@ const Dashboard = memo(({ user }) => {
         />
       </Grid>
 
-      <Grid item xs={12}>
-        <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold' }}>
-          Quick Actions
-        </Typography>
-      </Grid>
-
-      {renderRoleBasedActions()}
-
       <Grid item xs={12} md={8}>
         <Paper sx={{ 
           p: 4, 
@@ -1323,6 +1315,14 @@ const Dashboard = memo(({ user }) => {
           </Box>
         </Paper>
       </Grid>
+
+      <Grid item xs={12}>
+        <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold' }}>
+          Quick Actions
+        </Typography>
+      </Grid>
+
+      {renderRoleBasedActions()}
 
       <Grid item xs={12}>
         <Paper sx={{ p: 3, borderRadius: 3 }}>
