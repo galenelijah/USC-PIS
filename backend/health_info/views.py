@@ -87,6 +87,7 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
     queryset = HealthCampaign.objects.all()
     permission_classes = [IsStaffOrReadOnly]
     pagination_class = CampaignPagination
+    parser_classes = [MultiPartParser, FormParser, JSONParser]  # Add back JSONParser like health info
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['campaign_type', 'status', 'priority']
     search_fields = ['title', 'description', 'content', 'tags']
