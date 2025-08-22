@@ -1283,8 +1283,16 @@ export const campaignService = {
     return api.get(`/health-info/campaigns/${id}/`);
   },
 
-  // Create campaign (completely let axios handle multipart)
+  // Create campaign (force multipart override)
   createCampaign: (data) => {
+    if (data instanceof FormData) {
+      // Delete Content-Type to let axios set the boundary
+      return api.post('/health-info/campaigns/', data, {
+        headers: {
+          'Content-Type': undefined
+        }
+      });
+    }
     return api.post('/health-info/campaigns/', data);
   },
 

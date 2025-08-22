@@ -294,17 +294,17 @@ const CampaignsPage = () => {
       console.log('thumbnailFile:', thumbnailFile ? { name: thumbnailFile.name, size: thumbnailFile.size, type: thumbnailFile.type } : null);
       console.log('pubmatFile:', pubmatFile ? { name: pubmatFile.name, size: pubmatFile.size, type: pubmatFile.type } : null);
 
-      // Add files with size validation
+      // Test: Add files with generic names like health-info does
       if (bannerFile && bannerFile.size > 0) {
-        formData.append('banner_image', bannerFile);
+        formData.append('banner_image', bannerFile, bannerFile.name);  // Explicitly set filename
         console.log('Added banner_image to FormData:', bannerFile.name, bannerFile.size);
       }
       if (thumbnailFile && thumbnailFile.size > 0) {
-        formData.append('thumbnail_image', thumbnailFile);
+        formData.append('thumbnail_image', thumbnailFile, thumbnailFile.name);  // Explicitly set filename
         console.log('Added thumbnail_image to FormData:', thumbnailFile.name, thumbnailFile.size);
       }
       if (pubmatFile && pubmatFile.size > 0) {
-        formData.append('pubmat_image', pubmatFile);
+        formData.append('pubmat_image', pubmatFile, pubmatFile.name);  // Explicitly set filename
         console.log('Added pubmat_image to FormData:', pubmatFile.name, pubmatFile.size);
       }
 
