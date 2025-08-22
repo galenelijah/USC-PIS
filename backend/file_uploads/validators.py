@@ -121,8 +121,12 @@ class FileSecurityValidator:
         if not uploaded_file.name:
             errors.append("File must have a name")
         
+        # Make empty file validation less strict - only error for files that are explicitly required
+        # Allow empty files to be gracefully handled by the application logic
         if uploaded_file.size == 0:
-            errors.append("File cannot be empty")
+            # Don't treat empty files as errors - let the application decide
+            # This allows optional file fields to work properly
+            pass
         
         # Check for null bytes in filename (potential security issue)
         if '\x00' in uploaded_file.name:
