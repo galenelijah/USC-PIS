@@ -109,12 +109,26 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_400_BAD_REQUEST
                     )
             
-            # Remove empty files from request.FILES to prevent validation errors
+            # Debug and clean up uploaded files
             files_to_remove = []
             for file_key, file_obj in request.FILES.items():
+                logger.info(f"File {file_key}: name='{file_obj.name}', size={file_obj.size}, content_type='{getattr(file_obj, 'content_type', 'unknown')}'")
+                
                 if file_obj.size == 0:
                     files_to_remove.append(file_key)
                     logger.info(f"Removing empty file: {file_key}")
+                else:
+                    # Additional validation for image files
+                    try:
+                        from PIL import Image
+                        file_obj.seek(0)
+                        img = Image.open(file_obj)
+                        img.verify()  # Check if it's a valid image
+                        file_obj.seek(0)  # Reset file pointer
+                        logger.info(f"Valid image {file_key}: format={img.format}, size={img.size}")
+                    except Exception as img_error:
+                        logger.warning(f"Image validation failed for {file_key}: {str(img_error)}")
+                        # Don't remove the file, let Django handle the error with proper message
             
             for file_key in files_to_remove:
                 request.FILES.pop(file_key, None)
@@ -122,22 +136,22 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
             logger.info(f"Request files after cleanup: {list(request.FILES.keys())}")
             return super().create(request, *args, **kwargs)
         except Exception as e:
-            # Check if the error is related to empty files and handle gracefully
+            logger.error(f"Campaign creation error: {str(e)}", exc_info=True)
+            
+            # Check if it's an image validation error and provide helpful message
             error_str = str(e).lower()
-            if 'empty file' in error_str:
-                logger.warning(f"Empty file error caught and handled: {str(e)}")
-                # Try again without the problematic files
-                request.FILES.clear()
-                try:
-                    return super().create(request, *args, **kwargs)
-                except Exception as retry_e:
-                    logger.error(f"Retry failed: {str(retry_e)}", exc_info=True)
-                    return Response(
-                        {'error': f'Campaign creation failed: {str(retry_e)}'}, 
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                    )
+            if 'invalid_image' in error_str or 'not an image' in error_str:
+                return Response({
+                    'error': 'Invalid image file(s) uploaded. Please ensure you upload valid image files.',
+                    'details': 'Supported formats: JPG, JPEG, PNG, GIF. Make sure files are not corrupted and are actual image files.',
+                    'technical_error': str(e)
+                }, status=status.HTTP_400_BAD_REQUEST)
+            elif 'empty file' in error_str:
+                return Response({
+                    'error': 'Empty file(s) detected. Please select valid image files to upload.',
+                    'technical_error': str(e)
+                }, status=status.HTTP_400_BAD_REQUEST)
             else:
-                logger.error(f"Campaign creation error: {str(e)}", exc_info=True)
                 return Response(
                     {'error': f'Campaign creation failed: {str(e)}'}, 
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR

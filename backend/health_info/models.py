@@ -242,7 +242,7 @@ class HealthCampaign(models.Model):
     summary = models.CharField(max_length=500, blank=True, help_text="Brief campaign summary")
     
     # Visual Content
-    banner_image = models.ImageField(
+    banner_image = models.FileField(
         upload_to=banner_upload_path,
         validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'gif'])],
         null=True, blank=True,
@@ -254,7 +254,7 @@ class HealthCampaign(models.Model):
         null=True, blank=True,
         help_text="PubMat (Public Material) for printing and distribution"
     )
-    thumbnail_image = models.ImageField(
+    thumbnail_image = models.FileField(
         upload_to=campaign_image_upload_path,
         validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png'])],
         null=True, blank=True,
