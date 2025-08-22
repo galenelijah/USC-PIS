@@ -622,6 +622,18 @@ export const healthInfoService = {
       handleApiError(error);
     }
   },
+  getRecent: async (limit = 5) => {
+    try {
+      return await api.get('/health-info/health-information/', { 
+        params: { 
+          ordering: '-created_at',
+          limit: limit
+        } 
+      });
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
   create: async (data) => {
     try {
       const headers = data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {};

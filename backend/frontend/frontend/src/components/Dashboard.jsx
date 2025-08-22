@@ -38,9 +38,12 @@ import {
   Announcement as AnnouncementIcon,
   Email as EmailIcon,
   AdminPanelSettings as UserManagementIcon,
+  Info as InfoIcon,
+  Article as ArticleIcon,
+  LocalLibrary as LibraryIcon,
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
-import { authService, campaignService } from '../services/api';
+import { authService, campaignService, healthInfoService } from '../services/api';
 import { useDispatch } from 'react-redux';
 import { logout } from '../features/authentication/authSlice';
 import LoadingState from './utils/LoadingState';
@@ -60,6 +63,7 @@ const Dashboard = memo(({ user }) => {
     recentHealthInfo: null,
     profileCompletion: null,
     featuredCampaigns: [],
+    recentHealthInfoPosts: [],
     announcements: [],
   });
   const [loading, setLoading] = useState(true);
@@ -77,9 +81,10 @@ const Dashboard = memo(({ user }) => {
       setError(null);
       
       console.log('Fetching dashboard data for user role:', user?.role);
-      const [dashboardResponse, campaignsResponse] = await Promise.all([
+      const [dashboardResponse, campaignsResponse, healthInfoResponse] = await Promise.all([
         authService.getDashboardStats(),
-        campaignService.getFeaturedCampaigns().catch(() => ({ data: [] }))
+        campaignService.getFeaturedCampaigns().catch(() => ({ data: [] })),
+        healthInfoService.getRecent(3).catch(() => ({ data: [] }))
       ]);
       
       if (!dashboardResponse || !dashboardResponse.data) {
@@ -88,6 +93,7 @@ const Dashboard = memo(({ user }) => {
 
       console.log('Dashboard data received:', dashboardResponse.data);
       console.log('Campaigns data received:', campaignsResponse.data);
+      console.log('Health info data received:', healthInfoResponse.data);
       
       // Safely handle the response data with fallbacks for all properties
       setStats({
@@ -101,6 +107,7 @@ const Dashboard = memo(({ user }) => {
         recentHealthInfo: dashboardResponse.data.recent_health_info || null,
         profileCompletion: dashboardResponse.data.profile_completion || 0,
         featuredCampaigns: Array.isArray(campaignsResponse.data) ? campaignsResponse.data.slice(0, 3) : [],
+        recentHealthInfoPosts: Array.isArray(healthInfoResponse.data) ? healthInfoResponse.data.slice(0, 3) : [],
         announcements: Array.isArray(dashboardResponse.data.announcements) ? dashboardResponse.data.announcements : [],
       });
     } catch (error) {
@@ -465,7 +472,7 @@ const Dashboard = memo(({ user }) => {
         <Paper sx={{ p: 3, height: '100%', borderRadius: 3 }}>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
             <Typography variant="h6" fontWeight="bold">
-              Latest Campaigns
+              Latest Content
             </Typography>
             <Button
               component={Link}
@@ -479,11 +486,15 @@ const Dashboard = memo(({ user }) => {
           <Divider sx={{ mb: 2 }} />
           
           {/* Featured Campaigns */}
-          {stats.featuredCampaigns.length > 0 ? (
-            <Box>
-              {stats.featuredCampaigns.slice(0, 3).map((campaign, index) => (
+          {stats.featuredCampaigns.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle2" color="primary" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+                <CampaignIcon sx={{ mr: 1, fontSize: 16 }} />
+                Campaigns
+              </Typography>
+              {stats.featuredCampaigns.slice(0, 2).map((campaign, index) => (
                 <Box key={campaign.id || index} sx={{ 
-                  mb: 3, 
+                  mb: 2, 
                   p: 2, 
                   borderRadius: 2, 
                   bgcolor: 'rgba(25, 118, 210, 0.04)',
@@ -498,14 +509,14 @@ const Dashboard = memo(({ user }) => {
                   <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1.5 }}>
                     <Avatar 
                       sx={{ 
-                        width: 40, 
-                        height: 40, 
+                        width: 36, 
+                        height: 36, 
                         bgcolor: 'primary.main', 
                         mr: 1.5,
                         fontSize: '0.875rem'
                       }}
                     >
-                      <CampaignIcon sx={{ fontSize: 20 }} />
+                      <CampaignIcon sx={{ fontSize: 18 }} />
                     </Avatar>
                     <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                       <Typography 
@@ -527,7 +538,7 @@ const Dashboard = memo(({ user }) => {
                         label={campaign.campaign_type?.replace('_', ' ') || 'General'}
                         sx={{ 
                           fontSize: '0.7rem', 
-                          height: 20,
+                          height: 18,
                           bgcolor: 'primary.main',
                           color: 'white',
                           fontWeight: 'bold'
@@ -547,17 +558,104 @@ const Dashboard = memo(({ user }) => {
                       overflow: 'hidden'
                     }}
                   >
-                    {campaign.summary || campaign.description?.substring(0, 80)}
-                    {(campaign.summary || campaign.description)?.length > 80 ? '...' : ''}
+                    {campaign.summary || campaign.description?.substring(0, 70)}
+                    {(campaign.summary || campaign.description)?.length > 70 ? '...' : ''}
                   </Typography>
                 </Box>
               ))}
             </Box>
-          ) : (
+          )}
+
+          {/* Health Info Posts */}
+          {stats.recentHealthInfoPosts.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle2" color="success.main" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+                <ArticleIcon sx={{ mr: 1, fontSize: 16 }} />
+                Health Info
+              </Typography>
+              {stats.recentHealthInfoPosts.slice(0, 2).map((post, index) => (
+                <Box key={post.id || index} sx={{ 
+                  mb: 2, 
+                  p: 2, 
+                  borderRadius: 2, 
+                  bgcolor: 'rgba(76, 175, 80, 0.04)',
+                  border: '1px solid rgba(76, 175, 80, 0.12)',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    bgcolor: 'rgba(76, 175, 80, 0.08)',
+                    transform: 'translateY(-1px)',
+                    boxShadow: 1
+                  }
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1.5 }}>
+                    <Avatar 
+                      sx={{ 
+                        width: 36, 
+                        height: 36, 
+                        bgcolor: 'success.main', 
+                        mr: 1.5,
+                        fontSize: '0.875rem'
+                      }}
+                    >
+                      <ArticleIcon sx={{ fontSize: 18 }} />
+                    </Avatar>
+                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                      <Typography 
+                        variant="body2" 
+                        fontWeight="bold" 
+                        sx={{ 
+                          lineHeight: 1.3,
+                          mb: 0.5,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden'
+                        }}
+                      >
+                        {post.title}
+                      </Typography>
+                      <Chip
+                        size="small"
+                        label={post.category || 'Health Info'}
+                        sx={{ 
+                          fontSize: '0.7rem', 
+                          height: 18,
+                          bgcolor: 'success.main',
+                          color: 'white',
+                          fontWeight: 'bold'
+                        }}
+                      />
+                    </Box>
+                  </Box>
+                  <Typography 
+                    variant="caption" 
+                    color="text.secondary" 
+                    sx={{ 
+                      display: 'block',
+                      lineHeight: 1.3,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    {post.content?.substring(0, 70)}
+                    {post.content?.length > 70 ? '...' : ''}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          )}
+
+          {/* Empty State */}
+          {stats.featuredCampaigns.length === 0 && stats.recentHealthInfoPosts.length === 0 && (
             <Box textAlign="center" py={3}>
-              <CampaignIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
-              <Typography color="text.secondary" variant="body2">
-                No active campaigns
+              <Box sx={{ mb: 2 }}>
+                <CampaignIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1, mr: 1 }} />
+                <ArticleIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
+              </Box>
+              <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>
+                No campaigns or health info available
               </Typography>
               <Button
                 variant="outlined"
@@ -566,7 +664,7 @@ const Dashboard = memo(({ user }) => {
                 to="/campaigns"
                 sx={{ mt: 1 }}
               >
-                Create Campaign
+                Create Content
               </Button>
             </Box>
           )}
@@ -734,7 +832,7 @@ const Dashboard = memo(({ user }) => {
                 <CampaignIcon sx={{ mr: 1, fontSize: 18 }} />
                 Featured Campaigns
               </Typography>
-              {stats.featuredCampaigns.slice(0, 2).map((campaign, index) => (
+              {stats.featuredCampaigns.slice(0, 1).map((campaign, index) => (
                 <Box key={campaign.id || index} sx={{ 
                   mb: 2, 
                   p: 2, 
@@ -769,7 +867,7 @@ const Dashboard = memo(({ user }) => {
                         sx={{ 
                           fontSize: '0.7rem', 
                           height: 20,
-                          bgcolor: 'success.main',
+                          bgcolor: 'primary.main',
                           color: 'white',
                           fontWeight: 'bold'
                         }}
@@ -786,6 +884,71 @@ const Dashboard = memo(({ user }) => {
                   }}>
                     {campaign.summary || campaign.description?.substring(0, 70)}
                     {(campaign.summary || campaign.description)?.length > 70 ? '...' : ''}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          )}
+
+          {/* Health Info Posts */}
+          {stats.recentHealthInfoPosts.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle2" color="success.main" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+                <ArticleIcon sx={{ mr: 1, fontSize: 18 }} />
+                Health Information
+              </Typography>
+              {stats.recentHealthInfoPosts.slice(0, 1).map((post, index) => (
+                <Box key={post.id || index} sx={{ 
+                  mb: 2, 
+                  p: 2, 
+                  borderRadius: 2, 
+                  bgcolor: 'rgba(255, 255, 255, 0.9)',
+                  border: '1px solid rgba(76, 175, 80, 0.2)',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    bgcolor: 'rgba(255, 255, 255, 1)',
+                    transform: 'translateY(-1px)',
+                    boxShadow: 2
+                  }
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}>
+                    <Avatar sx={{ width: 36, height: 36, bgcolor: 'success.main', mr: 1.5 }}>
+                      <ArticleIcon sx={{ fontSize: 20 }} />
+                    </Avatar>
+                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                      <Typography variant="body2" fontWeight="bold" sx={{ 
+                        lineHeight: 1.3, 
+                        mb: 0.5,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
+                      }}>
+                        {post.title}
+                      </Typography>
+                      <Chip
+                        size="small"
+                        label={post.category || 'Health Info'}
+                        sx={{ 
+                          fontSize: '0.7rem', 
+                          height: 20,
+                          bgcolor: 'success.main',
+                          color: 'white',
+                          fontWeight: 'bold'
+                        }}
+                      />
+                    </Box>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ 
+                    display: 'block',
+                    lineHeight: 1.3,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden'
+                  }}>
+                    {post.content?.substring(0, 70)}
+                    {post.content?.length > 70 ? '...' : ''}
                   </Typography>
                 </Box>
               ))}
@@ -850,14 +1013,15 @@ const Dashboard = memo(({ user }) => {
           )}
 
           {/* Empty State */}
-          {stats.featuredCampaigns.length === 0 && stats.announcements.length === 0 && (
+          {stats.featuredCampaigns.length === 0 && stats.recentHealthInfoPosts.length === 0 && stats.announcements.length === 0 && (
             <Box textAlign="center" py={4}>
               <Box sx={{ mb: 2 }}>
-                <CampaignIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
-                <AnnouncementIcon sx={{ fontSize: 48, color: 'text.disabled', ml: 1 }} />
+                <CampaignIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1, mr: 0.5 }} />
+                <ArticleIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1, mr: 0.5 }} />
+                <AnnouncementIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
               </Box>
               <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>
-                No campaigns or announcements available
+                No campaigns, health info, or announcements available
               </Typography>
               <Button
                 variant="outlined"
@@ -866,7 +1030,7 @@ const Dashboard = memo(({ user }) => {
                 to="/campaigns"
                 startIcon={<CampaignIcon />}
               >
-                Explore Campaigns
+                Explore Content
               </Button>
             </Box>
           )}
