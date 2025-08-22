@@ -1941,6 +1941,158 @@ const CampaignsPage = () => {
                     </Grid>
                   )}
 
+                  {/* Campaign Images Gallery */}
+                  {(selectedCampaign.banner_image_url || selectedCampaign.thumbnail_image_url || selectedCampaign.pubmat_image_url) && (
+                    <Grid item xs={12}>
+                      <Card elevation={2} sx={{ borderRadius: 3 }}>
+                        <CardContent sx={{ p: 4 }}>
+                          <Typography variant="h5" fontWeight="bold" gutterBottom mb={3}>
+                            Campaign Materials
+                          </Typography>
+                          <Grid container spacing={3}>
+                            {/* Banner Image */}
+                            {selectedCampaign.banner_image_url && (
+                              <Grid item xs={12} md={4}>
+                                <Box>
+                                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                                    Banner Image
+                                  </Typography>
+                                  <Box 
+                                    sx={{ 
+                                      position: 'relative',
+                                      borderRadius: 2,
+                                      overflow: 'hidden',
+                                      boxShadow: 2
+                                    }}
+                                  >
+                                    <img
+                                      src={selectedCampaign.banner_image_url}
+                                      alt="Campaign Banner"
+                                      style={{
+                                        width: '100%',
+                                        height: 200,
+                                        objectFit: 'cover',
+                                        cursor: 'pointer'
+                                      }}
+                                      onClick={() => window.open(selectedCampaign.banner_image_url, '_blank')}
+                                    />
+                                    <Box
+                                      sx={{
+                                        position: 'absolute',
+                                        top: 8,
+                                        right: 8,
+                                        backgroundColor: 'rgba(0,0,0,0.6)',
+                                        borderRadius: 1,
+                                        p: 1
+                                      }}
+                                    >
+                                      <Typography variant="caption" color="white">
+                                        Click to enlarge
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+                                </Box>
+                              </Grid>
+                            )}
+
+                            {/* Thumbnail Image */}
+                            {selectedCampaign.thumbnail_image_url && (
+                              <Grid item xs={12} md={4}>
+                                <Box>
+                                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                                    Thumbnail Image
+                                  </Typography>
+                                  <Box 
+                                    sx={{ 
+                                      position: 'relative',
+                                      borderRadius: 2,
+                                      overflow: 'hidden',
+                                      boxShadow: 2
+                                    }}
+                                  >
+                                    <img
+                                      src={selectedCampaign.thumbnail_image_url}
+                                      alt="Campaign Thumbnail"
+                                      style={{
+                                        width: '100%',
+                                        height: 200,
+                                        objectFit: 'cover',
+                                        cursor: 'pointer'
+                                      }}
+                                      onClick={() => window.open(selectedCampaign.thumbnail_image_url, '_blank')}
+                                    />
+                                    <Box
+                                      sx={{
+                                        position: 'absolute',
+                                        top: 8,
+                                        right: 8,
+                                        backgroundColor: 'rgba(0,0,0,0.6)',
+                                        borderRadius: 1,
+                                        p: 1
+                                      }}
+                                    >
+                                      <Typography variant="caption" color="white">
+                                        Click to enlarge
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+                                </Box>
+                              </Grid>
+                            )}
+
+                            {/* PubMat Image */}
+                            {selectedCampaign.pubmat_image_url && (
+                              <Grid item xs={12} md={4}>
+                                <Box>
+                                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                                    PubMat (Public Material)
+                                  </Typography>
+                                  <Box 
+                                    sx={{ 
+                                      position: 'relative',
+                                      borderRadius: 2,
+                                      overflow: 'hidden',
+                                      boxShadow: 2
+                                    }}
+                                  >
+                                    <img
+                                      src={selectedCampaign.pubmat_image_url}
+                                      alt="Campaign PubMat"
+                                      style={{
+                                        width: '100%',
+                                        height: 200,
+                                        objectFit: 'cover',
+                                        cursor: 'pointer'
+                                      }}
+                                      onClick={() => window.open(selectedCampaign.pubmat_image_url, '_blank')}
+                                    />
+                                    <Box
+                                      sx={{
+                                        position: 'absolute',
+                                        top: 8,
+                                        right: 8,
+                                        backgroundColor: 'rgba(0,0,0,0.6)',
+                                        borderRadius: 1,
+                                        p: 1
+                                      }}
+                                    >
+                                      <Typography variant="caption" color="white">
+                                        Click to enlarge
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+                                </Box>
+                              </Grid>
+                            )}
+                          </Grid>
+                          <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
+                            All campaign images are available for public viewing and download
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  )}
+
                   {/* Tags */}
                   {selectedCampaign.tags && (
                     <Grid item xs={12}>
