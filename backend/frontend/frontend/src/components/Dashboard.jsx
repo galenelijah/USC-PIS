@@ -272,6 +272,15 @@ const Dashboard = memo(({ user }) => {
                 color="success"
               />
             </Grid>
+            <Grid item xs={12} md={3}>
+              <QuickAction
+                title="Health Campaigns"
+                description="Manage health campaigns and announcements"
+                icon={<CampaignIcon />}
+                to="/campaigns"
+                color="info"
+              />
+            </Grid>
           </>
         );
       case 'ADMIN':
@@ -382,7 +391,7 @@ const Dashboard = memo(({ user }) => {
 
       {renderRoleBasedActions()}
 
-      <Grid item xs={12} md={8}>
+      <Grid item xs={12} md={6}>
         <Paper sx={{ p: 3, height: '100%', borderRadius: 3 }}>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
             <Typography variant="h6" fontWeight="bold">
@@ -400,7 +409,7 @@ const Dashboard = memo(({ user }) => {
           <Divider sx={{ mb: 2 }} />
           {stats.recentPatients.length > 0 ? (
             <List>
-              {stats.recentPatients.map((patient, index) => (
+              {stats.recentPatients.slice(0, 4).map((patient, index) => (
                 <React.Fragment key={patient.id || index}>
                   <ListItem 
                     sx={{ 
@@ -440,7 +449,7 @@ const Dashboard = memo(({ user }) => {
                       }
                     />
                   </ListItem>
-                  {index < stats.recentPatients.length - 1 && <Divider variant="inset" component="li" />}
+                  {index < stats.recentPatients.slice(0, 4).length - 1 && <Divider variant="inset" component="li" />}
                 </React.Fragment>
               ))}
             </List>
@@ -452,7 +461,119 @@ const Dashboard = memo(({ user }) => {
         </Paper>
       </Grid>
 
-      <Grid item xs={12} md={4}>
+      <Grid item xs={12} md={3}>
+        <Paper sx={{ p: 3, height: '100%', borderRadius: 3 }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Typography variant="h6" fontWeight="bold">
+              Latest Campaigns
+            </Typography>
+            <Button
+              component={Link}
+              to="/campaigns"
+              size="small"
+              endIcon={<ArrowForwardIcon />}
+            >
+              View All
+            </Button>
+          </Box>
+          <Divider sx={{ mb: 2 }} />
+          
+          {/* Featured Campaigns */}
+          {stats.featuredCampaigns.length > 0 ? (
+            <Box>
+              {stats.featuredCampaigns.slice(0, 3).map((campaign, index) => (
+                <Box key={campaign.id || index} sx={{ 
+                  mb: 3, 
+                  p: 2, 
+                  borderRadius: 2, 
+                  bgcolor: 'rgba(25, 118, 210, 0.04)',
+                  border: '1px solid rgba(25, 118, 210, 0.12)',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    bgcolor: 'rgba(25, 118, 210, 0.08)',
+                    transform: 'translateY(-1px)',
+                    boxShadow: 1
+                  }
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1.5 }}>
+                    <Avatar 
+                      sx={{ 
+                        width: 40, 
+                        height: 40, 
+                        bgcolor: 'primary.main', 
+                        mr: 1.5,
+                        fontSize: '0.875rem'
+                      }}
+                    >
+                      <CampaignIcon sx={{ fontSize: 20 }} />
+                    </Avatar>
+                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                      <Typography 
+                        variant="body2" 
+                        fontWeight="bold" 
+                        sx={{ 
+                          lineHeight: 1.3,
+                          mb: 0.5,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden'
+                        }}
+                      >
+                        {campaign.title}
+                      </Typography>
+                      <Chip
+                        size="small"
+                        label={campaign.campaign_type?.replace('_', ' ') || 'General'}
+                        sx={{ 
+                          fontSize: '0.7rem', 
+                          height: 20,
+                          bgcolor: 'primary.main',
+                          color: 'white',
+                          fontWeight: 'bold'
+                        }}
+                      />
+                    </Box>
+                  </Box>
+                  <Typography 
+                    variant="caption" 
+                    color="text.secondary" 
+                    sx={{ 
+                      display: 'block',
+                      lineHeight: 1.3,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    {campaign.summary || campaign.description?.substring(0, 80)}
+                    {(campaign.summary || campaign.description)?.length > 80 ? '...' : ''}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          ) : (
+            <Box textAlign="center" py={3}>
+              <CampaignIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+              <Typography color="text.secondary" variant="body2">
+                No active campaigns
+              </Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                component={Link}
+                to="/campaigns"
+                sx={{ mt: 1 }}
+              >
+                Create Campaign
+              </Button>
+            </Box>
+          )}
+        </Paper>
+      </Grid>
+
+      <Grid item xs={12} md={3}>
         <Paper sx={{ p: 3, height: '100%', borderRadius: 3 }}>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
             <Typography variant="h6" fontWeight="bold">
@@ -491,7 +612,7 @@ const Dashboard = memo(({ user }) => {
             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
               Last Updated
             </Typography>
-            <Typography>
+            <Typography variant="body2">
               {new Date().toLocaleString()}
             </Typography>
           </Box>
@@ -502,8 +623,9 @@ const Dashboard = memo(({ user }) => {
               component={Link} 
               to="/database-monitor"
               endIcon={<ArrowForwardIcon />}
+              size="small"
             >
-              View Detailed Status
+              View Details
             </Button>
           </Box>
         </Paper>
@@ -589,14 +711,14 @@ const Dashboard = memo(({ user }) => {
       </Grid>
 
       <Grid item xs={12} md={4}>
-        <Paper sx={{ p: 3, height: '100%', borderRadius: 3 }}>
+        <Paper sx={{ p: 3, height: '100%', borderRadius: 3, background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)' }}>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h6" fontWeight="bold">
-              Campaigns & Announcements
+            <Typography variant="h6" fontWeight="bold" color="primary">
+              Latest Campaigns & News
             </Typography>
             <Button
               component={Link}
-              to="/health-info"
+              to="/campaigns"
               size="small"
               endIcon={<ArrowForwardIcon />}
             >
@@ -608,27 +730,62 @@ const Dashboard = memo(({ user }) => {
           {/* Featured Campaigns */}
           {stats.featuredCampaigns.length > 0 && (
             <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
+              <Typography variant="subtitle2" color="primary" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+                <CampaignIcon sx={{ mr: 1, fontSize: 18 }} />
                 Featured Campaigns
               </Typography>
-              {stats.featuredCampaigns.map((campaign, index) => (
-                <Box key={campaign.id || index} sx={{ mb: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                    <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', mr: 1.5 }}>
-                      <CampaignIcon sx={{ fontSize: 18 }} />
+              {stats.featuredCampaigns.slice(0, 2).map((campaign, index) => (
+                <Box key={campaign.id || index} sx={{ 
+                  mb: 2, 
+                  p: 2, 
+                  borderRadius: 2, 
+                  bgcolor: 'rgba(255, 255, 255, 0.9)',
+                  border: '1px solid rgba(25, 118, 210, 0.2)',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    bgcolor: 'rgba(255, 255, 255, 1)',
+                    transform: 'translateY(-1px)',
+                    boxShadow: 2
+                  }
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}>
+                    <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main', mr: 1.5 }}>
+                      <CampaignIcon sx={{ fontSize: 20 }} />
                     </Avatar>
-                    <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="body2" fontWeight="medium" sx={{ lineHeight: 1.2 }}>
+                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                      <Typography variant="body2" fontWeight="bold" sx={{ 
+                        lineHeight: 1.3, 
+                        mb: 0.5,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
+                      }}>
                         {campaign.title}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {campaign.category}
-                      </Typography>
+                      <Chip
+                        size="small"
+                        label={campaign.campaign_type?.replace('_', ' ') || 'General'}
+                        sx={{ 
+                          fontSize: '0.7rem', 
+                          height: 20,
+                          bgcolor: 'success.main',
+                          color: 'white',
+                          fontWeight: 'bold'
+                        }}
+                      />
                     </Box>
                   </Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 5 }}>
-                    {campaign.description?.substring(0, 80)}
-                    {campaign.description?.length > 80 ? '...' : ''}
+                  <Typography variant="caption" color="text.secondary" sx={{ 
+                    display: 'block',
+                    lineHeight: 1.3,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden'
+                  }}>
+                    {campaign.summary || campaign.description?.substring(0, 70)}
+                    {(campaign.summary || campaign.description)?.length > 70 ? '...' : ''}
                   </Typography>
                 </Box>
               ))}
@@ -638,17 +795,37 @@ const Dashboard = memo(({ user }) => {
           {/* Announcements */}
           {stats.announcements.length > 0 && (
             <Box>
-              <Typography variant="subtitle2" color="warning.main" sx={{ mb: 1, fontWeight: 'bold' }}>
-                Announcements
+              <Typography variant="subtitle2" color="warning.main" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+                <AnnouncementIcon sx={{ mr: 1, fontSize: 18 }} />
+                Latest News
               </Typography>
               {stats.announcements.slice(0, 2).map((announcement, index) => (
-                <Box key={announcement.id || index} sx={{ mb: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                    <Avatar sx={{ width: 32, height: 32, bgcolor: 'warning.main', mr: 1.5 }}>
-                      <AnnouncementIcon sx={{ fontSize: 18 }} />
+                <Box key={announcement.id || index} sx={{ 
+                  mb: 2, 
+                  p: 2, 
+                  borderRadius: 2, 
+                  bgcolor: 'rgba(255, 255, 255, 0.9)',
+                  border: '1px solid rgba(237, 108, 2, 0.2)',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    bgcolor: 'rgba(255, 255, 255, 1)',
+                    transform: 'translateY(-1px)',
+                    boxShadow: 2
+                  }
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}>
+                    <Avatar sx={{ width: 36, height: 36, bgcolor: 'warning.main', mr: 1.5 }}>
+                      <AnnouncementIcon sx={{ fontSize: 20 }} />
                     </Avatar>
-                    <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="body2" fontWeight="medium" sx={{ lineHeight: 1.2 }}>
+                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                      <Typography variant="body2" fontWeight="bold" sx={{ 
+                        lineHeight: 1.3, 
+                        mb: 0.5,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
+                      }}>
                         {announcement.title}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
@@ -656,9 +833,16 @@ const Dashboard = memo(({ user }) => {
                       </Typography>
                     </Box>
                   </Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 5 }}>
-                    {announcement.content?.substring(0, 80)}
-                    {announcement.content?.length > 80 ? '...' : ''}
+                  <Typography variant="caption" color="text.secondary" sx={{ 
+                    display: 'block',
+                    lineHeight: 1.3,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden'
+                  }}>
+                    {announcement.content?.substring(0, 70)}
+                    {announcement.content?.length > 70 ? '...' : ''}
                   </Typography>
                 </Box>
               ))}
@@ -667,10 +851,23 @@ const Dashboard = memo(({ user }) => {
 
           {/* Empty State */}
           {stats.featuredCampaigns.length === 0 && stats.announcements.length === 0 && (
-            <Box textAlign="center" py={3}>
-              <Typography color="text.secondary" variant="body2">
+            <Box textAlign="center" py={4}>
+              <Box sx={{ mb: 2 }}>
+                <CampaignIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+                <AnnouncementIcon sx={{ fontSize: 48, color: 'text.disabled', ml: 1 }} />
+              </Box>
+              <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>
                 No campaigns or announcements available
               </Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                component={Link}
+                to="/campaigns"
+                startIcon={<CampaignIcon />}
+              >
+                Explore Campaigns
+              </Button>
             </Box>
           )}
         </Paper>
