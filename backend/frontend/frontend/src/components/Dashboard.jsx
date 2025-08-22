@@ -965,13 +965,13 @@ const Dashboard = memo(({ user }) => {
             {stats.latestCampaigns.length === 0 && stats.recentHealthInfoPosts.length === 0 && (
               <Box textAlign="center" py={8}>
                 <Box sx={{ mb: 4 }}>
-                  <CampaignIcon sx={{ fontSize: 80, color: 'rgba(255, 255, 255, 0.6)', mb: 2, mr: 2 }} />
-                  <ArticleIcon sx={{ fontSize: 80, color: 'rgba(255, 255, 255, 0.6)', mb: 2 }} />
+                  <CampaignIcon sx={{ fontSize: 80, color: 'text.disabled', mb: 2, mr: 2 }} />
+                  <ArticleIcon sx={{ fontSize: 80, color: 'text.disabled', mb: 2 }} />
                 </Box>
-                <Typography variant="h4" sx={{ mb: 3, color: 'rgba(255, 255, 255, 0.9)' }}>
+                <Typography variant="h4" sx={{ mb: 3, color: 'text.primary' }}>
                   No Health Content Available
                 </Typography>
-                <Typography variant="h6" sx={{ mb: 4, color: 'rgba(255, 255, 255, 0.7)' }}>
+                <Typography variant="h6" sx={{ mb: 4, color: 'text.secondary' }}>
                   Check back soon for new campaigns and health information
                 </Typography>
                 <Button
@@ -980,17 +980,11 @@ const Dashboard = memo(({ user }) => {
                   component={Link}
                   to="/campaigns"
                   startIcon={<CampaignIcon />}
+                  color="primary"
                   sx={{ 
-                    bgcolor: 'rgba(255,255,255,0.2)',
-                    color: 'white',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255,255,255,0.3)',
                     py: 1.5,
                     px: 4,
-                    fontSize: '1.1rem',
-                    '&:hover': {
-                      bgcolor: 'rgba(255,255,255,0.3)',
-                    }
+                    fontSize: '1.1rem'
                   }}
                 >
                   Explore Health Content
@@ -1005,26 +999,14 @@ const Dashboard = memo(({ user }) => {
         <Paper sx={{ 
           p: 4, 
           height: '100%', 
-          borderRadius: 3, 
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
-          position: 'relative',
-          overflow: 'hidden',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
-            zIndex: 1
-          }
+          borderRadius: 3,
+          bgcolor: 'white',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
         }}>
-          <Box position="relative" zIndex={2}>
+          <Box>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
               <Typography variant="h5" fontWeight="bold" sx={{ 
-                textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                color: 'text.primary',
                 display: 'flex',
                 alignItems: 'center'
               }}>
@@ -1036,26 +1018,18 @@ const Dashboard = memo(({ user }) => {
                 to="/campaigns"
                 variant="contained"
                 size="small"
-                sx={{ 
-                  bgcolor: 'rgba(255,255,255,0.2)',
-                  color: 'white',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  '&:hover': {
-                    bgcolor: 'rgba(255,255,255,0.3)',
-                  }
-                }}
+                color="primary"
                 endIcon={<ArrowForwardIcon />}
               >
                 View All
               </Button>
             </Box>
-            <Divider sx={{ mb: 3, bgcolor: 'rgba(255,255,255,0.3)' }} />
+            <Divider sx={{ mb: 3 }} />
           
           {/* Latest Campaigns */}
           {stats.latestCampaigns.length > 0 && (
             <Box sx={{ mb: 4 }}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', color: 'rgba(255,255,255,0.9)' }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', color: 'text.primary' }}>
                 <CampaignIcon sx={{ mr: 1, fontSize: 24 }} />
                 Latest Campaigns
               </Typography>
@@ -1064,23 +1038,24 @@ const Dashboard = memo(({ user }) => {
                   mb: 3, 
                   p: 3, 
                   borderRadius: 3, 
-                  bgcolor: 'rgba(255, 255, 255, 0.15)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  backdropFilter: 'blur(10px)',
+                  bgcolor: 'grey.50',
+                  border: '1px solid',
+                  borderColor: 'grey.200',
                   transition: 'all 0.3s ease',
                   '&:hover': {
-                    bgcolor: 'rgba(255, 255, 255, 0.25)',
+                    bgcolor: 'grey.100',
                     transform: 'translateY(-2px)',
-                    boxShadow: '0 8px 25px rgba(0,0,0,0.2)'
+                    boxShadow: 2
                   }
                 }}>
                   <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
                     <Avatar sx={{ 
                       width: 40, 
                       height: 40, 
-                      bgcolor: 'rgba(255, 255, 255, 0.2)', 
+                      bgcolor: 'primary.main', 
                       mr: 2,
-                      border: '2px solid rgba(255, 255, 255, 0.3)'
+                      border: '2px solid',
+                      borderColor: 'primary.light'
                     }}>
                       <CampaignIcon sx={{ fontSize: 24, color: 'white' }} />
                     </Avatar>
@@ -1088,8 +1063,7 @@ const Dashboard = memo(({ user }) => {
                       <Typography variant="subtitle1" fontWeight="bold" sx={{ 
                         lineHeight: 1.3, 
                         mb: 1,
-                        color: 'white',
-                        textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                        color: 'text.primary'
                       }}>
                         {campaign.title}
                       </Typography>
@@ -1099,16 +1073,15 @@ const Dashboard = memo(({ user }) => {
                         sx={{ 
                           fontSize: '0.75rem', 
                           height: 22,
-                          bgcolor: 'rgba(255, 255, 255, 0.2)',
+                          bgcolor: 'primary.light',
                           color: 'white',
-                          fontWeight: 'bold',
-                          border: '1px solid rgba(255, 255, 255, 0.3)'
+                          fontWeight: 'bold'
                         }}
                       />
                     </Box>
                   </Box>
                   <Typography variant="body2" sx={{ 
-                    color: 'rgba(255, 255, 255, 0.9)',
+                    color: 'text.secondary',
                     lineHeight: 1.4,
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
@@ -1126,7 +1099,7 @@ const Dashboard = memo(({ user }) => {
           {/* Health Info Posts */}
           {stats.recentHealthInfoPosts.length > 0 && (
             <Box sx={{ mb: 4 }}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', color: 'rgba(255,255,255,0.9)' }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', color: 'text.primary' }}>
                 <ArticleIcon sx={{ mr: 1, fontSize: 24 }} />
                 Health Information
               </Typography>
@@ -1135,23 +1108,24 @@ const Dashboard = memo(({ user }) => {
                   mb: 3, 
                   p: 3, 
                   borderRadius: 3, 
-                  bgcolor: 'rgba(255, 255, 255, 0.15)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  backdropFilter: 'blur(10px)',
+                  bgcolor: 'grey.50',
+                  border: '1px solid',
+                  borderColor: 'grey.200',
                   transition: 'all 0.3s ease',
                   '&:hover': {
-                    bgcolor: 'rgba(255, 255, 255, 0.25)',
+                    bgcolor: 'grey.100',
                     transform: 'translateY(-2px)',
-                    boxShadow: '0 8px 25px rgba(0,0,0,0.2)'
+                    boxShadow: 2
                   }
                 }}>
                   <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
                     <Avatar sx={{ 
                       width: 40, 
                       height: 40, 
-                      bgcolor: 'rgba(255, 255, 255, 0.2)', 
+                      bgcolor: 'primary.main', 
                       mr: 2,
-                      border: '2px solid rgba(255, 255, 255, 0.3)'
+                      border: '2px solid',
+                      borderColor: 'primary.light'
                     }}>
                       <ArticleIcon sx={{ fontSize: 24, color: 'white' }} />
                     </Avatar>
@@ -1159,8 +1133,7 @@ const Dashboard = memo(({ user }) => {
                       <Typography variant="subtitle1" fontWeight="bold" sx={{ 
                         lineHeight: 1.3, 
                         mb: 1,
-                        color: 'white',
-                        textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                        color: 'text.primary'
                       }}>
                         {post.title}
                       </Typography>
@@ -1170,16 +1143,15 @@ const Dashboard = memo(({ user }) => {
                         sx={{ 
                           fontSize: '0.75rem', 
                           height: 22,
-                          bgcolor: 'rgba(255, 255, 255, 0.2)',
+                          bgcolor: 'primary.light',
                           color: 'white',
-                          fontWeight: 'bold',
-                          border: '1px solid rgba(255, 255, 255, 0.3)'
+                          fontWeight: 'bold'
                         }}
                       />
                     </Box>
                   </Box>
                   <Typography variant="body2" sx={{ 
-                    color: 'rgba(255, 255, 255, 0.9)',
+                    color: 'text.secondary',
                     lineHeight: 1.4,
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
@@ -1197,7 +1169,7 @@ const Dashboard = memo(({ user }) => {
           {/* Announcements */}
           {stats.announcements.length > 0 && (
             <Box>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', color: 'rgba(255,255,255,0.9)' }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', color: 'text.primary' }}>
                 <AnnouncementIcon sx={{ mr: 1, fontSize: 24 }} />
                 Latest News
               </Typography>
@@ -1206,23 +1178,24 @@ const Dashboard = memo(({ user }) => {
                   mb: 3, 
                   p: 3, 
                   borderRadius: 3, 
-                  bgcolor: 'rgba(255, 255, 255, 0.15)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  backdropFilter: 'blur(10px)',
+                  bgcolor: 'grey.50',
+                  border: '1px solid',
+                  borderColor: 'grey.200',
                   transition: 'all 0.3s ease',
                   '&:hover': {
-                    bgcolor: 'rgba(255, 255, 255, 0.25)',
+                    bgcolor: 'grey.100',
                     transform: 'translateY(-2px)',
-                    boxShadow: '0 8px 25px rgba(0,0,0,0.2)'
+                    boxShadow: 2
                   }
                 }}>
                   <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
                     <Avatar sx={{ 
                       width: 40, 
                       height: 40, 
-                      bgcolor: 'rgba(255, 255, 255, 0.2)', 
+                      bgcolor: 'primary.main', 
                       mr: 2,
-                      border: '2px solid rgba(255, 255, 255, 0.3)'
+                      border: '2px solid',
+                      borderColor: 'primary.light'
                     }}>
                       <AnnouncementIcon sx={{ fontSize: 24, color: 'white' }} />
                     </Avatar>
@@ -1230,18 +1203,17 @@ const Dashboard = memo(({ user }) => {
                       <Typography variant="subtitle1" fontWeight="bold" sx={{ 
                         lineHeight: 1.3, 
                         mb: 1,
-                        color: 'white',
-                        textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                        color: 'text.primary'
                       }}>
                         {announcement.title}
                       </Typography>
-                      <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                         {new Date(announcement.created_at).toLocaleDateString()}
                       </Typography>
                     </Box>
                   </Box>
                   <Typography variant="body2" sx={{ 
-                    color: 'rgba(255, 255, 255, 0.9)',
+                    color: 'text.secondary',
                     lineHeight: 1.4,
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
@@ -1260,14 +1232,14 @@ const Dashboard = memo(({ user }) => {
           {stats.latestCampaigns.length === 0 && stats.recentHealthInfoPosts.length === 0 && stats.announcements.length === 0 && (
             <Box textAlign="center" py={6}>
               <Box sx={{ mb: 3 }}>
-                <CampaignIcon sx={{ fontSize: 60, color: 'rgba(255, 255, 255, 0.6)', mb: 2, mr: 1 }} />
-                <ArticleIcon sx={{ fontSize: 60, color: 'rgba(255, 255, 255, 0.6)', mb: 2, mr: 1 }} />
-                <AnnouncementIcon sx={{ fontSize: 60, color: 'rgba(255, 255, 255, 0.6)', mb: 2 }} />
+                <CampaignIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2, mr: 1 }} />
+                <ArticleIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2, mr: 1 }} />
+                <AnnouncementIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
               </Box>
-              <Typography variant="h6" sx={{ mb: 2, color: 'rgba(255, 255, 255, 0.9)' }}>
+              <Typography variant="h6" sx={{ mb: 2, color: 'text.primary' }}>
                 No content available
               </Typography>
-              <Typography variant="body2" sx={{ mb: 3, color: 'rgba(255, 255, 255, 0.7)' }}>
+              <Typography variant="body2" sx={{ mb: 3, color: 'text.secondary' }}>
                 Check back soon for new campaigns, health info, and announcements
               </Typography>
               <Button
