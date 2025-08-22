@@ -202,14 +202,14 @@ const UniversalCampaigns = () => {
         }
       });
 
-      // Add specific image files with their proper field names
-      if (campaignForm.bannerFile) {
+      // Add specific image files with their proper field names (only if they have content)
+      if (campaignForm.bannerFile && campaignForm.bannerFile.size > 0) {
         formData.append('banner_image', campaignForm.bannerFile);
       }
-      if (campaignForm.thumbnailFile) {
+      if (campaignForm.thumbnailFile && campaignForm.thumbnailFile.size > 0) {
         formData.append('thumbnail_image', campaignForm.thumbnailFile);
       }
-      if (campaignForm.pubmatFile) {
+      if (campaignForm.pubmatFile && campaignForm.pubmatFile.size > 0) {
         formData.append('pubmat_image', campaignForm.pubmatFile);
       }
 
@@ -946,8 +946,10 @@ const UniversalCampaigns = () => {
                         accept="image/*"
                         onChange={(e) => {
                           const file = e.target.files[0];
-                          if (file) {
+                          if (file && file.size > 0) {
                             setCampaignForm({ ...campaignForm, bannerFile: file });
+                          } else if (file && file.size === 0) {
+                            showSnackbar('Cannot upload empty files', 'error');
                           }
                         }}
                       />
@@ -993,8 +995,10 @@ const UniversalCampaigns = () => {
                         accept="image/*"
                         onChange={(e) => {
                           const file = e.target.files[0];
-                          if (file) {
+                          if (file && file.size > 0) {
                             setCampaignForm({ ...campaignForm, thumbnailFile: file });
+                          } else if (file && file.size === 0) {
+                            showSnackbar('Cannot upload empty files', 'error');
                           }
                         }}
                       />
@@ -1040,8 +1044,10 @@ const UniversalCampaigns = () => {
                         accept="image/*,application/pdf"
                         onChange={(e) => {
                           const file = e.target.files[0];
-                          if (file) {
+                          if (file && file.size > 0) {
                             setCampaignForm({ ...campaignForm, pubmatFile: file });
+                          } else if (file && file.size === 0) {
+                            showSnackbar('Cannot upload empty files', 'error');
                           }
                         }}
                       />

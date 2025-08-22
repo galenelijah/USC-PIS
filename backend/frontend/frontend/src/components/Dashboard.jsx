@@ -767,56 +767,35 @@ const Dashboard = memo(({ user }) => {
           p: 4, 
           height: '100%', 
           borderRadius: 3,
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
-          position: 'relative',
-          overflow: 'hidden',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
-            zIndex: 1
-          }
+          bgcolor: 'white',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
         }}>
-          <Box position="relative" zIndex={2}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
               <Typography variant="h4" fontWeight="bold" sx={{ 
-                textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                color: 'text.primary',
                 display: 'flex',
                 alignItems: 'center'
               }}>
-                <CampaignIcon sx={{ mr: 2, fontSize: 40 }} />
+                <CampaignIcon sx={{ mr: 2, fontSize: 40, color: 'primary.main' }} />
                 Latest Health Content
               </Typography>
               <Button
                 component={Link}
                 to="/campaigns"
                 variant="contained"
-                sx={{ 
-                  bgcolor: 'rgba(255,255,255,0.2)',
-                  color: 'white',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  '&:hover': {
-                    bgcolor: 'rgba(255,255,255,0.3)',
-                  }
-                }}
+                color="primary"
                 endIcon={<ArrowForwardIcon />}
               >
                 View All
               </Button>
             </Box>
-            <Divider sx={{ mb: 3, bgcolor: 'rgba(255,255,255,0.3)' }} />
+            <Divider sx={{ mb: 3 }} />
             
             {/* Latest Campaigns Section */}
             {stats.latestCampaigns.length > 0 && (
               <Box sx={{ mb: 4 }}>
-                <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', color: 'rgba(255,255,255,0.95)', fontWeight: 'bold' }}>
-                  <CampaignIcon sx={{ mr: 2, fontSize: 32 }} />
+                <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', color: 'text.primary', fontWeight: 'bold' }}>
+                  <CampaignIcon sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
                   Latest Health Campaigns
                 </Typography>
                 <Grid container spacing={3}>
@@ -825,26 +804,27 @@ const Dashboard = memo(({ user }) => {
                       <Box sx={{ 
                         p: 3, 
                         borderRadius: 3, 
-                        bgcolor: 'rgba(255, 255, 255, 0.15)',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                        backdropFilter: 'blur(10px)',
+                        bgcolor: 'grey.50',
+                        border: '1px solid',
+                        borderColor: 'grey.200',
                         transition: 'all 0.3s ease',
                         height: '100%',
                         display: 'flex',
                         flexDirection: 'column',
                         '&:hover': {
-                          bgcolor: 'rgba(255, 255, 255, 0.25)',
+                          bgcolor: 'grey.100',
                           transform: 'translateY(-2px)',
-                          boxShadow: '0 8px 25px rgba(0,0,0,0.2)'
+                          boxShadow: 2
                         }
                       }}>
                         <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
                           <Avatar sx={{ 
                             width: 48, 
                             height: 48, 
-                            bgcolor: 'rgba(255, 255, 255, 0.2)', 
+                            bgcolor: 'primary.main', 
                             mr: 2,
-                            border: '2px solid rgba(255, 255, 255, 0.3)'
+                            border: '2px solid',
+                            borderColor: 'primary.light'
                           }}>
                             <CampaignIcon sx={{ fontSize: 28, color: 'white' }} />
                           </Avatar>
@@ -852,8 +832,7 @@ const Dashboard = memo(({ user }) => {
                             <Typography variant="h6" fontWeight="bold" sx={{ 
                               lineHeight: 1.3, 
                               mb: 1,
-                              color: 'white',
-                              textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                              color: 'text.primary'
                             }}>
                               {campaign.title}
                             </Typography>
@@ -864,10 +843,9 @@ const Dashboard = memo(({ user }) => {
                                 sx={{ 
                                   fontSize: '0.75rem', 
                                   height: 22,
-                                  bgcolor: 'rgba(255, 255, 255, 0.2)',
+                                  bgcolor: 'primary.light',
                                   color: 'white',
-                                  fontWeight: 'bold',
-                                  border: '1px solid rgba(255, 255, 255, 0.3)'
+                                  fontWeight: 'bold'
                                 }}
                               />
                               {campaign.status && (
@@ -877,10 +855,9 @@ const Dashboard = memo(({ user }) => {
                                   sx={{ 
                                     fontSize: '0.75rem', 
                                     height: 22,
-                                    bgcolor: campaign.status === 'ACTIVE' ? 'rgba(76, 175, 80, 0.3)' : 'rgba(158, 158, 158, 0.3)',
+                                    bgcolor: campaign.status === 'ACTIVE' ? 'success.main' : 'grey.400',
                                     color: 'white',
-                                    fontWeight: 'bold',
-                                    border: `1px solid ${campaign.status === 'ACTIVE' ? 'rgba(76, 175, 80, 0.5)' : 'rgba(158, 158, 158, 0.5)'}`
+                                    fontWeight: 'bold'
                                   }}
                                 />
                               )}
@@ -888,7 +865,7 @@ const Dashboard = memo(({ user }) => {
                           </Box>
                         </Box>
                         <Typography variant="body1" sx={{ 
-                          color: 'rgba(255, 255, 255, 0.9)',
+                          color: 'text.secondary',
                           lineHeight: 1.5,
                           display: '-webkit-box',
                           WebkitLineClamp: 3,
@@ -909,8 +886,8 @@ const Dashboard = memo(({ user }) => {
             {/* Health Information Section */}
             {stats.recentHealthInfoPosts.length > 0 && (
               <Box sx={{ mb: 4 }}>
-                <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', color: 'rgba(255,255,255,0.95)', fontWeight: 'bold' }}>
-                  <ArticleIcon sx={{ mr: 2, fontSize: 32 }} />
+                <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', color: 'text.primary', fontWeight: 'bold' }}>
+                  <ArticleIcon sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
                   Health Information Posts
                 </Typography>
                 <Grid container spacing={3}>
@@ -919,26 +896,27 @@ const Dashboard = memo(({ user }) => {
                       <Box sx={{ 
                         p: 3, 
                         borderRadius: 3, 
-                        bgcolor: 'rgba(255, 255, 255, 0.15)',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                        backdropFilter: 'blur(10px)',
+                        bgcolor: 'grey.50',
+                        border: '1px solid',
+                        borderColor: 'grey.200',
                         transition: 'all 0.3s ease',
                         height: '100%',
                         display: 'flex',
                         flexDirection: 'column',
                         '&:hover': {
-                          bgcolor: 'rgba(255, 255, 255, 0.25)',
+                          bgcolor: 'grey.100',
                           transform: 'translateY(-2px)',
-                          boxShadow: '0 8px 25px rgba(0,0,0,0.2)'
+                          boxShadow: 2
                         }
                       }}>
                         <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
                           <Avatar sx={{ 
                             width: 48, 
                             height: 48, 
-                            bgcolor: 'rgba(255, 255, 255, 0.2)', 
+                            bgcolor: 'primary.main', 
                             mr: 2,
-                            border: '2px solid rgba(255, 255, 255, 0.3)'
+                            border: '2px solid',
+                            borderColor: 'primary.light'
                           }}>
                             <ArticleIcon sx={{ fontSize: 28, color: 'white' }} />
                           </Avatar>
@@ -946,8 +924,7 @@ const Dashboard = memo(({ user }) => {
                             <Typography variant="h6" fontWeight="bold" sx={{ 
                               lineHeight: 1.3, 
                               mb: 1,
-                              color: 'white',
-                              textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                              color: 'text.primary'
                             }}>
                               {post.title}
                             </Typography>
@@ -966,7 +943,7 @@ const Dashboard = memo(({ user }) => {
                           </Box>
                         </Box>
                         <Typography variant="body1" sx={{ 
-                          color: 'rgba(255, 255, 255, 0.9)',
+                          color: 'text.secondary',
                           lineHeight: 1.5,
                           display: '-webkit-box',
                           WebkitLineClamp: 3,

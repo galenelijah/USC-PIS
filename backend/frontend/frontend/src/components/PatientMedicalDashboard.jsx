@@ -114,7 +114,10 @@ const PatientMedicalDashboard = () => {
     if (!bmi || isNaN(bmi)) return { category: "Not Available", image: null, color: "#f0f0f0" };
 
     const numericBMI = parseFloat(bmi);
-    const isMale = sex?.toLowerCase() === "male";
+    const isMale = sex?.toLowerCase() === "male" || sex?.toLowerCase() === "m";
+    
+    // Debug logging to verify gender detection
+    console.log('BMI Debug - Sex value:', sex, 'isMale:', isMale);
 
     if (numericBMI < 18.5)
       return { 

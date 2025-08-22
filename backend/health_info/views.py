@@ -127,6 +127,11 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
             # Remove empty files from the request
             for file_key in files_to_remove:
                 request.FILES.pop(file_key, None)
+                logger.info(f"Successfully removed empty file: {file_key}")
+            
+            logger.info(f"Final request.FILES keys: {list(request.FILES.keys())}")
+            for file_key, file_obj in request.FILES.items():
+                logger.info(f"Final file {file_key}: size={file_obj.size}")
             
             return super().create(request, *args, **kwargs)
         except Exception as e:

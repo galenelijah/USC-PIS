@@ -259,7 +259,7 @@ const MedicalRecord = ({ medicalRecordId }) => {
     const getBMIInfo = (bmi, sex) => {
         if (!bmi || isNaN(bmi)) return { category: "Not specified", image: null };
         const numericBMI = parseFloat(bmi);
-        const isMale = sex?.toLowerCase() === "male";
+        const isMale = sex?.toLowerCase() === "male" || sex?.toLowerCase() === "m";
         if (numericBMI < 18.5)
             return { category: "Underweight", image: isMale ? BMI_male_1 : BMI_female_1 };
         if (numericBMI >= 18.5 && numericBMI <= 24.9)
