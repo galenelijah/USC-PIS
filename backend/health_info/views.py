@@ -3,6 +3,7 @@ from rest_framework import viewsets, status, permissions, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.views import APIView
 import logging
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
@@ -82,84 +83,20 @@ class HealthInformationViewSet(viewsets.ModelViewSet):
                 )
 
 class HealthCampaignViewSet(viewsets.ModelViewSet):
-    """Enhanced viewset for health campaigns with comprehensive features"""
+    """Health campaigns viewset using the same approach as HealthInformationViewSet"""
     queryset = HealthCampaign.objects.all()
     permission_classes = [IsStaffOrReadOnly]
     pagination_class = CampaignPagination
-    parser_classes = [MultiPartParser, FormParser]  # Remove JSONParser to force multipart parsing
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['campaign_type', 'status', 'priority']
     search_fields = ['title', 'description', 'content', 'tags']
     ordering_fields = ['created_at', 'start_date', 'view_count', 'engagement_count']
     ordering = ['-created_at']
     
-    def create(self, request, *args, **kwargs):
-        """Simplified create method with empty file handling"""
-        logger = logging.getLogger(__name__)
-        try:
-            logger.info(f"Campaign creation request from user: {request.user}")
-            logger.info(f"Request content type: {request.content_type}")
-            logger.info(f"Request META HTTP_CONTENT_TYPE: {request.META.get('HTTP_CONTENT_TYPE', 'Not set')}")
-            logger.info(f"Request data keys: {list(request.data.keys()) if hasattr(request, 'data') else 'No data attr'}")
-            logger.info(f"Request FILES keys: {list(request.FILES.keys()) if hasattr(request, 'FILES') else 'No FILES attr'}")
-            
-            # Validate required fields only
-            required_fields = ['title', 'description', 'campaign_type', 'start_date', 'end_date']
-            for field in required_fields:
-                if not request.data.get(field):
-                    logger.error(f"Missing required field: {field}")
-                    return Response(
-                        {'error': f'Missing required field: {field}'}, 
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-            
-            # Debug and clean up uploaded files
-            files_to_remove = []
-            for file_key, file_obj in request.FILES.items():
-                logger.info(f"File {file_key}: name='{file_obj.name}', size={file_obj.size}, content_type='{getattr(file_obj, 'content_type', 'unknown')}'")
-                
-                if file_obj.size == 0:
-                    files_to_remove.append(file_key)
-                    logger.info(f"Removing empty file: {file_key}")
-                else:
-                    # Additional validation for image files
-                    try:
-                        from PIL import Image
-                        file_obj.seek(0)
-                        img = Image.open(file_obj)
-                        img.verify()  # Check if it's a valid image
-                        file_obj.seek(0)  # Reset file pointer
-                        logger.info(f"Valid image {file_key}: format={img.format}, size={img.size}")
-                    except Exception as img_error:
-                        logger.warning(f"Image validation failed for {file_key}: {str(img_error)}")
-                        # Don't remove the file, let Django handle the error with proper message
-            
-            for file_key in files_to_remove:
-                request.FILES.pop(file_key, None)
-            
-            logger.info(f"Request files after cleanup: {list(request.FILES.keys())}")
-            return super().create(request, *args, **kwargs)
-        except Exception as e:
-            logger.error(f"Campaign creation error: {str(e)}", exc_info=True)
-            
-            # Check if it's an image validation error and provide helpful message
-            error_str = str(e).lower()
-            if 'invalid_image' in error_str or 'not an image' in error_str:
-                return Response({
-                    'error': 'Invalid image file(s) uploaded. Please ensure you upload valid image files.',
-                    'details': 'Supported formats: JPG, JPEG, PNG, GIF. Make sure files are not corrupted and are actual image files.',
-                    'technical_error': str(e)
-                }, status=status.HTTP_400_BAD_REQUEST)
-            elif 'empty file' in error_str:
-                return Response({
-                    'error': 'Empty file(s) detected. Please select valid image files to upload.',
-                    'technical_error': str(e)
-                }, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                return Response(
-                    {'error': f'Campaign creation failed: {str(e)}'}, 
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
+    def perform_create(self, serializer):
+        # Save the campaign instance with user info (same as health info)
+        user = self.request.user if self.request.user.is_authenticated else None
+        campaign = serializer.save(created_by=user, last_modified_by=user)
     
     def get_serializer_class(self):
         if self.action == 'list':
