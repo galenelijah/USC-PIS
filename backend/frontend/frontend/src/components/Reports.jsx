@@ -152,9 +152,35 @@ const Reports = () => {
     try {
       // Find the report to get its format and title
       const report = reports.find(r => r.id === reportId);
+      if (!report) {
+        setError('Report not found');
+        return;
+      }
+
+      // Check if report is completed
+      if (report.status !== 'COMPLETED') {
+        setError(`Report is not ready for download. Status: ${report.status}`);
+        return;
+      }
+
       const exportFormat = format || report?.export_format || 'PDF';
       
+      console.log('Downloading report:', { reportId, exportFormat, report });
+      
       const response = await reportService.downloadReport(reportId);
+      
+      console.log('Download response:', {
+        status: response.status,
+        headers: response.headers,
+        dataType: typeof response.data,
+        dataSize: response.data?.size || response.data?.byteLength || 'unknown'
+      });
+      
+      // Check if response is valid
+      if (!response.data || response.data.size === 0) {
+        setError('Downloaded file is empty');
+        return;
+      }
       
       // Determine file extension and MIME type based on format
       let fileExtension, mimeType;
@@ -197,8 +223,20 @@ const Reports = () => {
       
       setSuccess(`Report downloaded successfully as ${exportFormat.toUpperCase()}`);
     } catch (err) {
-      setError(`Failed to download report in ${format || 'PDF'} format`);
       console.error('Error downloading report:', err);
+      let errorMessage = 'Failed to download report';
+      
+      if (err.response) {
+        console.error('Error response:', err.response);
+        errorMessage = err.response.data?.error || `Server error: ${err.response.status}`;
+      } else if (err.request) {
+        console.error('Error request:', err.request);
+        errorMessage = 'Network error - unable to reach server';
+      } else {
+        errorMessage = err.message || 'Unknown error occurred';
+      }
+      
+      setError(errorMessage);
     }
   };
 
@@ -714,11 +752,7 @@ const Reports = () => {
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
                             {formatDateTimePH(report.created_at, { 
-                              timeStyle: 'short',
-                              dateStyle: undefined,
-                              year: undefined,
-                              month: undefined,
-                              day: undefined 
+                              timeStyle: 'short'
                             })}
                           </Typography>
                           {report.status === 'GENERATING' && (

@@ -84,19 +84,44 @@ export const formatDatePH = (dateInput, options = {}) => {
   const date = parseDate(dateInput);
   if (!date) return 'Invalid Date';
   
+  // Clean up options to avoid conflicts
+  const cleanOptions = { ...options };
+  
+  // If using dateStyle, remove conflicting individual components
+  if (cleanOptions.dateStyle) {
+    delete cleanOptions.year;
+    delete cleanOptions.month;
+    delete cleanOptions.day;
+  }
+  
   const defaultOptions = {
     timeZone: PHILIPPINES_TIMEZONE,
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    ...options
+    ...(!cleanOptions.dateStyle && {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    }),
+    ...cleanOptions
   };
+  
+  // Remove any undefined values that might cause issues
+  Object.keys(defaultOptions).forEach(key => {
+    if (defaultOptions[key] === undefined) {
+      delete defaultOptions[key];
+    }
+  });
   
   try {
     return new Intl.DateTimeFormat('en-PH', defaultOptions).format(date);
   } catch (error) {
     console.error('Error formatting date with Intl:', dateInput, error);
-    return 'Invalid Date';
+    // Fallback to simple format if Intl fails
+    try {
+      return date.toLocaleDateString('en-PH', { timeZone: PHILIPPINES_TIMEZONE });
+    } catch (fallbackError) {
+      console.error('Fallback date formatting also failed:', fallbackError);
+      return 'Invalid Date';
+    }
   }
 };
 
@@ -110,22 +135,53 @@ export const formatDateTimePH = (dateInput, options = {}) => {
   const date = parseDate(dateInput);
   if (!date) return 'Invalid Date';
   
+  // Clean up options to avoid conflicts between timeStyle/dateStyle and individual components
+  const cleanOptions = { ...options };
+  
+  // If using timeStyle or dateStyle, remove conflicting individual components
+  if (cleanOptions.timeStyle || cleanOptions.dateStyle) {
+    // Remove individual components that conflict with style-based formatting
+    delete cleanOptions.year;
+    delete cleanOptions.month;
+    delete cleanOptions.day;
+    delete cleanOptions.hour;
+    delete cleanOptions.minute;
+    delete cleanOptions.second;
+    delete cleanOptions.hour12;
+  }
+  
+  // Set default options only if no style is specified
   const defaultOptions = {
     timeZone: PHILIPPINES_TIMEZONE,
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-    ...options
+    ...(!(cleanOptions.timeStyle || cleanOptions.dateStyle) && {
+      year: 'numeric',
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }),
+    ...cleanOptions
   };
+  
+  // Remove any undefined values that might cause issues
+  Object.keys(defaultOptions).forEach(key => {
+    if (defaultOptions[key] === undefined) {
+      delete defaultOptions[key];
+    }
+  });
   
   try {
     return new Intl.DateTimeFormat('en-PH', defaultOptions).format(date);
   } catch (error) {
     console.error('Error formatting datetime with Intl:', dateInput, error);
-    return 'Invalid Date';
+    // Fallback to simple format if Intl fails
+    try {
+      return date.toLocaleString('en-PH', { timeZone: PHILIPPINES_TIMEZONE });
+    } catch (fallbackError) {
+      console.error('Fallback formatting also failed:', fallbackError);
+      return 'Invalid Date';
+    }
   }
 };
 

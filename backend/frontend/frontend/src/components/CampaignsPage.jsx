@@ -1853,31 +1853,81 @@ const CampaignsPage = () => {
                         </Box>
 
                         {/* Description */}
-                        <Typography variant="body1" paragraph sx={{ fontSize: '1.1rem', lineHeight: 1.7 }}>
-                          {selectedCampaign.description}
-                        </Typography>
+                        <Box sx={{ mb: 4 }}>
+                          <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ color: 'primary.main', mb: 2 }}>
+                            📝 Campaign Overview
+                          </Typography>
+                          <Typography 
+                            variant="body1" 
+                            paragraph 
+                            sx={{ 
+                              fontSize: '1.1rem', 
+                              lineHeight: 1.8,
+                              textAlign: 'justify',
+                              mb: 3
+                            }}
+                          >
+                            {selectedCampaign.description}
+                          </Typography>
+                        </Box>
 
                         {/* Content */}
                         {selectedCampaign.content && (
-                          <Box mt={3}>
-                            <Typography variant="h6" fontWeight="bold" gutterBottom>
-                              More Information
+                          <Box sx={{ mb: 4, mt: 4 }}>
+                            <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ color: 'primary.main', mb: 2 }}>
+                              📚 Detailed Information
                             </Typography>
-                            <Typography variant="body1" paragraph sx={{ lineHeight: 1.7 }}>
-                              {selectedCampaign.content}
-                            </Typography>
+                            <Box 
+                              sx={{ 
+                                p: 3, 
+                                backgroundColor: '#f8f9fa', 
+                                borderRadius: 2,
+                                borderLeft: 4,
+                                borderLeftColor: 'primary.main'
+                              }}
+                            >
+                              <Typography 
+                                variant="body1" 
+                                paragraph 
+                                sx={{ 
+                                  lineHeight: 1.8,
+                                  textAlign: 'justify',
+                                  mb: 0
+                                }}
+                              >
+                                {selectedCampaign.content}
+                              </Typography>
+                            </Box>
                           </Box>
                         )}
 
                         {/* Objectives */}
                         {selectedCampaign.objectives && (
-                          <Box mt={3}>
-                            <Typography variant="h6" fontWeight="bold" gutterBottom>
-                              Goals & Objectives
+                          <Box sx={{ mb: 4, mt: 4 }}>
+                            <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ color: 'primary.main', mb: 2 }}>
+                              🎯 Goals & Objectives
                             </Typography>
-                            <Typography variant="body1" paragraph sx={{ lineHeight: 1.7 }}>
-                              {selectedCampaign.objectives}
-                            </Typography>
+                            <Box 
+                              sx={{ 
+                                p: 3, 
+                                backgroundColor: '#e3f2fd', 
+                                borderRadius: 2,
+                                borderLeft: 4,
+                                borderLeftColor: 'info.main'
+                              }}
+                            >
+                              <Typography 
+                                variant="body1" 
+                                paragraph 
+                                sx={{ 
+                                  lineHeight: 1.8,
+                                  textAlign: 'justify',
+                                  mb: 0
+                                }}
+                              >
+                                {selectedCampaign.objectives}
+                              </Typography>
+                            </Box>
                           </Box>
                         )}
                       </CardContent>
@@ -1887,211 +1937,301 @@ const CampaignsPage = () => {
                   {/* Call to Action & Contact */}
                   {(selectedCampaign.call_to_action || selectedCampaign.contact_info || selectedCampaign.external_link) && (
                     <Grid item xs={12}>
-                      <Card elevation={2} sx={{ borderRadius: 3, backgroundColor: 'primary.main', color: 'primary.contrastText' }}>
-                        <CardContent sx={{ p: 4 }}>
-                          {selectedCampaign.call_to_action && (
-                            <Box mb={3}>
-                              <Typography variant="h5" fontWeight="bold" gutterBottom>
-                                Take Action Now!
-                              </Typography>
-                              <Typography variant="h6" sx={{ opacity: 0.95 }}>
-                                {selectedCampaign.call_to_action}
-                              </Typography>
-                            </Box>
-                          )}
-
-                          <Grid container spacing={3}>
-                            {selectedCampaign.contact_info && (
-                              <Grid item xs={12} md={6}>
-                                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                                  Contact Information
+                      <Box sx={{ mb: 4 }}>
+                        <Card elevation={4} sx={{ borderRadius: 4, backgroundColor: 'primary.main', color: 'primary.contrastText', overflow: 'hidden' }}>
+                          <CardContent sx={{ p: 5 }}>
+                            {selectedCampaign.call_to_action && (
+                              <Box mb={4} textAlign="center">
+                                <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ mb: 2 }}>
+                                  📢 Take Action Now!
                                 </Typography>
-                                <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                                  {selectedCampaign.contact_info}
-                                </Typography>
-                              </Grid>
-                            )}
-
-                            {selectedCampaign.external_link && (
-                              <Grid item xs={12} md={6}>
-                                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                                  Learn More
-                                </Typography>
-                                <Button
-                                  variant="outlined"
+                                <Typography 
+                                  variant="h6" 
                                   sx={{ 
-                                    borderColor: 'primary.contrastText', 
-                                    color: 'primary.contrastText',
-                                    '&:hover': {
-                                      backgroundColor: 'rgba(255,255,255,0.1)',
-                                      borderColor: 'primary.contrastText'
-                                    }
+                                    opacity: 0.95,
+                                    fontSize: '1.3rem',
+                                    lineHeight: 1.6,
+                                    maxWidth: '800px',
+                                    mx: 'auto'
                                   }}
-                                  href={selectedCampaign.external_link}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
                                 >
-                                  Visit Website
-                                </Button>
-                              </Grid>
+                                  {selectedCampaign.call_to_action}
+                                </Typography>
+                              </Box>
                             )}
-                          </Grid>
-                        </CardContent>
-                      </Card>
+
+                            <Grid container spacing={4} sx={{ mt: 2 }}>
+                              {selectedCampaign.contact_info && (
+                                <Grid item xs={12} md={6}>
+                                  <Box sx={{ textAlign: 'center', md: { textAlign: 'left' } }}>
+                                    <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ mb: 2 }}>
+                                      📞 Contact Information
+                                    </Typography>
+                                    <Box 
+                                      sx={{ 
+                                        p: 3, 
+                                        backgroundColor: 'rgba(255,255,255,0.1)', 
+                                        borderRadius: 2,
+                                        backdropFilter: 'blur(10px)'
+                                      }}
+                                    >
+                                      <Typography 
+                                        variant="body1" 
+                                        sx={{ 
+                                          opacity: 0.95,
+                                          lineHeight: 1.6,
+                                          fontSize: '1.1rem'
+                                        }}
+                                      >
+                                        {selectedCampaign.contact_info}
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+                                </Grid>
+                              )}
+
+                              {selectedCampaign.external_link && (
+                                <Grid item xs={12} md={6}>
+                                  <Box sx={{ textAlign: 'center', md: { textAlign: 'left' } }}>
+                                    <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ mb: 2 }}>
+                                      🌐 Learn More
+                                    </Typography>
+                                    <Box 
+                                      sx={{ 
+                                        p: 3, 
+                                        backgroundColor: 'rgba(255,255,255,0.1)', 
+                                        borderRadius: 2,
+                                        backdropFilter: 'blur(10px)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center'
+                                      }}
+                                    >
+                                      <Typography variant="body2" sx={{ opacity: 0.9, mb: 2 }}>
+                                        Get additional resources and information
+                                      </Typography>
+                                      <Button
+                                        variant="contained"
+                                        size="large"
+                                        sx={{ 
+                                          backgroundColor: 'primary.contrastText',
+                                          color: 'primary.main',
+                                          fontWeight: 'bold',
+                                          px: 4,
+                                          py: 1.5,
+                                          '&:hover': {
+                                            backgroundColor: 'rgba(255,255,255,0.9)',
+                                            transform: 'scale(1.05)'
+                                          },
+                                          transition: 'all 0.2s'
+                                        }}
+                                        href={selectedCampaign.external_link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                      >
+                                        🔗 Visit Website
+                                      </Button>
+                                    </Box>
+                                  </Box>
+                                </Grid>
+                              )}
+                            </Grid>
+                          </CardContent>
+                        </Card>
+                      </Box>
                     </Grid>
                   )}
 
                   {/* Campaign Images Gallery */}
-                  {(selectedCampaign.banner_image_url || selectedCampaign.thumbnail_image_url || selectedCampaign.pubmat_image_url) && (
-                    <Grid item xs={12}>
-                      <Card elevation={2} sx={{ borderRadius: 3 }}>
-                        <CardContent sx={{ p: 4 }}>
-                          <Typography variant="h5" fontWeight="bold" gutterBottom mb={3}>
-                            Campaign Materials
+                  <Grid item xs={12}>
+                    <Box sx={{ mb: 4 }}>
+                      {/* Add spacing for content readability */}
+                      <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ mb: 3, textAlign: 'center', color: 'primary.main' }}>
+                        Campaign Visual Materials
+                      </Typography>
+                      
+                      {/* Show message if no images */}
+                      {!(selectedCampaign.banner_image_url || selectedCampaign.thumbnail_image_url || selectedCampaign.pubmat_image_url) && (
+                        <Card elevation={1} sx={{ borderRadius: 3, textAlign: 'center', py: 4 }}>
+                          <Typography variant="body1" color="text.secondary">
+                            No campaign images have been uploaded yet.
                           </Typography>
-                          <Grid container spacing={3}>
-                            {/* Banner Image */}
-                            {selectedCampaign.banner_image_url && (
-                              <Grid item xs={12} md={4}>
-                                <Box>
-                                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                                    Banner Image
-                                  </Typography>
-                                  <Box 
-                                    sx={{ 
-                                      position: 'relative',
-                                      borderRadius: 2,
-                                      overflow: 'hidden',
-                                      boxShadow: 2
-                                    }}
-                                  >
-                                    <img
-                                      src={selectedCampaign.banner_image_url}
-                                      alt="Campaign Banner"
-                                      style={{
-                                        width: '100%',
-                                        height: 200,
-                                        objectFit: 'cover',
-                                        cursor: 'pointer'
-                                      }}
-                                      onClick={() => window.open(selectedCampaign.banner_image_url, '_blank')}
-                                    />
-                                    <Box
-                                      sx={{
-                                        position: 'absolute',
-                                        top: 8,
-                                        right: 8,
-                                        backgroundColor: 'rgba(0,0,0,0.6)',
-                                        borderRadius: 1,
-                                        p: 1
-                                      }}
-                                    >
-                                      <Typography variant="caption" color="white">
-                                        Click to enlarge
-                                      </Typography>
-                                    </Box>
-                                  </Box>
-                                </Box>
-                              </Grid>
-                            )}
+                        </Card>
+                      )}
 
-                            {/* Thumbnail Image */}
-                            {selectedCampaign.thumbnail_image_url && (
-                              <Grid item xs={12} md={4}>
-                                <Box>
-                                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                                    Thumbnail Image
-                                  </Typography>
-                                  <Box 
-                                    sx={{ 
-                                      position: 'relative',
-                                      borderRadius: 2,
-                                      overflow: 'hidden',
-                                      boxShadow: 2
-                                    }}
-                                  >
-                                    <img
-                                      src={selectedCampaign.thumbnail_image_url}
-                                      alt="Campaign Thumbnail"
-                                      style={{
-                                        width: '100%',
-                                        height: 200,
-                                        objectFit: 'cover',
-                                        cursor: 'pointer'
-                                      }}
-                                      onClick={() => window.open(selectedCampaign.thumbnail_image_url, '_blank')}
-                                    />
-                                    <Box
-                                      sx={{
-                                        position: 'absolute',
-                                        top: 8,
-                                        right: 8,
-                                        backgroundColor: 'rgba(0,0,0,0.6)',
-                                        borderRadius: 1,
-                                        p: 1
+                      {/* Images Grid */}
+                      {(selectedCampaign.banner_image_url || selectedCampaign.thumbnail_image_url || selectedCampaign.pubmat_image_url) && (
+                        <Card elevation={2} sx={{ borderRadius: 3 }}>
+                          <CardContent sx={{ p: 4 }}>
+                            <Grid container spacing={4}>
+                              {/* Banner Image */}
+                              {selectedCampaign.banner_image_url && (
+                                <Grid item xs={12} md={4}>
+                                  <Box sx={{ textAlign: 'center' }}>
+                                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ color: 'primary.main' }}>
+                                      🖼️ Banner Image
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                      Main header image for the campaign
+                                    </Typography>
+                                    <Box 
+                                      sx={{ 
+                                        position: 'relative',
+                                        borderRadius: 3,
+                                        overflow: 'hidden',
+                                        boxShadow: 3,
+                                        transition: 'transform 0.2s',
+                                        '&:hover': { transform: 'scale(1.02)' }
                                       }}
                                     >
-                                      <Typography variant="caption" color="white">
-                                        Click to enlarge
-                                      </Typography>
+                                      <img
+                                        src={selectedCampaign.banner_image_url}
+                                        alt="Campaign Banner"
+                                        style={{
+                                          width: '100%',
+                                          height: 220,
+                                          objectFit: 'cover',
+                                          cursor: 'pointer'
+                                        }}
+                                        onClick={() => window.open(selectedCampaign.banner_image_url, '_blank')}
+                                      />
+                                      <Box
+                                        sx={{
+                                          position: 'absolute',
+                                          bottom: 8,
+                                          right: 8,
+                                          backgroundColor: 'rgba(0,0,0,0.7)',
+                                          borderRadius: 1,
+                                          px: 2,
+                                          py: 1
+                                        }}
+                                      >
+                                        <Typography variant="caption" color="white" fontWeight="bold">
+                                          📸 View Full Size
+                                        </Typography>
+                                      </Box>
                                     </Box>
                                   </Box>
-                                </Box>
-                              </Grid>
-                            )}
+                                </Grid>
+                              )}
 
-                            {/* PubMat Image */}
-                            {selectedCampaign.pubmat_image_url && (
-                              <Grid item xs={12} md={4}>
-                                <Box>
-                                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                                    PubMat (Public Material)
-                                  </Typography>
-                                  <Box 
-                                    sx={{ 
-                                      position: 'relative',
-                                      borderRadius: 2,
-                                      overflow: 'hidden',
-                                      boxShadow: 2
-                                    }}
-                                  >
-                                    <img
-                                      src={selectedCampaign.pubmat_image_url}
-                                      alt="Campaign PubMat"
-                                      style={{
-                                        width: '100%',
-                                        height: 200,
-                                        objectFit: 'cover',
-                                        cursor: 'pointer'
-                                      }}
-                                      onClick={() => window.open(selectedCampaign.pubmat_image_url, '_blank')}
-                                    />
-                                    <Box
-                                      sx={{
-                                        position: 'absolute',
-                                        top: 8,
-                                        right: 8,
-                                        backgroundColor: 'rgba(0,0,0,0.6)',
-                                        borderRadius: 1,
-                                        p: 1
+                              {/* Thumbnail Image */}
+                              {selectedCampaign.thumbnail_image_url && (
+                                <Grid item xs={12} md={4}>
+                                  <Box sx={{ textAlign: 'center' }}>
+                                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ color: 'primary.main' }}>
+                                      🔍 Thumbnail Image  
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                      Preview image for campaign listings
+                                    </Typography>
+                                    <Box 
+                                      sx={{ 
+                                        position: 'relative',
+                                        borderRadius: 3,
+                                        overflow: 'hidden',
+                                        boxShadow: 3,
+                                        transition: 'transform 0.2s',
+                                        '&:hover': { transform: 'scale(1.02)' }
                                       }}
                                     >
-                                      <Typography variant="caption" color="white">
-                                        Click to enlarge
-                                      </Typography>
+                                      <img
+                                        src={selectedCampaign.thumbnail_image_url}
+                                        alt="Campaign Thumbnail"
+                                        style={{
+                                          width: '100%',
+                                          height: 220,
+                                          objectFit: 'cover',
+                                          cursor: 'pointer'
+                                        }}
+                                        onClick={() => window.open(selectedCampaign.thumbnail_image_url, '_blank')}
+                                      />
+                                      <Box
+                                        sx={{
+                                          position: 'absolute',
+                                          bottom: 8,
+                                          right: 8,
+                                          backgroundColor: 'rgba(0,0,0,0.7)',
+                                          borderRadius: 1,
+                                          px: 2,
+                                          py: 1
+                                        }}
+                                      >
+                                        <Typography variant="caption" color="white" fontWeight="bold">
+                                          📸 View Full Size
+                                        </Typography>
+                                      </Box>
                                     </Box>
                                   </Box>
-                                </Box>
-                              </Grid>
+                                </Grid>
+                              )}
+
+                              {/* PubMat Image */}
+                              {selectedCampaign.pubmat_image_url && (
+                                <Grid item xs={12} md={4}>
+                                  <Box sx={{ textAlign: 'center' }}>
+                                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ color: 'primary.main' }}>
+                                      📄 PubMat Material
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                      Public material for printing & distribution
+                                    </Typography>
+                                    <Box 
+                                      sx={{ 
+                                        position: 'relative',
+                                        borderRadius: 3,
+                                        overflow: 'hidden',
+                                        boxShadow: 3,
+                                        transition: 'transform 0.2s',
+                                        '&:hover': { transform: 'scale(1.02)' }
+                                      }}
+                                    >
+                                      <img
+                                        src={selectedCampaign.pubmat_image_url}
+                                        alt="Campaign PubMat"
+                                        style={{
+                                          width: '100%',
+                                          height: 220,
+                                          objectFit: 'cover',
+                                          cursor: 'pointer'
+                                        }}
+                                        onClick={() => window.open(selectedCampaign.pubmat_image_url, '_blank')}
+                                      />
+                                      <Box
+                                        sx={{
+                                          position: 'absolute',
+                                          bottom: 8,
+                                          right: 8,
+                                          backgroundColor: 'rgba(0,0,0,0.7)',
+                                          borderRadius: 1,
+                                          px: 2,
+                                          py: 1
+                                        }}
+                                      >
+                                        <Typography variant="caption" color="white" fontWeight="bold">
+                                          📸 View Full Size
+                                        </Typography>
+                                      </Box>
+                                    </Box>
+                                  </Box>
+                                </Grid>
+                              )}
+                            </Grid>
+
+                            {/* Download Info */}
+                            {(selectedCampaign.banner_image_url || selectedCampaign.thumbnail_image_url || selectedCampaign.pubmat_image_url) && (
+                              <Box sx={{ mt: 4, p: 3, backgroundColor: '#f8f9fa', borderRadius: 2, textAlign: 'center' }}>
+                                <Typography variant="body2" color="text.secondary">
+                                  <strong>📥 Download Available:</strong> Click any image to view full size and download. 
+                                  All materials are optimized for web and print use.
+                                </Typography>
+                              </Box>
                             )}
-                          </Grid>
-                          <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
-                            All campaign images are available for public viewing and download
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  )}
+                          </CardContent>
+                        </Card>
+                      )}
+                    </Box>
+                  </Grid>
 
                   {/* Tags */}
                   {selectedCampaign.tags && (
