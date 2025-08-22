@@ -991,7 +991,6 @@ const Dashboard = memo(({ user }) => {
                 </Button>
               </Box>
             )}
-          </Box>
         </Paper>
       </Grid>
 
