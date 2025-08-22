@@ -63,6 +63,7 @@ const Dashboard = memo(({ user }) => {
     recentHealthInfo: null,
     profileCompletion: null,
     featuredCampaigns: [],
+    latestCampaigns: [],
     recentHealthInfoPosts: [],
     announcements: [],
   });
@@ -81,10 +82,11 @@ const Dashboard = memo(({ user }) => {
       setError(null);
       
       console.log('Fetching dashboard data for user role:', user?.role);
-      const [dashboardResponse, campaignsResponse, healthInfoResponse] = await Promise.all([
+      const [dashboardResponse, campaignsResponse, latestCampaignsResponse, healthInfoResponse] = await Promise.all([
         authService.getDashboardStats(),
         campaignService.getFeaturedCampaigns().catch(() => ({ data: [] })),
-        healthInfoService.getRecent(3).catch(() => ({ data: [] }))
+        campaignService.getLatestCampaigns(5).catch(() => ({ data: [] })),
+        healthInfoService.getRecent(5).catch(() => ({ data: [] }))
       ]);
       
       if (!dashboardResponse || !dashboardResponse.data) {
@@ -92,7 +94,8 @@ const Dashboard = memo(({ user }) => {
       }
 
       console.log('Dashboard data received:', dashboardResponse.data);
-      console.log('Campaigns data received:', campaignsResponse.data);
+      console.log('Featured campaigns data received:', campaignsResponse.data);
+      console.log('Latest campaigns data received:', latestCampaignsResponse.data);
       console.log('Health info data received:', healthInfoResponse.data);
       
       // Safely handle the response data with fallbacks for all properties
@@ -107,7 +110,8 @@ const Dashboard = memo(({ user }) => {
         recentHealthInfo: dashboardResponse.data.recent_health_info || null,
         profileCompletion: dashboardResponse.data.profile_completion || 0,
         featuredCampaigns: Array.isArray(campaignsResponse.data) ? campaignsResponse.data.slice(0, 3) : [],
-        recentHealthInfoPosts: Array.isArray(healthInfoResponse.data) ? healthInfoResponse.data.slice(0, 3) : [],
+        latestCampaigns: Array.isArray(latestCampaignsResponse.data) ? latestCampaignsResponse.data.slice(0, 5) : [],
+        recentHealthInfoPosts: Array.isArray(healthInfoResponse.data) ? healthInfoResponse.data.slice(0, 5) : [],
         announcements: Array.isArray(dashboardResponse.data.announcements) ? dashboardResponse.data.announcements : [],
       });
     } catch (error) {
@@ -485,14 +489,14 @@ const Dashboard = memo(({ user }) => {
           </Box>
           <Divider sx={{ mb: 2 }} />
           
-          {/* Featured Campaigns */}
-          {stats.featuredCampaigns.length > 0 && (
+          {/* Latest Campaigns */}
+          {stats.latestCampaigns.length > 0 && (
             <Box sx={{ mb: 3 }}>
               <Typography variant="subtitle2" color="primary" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
                 <CampaignIcon sx={{ mr: 1, fontSize: 16 }} />
-                Campaigns
+                Latest Campaigns
               </Typography>
-              {stats.featuredCampaigns.slice(0, 2).map((campaign, index) => (
+              {stats.latestCampaigns.slice(0, 2).map((campaign, index) => (
                 <Box key={campaign.id || index} sx={{ 
                   mb: 2, 
                   p: 2, 
@@ -648,7 +652,7 @@ const Dashboard = memo(({ user }) => {
           )}
 
           {/* Empty State */}
-          {stats.featuredCampaigns.length === 0 && stats.recentHealthInfoPosts.length === 0 && (
+          {stats.latestCampaigns.length === 0 && stats.recentHealthInfoPosts.length === 0 && (
             <Box textAlign="center" py={3}>
               <Box sx={{ mb: 2 }}>
                 <CampaignIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1, mr: 1 }} />
@@ -767,97 +771,356 @@ const Dashboard = memo(({ user }) => {
       {renderRoleBasedActions()}
 
       <Grid item xs={12} md={8}>
-        <Paper sx={{ p: 3, height: '100%', borderRadius: 3 }}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h6" fontWeight="bold">
-              Recent Health Information
-            </Typography>
-            <Button
-              component={Link}
-              to="/health-info"
-              size="small"
-              endIcon={<ArrowForwardIcon />}
-            >
-              View All
-            </Button>
-          </Box>
-          <Divider sx={{ mb: 2 }} />
-          {stats.recentHealthInfo ? (
-            <Box>
-              <Typography variant="subtitle1" fontWeight="medium">
-                {stats.recentHealthInfo.title}
+        <Paper sx={{ 
+          p: 4, 
+          height: '100%', 
+          borderRadius: 3,
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+            zIndex: 1
+          }
+        }}>
+          <Box position="relative" zIndex={2}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+              <Typography variant="h4" fontWeight="bold" sx={{ 
+                textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                <CampaignIcon sx={{ mr: 2, fontSize: 40 }} />
+                Latest Health Content
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                {stats.recentHealthInfo.content?.substring(0, 200)}
-                {stats.recentHealthInfo.content?.length > 200 ? '...' : ''}
-              </Typography>
-              <Box sx={{ mt: 2 }}>
-                <Chip
-                  size="small"
-                  label={stats.recentHealthInfo.category}
-                  color="primary"
-                  variant="outlined"
-                />
+              <Button
+                component={Link}
+                to="/campaigns"
+                variant="contained"
+                sx={{ 
+                  bgcolor: 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  '&:hover': {
+                    bgcolor: 'rgba(255,255,255,0.3)',
+                  }
+                }}
+                endIcon={<ArrowForwardIcon />}
+              >
+                View All
+              </Button>
+            </Box>
+            <Divider sx={{ mb: 3, bgcolor: 'rgba(255,255,255,0.3)' }} />
+            
+            {/* Latest Campaigns Section */}
+            {stats.latestCampaigns.length > 0 && (
+              <Box sx={{ mb: 4 }}>
+                <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', color: 'rgba(255,255,255,0.95)', fontWeight: 'bold' }}>
+                  <CampaignIcon sx={{ mr: 2, fontSize: 32 }} />
+                  Latest Health Campaigns
+                </Typography>
+                <Grid container spacing={3}>
+                  {stats.latestCampaigns.slice(0, 4).map((campaign, index) => (
+                    <Grid item xs={12} md={6} key={campaign.id || index}>
+                      <Box sx={{ 
+                        p: 3, 
+                        borderRadius: 3, 
+                        bgcolor: 'rgba(255, 255, 255, 0.15)',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        backdropFilter: 'blur(10px)',
+                        transition: 'all 0.3s ease',
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        '&:hover': {
+                          bgcolor: 'rgba(255, 255, 255, 0.25)',
+                          transform: 'translateY(-2px)',
+                          boxShadow: '0 8px 25px rgba(0,0,0,0.2)'
+                        }
+                      }}>
+                        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+                          <Avatar sx={{ 
+                            width: 48, 
+                            height: 48, 
+                            bgcolor: 'rgba(255, 255, 255, 0.2)', 
+                            mr: 2,
+                            border: '2px solid rgba(255, 255, 255, 0.3)'
+                          }}>
+                            <CampaignIcon sx={{ fontSize: 28, color: 'white' }} />
+                          </Avatar>
+                          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                            <Typography variant="h6" fontWeight="bold" sx={{ 
+                              lineHeight: 1.3, 
+                              mb: 1,
+                              color: 'white',
+                              textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                            }}>
+                              {campaign.title}
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                              <Chip
+                                size="small"
+                                label={campaign.campaign_type?.replace('_', ' ') || 'General'}
+                                sx={{ 
+                                  fontSize: '0.75rem', 
+                                  height: 22,
+                                  bgcolor: 'rgba(255, 255, 255, 0.2)',
+                                  color: 'white',
+                                  fontWeight: 'bold',
+                                  border: '1px solid rgba(255, 255, 255, 0.3)'
+                                }}
+                              />
+                              {campaign.status && (
+                                <Chip
+                                  size="small"
+                                  label={campaign.status}
+                                  sx={{ 
+                                    fontSize: '0.75rem', 
+                                    height: 22,
+                                    bgcolor: campaign.status === 'ACTIVE' ? 'rgba(76, 175, 80, 0.3)' : 'rgba(158, 158, 158, 0.3)',
+                                    color: 'white',
+                                    fontWeight: 'bold',
+                                    border: `1px solid ${campaign.status === 'ACTIVE' ? 'rgba(76, 175, 80, 0.5)' : 'rgba(158, 158, 158, 0.5)'}`
+                                  }}
+                                />
+                              )}
+                            </Box>
+                          </Box>
+                        </Box>
+                        <Typography variant="body1" sx={{ 
+                          color: 'rgba(255, 255, 255, 0.9)',
+                          lineHeight: 1.5,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          flexGrow: 1
+                        }}>
+                          {campaign.summary || campaign.description?.substring(0, 120)}
+                          {(campaign.summary || campaign.description)?.length > 120 ? '...' : ''}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  ))}
+                </Grid>
               </Box>
-            </Box>
-          ) : (
-            <Box textAlign="center" py={3}>
-              <Typography color="text.secondary">No health information available</Typography>
-            </Box>
-          )}
+            )}
+
+            {/* Health Information Section */}
+            {stats.recentHealthInfoPosts.length > 0 && (
+              <Box sx={{ mb: 4 }}>
+                <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', color: 'rgba(255,255,255,0.95)', fontWeight: 'bold' }}>
+                  <ArticleIcon sx={{ mr: 2, fontSize: 32 }} />
+                  Health Information Posts
+                </Typography>
+                <Grid container spacing={3}>
+                  {stats.recentHealthInfoPosts.slice(0, 4).map((post, index) => (
+                    <Grid item xs={12} md={6} key={post.id || index}>
+                      <Box sx={{ 
+                        p: 3, 
+                        borderRadius: 3, 
+                        bgcolor: 'rgba(255, 255, 255, 0.15)',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        backdropFilter: 'blur(10px)',
+                        transition: 'all 0.3s ease',
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        '&:hover': {
+                          bgcolor: 'rgba(255, 255, 255, 0.25)',
+                          transform: 'translateY(-2px)',
+                          boxShadow: '0 8px 25px rgba(0,0,0,0.2)'
+                        }
+                      }}>
+                        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+                          <Avatar sx={{ 
+                            width: 48, 
+                            height: 48, 
+                            bgcolor: 'rgba(255, 255, 255, 0.2)', 
+                            mr: 2,
+                            border: '2px solid rgba(255, 255, 255, 0.3)'
+                          }}>
+                            <ArticleIcon sx={{ fontSize: 28, color: 'white' }} />
+                          </Avatar>
+                          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                            <Typography variant="h6" fontWeight="bold" sx={{ 
+                              lineHeight: 1.3, 
+                              mb: 1,
+                              color: 'white',
+                              textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                            }}>
+                              {post.title}
+                            </Typography>
+                            <Chip
+                              size="small"
+                              label={post.category || 'Health Info'}
+                              sx={{ 
+                                fontSize: '0.75rem', 
+                                height: 22,
+                                bgcolor: 'rgba(255, 255, 255, 0.2)',
+                                color: 'white',
+                                fontWeight: 'bold',
+                                border: '1px solid rgba(255, 255, 255, 0.3)'
+                              }}
+                            />
+                          </Box>
+                        </Box>
+                        <Typography variant="body1" sx={{ 
+                          color: 'rgba(255, 255, 255, 0.9)',
+                          lineHeight: 1.5,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          flexGrow: 1
+                        }}>
+                          {post.content?.substring(0, 120)}
+                          {post.content?.length > 120 ? '...' : ''}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+            )}
+
+            {/* Empty State */}
+            {stats.latestCampaigns.length === 0 && stats.recentHealthInfoPosts.length === 0 && (
+              <Box textAlign="center" py={8}>
+                <Box sx={{ mb: 4 }}>
+                  <CampaignIcon sx={{ fontSize: 80, color: 'rgba(255, 255, 255, 0.6)', mb: 2, mr: 2 }} />
+                  <ArticleIcon sx={{ fontSize: 80, color: 'rgba(255, 255, 255, 0.6)', mb: 2 }} />
+                </Box>
+                <Typography variant="h4" sx={{ mb: 3, color: 'rgba(255, 255, 255, 0.9)' }}>
+                  No Health Content Available
+                </Typography>
+                <Typography variant="h6" sx={{ mb: 4, color: 'rgba(255, 255, 255, 0.7)' }}>
+                  Check back soon for new campaigns and health information
+                </Typography>
+                <Button
+                  variant="contained"
+                  size="large"
+                  component={Link}
+                  to="/campaigns"
+                  startIcon={<CampaignIcon />}
+                  sx={{ 
+                    bgcolor: 'rgba(255,255,255,0.2)',
+                    color: 'white',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    py: 1.5,
+                    px: 4,
+                    fontSize: '1.1rem',
+                    '&:hover': {
+                      bgcolor: 'rgba(255,255,255,0.3)',
+                    }
+                  }}
+                >
+                  Explore Health Content
+                </Button>
+              </Box>
+            )}
+          </Box>
         </Paper>
       </Grid>
 
       <Grid item xs={12} md={4}>
-        <Paper sx={{ p: 3, height: '100%', borderRadius: 3, background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)' }}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h6" fontWeight="bold" color="primary">
-              Latest Campaigns & News
-            </Typography>
-            <Button
-              component={Link}
-              to="/campaigns"
-              size="small"
-              endIcon={<ArrowForwardIcon />}
-            >
-              View All
-            </Button>
-          </Box>
-          <Divider sx={{ mb: 2 }} />
-          
-          {/* Featured Campaigns */}
-          {stats.featuredCampaigns.length > 0 && (
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle2" color="primary" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
-                <CampaignIcon sx={{ mr: 1, fontSize: 18 }} />
-                Featured Campaigns
+        <Paper sx={{ 
+          p: 4, 
+          height: '100%', 
+          borderRadius: 3, 
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+            zIndex: 1
+          }
+        }}>
+          <Box position="relative" zIndex={2}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+              <Typography variant="h5" fontWeight="bold" sx={{ 
+                textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                <AnnouncementIcon sx={{ mr: 1.5, fontSize: 32 }} />
+                Latest News
               </Typography>
-              {stats.featuredCampaigns.slice(0, 1).map((campaign, index) => (
-                <Box key={campaign.id || index} sx={{ 
-                  mb: 2, 
-                  p: 2, 
-                  borderRadius: 2, 
-                  bgcolor: 'rgba(255, 255, 255, 0.9)',
-                  border: '1px solid rgba(25, 118, 210, 0.2)',
-                  transition: 'all 0.2s ease',
+              <Button
+                component={Link}
+                to="/campaigns"
+                variant="contained"
+                size="small"
+                sx={{ 
+                  bgcolor: 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255,255,255,0.3)',
                   '&:hover': {
-                    bgcolor: 'rgba(255, 255, 255, 1)',
-                    transform: 'translateY(-1px)',
-                    boxShadow: 2
+                    bgcolor: 'rgba(255,255,255,0.3)',
+                  }
+                }}
+                endIcon={<ArrowForwardIcon />}
+              >
+                View All
+              </Button>
+            </Box>
+            <Divider sx={{ mb: 3, bgcolor: 'rgba(255,255,255,0.3)' }} />
+          
+          {/* Latest Campaigns */}
+          {stats.latestCampaigns.length > 0 && (
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', color: 'rgba(255,255,255,0.9)' }}>
+                <CampaignIcon sx={{ mr: 1, fontSize: 24 }} />
+                Latest Campaigns
+              </Typography>
+              {stats.latestCampaigns.slice(0, 2).map((campaign, index) => (
+                <Box key={campaign.id || index} sx={{ 
+                  mb: 3, 
+                  p: 3, 
+                  borderRadius: 3, 
+                  bgcolor: 'rgba(255, 255, 255, 0.15)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  backdropFilter: 'blur(10px)',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    bgcolor: 'rgba(255, 255, 255, 0.25)',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 8px 25px rgba(0,0,0,0.2)'
                   }
                 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}>
-                    <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main', mr: 1.5 }}>
-                      <CampaignIcon sx={{ fontSize: 20 }} />
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+                    <Avatar sx={{ 
+                      width: 40, 
+                      height: 40, 
+                      bgcolor: 'rgba(255, 255, 255, 0.2)', 
+                      mr: 2,
+                      border: '2px solid rgba(255, 255, 255, 0.3)'
+                    }}>
+                      <CampaignIcon sx={{ fontSize: 24, color: 'white' }} />
                     </Avatar>
                     <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                      <Typography variant="body2" fontWeight="bold" sx={{ 
+                      <Typography variant="subtitle1" fontWeight="bold" sx={{ 
                         lineHeight: 1.3, 
-                        mb: 0.5,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden'
+                        mb: 1,
+                        color: 'white',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.3)'
                       }}>
                         {campaign.title}
                       </Typography>
@@ -865,25 +1128,26 @@ const Dashboard = memo(({ user }) => {
                         size="small"
                         label={campaign.campaign_type?.replace('_', ' ') || 'General'}
                         sx={{ 
-                          fontSize: '0.7rem', 
-                          height: 20,
-                          bgcolor: 'primary.main',
+                          fontSize: '0.75rem', 
+                          height: 22,
+                          bgcolor: 'rgba(255, 255, 255, 0.2)',
                           color: 'white',
-                          fontWeight: 'bold'
+                          fontWeight: 'bold',
+                          border: '1px solid rgba(255, 255, 255, 0.3)'
                         }}
                       />
                     </Box>
                   </Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ 
-                    display: 'block',
-                    lineHeight: 1.3,
+                  <Typography variant="body2" sx={{ 
+                    color: 'rgba(255, 255, 255, 0.9)',
+                    lineHeight: 1.4,
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
                     WebkitBoxOrient: 'vertical',
                     overflow: 'hidden'
                   }}>
-                    {campaign.summary || campaign.description?.substring(0, 70)}
-                    {(campaign.summary || campaign.description)?.length > 70 ? '...' : ''}
+                    {campaign.summary || campaign.description?.substring(0, 80)}
+                    {(campaign.summary || campaign.description)?.length > 80 ? '...' : ''}
                   </Typography>
                 </Box>
               ))}
@@ -892,37 +1156,42 @@ const Dashboard = memo(({ user }) => {
 
           {/* Health Info Posts */}
           {stats.recentHealthInfoPosts.length > 0 && (
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle2" color="success.main" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
-                <ArticleIcon sx={{ mr: 1, fontSize: 18 }} />
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', color: 'rgba(255,255,255,0.9)' }}>
+                <ArticleIcon sx={{ mr: 1, fontSize: 24 }} />
                 Health Information
               </Typography>
-              {stats.recentHealthInfoPosts.slice(0, 1).map((post, index) => (
+              {stats.recentHealthInfoPosts.slice(0, 2).map((post, index) => (
                 <Box key={post.id || index} sx={{ 
-                  mb: 2, 
-                  p: 2, 
-                  borderRadius: 2, 
-                  bgcolor: 'rgba(255, 255, 255, 0.9)',
-                  border: '1px solid rgba(76, 175, 80, 0.2)',
-                  transition: 'all 0.2s ease',
+                  mb: 3, 
+                  p: 3, 
+                  borderRadius: 3, 
+                  bgcolor: 'rgba(255, 255, 255, 0.15)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  backdropFilter: 'blur(10px)',
+                  transition: 'all 0.3s ease',
                   '&:hover': {
-                    bgcolor: 'rgba(255, 255, 255, 1)',
-                    transform: 'translateY(-1px)',
-                    boxShadow: 2
+                    bgcolor: 'rgba(255, 255, 255, 0.25)',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 8px 25px rgba(0,0,0,0.2)'
                   }
                 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}>
-                    <Avatar sx={{ width: 36, height: 36, bgcolor: 'success.main', mr: 1.5 }}>
-                      <ArticleIcon sx={{ fontSize: 20 }} />
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+                    <Avatar sx={{ 
+                      width: 40, 
+                      height: 40, 
+                      bgcolor: 'rgba(255, 255, 255, 0.2)', 
+                      mr: 2,
+                      border: '2px solid rgba(255, 255, 255, 0.3)'
+                    }}>
+                      <ArticleIcon sx={{ fontSize: 24, color: 'white' }} />
                     </Avatar>
                     <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                      <Typography variant="body2" fontWeight="bold" sx={{ 
+                      <Typography variant="subtitle1" fontWeight="bold" sx={{ 
                         lineHeight: 1.3, 
-                        mb: 0.5,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden'
+                        mb: 1,
+                        color: 'white',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.3)'
                       }}>
                         {post.title}
                       </Typography>
@@ -930,25 +1199,26 @@ const Dashboard = memo(({ user }) => {
                         size="small"
                         label={post.category || 'Health Info'}
                         sx={{ 
-                          fontSize: '0.7rem', 
-                          height: 20,
-                          bgcolor: 'success.main',
+                          fontSize: '0.75rem', 
+                          height: 22,
+                          bgcolor: 'rgba(255, 255, 255, 0.2)',
                           color: 'white',
-                          fontWeight: 'bold'
+                          fontWeight: 'bold',
+                          border: '1px solid rgba(255, 255, 255, 0.3)'
                         }}
                       />
                     </Box>
                   </Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ 
-                    display: 'block',
-                    lineHeight: 1.3,
+                  <Typography variant="body2" sx={{ 
+                    color: 'rgba(255, 255, 255, 0.9)',
+                    lineHeight: 1.4,
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
                     WebkitBoxOrient: 'vertical',
                     overflow: 'hidden'
                   }}>
-                    {post.content?.substring(0, 70)}
-                    {post.content?.length > 70 ? '...' : ''}
+                    {post.content?.substring(0, 80)}
+                    {post.content?.length > 80 ? '...' : ''}
                   </Typography>
                 </Box>
               ))}
@@ -958,54 +1228,59 @@ const Dashboard = memo(({ user }) => {
           {/* Announcements */}
           {stats.announcements.length > 0 && (
             <Box>
-              <Typography variant="subtitle2" color="warning.main" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
-                <AnnouncementIcon sx={{ mr: 1, fontSize: 18 }} />
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', color: 'rgba(255,255,255,0.9)' }}>
+                <AnnouncementIcon sx={{ mr: 1, fontSize: 24 }} />
                 Latest News
               </Typography>
               {stats.announcements.slice(0, 2).map((announcement, index) => (
                 <Box key={announcement.id || index} sx={{ 
-                  mb: 2, 
-                  p: 2, 
-                  borderRadius: 2, 
-                  bgcolor: 'rgba(255, 255, 255, 0.9)',
-                  border: '1px solid rgba(237, 108, 2, 0.2)',
-                  transition: 'all 0.2s ease',
+                  mb: 3, 
+                  p: 3, 
+                  borderRadius: 3, 
+                  bgcolor: 'rgba(255, 255, 255, 0.15)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  backdropFilter: 'blur(10px)',
+                  transition: 'all 0.3s ease',
                   '&:hover': {
-                    bgcolor: 'rgba(255, 255, 255, 1)',
-                    transform: 'translateY(-1px)',
-                    boxShadow: 2
+                    bgcolor: 'rgba(255, 255, 255, 0.25)',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 8px 25px rgba(0,0,0,0.2)'
                   }
                 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}>
-                    <Avatar sx={{ width: 36, height: 36, bgcolor: 'warning.main', mr: 1.5 }}>
-                      <AnnouncementIcon sx={{ fontSize: 20 }} />
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+                    <Avatar sx={{ 
+                      width: 40, 
+                      height: 40, 
+                      bgcolor: 'rgba(255, 255, 255, 0.2)', 
+                      mr: 2,
+                      border: '2px solid rgba(255, 255, 255, 0.3)'
+                    }}>
+                      <AnnouncementIcon sx={{ fontSize: 24, color: 'white' }} />
                     </Avatar>
                     <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                      <Typography variant="body2" fontWeight="bold" sx={{ 
+                      <Typography variant="subtitle1" fontWeight="bold" sx={{ 
                         lineHeight: 1.3, 
-                        mb: 0.5,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden'
+                        mb: 1,
+                        color: 'white',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.3)'
                       }}>
                         {announcement.title}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                         {new Date(announcement.created_at).toLocaleDateString()}
                       </Typography>
                     </Box>
                   </Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ 
-                    display: 'block',
-                    lineHeight: 1.3,
+                  <Typography variant="body2" sx={{ 
+                    color: 'rgba(255, 255, 255, 0.9)',
+                    lineHeight: 1.4,
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
                     WebkitBoxOrient: 'vertical',
                     overflow: 'hidden'
                   }}>
-                    {announcement.content?.substring(0, 70)}
-                    {announcement.content?.length > 70 ? '...' : ''}
+                    {announcement.content?.substring(0, 80)}
+                    {announcement.content?.length > 80 ? '...' : ''}
                   </Typography>
                 </Box>
               ))}
@@ -1013,27 +1288,39 @@ const Dashboard = memo(({ user }) => {
           )}
 
           {/* Empty State */}
-          {stats.featuredCampaigns.length === 0 && stats.recentHealthInfoPosts.length === 0 && stats.announcements.length === 0 && (
-            <Box textAlign="center" py={4}>
-              <Box sx={{ mb: 2 }}>
-                <CampaignIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1, mr: 0.5 }} />
-                <ArticleIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1, mr: 0.5 }} />
-                <AnnouncementIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
+          {stats.latestCampaigns.length === 0 && stats.recentHealthInfoPosts.length === 0 && stats.announcements.length === 0 && (
+            <Box textAlign="center" py={6}>
+              <Box sx={{ mb: 3 }}>
+                <CampaignIcon sx={{ fontSize: 60, color: 'rgba(255, 255, 255, 0.6)', mb: 2, mr: 1 }} />
+                <ArticleIcon sx={{ fontSize: 60, color: 'rgba(255, 255, 255, 0.6)', mb: 2, mr: 1 }} />
+                <AnnouncementIcon sx={{ fontSize: 60, color: 'rgba(255, 255, 255, 0.6)', mb: 2 }} />
               </Box>
-              <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>
-                No campaigns, health info, or announcements available
+              <Typography variant="h6" sx={{ mb: 2, color: 'rgba(255, 255, 255, 0.9)' }}>
+                No content available
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 3, color: 'rgba(255, 255, 255, 0.7)' }}>
+                Check back soon for new campaigns, health info, and announcements
               </Typography>
               <Button
-                variant="outlined"
-                size="small"
+                variant="contained"
                 component={Link}
                 to="/campaigns"
                 startIcon={<CampaignIcon />}
+                sx={{ 
+                  bgcolor: 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  '&:hover': {
+                    bgcolor: 'rgba(255,255,255,0.3)',
+                  }
+                }}
               >
                 Explore Content
               </Button>
             </Box>
           )}
+          </Box>
         </Paper>
       </Grid>
 

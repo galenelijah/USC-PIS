@@ -1339,6 +1339,16 @@ export const campaignService = {
     return api.get('/health-info/campaigns/featured/');
   },
 
+  // Get latest campaigns (including expired ones)
+  getLatestCampaigns: (limit = 5) => {
+    return api.get('/health-info/campaigns/', { 
+      params: { 
+        ordering: '-created_at',
+        limit: limit
+      } 
+    });
+  },
+
   // Get active campaigns (for students)
   getActiveCampaigns: () => {
     return api.get('/health-info/campaigns/', { params: { status: 'ACTIVE' } });
