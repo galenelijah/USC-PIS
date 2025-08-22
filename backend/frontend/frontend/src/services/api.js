@@ -1296,8 +1296,16 @@ export const campaignService = {
     return api.post('/health-info/campaigns/', data);
   },
 
-  // Update campaign (same as health info approach)
+  // Update campaign (handle FormData like create campaign)
   updateCampaign: (id, data) => {
+    if (data instanceof FormData) {
+      // Delete Content-Type to let axios set the boundary
+      return api.put(`/health-info/campaigns/${id}/`, data, {
+        headers: {
+          'Content-Type': undefined
+        }
+      });
+    }
     return api.put(`/health-info/campaigns/${id}/`, data);
   },
 

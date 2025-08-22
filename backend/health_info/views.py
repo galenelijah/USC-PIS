@@ -173,28 +173,43 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
             raise
     
     def perform_update(self, serializer):
-        # Save the campaign instance
-        campaign = serializer.save(last_modified_by=self.request.user)
-        
-        # Handle specific image field uploads (new approach)
-        if 'banner_image' in self.request.FILES:
-            campaign.banner_image = self.request.FILES['banner_image']
-        if 'thumbnail_image' in self.request.FILES:
-            campaign.thumbnail_image = self.request.FILES['thumbnail_image']
-        if 'pubmat_image' in self.request.FILES:
-            campaign.pubmat_image = self.request.FILES['pubmat_image']
-        
-        # Handle legacy generic image uploads for backward compatibility
-        images = self.request.FILES.getlist('images')
-        for image_file in images:
-            if not campaign.banner_image:
-                campaign.banner_image = image_file
-            elif not campaign.thumbnail_image:
-                campaign.thumbnail_image = image_file
-            elif not campaign.pubmat_image:
-                campaign.pubmat_image = image_file
-        
-        campaign.save()
+        logger = logging.getLogger(__name__)
+        try:
+            # Process files before updating the campaign to avoid Cloudinary empty file errors
+            file_data = {}
+            
+            # Handle specific image field uploads
+            if 'banner_image' in self.request.FILES:
+                file_obj = self.request.FILES['banner_image']
+                if file_obj and file_obj.size > 0:
+                    # Reset file pointer to beginning
+                    file_obj.seek(0)
+                    file_data['banner_image'] = file_obj
+                    logger.info(f"Prepared banner_image for update: {file_obj.name} ({file_obj.size} bytes)")
+            
+            if 'thumbnail_image' in self.request.FILES:
+                file_obj = self.request.FILES['thumbnail_image']
+                if file_obj and file_obj.size > 0:
+                    # Reset file pointer to beginning
+                    file_obj.seek(0)
+                    file_data['thumbnail_image'] = file_obj
+                    logger.info(f"Prepared thumbnail_image for update: {file_obj.name} ({file_obj.size} bytes)")
+            
+            if 'pubmat_image' in self.request.FILES:
+                file_obj = self.request.FILES['pubmat_image']
+                if file_obj and file_obj.size > 0:
+                    # Reset file pointer to beginning
+                    file_obj.seek(0)
+                    file_data['pubmat_image'] = file_obj
+                    logger.info(f"Prepared pubmat_image for update: {file_obj.name} ({file_obj.size} bytes)")
+            
+            # Save campaign with file data included in serializer
+            campaign = serializer.save(last_modified_by=self.request.user, **file_data)
+            logger.info(f"Campaign updated successfully: {campaign.title} (ID: {campaign.id})")
+            
+        except Exception as e:
+            logger.error(f"Error in perform_update: {str(e)}", exc_info=True)
+            raise
     
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
