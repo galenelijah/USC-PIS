@@ -82,9 +82,10 @@ const CampaignsPage = () => {
     content: '',
     summary: '',
     objectives: '',
-    target_audience: '',
     call_to_action: '',
     tags: '',
+    contact_info: '',
+    external_link: '',
     start_date: '',
     end_date: '',
     status: 'DRAFT'
@@ -233,8 +234,9 @@ const CampaignsPage = () => {
       content: '',
       summary: '',
       objectives: '',
-      target_audience: '',
       call_to_action: '',
+      contact_info: '',
+      external_link: '',
       tags: '',
       start_date: '',
       end_date: '',
@@ -338,9 +340,9 @@ const CampaignsPage = () => {
     try {
       const formData = new FormData();
       
-      // Add form fields
+      // Add form fields (include all fields, even empty ones for required fields)
       Object.keys(campaignForm).forEach(key => {
-        if (campaignForm[key]) {
+        if (campaignForm[key] !== null && campaignForm[key] !== undefined) {
           formData.append(key, campaignForm[key]);
         }
       });
@@ -390,8 +392,9 @@ const CampaignsPage = () => {
       content: campaign.content || '',
       summary: campaign.summary || '',
       objectives: campaign.objectives || '',
-      target_audience: campaign.target_audience || '',
       call_to_action: campaign.call_to_action || '',
+      contact_info: campaign.contact_info || '',
+      external_link: campaign.external_link || '',
       tags: campaign.tags || '',
       start_date: campaign.start_date ? campaign.start_date.split('T')[0] : '',
       end_date: campaign.end_date ? campaign.end_date.split('T')[0] : '',
@@ -889,15 +892,6 @@ const CampaignsPage = () => {
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Target Audience"
-                value={campaignForm.target_audience}
-                onChange={(e) => setCampaignForm({...campaignForm, target_audience: e.target.value})}
-                placeholder="Students, Staff, General Public..."
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
                 label="Campaign Objectives"
                 value={campaignForm.objectives}
                 onChange={(e) => setCampaignForm({...campaignForm, objectives: e.target.value})}
@@ -940,6 +934,33 @@ const CampaignsPage = () => {
                 placeholder="Detailed content for the campaign..."
                 multiline
                 rows={6}
+              />
+            </Grid>
+
+            {/* Additional Information */}
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom color="primary" sx={{ mt: 2 }}>
+                Additional Information
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Contact Information"
+                value={campaignForm.contact_info}
+                onChange={(e) => setCampaignForm({...campaignForm, contact_info: e.target.value})}
+                placeholder="Contact details for inquiries"
+                helperText="Phone, email, or office location"
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="External Link"
+                value={campaignForm.external_link}
+                onChange={(e) => setCampaignForm({...campaignForm, external_link: e.target.value})}
+                placeholder="https://example.com"
+                helperText="Link for more information"
               />
             </Grid>
 
@@ -1202,6 +1223,84 @@ const CampaignsPage = () => {
                 onChange={(e) => setCampaignForm({...campaignForm, end_date: e.target.value})}
                 InputLabelProps={{ shrink: true }}
                 required
+              />
+            </Grid>
+
+            {/* Detailed Content */}
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom color="primary" sx={{ mt: 2 }}>
+                Detailed Content
+              </Typography>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Campaign Content"
+                value={campaignForm.content}
+                onChange={(e) => setCampaignForm({...campaignForm, content: e.target.value})}
+                placeholder="Detailed content for the campaign..."
+                multiline
+                rows={6}
+                helperText="Full campaign content and details"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Call to Action"
+                value={campaignForm.call_to_action}
+                onChange={(e) => setCampaignForm({...campaignForm, call_to_action: e.target.value})}
+                placeholder="What should people do?"
+                helperText="e.g., Register now, Visit clinic, Get vaccinated"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Campaign Objectives"
+                value={campaignForm.objectives}
+                onChange={(e) => setCampaignForm({...campaignForm, objectives: e.target.value})}
+                placeholder="Campaign goals and objectives..."
+                multiline
+                rows={3}
+                helperText="What the campaign aims to achieve"
+              />
+            </Grid>
+
+            {/* Additional Information */}
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom color="primary" sx={{ mt: 2 }}>
+                Additional Information
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Contact Information"
+                value={campaignForm.contact_info}
+                onChange={(e) => setCampaignForm({...campaignForm, contact_info: e.target.value})}
+                placeholder="Contact details for inquiries"
+                helperText="Phone, email, or office location"
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="External Link"
+                value={campaignForm.external_link}
+                onChange={(e) => setCampaignForm({...campaignForm, external_link: e.target.value})}
+                placeholder="https://example.com"
+                helperText="Link for more information"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Tags"
+                value={campaignForm.tags}
+                onChange={(e) => setCampaignForm({...campaignForm, tags: e.target.value})}
+                placeholder="health, wellness, vaccination, nutrition"
+                helperText="Comma-separated tags for categorizing the campaign"
               />
             </Grid>
 
@@ -1469,19 +1568,8 @@ const CampaignsPage = () => {
                   </Grid>
                 )}
 
-                {selectedCampaign.target_audience && (
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                      Target Audience
-                    </Typography>
-                    <Typography variant="body1" gutterBottom>
-                      {selectedCampaign.target_audience}
-                    </Typography>
-                  </Grid>
-                )}
-
                 {selectedCampaign.call_to_action && (
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12}>
                     <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                       Call to Action
                     </Typography>
@@ -1533,6 +1621,59 @@ const CampaignsPage = () => {
                     </Box>
                   </Grid>
                 )}
+
+                {/* Additional Information */}
+                {(selectedCampaign.external_link || selectedCampaign.contact_info) && (
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ mt: 2 }}>
+                      Additional Information
+                    </Typography>
+                  </Grid>
+                )}
+
+                {selectedCampaign.external_link && (
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                      External Link
+                    </Typography>
+                    <Typography variant="body1" gutterBottom>
+                      <a href={selectedCampaign.external_link} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+                        {selectedCampaign.external_link}
+                      </a>
+                    </Typography>
+                  </Grid>
+                )}
+
+                {selectedCampaign.contact_info && (
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                      Contact Information
+                    </Typography>
+                    <Typography variant="body1" gutterBottom>
+                      {selectedCampaign.contact_info}
+                    </Typography>
+                  </Grid>
+                )}
+
+                {/* Meta Information */}
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ mt: 2 }}>
+                    Campaign History
+                  </Typography>
+                  <Box display="flex" gap={4} flexWrap="wrap">
+                    <Typography variant="body2" color="text.secondary">
+                      Created: {formatDate(selectedCampaign.created_at)}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Last Updated: {formatDate(selectedCampaign.updated_at)}
+                    </Typography>
+                    {selectedCampaign.last_modified_by_name && (
+                      <Typography variant="body2" color="text.secondary">
+                        Modified by: {selectedCampaign.last_modified_by_name}
+                      </Typography>
+                    )}
+                  </Box>
+                </Grid>
               </Grid>
             </DialogContent>
             <DialogActions sx={{ p: 3 }}>
