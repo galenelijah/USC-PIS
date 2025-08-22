@@ -94,20 +94,12 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
     ordering = ['-created_at']
     
     def create(self, request, *args, **kwargs):
-        """Override create method with enhanced error handling"""
+        """Simplified create method without strict empty file validation"""
         logger = logging.getLogger(__name__)
         try:
             logger.info(f"Campaign creation request from user: {request.user}")
-            logger.info(f"Request data keys: {list(request.data.keys())}")
-            logger.info(f"Request files keys: {list(request.FILES.keys())}")
             
-            # Log file details to identify the issue
-            for file_key, file_obj in request.FILES.items():
-                logger.info(f"File {file_key}: name={file_obj.name}, size={file_obj.size}, content_type={getattr(file_obj, 'content_type', 'unknown')}")
-                if file_obj.size == 0:
-                    logger.warning(f"Empty file detected: {file_key} - {file_obj.name}")
-            
-            # Validate required fields
+            # Validate required fields only
             required_fields = ['title', 'description', 'campaign_type', 'start_date', 'end_date']
             for field in required_fields:
                 if not request.data.get(field):
@@ -117,26 +109,10 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_400_BAD_REQUEST
                     )
             
-            # Check for empty files and remove them from request.FILES
-            files_to_remove = []
-            for file_key, file_obj in request.FILES.items():
-                if file_obj.size == 0:
-                    files_to_remove.append(file_key)
-                    logger.warning(f"Removing empty file: {file_key}")
-            
-            # Remove empty files from the request
-            for file_key in files_to_remove:
-                request.FILES.pop(file_key, None)
-                logger.info(f"Successfully removed empty file: {file_key}")
-            
-            logger.info(f"Final request.FILES keys: {list(request.FILES.keys())}")
-            for file_key, file_obj in request.FILES.items():
-                logger.info(f"Final file {file_key}: size={file_obj.size}")
-            
+            logger.info(f"Request files: {list(request.FILES.keys())}")
             return super().create(request, *args, **kwargs)
         except Exception as e:
             logger.error(f"Campaign creation error: {str(e)}", exc_info=True)
-            logger.error(f"Request data: {request.data}")
             return Response(
                 {'error': f'Campaign creation failed: {str(e)}'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -184,19 +160,24 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
             user = self.request.user if self.request.user.is_authenticated else None
             campaign = serializer.save(created_by=user, last_modified_by=user)
             
-            # Handle specific image field uploads with validation
-            def validate_and_set_image(file_key, field_name):
-                if file_key in self.request.FILES:
-                    file_obj = self.request.FILES[file_key]
-                    if file_obj.size > 0:  # Only process non-empty files
-                        setattr(campaign, field_name, file_obj)
-                        logger.info(f"Set {field_name} from {file_key}: {file_obj.name} ({file_obj.size} bytes)")
-                    else:
-                        logger.warning(f"Skipping empty file for {field_name}: {file_obj.name}")
+            # Handle specific image field uploads (like health_info does - simpler approach)
+            if 'banner_image' in self.request.FILES:
+                file_obj = self.request.FILES['banner_image']
+                if file_obj.size > 0:  # Only process non-empty files
+                    campaign.banner_image = file_obj
+                    logger.info(f"Set banner_image: {file_obj.name} ({file_obj.size} bytes)")
             
-            validate_and_set_image('banner_image', 'banner_image')
-            validate_and_set_image('thumbnail_image', 'thumbnail_image')
-            validate_and_set_image('pubmat_image', 'pubmat_image')
+            if 'thumbnail_image' in self.request.FILES:
+                file_obj = self.request.FILES['thumbnail_image']
+                if file_obj.size > 0:  # Only process non-empty files
+                    campaign.thumbnail_image = file_obj
+                    logger.info(f"Set thumbnail_image: {file_obj.name} ({file_obj.size} bytes)")
+            
+            if 'pubmat_image' in self.request.FILES:
+                file_obj = self.request.FILES['pubmat_image']
+                if file_obj.size > 0:  # Only process non-empty files
+                    campaign.pubmat_image = file_obj
+                    logger.info(f"Set pubmat_image: {file_obj.name} ({file_obj.size} bytes)")
             
             # Handle legacy generic image uploads for backward compatibility
             images = self.request.FILES.getlist('images')
@@ -211,8 +192,6 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
                     elif not campaign.pubmat_image:
                         campaign.pubmat_image = image_file
                         logger.info(f"Set pubmat_image from legacy images: {image_file.name}")
-                else:
-                    logger.warning(f"Skipping empty legacy image file: {image_file.name}")
             
             campaign.save()
             logger.info(f"Campaign created successfully: {campaign.title} (ID: {campaign.id})")
