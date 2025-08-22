@@ -246,7 +246,10 @@ const CampaignsPage = () => {
   };
 
   const handleFileUpload = (type, file) => {
+    console.log('handleFileUpload called with:', type, file ? { name: file.name, size: file.size, type: file.type } : null);
+    
     if (file && file.size > 0) {
+      console.log(`Setting ${type} file:`, file.name, file.size, 'bytes');
       switch (type) {
         case 'banner':
           setBannerFile(file);
@@ -261,7 +264,10 @@ const CampaignsPage = () => {
           break;
       }
     } else if (file && file.size === 0) {
+      console.error('Empty file detected:', file.name);
       showSnackbar('Cannot upload empty files', 'error');
+    } else {
+      console.log('No file or file is null');
     }
   };
 
@@ -282,15 +288,34 @@ const CampaignsPage = () => {
         }
       });
 
+      // Debug file information before adding to FormData
+      console.log('Frontend file debug:');
+      console.log('bannerFile:', bannerFile ? { name: bannerFile.name, size: bannerFile.size, type: bannerFile.type } : null);
+      console.log('thumbnailFile:', thumbnailFile ? { name: thumbnailFile.name, size: thumbnailFile.size, type: thumbnailFile.type } : null);
+      console.log('pubmatFile:', pubmatFile ? { name: pubmatFile.name, size: pubmatFile.size, type: pubmatFile.type } : null);
+
       // Add files with size validation
       if (bannerFile && bannerFile.size > 0) {
         formData.append('banner_image', bannerFile);
+        console.log('Added banner_image to FormData:', bannerFile.name, bannerFile.size);
       }
       if (thumbnailFile && thumbnailFile.size > 0) {
         formData.append('thumbnail_image', thumbnailFile);
+        console.log('Added thumbnail_image to FormData:', thumbnailFile.name, thumbnailFile.size);
       }
       if (pubmatFile && pubmatFile.size > 0) {
         formData.append('pubmat_image', pubmatFile);
+        console.log('Added pubmat_image to FormData:', pubmatFile.name, pubmatFile.size);
+      }
+
+      // Debug FormData contents
+      console.log('FormData contents:');
+      for (let [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(key, ':', value.name, value.size, 'bytes');
+        } else {
+          console.log(key, ':', value);
+        }
       }
 
       await campaignService.createCampaign(formData);
