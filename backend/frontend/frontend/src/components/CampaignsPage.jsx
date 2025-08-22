@@ -961,7 +961,11 @@ const CampaignsPage = () => {
                     type="file"
                     hidden
                     accept="image/*"
-                    onChange={(e) => handleFileUpload('banner', e.target.files[0])}
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      console.log('Raw file input for banner:', file ? { name: file.name, size: file.size, type: file.type, lastModified: file.lastModified } : null);
+                      handleFileUpload('banner', file);
+                    }}
                   />
                 </Button>
                 {bannerFile && (
@@ -993,7 +997,11 @@ const CampaignsPage = () => {
                     type="file"
                     hidden
                     accept="image/*"
-                    onChange={(e) => handleFileUpload('thumbnail', e.target.files[0])}
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      console.log('Raw file input for thumbnail:', file ? { name: file.name, size: file.size, type: file.type, lastModified: file.lastModified } : null);
+                      handleFileUpload('thumbnail', file);
+                    }}
                   />
                 </Button>
                 {thumbnailFile && (
@@ -1025,7 +1033,11 @@ const CampaignsPage = () => {
                     type="file"
                     hidden
                     accept="image/*,application/pdf"
-                    onChange={(e) => handleFileUpload('pubmat', e.target.files[0])}
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      console.log('Raw file input for pubmat:', file ? { name: file.name, size: file.size, type: file.type, lastModified: file.lastModified } : null);
+                      handleFileUpload('pubmat', file);
+                    }}
                   />
                 </Button>
                 {pubmatFile && (
@@ -1211,7 +1223,11 @@ const CampaignsPage = () => {
                     type="file"
                     hidden
                     accept="image/*"
-                    onChange={(e) => handleFileUpload('banner', e.target.files[0])}
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      console.log('Raw file input for banner:', file ? { name: file.name, size: file.size, type: file.type, lastModified: file.lastModified } : null);
+                      handleFileUpload('banner', file);
+                    }}
                   />
                 </Button>
                 {bannerFile && (
@@ -1248,7 +1264,11 @@ const CampaignsPage = () => {
                     type="file"
                     hidden
                     accept="image/*"
-                    onChange={(e) => handleFileUpload('thumbnail', e.target.files[0])}
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      console.log('Raw file input for thumbnail:', file ? { name: file.name, size: file.size, type: file.type, lastModified: file.lastModified } : null);
+                      handleFileUpload('thumbnail', file);
+                    }}
                   />
                 </Button>
                 {thumbnailFile && (
@@ -1285,7 +1305,11 @@ const CampaignsPage = () => {
                     type="file"
                     hidden
                     accept="image/*,application/pdf"
-                    onChange={(e) => handleFileUpload('pubmat', e.target.files[0])}
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      console.log('Raw file input for pubmat:', file ? { name: file.name, size: file.size, type: file.type, lastModified: file.lastModified } : null);
+                      handleFileUpload('pubmat', file);
+                    }}
                   />
                 </Button>
                 {pubmatFile && (

@@ -1285,16 +1285,15 @@ export const campaignService = {
 
   // Create campaign
   createCampaign: (data) => {
-    return api.post('/health-info/campaigns/', data, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    console.log('API createCampaign called with FormData');
+    // Don't set Content-Type explicitly - let browser set it with boundary
+    return api.post('/health-info/campaigns/', data);
   },
 
   // Update campaign
   updateCampaign: (id, data) => {
-    return api.put(`/health-info/campaigns/${id}/`, data, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    // Don't set Content-Type explicitly - let browser set it with boundary
+    return api.put(`/health-info/campaigns/${id}/`, data);
   },
 
   // Delete campaign
