@@ -44,13 +44,15 @@ import { useNavigate } from 'react-router-dom';
 import MyTextField from './forms/MyTextField';
 import MyDatePicker from './forms/MyDatePicker';
 import MySelector from './forms/MySelector';
-import { CivilStatusChoices, SexChoices, ProgramsChoices } from './static/choices';
+import { CivilStatusChoices, SexChoices, ProgramsChoices, YearLevelChoices, CampusChoices } from './static/choices';
 import logger from '../utils/logger';
 
 // Defensive fallbacks for imported arrays
 const safeCivilStatusChoices = CivilStatusChoices || [];
 const safeSexChoices = SexChoices || [];
 const safeProgramsChoices = ProgramsChoices || [];
+const safeYearLevelChoices = YearLevelChoices || [];
+const safeCampusChoices = CampusChoices || [];
 import dayjs from 'dayjs';
 import StepConnector, { stepConnectorClasses } from '@mui/material/StepConnector';
 import { styled } from '@mui/material/styles';
@@ -945,22 +947,24 @@ const ProfileSetup = () => {
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                    <MyTextField
+                    <MySelector
                       key={`${stepKey}-year_level`}
                       label="Year Level"
                       name="year_level"
                       control={control}
+                      options={safeYearLevelChoices}
                       required
                       error={!!errors?.year_level}
                       helperText={errors?.year_level?.message}
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                    <MyTextField
+                    <MySelector
                       key={`${stepKey}-school`}
                       label="School/Campus"
                       name="school"
                       control={control}
+                      options={safeCampusChoices}
                       error={!!errors?.school}
                       helperText={errors?.school?.message}
                     />

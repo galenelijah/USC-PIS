@@ -17,6 +17,7 @@ import {
   DialogTitle,
   IconButton,
   FormControl,
+  FormHelperText,
   InputLabel,
   Select,
   MenuItem,
@@ -28,8 +29,10 @@ import {
   Chip,
   Divider,
   Autocomplete,
-  Avatar
+  Avatar,
+  Tooltip
 } from '@mui/material';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { 
   Add as AddIcon, 
   Edit as EditIcon, 
@@ -424,14 +427,12 @@ Treatment: ${r.treatment || 'N/A'}
       }
 
       if (dialogMode === 'create') {
-        const response = await healthRecordsService.create(currentRecord);
-        const newRecord = response.data;
-        setRecords([...records, newRecord]);
+        await healthRecordsService.create(currentRecord);
       } else {
-        const response = await healthRecordsService.update(currentRecord.id, currentRecord);
-        const updatedRecord = response.data;
-        setRecords(records.map(r => r.id === updatedRecord.id ? updatedRecord : r));
+        await healthRecordsService.update(currentRecord.id, currentRecord);
       }
+      // Refresh list from server for authoritative state
+      await fetchHealthRecords();
       handleCloseDialog();
     } catch (error) {
       console.error('Error saving health record:', error);
@@ -1155,7 +1156,10 @@ Treatment: ${r.treatment || 'N/A'}
                       {canEditRecords && (() => {
                         const suggestions = getFollowUpSuggestions(record);
                         return suggestions.length > 0 && (
-                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1, alignItems: 'center' }}>
+                            <Tooltip title="Appears when diagnosis contains 'sick' or treatment includes 'rest'">
+                              <InfoOutlinedIcon sx={{ fontSize: 16, color: 'text.secondary', mr: 0.5 }} />
+                            </Tooltip>
                             {suggestions.map((suggestion, index) => (
                               <Chip
                                 key={index}
@@ -1300,6 +1304,9 @@ Treatment: ${r.treatment || 'N/A'}
                     <MenuItem value="MEDICAL">Medical</MenuItem>
                     <MenuItem value="DENTAL">Dental</MenuItem>
                   </Select>
+                  <FormHelperText>
+                    Choose Medical for general clinical visits; Dental for dental procedures.
+                  </FormHelperText>
                 </FormControl>
               </Grid>
               <Grid item xs={12}>

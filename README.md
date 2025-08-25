@@ -237,6 +237,8 @@ GET    /api/system/health/        # System monitoring
 - **[Development History](docs/history/)** - Implementation timeline
 - **[Strategic Plan](USC_PIS_STRATEGIC_DEVELOPMENT_PLAN.md)** - Project roadmap
 - **[Priority Features Plan](PRIORITY_FEATURES_PLAN.md)** - Next phase development plan
+- **[Session Notes](docs/session-notes/)** - Dated logs of sessions and changes
+- **[Next Session Checklist](docs/next-session/README.md)** - What to verify and test next
 
 ## 📄 License
 

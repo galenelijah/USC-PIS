@@ -181,7 +181,7 @@ const Reports = () => {
         setError('Downloaded file is empty');
         return;
       }
-      
+
       // Determine file extension and MIME type based on format
       let fileExtension, mimeType;
       switch (exportFormat.toLowerCase()) {
@@ -205,8 +205,23 @@ const Reports = () => {
           break;
       }
       
-      // Handle download with correct format
-      const blob = new Blob([response.data], { type: mimeType });
+      // Handle cases where server returned an error page or JSON instead of a file
+      const respContentType = response.headers['content-type'] || '';
+      let blob = new Blob([response.data], { type: mimeType });
+      if (respContentType.includes('text/html') || respContentType.includes('application/json')) {
+        try {
+          const text = await new Response(new Blob([response.data])).text();
+          // Heuristic: if looks like HTML/JSON error, surface it instead of downloading
+          if (text && text.length > 0) {
+            setError(text.substring(0, 400));
+            return;
+          }
+        } catch (_) {
+          // fall through to download
+        }
+      }
+
+      // Proceed with download
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;

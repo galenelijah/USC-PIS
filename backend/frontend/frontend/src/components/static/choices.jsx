@@ -88,3 +88,9 @@ export const YearLevelChoices = [
   { id: 3, label: '3rd Year' },
   { id: 4, label: '4th Year' },
 ]; 
+
+// Campus/School options for dropdowns
+export const CampusChoices = [
+  { id: 'Downtown Campus', label: 'Downtown Campus' },
+  { id: 'Talamban Campus', label: 'Talamban Campus' }
+];

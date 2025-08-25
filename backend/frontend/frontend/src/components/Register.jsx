@@ -33,7 +33,7 @@ import { registerSchema } from '../utils/validationSchemas';
 
 const Register = () =>{
     const navigate = useNavigate()
-    const {handleSubmit, control, watch, formState: { errors } } = useForm({
+    const {handleSubmit, control, watch, setError, formState: { errors } } = useForm({
         resolver: yupResolver(registerSchema),
         defaultValues: {
             email: '',
@@ -88,18 +88,42 @@ const Register = () =>{
                 }
             } else if (registerUser.rejected.match(registerAction)) {
                 let errorMessage = 'Registration failed. Please check your inputs.';
-                if (registerAction.payload) {
-                    if (typeof registerAction.payload === 'string') {
-                        errorMessage = registerAction.payload;
-                    } else if (registerAction.payload && typeof registerAction.payload === 'object') {
-                        const fieldErrors = Object.values(registerAction.payload).flat().filter(Boolean);
-                        if (fieldErrors.length > 0) {
-                            errorMessage = fieldErrors[0];
+                const payload = registerAction.payload;
+
+                if (payload) {
+                    if (typeof payload === 'string') {
+                        errorMessage = payload;
+                    } else if (typeof payload === 'object') {
+                        // Map field-specific errors to inputs
+                        const possibleFields = ['email', 'password', 'password2', 'non_field_errors', 'detail'];
+                        possibleFields.forEach((field) => {
+                            const messages = payload[field];
+                            if (messages && Array.isArray(messages) && messages.length > 0) {
+                                if (field === 'non_field_errors' || field === 'detail') {
+                                    errorMessage = messages[0] || messages;
+                                } else {
+                                    setError(field, { type: 'server', message: messages[0] });
+                                }
+                            } else if (typeof messages === 'string') {
+                                if (field === 'non_field_errors' || field === 'detail') {
+                                    errorMessage = messages;
+                                } else {
+                                    setError(field, { type: 'server', message: messages });
+                                }
+                            }
+                        });
+
+                        // Fallback: first error message in object
+                        if (errorMessage === 'Registration failed. Please check your inputs.') {
+                            const fieldErrors = Object.values(payload).flat().filter(Boolean);
+                            if (fieldErrors.length > 0) {
+                                errorMessage = fieldErrors[0];
+                            }
                         }
                     }
                 }
                 setServerError(errorMessage);
-                console.error('Registration error:', registerAction.payload || 'Unknown error');
+                console.error('Registration error:', payload || 'Unknown error');
             }
         } catch (error) {
             setServerError('An unexpected error occurred. Please try again.');

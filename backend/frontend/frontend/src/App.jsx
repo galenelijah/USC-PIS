@@ -16,7 +16,7 @@ import Login from './components/Login';
 import Register from './components/Register';
 
 // Lazy loading for non-critical components
-const PatientList = lazy(() => import('./components/Patients/PatientList'));
+const PatientsPage = lazy(() => import('./components/Patients/PatientsPage'));
 const Profile = lazy(() => import('./components/Profile'));
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const StudentRecords = lazy(() => import('./components/StudentRecords'));
@@ -232,9 +232,7 @@ const App = () => {
                   {userRoles.isAdminOrStaff || userRoles.isDoctor || userRoles.isNurse ? (
                     <Layout>
                       <Suspense fallback={<PageLoader />}>
-                        <PatientList
-                          patients={patients}
-                        />
+                        <PatientsPage initialPatients={patients} />
                       </Suspense>
                     </Layout>
                   ) : (

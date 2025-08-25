@@ -59,6 +59,7 @@ import {
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { campaignService } from '../services/api';
+import ContentViewer from './common/ContentViewer';
 
 const CampaignsPage = () => {
   // State management - Initialize with empty arrays
@@ -1566,9 +1567,7 @@ const CampaignsPage = () => {
                     <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                       Content
                     </Typography>
-                    <Typography variant="body1" gutterBottom>
-                      {selectedCampaign.content}
-                    </Typography>
+                    <ContentViewer content={selectedCampaign.content} />
                   </Grid>
                 )}
 
@@ -1886,17 +1885,7 @@ const CampaignsPage = () => {
                                 borderLeftColor: 'primary.main'
                               }}
                             >
-                              <Typography 
-                                variant="body1" 
-                                paragraph 
-                                sx={{ 
-                                  lineHeight: 1.8,
-                                  textAlign: 'justify',
-                                  mb: 0
-                                }}
-                              >
-                                {selectedCampaign.content}
-                              </Typography>
+                              <ContentViewer content={selectedCampaign.content} />
                             </Box>
                           </Box>
                         )}
