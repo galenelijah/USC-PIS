@@ -13,6 +13,7 @@ import threading
 import platform
 import zipfile
 import shutil
+import hashlib
 from datetime import datetime
 from django.conf import settings
 from django.utils import timezone
@@ -73,6 +74,16 @@ class FastBackupEngine:
         elif not IS_WINDOWS:
             signal.alarm(0)
     
+    def _sha256(self, file_path: str) -> str:
+        try:
+            sha256 = hashlib.sha256()
+            with open(file_path, 'rb') as f:
+                for chunk in iter(lambda: f.read(8192), b''):
+                    sha256.update(chunk)
+            return sha256.hexdigest()
+        except Exception:
+            return ''
+
     def create_database_backup_fast(self, backup_id, quick_backup=True, compress=True):
         """
         Ultra-fast database backup using Django's dumpdata command
@@ -141,6 +152,7 @@ class FastBackupEngine:
             duration = time.time() - start_time
             file_size = os.path.getsize(temp_file)
             file_size_mb = file_size / (1024 * 1024)
+            checksum = self._sha256(temp_file)
             
             # Update backup record
             backup_record.status = 'success'
@@ -154,6 +166,9 @@ class FastBackupEngine:
                 'filename': filename,
                 'apps_included': apps_to_backup
             })
+            if checksum:
+                backup_record.checksum = checksum
+                backup_record.metadata['sha256'] = checksum
             backup_record.save()
             
             logger.info(f"Fast backup completed in {duration:.2f}s, size: {file_size_mb:.2f}MB")
@@ -230,6 +245,7 @@ class FastBackupEngine:
             duration = time.time() - start_time
             file_size = os.path.getsize(temp_file)
             file_size_mb = file_size / (1024 * 1024)
+            checksum = self._sha256(temp_file)
             
             # Update backup record
             backup_record.status = 'success'
@@ -244,6 +260,9 @@ class FastBackupEngine:
                 'files_count': files_added,
                 'media_dirs': media_dirs
             })
+            if checksum:
+                backup_record.checksum = checksum
+                backup_record.metadata['sha256'] = checksum
             backup_record.save()
             
             logger.info(f"Media backup completed in {duration:.2f}s, size: {file_size_mb:.2f}MB")
@@ -349,6 +368,7 @@ class FastBackupEngine:
             duration = time.time() - start_time
             file_size = os.path.getsize(temp_file)
             file_size_mb = file_size / (1024 * 1024)
+            checksum = self._sha256(temp_file)
             
             # Update backup record
             backup_record.status = 'success'
@@ -365,6 +385,9 @@ class FastBackupEngine:
                 'includes_media': True,
                 'apps_included': apps_to_backup
             })
+            if checksum:
+                backup_record.checksum = checksum
+                backup_record.metadata['sha256'] = checksum
             backup_record.save()
             
             logger.info(f"Full backup completed in {duration:.2f}s, size: {file_size_mb:.2f}MB")
@@ -454,7 +477,7 @@ class FastBackupEngine:
         except Exception as e:
             return False, f"Verification failed: {str(e)}"
     
-    def create_backup_async(self, backup_type='database', quick_backup=True, verify_integrity=True):
+    def create_backup_async(self, backup_type='database', quick_backup=True, verify_integrity=True, created_by=None):
         """
         Create backup asynchronously with proper tracking
         
@@ -469,43 +492,77 @@ class FastBackupEngine:
                 'quick_backup': quick_backup,
                 'verify_requested': verify_integrity,
                 'method': 'fast_backup_engine_v3'
-            }
+            },
+            created_by=created_by
         )
         
-        try:
+        def attempt_once():
             if backup_type == 'database':
-                result = self.create_database_backup_fast(
-                    backup_record.id, 
+                return self.create_database_backup_fast(
+                    backup_record.id,
                     quick_backup=quick_backup,
                     compress=True
                 )
-            elif backup_type == 'media':
-                result = self.create_media_backup(backup_record.id)
-            elif backup_type == 'full':
-                result = self.create_full_backup(
+            if backup_type == 'media':
+                return self.create_media_backup(backup_record.id)
+            if backup_type == 'full':
+                return self.create_full_backup(
                     backup_record.id,
                     quick_backup=quick_backup
                 )
+            raise Exception(f"Unsupported backup type: {backup_type}")
+
+        # Simple retry with backoff (once)
+        last_error = None
+        for attempt in range(2):
+            try:
+                result = attempt_once()
+                backup_record.refresh_from_db()
+                if verify_integrity and result.get('success'):
+                    is_valid, message = self.verify_backup(result['file_path'])
+                    if not is_valid:
+                        raise Exception(f"Backup verification failed: {message}")
+                    backup_record.metadata['verification_result'] = message
+                    backup_record.save()
+                return backup_record.id
+            except Exception as e:
+                last_error = e
+                if attempt == 0:
+                    time.sleep(2)
+                else:
+                    break
+
+        backup_record.status = 'failed'
+        backup_record.completed_at = timezone.now()
+        backup_record.error_message = str(last_error)
+        backup_record.save()
+        raise
+
+    def dry_run_restore(self, backup_path):
+        """Dry-run restore: validate archive structure and load JSON without writing to DB."""
+        try:
+            if backup_path.endswith('.zip'):
+                with zipfile.ZipFile(backup_path, 'r') as zipf:
+                    names = zipf.namelist()
+                    # Look for a database JSON file and try to read a small chunk
+                    json_candidates = [n for n in names if n.endswith('.json')]
+                    if not json_candidates:
+                        return False, 'No JSON found in archive'
+                    with zipf.open(json_candidates[0]) as f:
+                        # Read small amount to validate JSON structure
+                        data = f.read(65536)
+                        json.loads(data.decode('utf-8'))
+                return True, 'Archive structure and JSON validated (dry-run)'
+            elif backup_path.endswith('.gz'):
+                with gzip.open(backup_path, 'rt', encoding='utf-8') as f:
+                    # Load a small portion to validate JSON
+                    head = f.read(65536)
+                    json.loads(head)
+                return True, 'Compressed JSON validated (dry-run)'
             else:
-                raise Exception(f"Unsupported backup type: {backup_type}")
-                
-            # Refresh backup record to get updated status
-            backup_record.refresh_from_db()
-            
-            # Verify if requested
-            if verify_integrity and result['success']:
-                is_valid, message = self.verify_backup(result['file_path'])
-                if not is_valid:
-                    raise Exception(f"Backup verification failed: {message}")
-                
-                backup_record.metadata['verification_result'] = message
-                backup_record.save()
-            
-            return backup_record.id
-            
+                with open(backup_path, 'r', encoding='utf-8') as f:
+                    head = f.read(65536)
+                    json.loads(head)
+                return True, 'JSON validated (dry-run)'
         except Exception as e:
-            backup_record.status = 'failed'
-            backup_record.completed_at = timezone.now()
-            backup_record.error_message = str(e)
-            backup_record.save()
-            raise
+            return False, f'Dry-run failed: {e}'

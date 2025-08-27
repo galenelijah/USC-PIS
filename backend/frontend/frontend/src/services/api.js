@@ -274,6 +274,16 @@ export const authService = {
     }
   },
   
+  verifyBackupDryRun: async (backupId) => {
+    try {
+      const response = await api.post(`/utils/backup/verify-dry-run/${backupId}/`);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+  
   triggerManualBackup: async (backupType = 'database', verify = true, quickBackup = true) => {
     try {
       // Use new efficient backup endpoint
@@ -363,9 +373,62 @@ export const authService = {
     }
   },
 
-  getBackupList: async (limit = 10) => {
+  getBackupList: async (limit = 10, params = {}) => {
     try {
-      const response = await api.get(`/utils/backup/list/?limit=${limit}`);
+      const search = new URLSearchParams({ limit: String(limit) });
+      if (params.page) search.set('page', String(params.page));
+      if (params.type) search.set('type', params.type);
+      if (params.status) search.set('status', params.status);
+      if (params.start) search.set('start', params.start);
+      if (params.end) search.set('end', params.end);
+      const response = await api.get(`/utils/backup/list/?${search.toString()}`);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  // Backup schedules
+  getBackupSchedules: async () => {
+    try {
+      const response = await api.get('/utils/backup/schedules/');
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+  createBackupSchedule: async (data) => {
+    try {
+      const response = await api.post('/utils/backup/schedules/', data);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+  updateBackupSchedule: async (id, data) => {
+    try {
+      const response = await api.put(`/utils/backup/schedules/${id}/`, data);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+  toggleBackupSchedule: async (id) => {
+    try {
+      const response = await api.post(`/utils/backup/schedules/${id}/toggle/`);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+  runBackupScheduleNow: async (id) => {
+    try {
+      const response = await api.post(`/utils/backup/schedules/${id}/run_now/`);
       return response.data;
     } catch (error) {
       handleApiError(error);

@@ -5,6 +5,13 @@ from patients.models import Patient, MedicalRecord
 from authentication.models import User
 import json
 
+# Prefer Cloudinary RAW storage for non-image report files when available
+try:
+    from cloudinary_storage.storage import RawMediaCloudinaryStorage  # type: ignore
+    REPORTS_STORAGE = RawMediaCloudinaryStorage()
+except Exception:
+    REPORTS_STORAGE = None
+
 class ReportTemplate(models.Model):
     """Templates for different types of reports"""
     
@@ -87,8 +94,10 @@ class GeneratedReport(models.Model):
     # File Storage
     file_path = models.FileField(
         upload_to='reports/',
+        storage=REPORTS_STORAGE if REPORTS_STORAGE else None,
         validators=[FileExtensionValidator(allowed_extensions=['pdf', 'xlsx', 'csv', 'json', 'html'])],
-        null=True, blank=True
+        null=True,
+        blank=True,
     )
     file_size = models.PositiveIntegerField(null=True, blank=True, help_text="File size in bytes")
     

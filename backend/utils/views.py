@@ -17,6 +17,7 @@ from .health_checks import HealthChecker, quick_health_check
 from .models import BackupStatus, BackupSchedule, SystemHealthMetric
 import logging
 import json
+from django.db import connection
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +57,57 @@ def database_health_check(request):
             }, status=status.HTTP_403_FORBIDDEN)
         
         db_health = db_monitor.check_health()
-        
+
+        # Extended DB metrics
+        extended = {}
+        try:
+            with connection.cursor() as cursor:
+                if 'postgresql' in connection.settings_dict.get('ENGINE', ''):
+                    cursor.execute("SELECT state, count(*) FROM pg_stat_activity GROUP BY state")
+                    for state, count in cursor.fetchall():
+                        extended[f"conn_{(state or 'unknown').lower()}"] = count
+                    cursor.execute("SELECT count(*) FROM pg_locks WHERE NOT granted")
+                    extended['lock_waits'] = cursor.fetchone()[0]
+        except Exception as e:
+            logger.warning(f"Extended DB metrics failed: {e}")
+
+        # Latency percentiles from cached samples
+        try:
+            from django.core.cache import cache
+            perf = db_health.get('checks', {}).get('performance', {})
+            sample = perf.get('query_time')
+            samples = cache.get('db_q_times', [])
+            if sample is not None:
+                samples.append(float(sample))
+                samples = samples[-200:]
+                cache.set('db_q_times', samples, 600)
+            if samples:
+                s = sorted(samples)
+                def pct(p):
+                    if not s:
+                        return None
+                    idx = int(max(0, min(len(s)-1, round(p * (len(s)-1)))))
+                    return round(s[idx], 4)
+                extended['latency_p50'] = pct(0.50)
+                extended['latency_p95'] = pct(0.95)
+                extended['latency_p99'] = pct(0.99)
+        except Exception as e:
+            logger.warning(f"Latency percentile calc failed: {e}")
+
+        # Last migration timestamp
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT MAX(applied) FROM django_migrations")
+                row = cursor.fetchone()
+                extended['last_migration'] = row[0].isoformat() if row and row[0] else None
+        except Exception:
+            extended['last_migration'] = None
+
+        # Cache hit rate is backend-dependent; omitted here
+        extended['cache_hit_rate'] = None
+
+        db_health['extended'] = extended
+
         return JsonResponse(db_health)
         
     except Exception as e:
@@ -912,3 +963,50 @@ def system_metrics(request):
             'error': str(e),
             'timestamp': timezone.now().isoformat()
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def system_metrics_prometheus(request):
+    """Prometheus-compatible metrics exposition."""
+    try:
+        now = timezone.now()
+        last_30d = now - timezone.timedelta(days=30)
+        total_30d = BackupStatus.objects.filter(started_at__gte=last_30d).count()
+        succ_30d = BackupStatus.objects.filter(started_at__gte=last_30d, status='success').count()
+        fail_30d = BackupStatus.objects.filter(started_at__gte=last_30d, status='failed').count()
+        inprog = BackupStatus.objects.filter(status='in_progress').count()
+        rate_7d = 0.0
+        last_7d = now - timezone.timedelta(days=7)
+        total_7d = BackupStatus.objects.filter(started_at__gte=last_7d).count()
+        if total_7d:
+            rate_7d = BackupStatus.objects.filter(started_at__gte=last_7d, status='success').count() / total_7d
+
+        # DB connections (Postgres only)
+        active = idle = 0
+        try:
+            with connection.cursor() as cursor:
+                if 'postgresql' in connection.settings_dict.get('ENGINE', ''):
+                    cursor.execute("SELECT state, count(*) FROM pg_stat_activity GROUP BY state")
+                    for state, count in cursor.fetchall():
+                        st = (state or '').lower()
+                        if st == 'active':
+                            active = count
+                        elif st == 'idle':
+                            idle = count
+        except Exception:
+            pass
+
+        lines = []
+        lines.append(f"backup_success_total {succ_30d}")
+        lines.append(f"backup_failed_total {fail_30d}")
+        lines.append(f"backup_in_progress_current {inprog}")
+        lines.append(f"backup_success_rate_7d {rate_7d:.3f}")
+        lines.append(f"db_active_connections {active}")
+        lines.append(f"db_idle_connections {idle}")
+        lines.append("utils_up 1")
+        body = "\n".join(lines) + "\n"
+        return HttpResponse(body, content_type='text/plain; version=0.0.4')
+    except Exception as e:
+        logger.error(f"Prometheus metrics failed: {e}")
+        return Response({'error': 'metrics unavailable'}, status=500)

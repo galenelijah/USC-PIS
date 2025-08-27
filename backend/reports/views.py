@@ -6,7 +6,7 @@ from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Count, Avg, Sum
 from django.utils import timezone
-from django.http import HttpResponse, Http404, StreamingHttpResponse
+from django.http import HttpResponse, Http404, StreamingHttpResponse, FileResponse
 from django.core.files.base import ContentFile
 from datetime import datetime, timedelta
 import os
@@ -262,10 +262,9 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
                     {'error': 'Report file not found'},
                     status=status.HTTP_404_NOT_FOUND
                 )
-            
             # Increment download count
             report.increment_download_count()
-            
+
             # Determine content type and filename
             content_type_map = {
                 'PDF': 'application/pdf',
@@ -278,69 +277,56 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
             # Create safe filename
             safe_filename = re.sub(r'[^\w\-_\.]', '_', report.title)
             filename = f"{safe_filename}.{report.export_format.lower()}"
-            
-            # Handle cloud storage (Cloudinary) vs local storage
+
+            # Preferred: stream via storage backend (works for local and Cloudinary raw storage)
             try:
-                # Try to get local file path first (for local development)
+                storage_file = report.file_path.open('rb')
+                file_response = FileResponse(storage_file, content_type=content_type)
+                file_response['Content-Disposition'] = f'attachment; filename="{filename}"'
+                if report.file_size:
+                    file_response['Content-Length'] = str(report.file_size)
+                file_response['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Length'
+                logger.info(f"Streamed report {report.id} via storage backend to {request.user.email}")
+                return file_response
+            except Exception as e:
+                logger.warning(f"Storage open failed for report {report.id}: {e}")
+
+            # Fallback 1: local filesystem path
+            try:
                 file_path = report.file_path.path
                 if os.path.exists(file_path):
-                    # Local file - read and serve directly
-                    logger.info(f"Serving local file: {file_path}")
+                    logger.info(f"Serving local file via path: {file_path}")
                     with open(file_path, 'rb') as f:
                         file_content = f.read()
-                    
                     response = HttpResponse(file_content, content_type=content_type)
                     response['Content-Disposition'] = f'attachment; filename="{filename}"'
                     response['Content-Length'] = str(len(file_content))
                     response['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Length'
-                    
-                    logger.info(f"Successfully served local report {report.id} download to user {request.user.email}")
                     return response
-                else:
-                    logger.warning(f"Local file not found: {file_path}")
-                    
-            except (ValueError, AttributeError):
-                # Cloud storage - get the file URL and stream it
-                logger.info(f"Using cloud storage for report {report.id}")
-                
-            # Get file URL for cloud storage
-            file_url = report.file_path.url
-            logger.info(f"Fetching file from cloud storage: {file_url}")
-            
-            # Stream file from cloud storage
+            except Exception as e:
+                logger.warning(f"Local path read failed for report {report.id}: {e}")
+
+            # Fallback 2: fetch via URL (last resort)
             try:
-                response = requests.get(file_url, stream=True, timeout=30)
-                response.raise_for_status()
-                
-                # Create streaming response
+                file_url = report.file_path.url
+                logger.info(f"Fetching from URL as last resort: {file_url}")
+                resp = requests.get(file_url, stream=True, timeout=30)
+                resp.raise_for_status()
                 def file_iterator():
-                    for chunk in response.iter_content(chunk_size=8192):
+                    for chunk in resp.iter_content(chunk_size=8192):
                         if chunk:
                             yield chunk
-                
-                streaming_response = StreamingHttpResponse(
-                    file_iterator(),
-                    content_type=content_type
-                )
+                streaming_response = StreamingHttpResponse(file_iterator(), content_type=content_type)
                 streaming_response['Content-Disposition'] = f'attachment; filename="{filename}"'
-                
-                # Set content length if available
-                if 'content-length' in response.headers:
-                    streaming_response['Content-Length'] = response.headers['content-length']
+                if 'content-length' in resp.headers:
+                    streaming_response['Content-Length'] = resp.headers['content-length']
                 elif report.file_size:
                     streaming_response['Content-Length'] = str(report.file_size)
-                
                 streaming_response['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Length'
-                
-                logger.info(f"Successfully served cloud report {report.id} download to user {request.user.email}")
                 return streaming_response
-                
-            except requests.RequestException as e:
-                logger.error(f"Error fetching file from cloud storage: {e}")
-                return Response(
-                    {'error': 'Error accessing report file from cloud storage'},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
+            except Exception as e:
+                logger.error(f"All download methods failed for report {report.id}: {e}")
+                return Response({'error': 'Unable to access report file'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
         except Exception as e:
             logger.error(f"Unexpected error in download method: {e}", exc_info=True)

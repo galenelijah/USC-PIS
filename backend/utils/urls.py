@@ -15,6 +15,7 @@ urlpatterns = [
     path('health/comprehensive/', views.comprehensive_health_check, name='comprehensive_health'),
     path('health/quick/', views.quick_health_api, name='quick_health'),
     path('metrics/', views.system_metrics, name='system_metrics'),
+    path('metrics/prometheus/', views.system_metrics_prometheus, name='system_metrics_prometheus'),
     
     # Legacy backup system endpoints (for compatibility)
     path('backup-health/', views.backup_health_check, name='backup_health'),
@@ -28,9 +29,15 @@ urlpatterns = [
     path('backup/status/<int:backup_id>/', backup_views.backup_status, name='backup_status_v2'),
     path('backup/download-v2/<int:backup_id>/', backup_views.download_backup, name='download_backup_v2'),
     path('backup/verify/<int:backup_id>/', backup_views.verify_backup, name='verify_backup'),
+    path('backup/verify-dry-run/<int:backup_id>/', backup_views.verify_backup_dry_run, name='verify_backup_dry_run'),
     path('backup/list/', backup_views.backup_list, name='backup_list_v2'),
     path('backup/delete/<int:backup_id>/', backup_views.delete_backup, name='delete_backup'),
     path('backup/health/', backup_views.backup_system_health, name='backup_system_health'),
+    # Schedules management
+    path('backup/schedules/', backup_views.schedules, name='backup_schedules'),
+    path('backup/schedules/<int:schedule_id>/', backup_views.update_schedule, name='update_schedule'),
+    path('backup/schedules/<int:schedule_id>/toggle/', backup_views.toggle_schedule, name='toggle_schedule'),
+    path('backup/schedules/<int:schedule_id>/run_now/', backup_views.run_schedule_now, name='run_schedule_now'),
     
     # Backup upload and restore endpoints
     path('backup/upload/', backup_upload_views.upload_backup, name='upload_backup'),

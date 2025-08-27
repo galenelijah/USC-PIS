@@ -107,15 +107,20 @@ const DatabaseMonitor = () => {
     const [uploadType, setUploadType] = useState('database');
     const [uploadDescription, setUploadDescription] = useState('');
     const [uploadProgress, setUploadProgress] = useState(0);
+    // Schedules state
+    const [schedules, setSchedules] = useState([]);
+    const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+    const [newSchedule, setNewSchedule] = useState({ backup_type: 'database', schedule_type: 'daily', schedule_time: '01:00', is_active: true, retention_days: 7 });
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [dbResponse, backupResponse, backupListResponse, uploadedBackupsResponse] = await Promise.all([
+            const [dbResponse, backupResponse, backupListResponse, uploadedBackupsResponse, schedulesRes] = await Promise.all([
                 authService.getDatabaseHealth(),
                 authService.getBackupHealth(),
                 authService.getBackupList(15), // Get last 15 backups
-                authService.getUploadedBackups(10) // Get last 10 uploaded backups
+                authService.getUploadedBackups(10), // Get last 10 uploaded backups
+                authService.getBackupSchedules()
             ]);
             setDbData(dbResponse);
             
@@ -126,6 +131,7 @@ const DatabaseMonitor = () => {
             });
             
             setUploadedBackups(uploadedBackupsResponse.backups || []);
+            setSchedules(schedulesRes.schedules || []);
             
             setError(null);
             setBackupError(null);
@@ -196,6 +202,45 @@ const DatabaseMonitor = () => {
                 message: `Failed to download backup: ${err.message}`,
                 severity: 'error'
             });
+        }
+    };
+
+    const handleVerifyDryRun = async (backupId) => {
+        try {
+            const res = await authService.verifyBackupDryRun(backupId);
+            setSnackbar({ open: true, message: res.valid ? `Dry-run OK: ${res.message}` : `Dry-run failed: ${res.message}` , severity: res.valid ? 'success' : 'error' });
+        } catch (err) {
+            setSnackbar({ open: true, message: `Dry-run error: ${err.message}`, severity: 'error' });
+        }
+    };
+
+    const handleCreateSchedule = async () => {
+        try {
+            await authService.createBackupSchedule(newSchedule);
+            setSnackbar({ open: true, message: 'Schedule created', severity: 'success' });
+            setScheduleDialogOpen(false);
+            fetchData();
+        } catch (err) {
+            setSnackbar({ open: true, message: `Failed to create schedule: ${err.message}`, severity: 'error' });
+        }
+    };
+
+    const handleToggleSchedule = async (id) => {
+        try {
+            await authService.toggleBackupSchedule(id);
+            fetchData();
+        } catch (err) {
+            setSnackbar({ open: true, message: `Failed to toggle schedule: ${err.message}`, severity: 'error' });
+        }
+    };
+
+    const handleRunScheduleNow = async (id) => {
+        try {
+            const res = await authService.runBackupScheduleNow(id);
+            setSnackbar({ open: true, message: `Run started (backup #${res.backup_id})`, severity: 'info' });
+            setTimeout(fetchData, 2000);
+        } catch (err) {
+            setSnackbar({ open: true, message: `Failed to run schedule: ${err.message}`, severity: 'error' });
         }
     };
 
@@ -574,7 +619,7 @@ const DatabaseMonitor = () => {
                                 <Grid item xs={6} md={3}>
                                     <Box sx={{ textAlign: 'center' }}>
                                         <Typography variant="h4" color="primary">
-                                            {backupData?.backup_summary?.total_backups || 0}
+                                            {backupData?.statistics?.total_backups || 0}
                                         </Typography>
                                         <Typography variant="body2" color="textSecondary">
                                             Total Backups
@@ -584,7 +629,7 @@ const DatabaseMonitor = () => {
                                 <Grid item xs={6} md={3}>
                                     <Box sx={{ textAlign: 'center' }}>
                                         <Typography variant="h4" color="success.main">
-                                            {backupData?.backup_summary?.successful_backups || 0}
+                                            {backupData?.statistics?.successful_backups || 0}
                                         </Typography>
                                         <Typography variant="body2" color="textSecondary">
                                             Successful
@@ -594,7 +639,7 @@ const DatabaseMonitor = () => {
                                 <Grid item xs={6} md={3}>
                                     <Box sx={{ textAlign: 'center' }}>
                                         <Typography variant="h4" color="error.main">
-                                            {backupData?.backup_summary?.failed_backups || 0}
+                                            {backupData?.statistics?.failed_backups || 0}
                                         </Typography>
                                         <Typography variant="body2" color="textSecondary">
                                             Failed
@@ -604,16 +649,95 @@ const DatabaseMonitor = () => {
                                 <Grid item xs={6} md={3}>
                                     <Box sx={{ textAlign: 'center' }}>
                                         <Typography variant="h4" color="info.main">
-                                            {backupData?.backup_summary?.health_score 
-                                                ? `${(backupData.backup_summary.health_score * 100).toFixed(1)}%`
-                                                : '0%'}
+                                            {backupData?.kpis?.success_rate_7d !== undefined 
+                                                ? `${(backupData.kpis.success_rate_7d * 100).toFixed(1)}%`
+                                                : 'N/A'}
                                         </Typography>
                                         <Typography variant="body2" color="textSecondary">
-                                            Success Rate
+                                            Success Rate (7d)
                                         </Typography>
                                     </Box>
                                 </Grid>
                             </Grid>
+                        </Paper>
+
+                        {/* KPIs */}
+                        {backupData?.kpis && (
+                            <Paper sx={{ p: 2, mb: 3 }}>
+                                <Typography variant="h6" gutterBottom>Key Performance Indicators</Typography>
+                                <Grid container spacing={2}>
+                                    <Grid item xs={12} sm={6} md={3}>
+                                        <Card><CardContent>
+                                            <Typography variant="body2">Success 24h</Typography>
+                                            <Typography variant="h5">{(backupData.kpis.success_rate_24h * 100).toFixed(1)}%</Typography>
+                                        </CardContent></Card>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={3}>
+                                        <Card><CardContent>
+                                            <Typography variant="body2">Avg Duration (7d)</Typography>
+                                            <Typography variant="h5">{backupData.kpis.avg_duration_7d_sec ? `${Math.round(backupData.kpis.avg_duration_7d_sec)}s` : 'N/A'}</Typography>
+                                        </CardContent></Card>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={3}>
+                                        <Card><CardContent>
+                                            <Typography variant="body2">Avg Size (7d)</Typography>
+                                            <Typography variant="h5">{backupData.kpis.avg_size_7d_bytes ? `${(backupData.kpis.avg_size_7d_bytes/1024/1024).toFixed(1)} MB` : 'N/A'}</Typography>
+                                        </CardContent></Card>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={3}>
+                                        <Card><CardContent>
+                                            <Typography variant="body2">Last Verification</Typography>
+                                            <Typography variant="h6">{backupData.kpis.last_verification ? formatDateTime(backupData.kpis.last_verification) : 'N/A'}</Typography>
+                                        </CardContent></Card>
+                                    </Grid>
+                                </Grid>
+                                {backupData.kpis.retention_issues && backupData.kpis.retention_issues.length > 0 && (
+                                    <Alert severity="warning" sx={{ mt: 2 }}>
+                                        Retention issues detected: {backupData.kpis.retention_issues.length}
+                                    </Alert>
+                                )}
+                            </Paper>
+                        )}
+
+                        {/* Schedules */}
+                        <Paper sx={{ p: 2, mb: 3 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography variant="h6">Backup Schedules</Typography>
+                                <Button variant="contained" onClick={() => setScheduleDialogOpen(true)} startIcon={<Schedule />}>New Schedule</Button>
+                            </Box>
+                            {schedules && schedules.length > 0 ? (
+                                <TableContainer sx={{ mt: 2 }}>
+                                    <Table>
+                                        <TableHead>
+                                            <TableRow>
+                                                <TableCell>Type</TableCell>
+                                                <TableCell>When</TableCell>
+                                                <TableCell>Active</TableCell>
+                                                <TableCell>Retention</TableCell>
+                                                <TableCell>Next Run</TableCell>
+                                                <TableCell>Actions</TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {schedules.map(s => (
+                                                <TableRow key={s.id}>
+                                                    <TableCell><Chip label={s.backup_type.toUpperCase()} size="small" /></TableCell>
+                                                    <TableCell>{s.schedule_type.toUpperCase()} @ {s.schedule_time}</TableCell>
+                                                    <TableCell><Chip label={s.is_active ? 'ON' : 'OFF'} color={s.is_active ? 'success' : 'default'} size="small" /></TableCell>
+                                                    <TableCell>{s.retention_days} days</TableCell>
+                                                    <TableCell>{s.next_run_time ? formatDateTime(s.next_run_time) : 'N/A'}</TableCell>
+                                                    <TableCell>
+                                                        <Button size="small" onClick={() => handleToggleSchedule(s.id)}>Toggle</Button>
+                                                        <Button size="small" onClick={() => handleRunScheduleNow(s.id)} startIcon={<Backup />}>Run Now</Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            ) : (
+                                <Alert severity="info" sx={{ mt: 2 }}>No schedules configured.</Alert>
+                            )}
                         </Paper>
 
                         {/* Health Recommendations */}
@@ -703,6 +827,16 @@ const DatabaseMonitor = () => {
                                                     sx={{ mr: 1 }}
                                                 >
                                                     Download
+                                                </Button>
+                                                <Button
+                                                    variant="outlined"
+                                                    size="small"
+                                                    startIcon={<Visibility />}
+                                                    onClick={() => handleVerifyDryRun(backup.id)}
+                                                    disabled={backup.status !== 'success'}
+                                                    sx={{ mr: 1 }}
+                                                >
+                                                    Verify (Dry)
                                                 </Button>
                                                 <Button
                                                     variant="contained"
