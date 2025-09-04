@@ -77,18 +77,26 @@ class HealthCampaignListSerializer(serializers.ModelSerializer):
     
     def get_banner_image_url(self, obj):
         if obj.banner_image:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.banner_image.url)
-            return obj.banner_image.url
+            try:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(obj.banner_image.url)
+                return obj.banner_image.url
+            except Exception as e:
+                # Handle Cloudinary configuration errors gracefully
+                return None
         return None
     
     def get_thumbnail_image_url(self, obj):
         if obj.thumbnail_image:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.thumbnail_image.url)
-            return obj.thumbnail_image.url
+            try:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(obj.thumbnail_image.url)
+                return obj.thumbnail_image.url
+            except Exception as e:
+                # Handle Cloudinary configuration errors gracefully
+                return None
         return None
     
     def get_images(self, obj):
@@ -98,33 +106,45 @@ class HealthCampaignListSerializer(serializers.ModelSerializer):
         
         # Add banner image if it exists
         if obj.banner_image:
-            url = request.build_absolute_uri(obj.banner_image.url) if request else obj.banner_image.url
-            images.append({
-                'id': f'banner_{obj.id}',
-                'url': url,
-                'type': 'banner',
-                'caption': 'Campaign Banner'
-            })
+            try:
+                url = request.build_absolute_uri(obj.banner_image.url) if request else obj.banner_image.url
+                images.append({
+                    'id': f'banner_{obj.id}',
+                    'url': url,
+                    'type': 'banner',
+                    'caption': 'Campaign Banner'
+                })
+            except Exception:
+                # Skip images with Cloudinary errors
+                pass
         
         # Add thumbnail image if it exists
         if obj.thumbnail_image:
-            url = request.build_absolute_uri(obj.thumbnail_image.url) if request else obj.thumbnail_image.url
-            images.append({
-                'id': f'thumbnail_{obj.id}',
-                'url': url,
-                'type': 'thumbnail',
-                'caption': 'Campaign Thumbnail'
-            })
+            try:
+                url = request.build_absolute_uri(obj.thumbnail_image.url) if request else obj.thumbnail_image.url
+                images.append({
+                    'id': f'thumbnail_{obj.id}',
+                    'url': url,
+                    'type': 'thumbnail',
+                    'caption': 'Campaign Thumbnail'
+                })
+            except Exception:
+                # Skip images with Cloudinary errors
+                pass
         
         # Add pubmat image if it exists
         if obj.pubmat_image:
-            url = request.build_absolute_uri(obj.pubmat_image.url) if request else obj.pubmat_image.url
-            images.append({
-                'id': f'pubmat_{obj.id}',
-                'url': url,
-                'type': 'pubmat',
-                'caption': 'Campaign PubMat'
-            })
+            try:
+                url = request.build_absolute_uri(obj.pubmat_image.url) if request else obj.pubmat_image.url
+                images.append({
+                    'id': f'pubmat_{obj.id}',
+                    'url': url,
+                    'type': 'pubmat',
+                    'caption': 'Campaign PubMat'
+                })
+            except Exception:
+                # Skip images with Cloudinary errors
+                pass
         
         return images
     
