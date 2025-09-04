@@ -346,8 +346,41 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
                 streaming_response['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Length'
                 return streaming_response
             except Exception as e:
-                logger.error(f"All download methods failed for report {report.id}: {e}")
-                return Response({'error': 'Unable to access report file'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                logger.error(f"URL download failed for report {report.id}: {e}")
+
+            # Fallback 4: Re-generate the report on-the-fly (last resort for missing files)
+            try:
+                logger.info(f"Re-generating report {report.id} on-the-fly as final fallback")
+                from .services import ReportGenerationService
+                service = ReportGenerationService()
+                
+                # Re-generate based on template type
+                if report.template.report_type == 'PATIENT_SUMMARY':
+                    regenerated_data = service.generate_patient_summary_report(export_format=report.export_format)
+                elif report.template.report_type == 'FEEDBACK_ANALYSIS':
+                    regenerated_data = service.generate_feedback_analysis_report(export_format=report.export_format)
+                elif report.template.report_type == 'COMPREHENSIVE_ANALYTICS':
+                    regenerated_data = service.generate_comprehensive_analytics_report(export_format=report.export_format)
+                else:
+                    # Default to patient summary
+                    regenerated_data = service.generate_patient_summary_report(export_format=report.export_format)
+                
+                if regenerated_data:
+                    logger.info(f"Successfully re-generated report {report.id} with {len(regenerated_data)} bytes")
+                    response = HttpResponse(regenerated_data, content_type=content_type)
+                    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+                    response['Content-Length'] = str(len(regenerated_data))
+                    response['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Length'
+                    return response
+                else:
+                    logger.error(f"Re-generation failed for report {report.id}")
+                    
+            except Exception as e:
+                logger.error(f"Re-generation fallback failed for report {report.id}: {e}")
+
+            # Final error - all methods exhausted
+            logger.error(f"All download methods failed for report {report.id}")
+            return Response({'error': 'Unable to access report file'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
         except Exception as e:
             logger.error(f"Unexpected error in download method: {e}", exc_info=True)
