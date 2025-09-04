@@ -1,12 +1,85 @@
 # Django 500 Error Debugging Guide
 
 ## Overview
-This guide provides systematic procedures for debugging 500 Internal Server Errors in the USC-PIS Django application, with specific focus on API endpoints and file upload issues.
+This guide provides systematic procedures for debugging 500 Internal Server Errors in the USC-PIS Django application, with specific focus on API endpoints, file upload issues, and report download failures.
 
 ## Quick Reference
 - **500 Error**: Internal server error - problem on server side
-- **Most Common Causes**: Unhandled exceptions, missing imports, model validation failures, file handling errors
-- **Key Tools**: Django logs, browser DevTools, direct API testing
+- **Most Common Causes**: Unhandled exceptions, missing imports, model validation failures, file handling errors, storage authentication failures
+- **Key Tools**: Django logs, browser DevTools, direct API testing, Heroku logs
+
+## 🆕 **REPORT DOWNLOAD 500 ERRORS (September 2025)**
+
+### **Specific Issue: Report Downloads Failing on Production**
+
+**Error Pattern**:
+```
+GET /api/reports/generated/{id}/download/ 500 (Internal Server Error)
+Storage open failed for report {id}: 401 Client Error: OK for url: https://res.cloudinary.com/...
+Local path read failed for report {id}: This backend doesn't support absolute paths
+File not found in media directory: /app/backend/media/reports/...
+All download methods failed for report {id}
+```
+
+**Root Cause**: Cloudinary storage authentication issues on Heroku production
+
+**Debugging Commands**:
+```bash
+# Check production logs for download errors
+heroku logs --source app -n 200 | grep -E "(download|ERROR|500)" -A 3 -B 3
+
+# Check Cloudinary configuration
+heroku config | grep -E "(CLOUDINARY|CLOUD)"
+
+# Test report status in production
+heroku run python manage.py shell -c "
+from reports.models import GeneratedReport
+r = GeneratedReport.objects.filter(status='COMPLETED').first()
+print(f'Report {r.id}: {r.file_path}, Status: {r.status}')
+"
+```
+
+**Resolution**: 4-tier fallback system implemented in `reports/views.py`:
+1. **Storage Backend**: Direct storage.open() method
+2. **Local Path**: Filesystem path access for local storage  
+3. **Media Directory**: Direct media folder access when storage fails
+4. **On-the-Fly Generation**: Real-time report regeneration as final fallback
+
+**Frontend Fixes Applied**:
+- Fixed JSON downloads showing content in toast instead of downloading file
+- Enhanced error detection to distinguish server errors from file content
+- Added comprehensive debugging logs for download troubleshooting
+
+**Code Changes**:
+```python
+# Backend: reports/views.py - Enhanced fallback system
+try:
+    storage_file = report.file_path.open('rb')
+    return FileResponse(storage_file, content_type=content_type)
+except Exception:
+    # Fallback to direct media directory access
+    local_file_path = os.path.join(settings.MEDIA_ROOT, report.file_path.name)
+    if os.path.exists(local_file_path):
+        with open(local_file_path, 'rb') as f:
+            return HttpResponse(f.read(), content_type=content_type)
+    else:
+        # Final fallback: regenerate report on-the-fly
+        regenerated_data = service.generate_report(...)
+        return HttpResponse(regenerated_data, content_type=content_type)
+```
+
+```javascript
+// Frontend: Reports.jsx - Fixed JSON download logic
+// Only treat as error if it's HTML or unexpected JSON (not when expecting JSON)
+if (respContentType.includes('text/html') || 
+    (respContentType.includes('application/json') && exportFormat !== 'JSON')) {
+  // Check for actual error responses
+  if (text.includes('"error"')) {
+    setError(errorObj.error);
+    return;
+  }
+}
+```
 
 ## Step-by-Step Debugging Process
 

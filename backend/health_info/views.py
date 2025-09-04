@@ -357,14 +357,13 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def featured(self, request):
-        """Get currently featured campaigns"""
+        """Get currently featured campaigns - show active campaigns regardless of end date"""
         now = timezone.now()
         featured_campaigns = HealthCampaign.objects.filter(
-            featured_until__gte=now,
+            Q(featured_until__gte=now) | Q(featured_until__isnull=True),
             status='ACTIVE',
-            start_date__lte=now,
-            end_date__gte=now
-        ).order_by('-priority', '-created_at')
+            start_date__lte=now
+        ).order_by('-priority', '-created_at')[:5]
         
         serializer = HealthCampaignListSerializer(featured_campaigns, many=True, context={'request': request})
         return Response(serializer.data)

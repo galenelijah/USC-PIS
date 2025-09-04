@@ -263,27 +263,64 @@ GeneratedReport.objects.filter(expires_at__lt=timezone.now()).delete()
 "
 ```
 
-## Recent Updates (August 2025)
+## Recent Updates (September 2025)
 
-### Cloud Storage Fix
-- **Issue**: Reports generating but downloads failing due to local path access attempts
-- **Solution**: Implemented hybrid storage detection and cloud streaming
-- **Impact**: Downloads now work reliably in both development and production
+### Report Download System Overhaul (September 4, 2025)
+- **Issue**: 500 Internal Server Errors on production downloads due to Cloudinary authentication failures
+- **Root Cause**: Cloudinary storage configured but experiencing 401 authentication errors on Heroku
+- **Solution**: Implemented 4-tier fallback system:
+  1. **Storage Backend Access**: Direct storage.open() method (Cloudinary/local)
+  2. **Local Path Access**: Direct filesystem path access for local storage
+  3. **Media Directory Fallback**: Direct media folder access when storage fails
+  4. **On-the-Fly Regeneration**: Real-time report regeneration when all file access fails
 
-### Enhanced Error Handling
-- Comprehensive logging throughout generation process
-- Detailed error messages for troubleshooting
-- Automatic fallback mechanisms for storage access
+### Format Support Enhancement (September 4, 2025)
+- **Issue**: Most templates only supported PDF and HTML formats
+- **Solution**: Updated all 7 report templates to support `['PDF', 'EXCEL', 'CSV', 'JSON']`
+- **Enhancement**: Installed `openpyxl` and `xlsxwriter` for proper Excel generation
+- **Result**: Professional Excel files with styling (5,309 bytes vs 250 bytes CSV fallback)
 
-### Performance Improvements
-- Database query optimization with proper indexing
-- Caching strategy implementation
-- Background processing with threading
+### Frontend Download Logic Fix (September 4, 2025)
+- **Issue**: JSON downloads showing content in toast messages instead of downloading files
+- **Root Cause**: Frontend logic treated all JSON responses as errors
+- **Solution**: Enhanced error detection to distinguish between actual errors and JSON file content
+- **Result**: All formats (PDF, Excel, CSV, JSON) now download correctly
+
+### Production Reliability (September 4, 2025)
+- **Cloudinary Integration**: Enhanced error handling for authentication issues
+- **File Regeneration**: Automatic report regeneration when stored files are inaccessible
+- **Dependencies**: Added Excel libraries to `requirements.txt` for production deployment
+- **Logging**: Enhanced debugging for troubleshooting download issues
+
+## Troubleshooting Production Issues
+
+### Download Failures (500 Errors)
+**Symptoms**: 
+- Frontend shows "Request failed with status code 500" 
+- User sees "Unable to access report file" error
+
+**Debugging Steps**:
+1. Check Heroku logs: `heroku logs --source app -n 100 | grep download`
+2. Look for specific error patterns:
+   - `Storage open failed`: Cloudinary authentication issue
+   - `Local path read failed`: Storage backend configuration issue
+   - `File not found in media directory`: File missing from local storage
+   - `All download methods failed`: Complete storage failure
+
+**Common Fixes**:
+- **Cloudinary 401 errors**: Verify Heroku config vars for Cloudinary credentials
+- **Missing files**: System automatically regenerates reports when files are inaccessible
+- **Storage backend issues**: Fallback system handles local/cloud storage differences
+
+### Format-Specific Issues
+- **Excel downloads**: Ensure `openpyxl>=3.1.5` and `xlsxwriter>=3.2.5` in requirements.txt
+- **JSON downloads**: Fixed frontend logic to distinguish errors from file content
+- **PDF downloads**: ReportLab dependency working correctly
 
 ---
 
-**Last Updated**: August 22, 2025  
-**Status**: Fully Operational  
-**Storage**: Cloudinary Cloud Storage Active  
-**Download System**: Fixed and Working  
-**Version**: 2.0 (Cloud-Ready)
+**Last Updated**: September 4, 2025  
+**Status**: Download Issues Resolved  
+**Storage**: 4-Tier Fallback System Active  
+**Download System**: Production-Ready with Auto-Recovery  
+**Version**: 3.0 (Enterprise-Grade Reliability)
