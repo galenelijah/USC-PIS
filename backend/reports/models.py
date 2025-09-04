@@ -8,7 +8,12 @@ import json
 # Prefer Cloudinary RAW storage for non-image report files when available
 try:
     from cloudinary_storage.storage import RawMediaCloudinaryStorage  # type: ignore
-    REPORTS_STORAGE = RawMediaCloudinaryStorage()
+    import cloudinary
+    # Only use Cloudinary if properly configured
+    if cloudinary.config().cloud_name:
+        REPORTS_STORAGE = RawMediaCloudinaryStorage()
+    else:
+        REPORTS_STORAGE = None
 except Exception:
     REPORTS_STORAGE = None
 

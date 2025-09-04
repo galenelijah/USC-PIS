@@ -306,7 +306,28 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
             except Exception as e:
                 logger.warning(f"Local path read failed for report {report.id}: {e}")
 
-            # Fallback 2: fetch via URL (last resort)
+            # Fallback 2: check local media directory directly
+            try:
+                from django.conf import settings
+                local_file_path = os.path.join(settings.MEDIA_ROOT, report.file_path.name)
+                logger.info(f"Checking direct media path: {local_file_path}")
+                
+                if os.path.exists(local_file_path):
+                    logger.info(f"Found file in media directory: {local_file_path}")
+                    with open(local_file_path, 'rb') as f:
+                        file_content = f.read()
+                    response = HttpResponse(file_content, content_type=content_type)
+                    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+                    response['Content-Length'] = str(len(file_content))
+                    response['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Length'
+                    logger.info(f"Served report {report.id} from direct media path to {request.user.email}")
+                    return response
+                else:
+                    logger.warning(f"File not found in media directory: {local_file_path}")
+            except Exception as e:
+                logger.warning(f"Direct media path read failed for report {report.id}: {e}")
+
+            # Fallback 3: fetch via URL (last resort)
             try:
                 file_url = report.file_path.url
                 logger.info(f"Fetching from URL as last resort: {file_url}")
