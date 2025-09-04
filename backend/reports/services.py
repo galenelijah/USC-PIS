@@ -746,44 +746,135 @@ End of Report
     
     @staticmethod
     def export_to_excel(report_data, title="Report"):
-        """Export report to Excel - simplified CSV format with .xlsx extension"""
+        """Export report to Excel using openpyxl for proper .xlsx format"""
         try:
-            # For now, use CSV format but with Excel-compatible structure
-            output = StringIO()
-            
-            # Write title and metadata
-            writer = csv.writer(output)
-            writer.writerow([title])
-            writer.writerow(['Generated At', timezone.now().strftime('%Y-%m-%d %H:%M:%S')])
-            writer.writerow([])  # Empty row
-            
-            # Write summary data
-            writer.writerow(['Summary'])
-            for key, value in report_data.items():
-                if isinstance(value, (int, float, str)):
-                    writer.writerow([str(key).replace('_', ' ').title(), value])
-            
-            writer.writerow([])  # Empty row
-            
-            # Write detailed data tables
-            for key, value in report_data.items():
-                if isinstance(value, list) and value:
-                    writer.writerow([str(key).replace('_', ' ').title()])
-                    if isinstance(value[0], dict):
-                        # Write headers
-                        headers = list(value[0].keys())
-                        writer.writerow([header.replace('_', ' ').title() for header in headers])
+            # Try using openpyxl for proper Excel format
+            try:
+                from openpyxl import Workbook
+                from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
+                from openpyxl.utils import get_column_letter
+                
+                wb = Workbook()
+                ws = wb.active
+                ws.title = "Report Data"
+                
+                # Setup styles
+                header_font = Font(name='Arial', bold=True, size=14, color='FFFFFF')
+                header_fill = PatternFill(start_color='4472C4', end_color='4472C4', fill_type='solid')
+                subheader_font = Font(name='Arial', bold=True, size=12)
+                subheader_fill = PatternFill(start_color='E7E6E6', end_color='E7E6E6', fill_type='solid')
+                border = Border(left=Side(style='thin'), right=Side(style='thin'), 
+                               top=Side(style='thin'), bottom=Side(style='thin'))
+                
+                row = 1
+                
+                # Title
+                ws.cell(row=row, column=1, value=title)
+                ws.cell(row=row, column=1).font = Font(name='Arial', bold=True, size=16)
+                row += 1
+                
+                # Generation date
+                ws.cell(row=row, column=1, value="Generated At:")
+                ws.cell(row=row, column=2, value=timezone.now().strftime('%Y-%m-%d %H:%M:%S'))
+                row += 2
+                
+                # Process report data
+                for key, value in report_data.items():
+                    if isinstance(value, (int, float, str)):
+                        # Summary data
+                        ws.cell(row=row, column=1, value=str(key).replace('_', ' ').title())
+                        ws.cell(row=row, column=1).font = subheader_font
+                        ws.cell(row=row, column=2, value=value)
+                        row += 1
+                    elif isinstance(value, list) and value:
+                        # Table data
+                        ws.cell(row=row, column=1, value=str(key).replace('_', ' ').title())
+                        ws.cell(row=row, column=1).font = subheader_font
+                        ws.cell(row=row, column=1).fill = subheader_fill
+                        row += 1
                         
-                        # Write data
-                        for item in value:
-                            row = [item.get(header, '') for header in headers]
-                            writer.writerow(row)
-                    
-                    writer.writerow([])  # Empty row
-            
-            csv_content = output.getvalue()
-            output.close()
-            return csv_content.encode('utf-8')
+                        if isinstance(value[0], dict):
+                            # Headers
+                            headers = list(value[0].keys())
+                            for col, header in enumerate(headers, 1):
+                                cell = ws.cell(row=row, column=col, value=header.replace('_', ' ').title())
+                                cell.font = header_font
+                                cell.fill = header_fill
+                                cell.border = border
+                                cell.alignment = Alignment(horizontal='center')
+                            row += 1
+                            
+                            # Data rows
+                            for item in value[:100]:  # Limit to 100 rows for performance
+                                for col, header in enumerate(headers, 1):
+                                    cell = ws.cell(row=row, column=col, value=str(item.get(header, '')))
+                                    cell.border = border
+                                row += 1
+                        else:
+                            # Simple list
+                            for item in value[:50]:  # Limit to 50 items
+                                ws.cell(row=row, column=1, value=str(item))
+                                row += 1
+                        
+                        row += 1  # Empty row
+                
+                # Auto-adjust column widths
+                for col in range(1, ws.max_column + 1):
+                    max_length = 0
+                    column = get_column_letter(col)
+                    for row_cells in ws[column]:
+                        try:
+                            if len(str(row_cells.value)) > max_length:
+                                max_length = len(str(row_cells.value))
+                        except:
+                            pass
+                    adjusted_width = min(max_length + 2, 50)  # Cap at 50 characters
+                    ws.column_dimensions[column].width = adjusted_width
+                
+                # Save to bytes
+                buffer = BytesIO()
+                wb.save(buffer)
+                buffer.seek(0)
+                return buffer.getvalue()
+                
+            except ImportError:
+                # Fallback to CSV format if openpyxl not available
+                logger.warning("openpyxl not available, using CSV format for Excel export")
+                output = StringIO()
+                
+                # Write title and metadata
+                writer = csv.writer(output)
+                writer.writerow([title])
+                writer.writerow(['Generated At', timezone.now().strftime('%Y-%m-%d %H:%M:%S')])
+                writer.writerow([])  # Empty row
+                
+                # Write summary data
+                writer.writerow(['Summary'])
+                for key, value in report_data.items():
+                    if isinstance(value, (int, float, str)):
+                        writer.writerow([str(key).replace('_', ' ').title(), value])
+                
+                writer.writerow([])  # Empty row
+                
+                # Write detailed data tables
+                for key, value in report_data.items():
+                    if isinstance(value, list) and value:
+                        writer.writerow([str(key).replace('_', ' ').title()])
+                        if isinstance(value[0], dict):
+                            # Write headers
+                            headers = list(value[0].keys())
+                            writer.writerow([header.replace('_', ' ').title() for header in headers])
+                            
+                            # Write data
+                            for item in value:
+                                row = [item.get(header, '') for header in headers]
+                                writer.writerow(row)
+                        
+                        writer.writerow([])  # Empty row
+                
+                csv_content = output.getvalue()
+                output.close()
+                return csv_content.encode('utf-8')
         
         except Exception as e:
             logger.error(f"Error generating Excel: {str(e)}")
