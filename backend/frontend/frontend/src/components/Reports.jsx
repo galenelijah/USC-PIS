@@ -173,12 +173,29 @@ const Reports = () => {
         status: response.status,
         headers: response.headers,
         dataType: typeof response.data,
-        dataSize: response.data?.size || response.data?.byteLength || 'unknown'
+        dataSize: response.data?.size || response.data?.byteLength || 'unknown',
+        contentType: response.headers['content-type']
       });
       
+      // Additional debugging for blob responses
+      if (response.data instanceof Blob) {
+        console.log('Response is Blob:', {
+          size: response.data.size,
+          type: response.data.type
+        });
+      } else {
+        console.log('Response data type unexpected:', typeof response.data);
+      }
+      
       // Check if response is valid
-      if (!response.data || response.data.size === 0) {
-        setError('Downloaded file is empty');
+      if (!response.data) {
+        setError('Downloaded file is empty - no data received');
+        return;
+      }
+      
+      // For Blob responses, check size
+      if (response.data instanceof Blob && response.data.size === 0) {
+        setError('Downloaded file is empty - blob size is 0');
         return;
       }
 
@@ -205,19 +222,56 @@ const Reports = () => {
           break;
       }
       
-      // Handle cases where server returned an error page or JSON instead of a file
+      // Handle cases where server returned an error page instead of a file
       const respContentType = response.headers['content-type'] || '';
       let blob = new Blob([response.data], { type: mimeType });
-      if (respContentType.includes('text/html') || respContentType.includes('application/json')) {
+      
+      // Check for error responses from server
+      if (respContentType.includes('text/html') || 
+          (respContentType.includes('application/json') && exportFormat !== 'JSON')) {
         try {
           const text = await new Response(new Blob([response.data])).text();
-          // Heuristic: if looks like HTML/JSON error, surface it instead of downloading
-          if (text && text.length > 0) {
-            setError(text.substring(0, 400));
-            return;
+          console.log('Checking for error response:', text.substring(0, 200));
+          
+          // Check if it looks like an error response (has "error" field)
+          if (text && text.includes('"error"')) {
+            try {
+              const errorObj = JSON.parse(text);
+              if (errorObj.error) {
+                console.log('Detected server error response:', errorObj.error);
+                setError(errorObj.error);
+                return;
+              }
+            } catch (_) {
+              // Not parseable JSON, show raw text
+              console.log('Non-JSON error response detected');
+              setError(text.substring(0, 400));
+              return;
+            }
+          }
+        } catch (parseError) {
+          console.log('Error parsing response for error detection:', parseError);
+          // fall through to download
+        }
+      }
+      
+      // Special check: if response status is 200 but data looks like an error
+      if (response.status === 200 && response.data instanceof Blob) {
+        try {
+          const text = await new Response(response.data.slice(0, 1000)).text();
+          if (text.includes('Unable to access report file') || text.includes('"error"')) {
+            console.log('Detected error content in 200 response:', text.substring(0, 200));
+            try {
+              const errorObj = JSON.parse(text);
+              setError(errorObj.error || text.substring(0, 400));
+              return;
+            } catch (_) {
+              setError(text.substring(0, 400));
+              return;
+            }
           }
         } catch (_) {
-          // fall through to download
+          // Not text content, continue with download
         }
       }
 
