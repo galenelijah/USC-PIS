@@ -60,6 +60,7 @@ import {
 import { useSelector } from 'react-redux';
 import { campaignService } from '../services/api';
 import ContentViewer from './common/ContentViewer';
+import InfoTooltip from './utils/InfoTooltip';
 
 const CampaignsPage = () => {
   // State management - Initialize with empty arrays
@@ -476,9 +477,12 @@ const CampaignsPage = () => {
       {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
         <Box>
-          <Typography variant="h4" fontWeight="bold" color="text.primary">
-            Health Campaigns
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography variant="h4" fontWeight="bold" color="text.primary">
+              Health Campaigns
+            </Typography>
+            <InfoTooltip title="Browse and manage health campaigns. Staff can create/edit; everyone can view and filter." />
+          </Box>
           <Typography variant="subtitle1" color="text.secondary">
             Manage and view health awareness campaigns
           </Typography>

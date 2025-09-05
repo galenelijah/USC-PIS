@@ -47,6 +47,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../features/authentication/authSlice';
 import dayjs from 'dayjs';
+import InfoTooltip from './utils/InfoTooltip';
 import { healthRecordsService } from '../services/api';
 
 // Tab panel component for different record types
@@ -229,9 +230,12 @@ const StudentHealthRecords = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        My Medical Records
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          My Medical Records
+        </Typography>
+        <InfoTooltip title="Search and filter your medical records. Export data or open related pages from quick actions." />
+      </Box>
       
       <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
         View your complete medical history from USC clinic visits.

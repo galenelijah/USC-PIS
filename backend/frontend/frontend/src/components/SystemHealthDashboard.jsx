@@ -29,6 +29,7 @@ import {
   NetworkCheck
 } from '@mui/icons-material';
 import { authService } from '../services/api';
+import InfoTooltip from './utils/InfoTooltip';
 
 const SystemHealthDashboard = () => {
   const [healthData, setHealthData] = useState(null);
@@ -137,9 +138,12 @@ const SystemHealthDashboard = () => {
   return (
     <Box p={3}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1">
-          System Health Dashboard
-        </Typography>
+        <Box display="flex" alignItems="center">
+          <Typography variant="h4" component="h1">
+            System Health Dashboard
+          </Typography>
+          <InfoTooltip title="Monitor app, database, and resource health. Use the refresh button to update status." />
+        </Box>
         <Box display="flex" alignItems="center" gap={2}>
           {lastUpdated && (
             <Typography variant="body2" color="textSecondary">

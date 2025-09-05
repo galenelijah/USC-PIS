@@ -49,6 +49,7 @@ import {
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../features/authentication/authSlice';
 import { userManagementService } from '../services/api';
+import InfoTooltip from './utils/InfoTooltip';
 
 const UserManagement = () => {
   const currentUser = useSelector(selectCurrentUser);
@@ -173,9 +174,12 @@ const UserManagement = () => {
     <Box sx={{ p: 3 }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" fontWeight="bold" gutterBottom>
-          User Management
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography variant="h4" fontWeight="bold" gutterBottom>
+            User Management
+          </Typography>
+          <InfoTooltip title="Search, filter, and manage user roles or status. Admin access required." />
+        </Box>
         <Typography variant="body1" color="text.secondary">
           Manage user roles and permissions across the USC-PIS system
         </Typography>

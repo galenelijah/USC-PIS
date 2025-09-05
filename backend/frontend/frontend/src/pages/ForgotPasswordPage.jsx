@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Box, TextField, Button, Typography, CircularProgress, Alert } from '@mui/material';
+import InfoTooltip from '../components/utils/InfoTooltip';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as Yup from 'yup';
@@ -46,7 +47,10 @@ const ForgotPasswordPage = () => {
     <div className="myBackground">
       <Box className="loginBox">
         <Box className="itemBox">
-          <Typography variant="h5" className="title">Forgot Password</Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1 }}>
+            <Typography variant="h5" className="title">Forgot Password</Typography>
+            <InfoTooltip title="Enter your registered email to receive a reset link." />
+          </Box>
           <Typography variant="body2" sx={{ textAlign: 'center', mt: 1, mb: 2, color: 'text.secondary' }}>
             Enter your email address and we'll send you a link to reset your password.
           </Typography>

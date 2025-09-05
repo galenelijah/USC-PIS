@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Paper, CircularProgress } from '@mui/material';
 import axios from 'axios';
+import InfoTooltip from './utils/InfoTooltip';
 
 const Medical = () => {
     const [medicalRecords, setMedicalRecords] = useState([]);
@@ -29,9 +30,12 @@ const Medical = () => {
 
     return (
         <Box p={3}>
-            <Typography variant="h4" gutterBottom>
-                Medical Records
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography variant="h4" gutterBottom>
+                  Medical Records
+              </Typography>
+              <InfoTooltip title="Simple list of medical records fetched from the API." />
+            </Box>
             {medicalRecords.length > 0 ? (
                 medicalRecords.map((record, index) => (
                     <Paper key={index} elevation={2} sx={{ p: 2, mb: 2 }}>

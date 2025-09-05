@@ -25,6 +25,7 @@ import {
   IconButton,
   LinearProgress
 } from '@mui/material';
+import InfoTooltip from './utils/InfoTooltip';
 import {
   Search as SearchIcon,
   Person as PersonIcon,
@@ -932,9 +933,12 @@ const MedicalHistoryPage = () => {
     <Box sx={{ p: 3, maxWidth: 1400, mx: 'auto' }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" gutterBottom color="primary">
-          Medical History
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography variant="h4" gutterBottom color="primary">
+            Medical History
+          </Typography>
+          <InfoTooltip title="View historical clinical records in a timeline. Use filters and expand rows for details." />
+        </Box>
         <Typography variant="body1" color="text.secondary">
           {isStaffOrMedical 
             ? 'Browse patient medical histories in a timeline format. View comprehensive records, vital signs, and treatment progression.' 

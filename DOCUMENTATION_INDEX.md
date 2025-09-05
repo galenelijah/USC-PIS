@@ -113,7 +113,12 @@ USC-PIS/
 - [x] **Verification Tools**: Automated checking and validation
 - [x] **Management Commands**: Administrative utilities ready
 
-### 📈 Latest Updates (August 1, 2025)
+### 📈 Latest Updates (Sept 5, 2025)
+- UX: Contextual tooltips across major pages and headers
+- Forms: Field hints on registration and profile setup
+- Validation: Standardized Yup messages (email, password, phone, ID, dates)
+
+### Previous Updates (August 1, 2025)
 - **Enhanced Medical Records**: Tabbed interface with medical records, dental records, and health insights
 - **Smart Patient Search**: Revolutionary search interface for medical certificate creation
 - **Health Analytics**: Comprehensive insights dashboard with personalized recommendations

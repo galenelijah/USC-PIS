@@ -9,7 +9,8 @@ import {
   IconButton,
   useTheme,
   useMediaQuery,
-  Alert
+  Alert,
+  Tooltip
 } from '@mui/material';
 import { Add as AddIcon, Close as CloseIcon } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
@@ -17,6 +18,7 @@ import { medicalCertificateService } from '../services/api';
 import MedicalCertificateList from '../components/MedicalCertificates/MedicalCertificateList';
 import MedicalCertificateForm from '../components/MedicalCertificates/MedicalCertificateForm';
 import MedicalCertificateDetail from '../components/MedicalCertificates/MedicalCertificateDetail';
+import InfoTooltip from '../components/utils/InfoTooltip';
 
 const MedicalCertificatesPage = () => {
   const [mode, setMode] = useState('list'); // list, create, edit, view
@@ -122,17 +124,22 @@ const MedicalCertificatesPage = () => {
     return (
       <>
         <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h4" component="h1">
-            Medical Certificates
-          </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={handleCreate}
-          >
-            New Certificate
-          </Button>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography variant="h4" component="h1">
+              Medical Certificates
+            </Typography>
+            <InfoTooltip title="Create, view, and manage certificate requests. Students can request; staff and doctors can process." />
+          </Box>
+          <Tooltip title="Start a new medical certificate request">
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<AddIcon />}
+              onClick={handleCreate}
+            >
+              New Certificate
+            </Button>
+          </Tooltip>
         </Box>
 
         {error && (

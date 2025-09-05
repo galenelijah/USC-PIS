@@ -25,6 +25,7 @@ import {
 } from '@mui/icons-material';
 import { fileUploadService } from '../services/api'; // Adjust path as necessary
 import FileViewer from '../components/FileViewer';
+import InfoTooltip from '../components/utils/InfoTooltip';
 
 const FileUploadPage = () => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -140,7 +141,10 @@ const FileUploadPage = () => {
 
   return (
     <Paper sx={{ p: 3, maxWidth: 800, mx: 'auto', mt: 4 }} elevation={3}>
-      <Typography variant="h5" gutterBottom>File Uploads</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+        <Typography variant="h5" gutterBottom>File Uploads</Typography>
+        <InfoTooltip title="Select a file and optional description, then upload. Preview, download, or delete from the list." />
+      </Box>
       
       {/* Upload Form */}
       <Box component="form" noValidate autoComplete="off" sx={{ mb: 4 }}>

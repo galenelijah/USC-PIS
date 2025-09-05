@@ -32,6 +32,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setCredentials, selectAuthToken, selectCurrentUser } from '../features/authentication/authSlice';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
+import InfoTooltip from './utils/InfoTooltip';
 import { getSexLabel, getCivilStatusLabel, getCourseLabel, getYearLevelLabel } from '../utils/fieldMappers';
 
 const Profile = () => {
@@ -123,7 +124,10 @@ const Profile = () => {
         <Box sx={{ p: 3 }}>
             {/* Header with Edit Button */}
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h4" fontWeight="bold">My Profile</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Typography variant="h4" fontWeight="bold">My Profile</Typography>
+                  <InfoTooltip title="View your account information. Use Edit Profile to update details." />
+                </Box>
                 <Button
                     variant="contained"
                     startIcon={<Edit />}

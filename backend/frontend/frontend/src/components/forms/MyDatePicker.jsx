@@ -12,6 +12,7 @@ const MyDatePicker = ({
   control,
   required = false,
   error = null,
+  hint = '',
   ...props
 }) => {
   return (
@@ -31,7 +32,7 @@ const MyDatePicker = ({
               textField: {
                 required,
                 error: !!error || !!fieldError,
-                helperText: error?.message || fieldError?.message,
+                helperText: error?.message || fieldError?.message || hint,
                 fullWidth: true,
               },
             }}

@@ -57,6 +57,7 @@ import {
 import { useSelector } from 'react-redux';
 import { campaignService } from '../services/api';
 import ImageUpload from './common/ImageUpload';
+import InfoTooltip from './utils/InfoTooltip';
 
 const UniversalCampaigns = () => {
   const [campaigns, setCampaigns] = useState([]);
@@ -279,9 +280,12 @@ const UniversalCampaigns = () => {
     <Container maxWidth="lg" sx={{ py: 4 }}>
       {/* Header */}
       <Box sx={{ mb: 4, textAlign: 'center' }}>
-        <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-          Health & Wellness Campaigns
-        </Typography>
+        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+            Health & Wellness Campaigns
+          </Typography>
+          <InfoTooltip title="Explore current campaigns. Click cards to view details and share with others." />
+        </Box>
         <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
           Comprehensive health information and campaigns for the entire USC community
         </Typography>

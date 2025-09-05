@@ -48,6 +48,7 @@ import {
     MoreVert
 } from '@mui/icons-material';
 import { format } from 'date-fns';
+import InfoTooltip from './utils/InfoTooltip';
 import { notificationService } from '../services/api';
 
 function TabPanel({ children, value, index, ...other }) {
@@ -299,15 +300,18 @@ const Notifications = () => {
                 {/* Header */}
                 <Grid item xs={12}>
                     <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                        <Typography variant="h4" component="h1" gutterBottom>
-                            <NotificationsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                            Notifications
-                            {unreadNotifications.length > 0 && (
-                                <Badge badgeContent={unreadNotifications.length} color="error" sx={{ ml: 2 }}>
-                                    <NotificationsIcon />
-                                </Badge>
-                            )}
-                        </Typography>
+                        <Box display="flex" alignItems="center">
+                          <Typography variant="h4" component="h1" gutterBottom>
+                              <NotificationsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                              Notifications
+                              {unreadNotifications.length > 0 && (
+                                  <Badge badgeContent={unreadNotifications.length} color="error" sx={{ ml: 2 }}>
+                                      <NotificationsIcon />
+                                  </Badge>
+                              )}
+                          </Typography>
+                          <InfoTooltip title="View, search, and filter your notifications. Use the actions to refresh or mark all as read." />
+                        </Box>
                         <Box>
                             <Tooltip title="Refresh">
                                 <IconButton onClick={loadNotifications}>

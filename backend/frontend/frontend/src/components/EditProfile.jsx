@@ -61,6 +61,7 @@ import * as Yup from 'yup';
 import { authService } from '../services/api';
 import { useDispatch, useSelector } from 'react-redux';
 import { setCredentials, selectAuthToken, selectCurrentUser } from '../features/authentication/authSlice';
+import InfoTooltip from './utils/InfoTooltip';
 
 // Custom styled components (reusing from ProfileSetup)
 const ModernStepConnector = styled(StepConnector)(({ theme }) => ({
@@ -880,9 +881,12 @@ const EditProfile = () => {
             }}
           >
             <Edit sx={{ fontSize: 48, mb: 2 }} />
-            <Typography variant="h4" fontWeight="bold" gutterBottom>
-              Edit Your Profile
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1 }}>
+              <Typography variant="h4" fontWeight="bold" gutterBottom>
+                Edit Your Profile
+              </Typography>
+              <InfoTooltip title="Update your personal, contact, academic, and health details. Progress shows steps completed." />
+            </Box>
             <Typography variant="body1" sx={{ opacity: 0.9 }}>
               Update your information in the USC-PIS system
             </Typography>

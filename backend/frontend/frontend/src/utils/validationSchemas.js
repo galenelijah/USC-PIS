@@ -113,6 +113,18 @@ export const commonValidation = {
     .string()
     .required(`Please select an option for ${fieldName}`)
     .oneOf(['yes', 'no'], 'Please select yes or no'),
+
+  // Phone number validation (digits only, 7-15 chars)
+  phone: (fieldName = 'Phone number') => yup
+    .string()
+    .required(`${fieldName} is required`)
+    .matches(/^[0-9]{7,15}$/, `${fieldName} must be 7-15 digits (numbers only)`),
+
+  // ID number validation (at least 5 digits)
+  idNumber: (fieldName = 'ID Number') => yup
+    .string()
+    .required(`${fieldName} is required`)
+    .matches(/^\d{5,}$/, `${fieldName} must contain at least 5 digits`),
 };
 
 // Authentication schemas

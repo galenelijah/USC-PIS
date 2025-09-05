@@ -183,17 +183,17 @@ const illnessesOptions = [
 const createValidationSchema = (role) => {
   // Base validation for all roles
   const baseValidation = {
-    first_name: Yup.string().required('First name is required'),
-    last_name: Yup.string().required('Last name is required'),
-    middle_name: Yup.string().nullable(),
-    sex: Yup.string().required('Sex is required'),
-    civil_status: Yup.string().required('Civil status is required'),
+    first_name: commonValidation.requiredText('First name'),
+    last_name: commonValidation.requiredText('Last name'),
+    middle_name: commonValidation.optionalText,
+    sex: commonValidation.requiredText('Sex'),
+    civil_status: commonValidation.requiredText('Civil status'),
     birthday: commonValidation.birthdate,
-    address_permanent: Yup.string().required('Permanent address is required'),
-    phone: Yup.string().required('Phone number is required'),
-    email: Yup.string().email('Invalid email').required('Email is required'),
-    contact_emergency_name: Yup.string().nullable(),
-    contact_emergency_number: Yup.string().nullable()
+    address_permanent: commonValidation.requiredText('Permanent address'),
+    phone: commonValidation.phone('Phone number'),
+    email: commonValidation.email,
+    contact_emergency_name: commonValidation.optionalText,
+    contact_emergency_number: commonValidation.optionalText,
   };
 
   // Role-specific validation
@@ -201,31 +201,31 @@ const createValidationSchema = (role) => {
     case 'STUDENT':
       return Yup.object().shape({
         ...baseValidation,
-        nationality: Yup.string().required('Nationality is required'),
-        religion: Yup.string().nullable(),
-        address_present: Yup.string().required('Present address is required'),
-        id_number: Yup.string().required('ID Number is required'),
-        course: Yup.string().required('Course is required'),
-        year_level: Yup.string().required('Year Level is required'),
-        school: Yup.string().nullable(),
-        weight: Yup.string().nullable(),
-        height: Yup.string().nullable(),
-        contact_father_name: Yup.string().nullable(),
-        contact_mother_name: Yup.string().nullable()
+        nationality: commonValidation.requiredText('Nationality'),
+        religion: commonValidation.optionalText,
+        address_present: commonValidation.requiredText('Present address'),
+        id_number: commonValidation.idNumber('ID Number'),
+        course: commonValidation.requiredText('Course'),
+        year_level: commonValidation.requiredText('Year Level'),
+        school: commonValidation.optionalText,
+        weight: commonValidation.positiveNumber('Weight'),
+        height: commonValidation.positiveNumber('Height'),
+        contact_father_name: commonValidation.optionalText,
+        contact_mother_name: commonValidation.optionalText,
       });
 
     case 'DOCTOR':
     case 'NURSE':
       return Yup.object().shape({
         ...baseValidation,
-        department: Yup.string().required('Department is required')
+        department: commonValidation.requiredText('Department')
       });
 
     case 'ADMIN':
     case 'STAFF':
       return Yup.object().shape({
         ...baseValidation,
-        department: Yup.string().required('Department is required')
+        department: commonValidation.requiredText('Department')
       });
 
     default:
@@ -380,6 +380,7 @@ const ProfileSetup = () => {
                 required
                 error={!!errors?.first_name}
                 helperText={errors?.first_name?.message}
+                hint="Use your official name as on your ID"
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -391,6 +392,7 @@ const ProfileSetup = () => {
                 required
                 error={!!errors?.last_name}
                 helperText={errors?.last_name?.message}
+                hint="Family name / surname"
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -401,6 +403,7 @@ const ProfileSetup = () => {
                 control={control}
                 error={!!errors?.middle_name}
                 helperText={errors?.middle_name?.message}
+                hint="Optional"
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -413,6 +416,7 @@ const ProfileSetup = () => {
                 required
                 error={!!errors?.sex}
                 helperText={errors?.sex?.message}
+                hint="Select sex as indicated in records"
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -425,6 +429,7 @@ const ProfileSetup = () => {
                 required
                 error={!!errors?.civil_status}
                 helperText={errors?.civil_status?.message}
+                hint="Single, Married, etc."
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -436,6 +441,7 @@ const ProfileSetup = () => {
                 required
                 error={!!errors?.birthday}
                 helperText={errors?.birthday?.message}
+                hint="MM/DD/YYYY"
               />
             </Grid>
           </Grid>
@@ -467,6 +473,7 @@ const ProfileSetup = () => {
                 rows={2}
                 error={!!errors?.address_permanent}
                 helperText={errors?.address_permanent?.message}
+                hint="Include house no., street, barangay, city"
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -478,6 +485,7 @@ const ProfileSetup = () => {
                 required
                 error={!!errors?.phone}
                 helperText={errors?.phone?.message}
+                hint="7–15 digits, numbers only"
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -489,6 +497,7 @@ const ProfileSetup = () => {
                 required
                 error={!!errors?.email}
                 helperText={errors?.email?.message}
+                hint="Active contact email"
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -500,6 +509,7 @@ const ProfileSetup = () => {
                 required
                 error={!!errors?.contact_emergency_name}
                 helperText={errors?.contact_emergency_name?.message}
+                hint="Person to contact in emergencies"
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -511,6 +521,7 @@ const ProfileSetup = () => {
                 required
                 error={!!errors?.contact_emergency_number}
                 helperText={errors?.contact_emergency_number?.message}
+                hint="7–15 digits"
               />
             </Grid>
           </Grid>
@@ -758,6 +769,7 @@ const ProfileSetup = () => {
                       required
                       error={!!errors?.first_name}
                       helperText={errors?.first_name?.message}
+                      hint="Use your official name as on your ID"
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
@@ -769,6 +781,7 @@ const ProfileSetup = () => {
                       required
                       error={!!errors?.last_name}
                       helperText={errors?.last_name?.message}
+                      hint="Family name / surname"
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
@@ -779,6 +792,7 @@ const ProfileSetup = () => {
                       control={control}
                       error={!!errors?.middle_name}
                       helperText={errors?.middle_name?.message}
+                      hint="Optional"
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
@@ -791,6 +805,7 @@ const ProfileSetup = () => {
                       required
                       error={!!errors?.sex}
                       helperText={errors?.sex?.message}
+                      hint="Select sex as indicated in records"
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
@@ -803,6 +818,7 @@ const ProfileSetup = () => {
                       required
                       error={!!errors?.civil_status}
                       helperText={errors?.civil_status?.message}
+                      hint="Single, Married, etc."
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
@@ -814,6 +830,7 @@ const ProfileSetup = () => {
                       required
                       error={!!errors?.birthday}
                       helperText={errors?.birthday?.message}
+                      hint="MM/DD/YYYY"
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
@@ -825,6 +842,7 @@ const ProfileSetup = () => {
                       required
                       error={!!errors?.nationality}
                       helperText={errors?.nationality?.message}
+                      hint="e.g., Filipino"
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
@@ -835,6 +853,7 @@ const ProfileSetup = () => {
                       control={control}
                       error={!!errors?.religion}
                       helperText={errors?.religion?.message}
+                      hint="Optional"
                     />
                   </Grid>
                 </Grid>
@@ -870,17 +889,18 @@ const ProfileSetup = () => {
                     />
                   </Grid>
                   <Grid item xs={12}>
-                    <MyTextField
-                      key={`${stepKey}-address_present`}
-                      label="Present Address"
-                      name="address_present"
-                      control={control}
-                      required
-                      multiline
-                      rows={2}
-                      error={!!errors?.address_present}
-                      helperText={errors?.address_present?.message}
-                    />
+              <MyTextField
+                key={`${stepKey}-address_present`}
+                label="Present Address"
+                name="address_present"
+                control={control}
+                required
+                multiline
+                rows={2}
+                error={!!errors?.address_present}
+                helperText={errors?.address_present?.message}
+                hint="If different from permanent address"
+              />
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <MyTextField
@@ -924,72 +944,78 @@ const ProfileSetup = () => {
                 
                 <Grid container spacing={3}>
                   <Grid item xs={12} sm={6}>
-                    <MyTextField
-                      key={`${stepKey}-id_number`}
-                      label="Student ID Number"
-                      name="id_number"
-                      control={control}
-                      required
-                      error={!!errors?.id_number}
-                      helperText={errors?.id_number?.message}
-                    />
+              <MyTextField
+                key={`${stepKey}-id_number`}
+                label="Student ID Number"
+                name="id_number"
+                control={control}
+                required
+                error={!!errors?.id_number}
+                helperText={errors?.id_number?.message}
+                hint="Your USC ID (digits only)"
+              />
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                    <MySelector
-                      key={`${stepKey}-course`}
-                      label="Course"
-                      name="course"
-                      control={control}
-                      options={safeProgramsChoices}
-                      required
-                      error={!!errors?.course}
-                      helperText={errors?.course?.message}
-                    />
+              <MySelector
+                key={`${stepKey}-course`}
+                label="Course"
+                name="course"
+                control={control}
+                options={safeProgramsChoices}
+                required
+                error={!!errors?.course}
+                helperText={errors?.course?.message}
+                hint="Choose your program"
+              />
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                    <MySelector
-                      key={`${stepKey}-year_level`}
-                      label="Year Level"
-                      name="year_level"
-                      control={control}
-                      options={safeYearLevelChoices}
-                      required
-                      error={!!errors?.year_level}
-                      helperText={errors?.year_level?.message}
-                    />
+              <MySelector
+                key={`${stepKey}-year_level`}
+                label="Year Level"
+                name="year_level"
+                control={control}
+                options={safeYearLevelChoices}
+                required
+                error={!!errors?.year_level}
+                helperText={errors?.year_level?.message}
+                hint="Current year level"
+              />
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                    <MySelector
-                      key={`${stepKey}-school`}
-                      label="School/Campus"
-                      name="school"
-                      control={control}
-                      options={safeCampusChoices}
-                      error={!!errors?.school}
-                      helperText={errors?.school?.message}
-                    />
+              <MySelector
+                key={`${stepKey}-school`}
+                label="School/Campus"
+                name="school"
+                control={control}
+                options={safeCampusChoices}
+                error={!!errors?.school}
+                helperText={errors?.school?.message}
+                hint="Main or satellite campus"
+              />
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                    <MyTextField
-                      key={`${stepKey}-weight`}
-                      label="Weight (kg)"
-                      name="weight"
-                      control={control}
-                      type="number"
-                      error={!!errors?.weight}
-                      helperText={errors?.weight?.message}
-                    />
+              <MyTextField
+                key={`${stepKey}-weight`}
+                label="Weight (kg)"
+                name="weight"
+                control={control}
+                type="number"
+                error={!!errors?.weight}
+                helperText={errors?.weight?.message}
+                hint="Optional; numeric"
+              />
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                    <MyTextField
-                      key={`${stepKey}-height`}
-                      label="Height (cm)"
-                      name="height"
-                      control={control}
-                      type="number"
-                      error={!!errors?.height}
-                      helperText={errors?.height?.message}
-                    />
+              <MyTextField
+                key={`${stepKey}-height`}
+                label="Height (cm)"
+                name="height"
+                control={control}
+                type="number"
+                error={!!errors?.height}
+                helperText={errors?.height?.message}
+                hint="Optional; numeric"
+              />
                   </Grid>
                 </Grid>
               </CardContent>

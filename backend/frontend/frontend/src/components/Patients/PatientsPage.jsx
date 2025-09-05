@@ -3,6 +3,7 @@ import { Box, TextField, InputAdornment, IconButton, Typography, Stack } from '@
 import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material';
 import PatientList from './PatientList';
 import { patientService } from '../../services/api';
+import InfoTooltip from '../utils/InfoTooltip';
 
 const PatientsPage = ({ initialPatients = [] }) => {
   const [query, setQuery] = useState('');
@@ -70,6 +71,7 @@ const PatientsPage = ({ initialPatients = [] }) => {
             ) : null,
           }}
         />
+        <InfoTooltip title="Type at least 2 characters to search. Clear to see the full list." />
         <Typography variant="body2" color="text.secondary" sx={{ minWidth: 110, textAlign: 'right' }}>
           {countLabel}
         </Typography>
@@ -85,4 +87,3 @@ const PatientsPage = ({ initialPatients = [] }) => {
 };
 
 export default PatientsPage;
-

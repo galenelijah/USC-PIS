@@ -61,6 +61,7 @@ import {
     GetApp
 } from '@mui/icons-material';
 import { authService } from '../services/api';
+import InfoTooltip from './utils/InfoTooltip';
 
 function TabPanel({ children, value, index, ...other }) {
     return (
@@ -453,9 +454,12 @@ const DatabaseMonitor = () => {
     return (
         <Box sx={{ p: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h4" gutterBottom>
-                    Database & Backup Monitor
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="h4" gutterBottom>
+                        Database & Backup Monitor
+                    </Typography>
+                    <InfoTooltip title="Check database health, manage backups, view history, and upload/restore backups." />
+                </Box>
                 <Box>
                     <Tooltip title="Refresh Data">
                         <IconButton onClick={fetchData} disabled={loading}>

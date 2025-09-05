@@ -57,9 +57,7 @@ const Dashboard = memo(({ user }) => {
     totalRecords: 0,
     recentPatients: [],
     visitsByMonth: [],
-    appointmentsToday: 0,
     pendingRequests: 0,
-    nextAppointment: null,
     recentHealthInfo: null,
     profileCompletion: null,
     featuredCampaigns: [],
@@ -104,9 +102,7 @@ const Dashboard = memo(({ user }) => {
         totalRecords: dashboardResponse.data.total_records || 0,
         recentPatients: Array.isArray(dashboardResponse.data.recent_patients) ? dashboardResponse.data.recent_patients : [],
         visitsByMonth: Array.isArray(dashboardResponse.data.visits_by_month) ? dashboardResponse.data.visits_by_month : [],
-        appointmentsToday: dashboardResponse.data.appointments_today || 0,
         pendingRequests: dashboardResponse.data.pending_requests || 0,
-        nextAppointment: dashboardResponse.data.next_appointment || null,
         recentHealthInfo: dashboardResponse.data.recent_health_info || null,
         profileCompletion: dashboardResponse.data.profile_completion || 0,
         featuredCampaigns: Array.isArray(campaignsResponse.data) ? campaignsResponse.data.slice(0, 3) : [],
@@ -375,14 +371,6 @@ const Dashboard = memo(({ user }) => {
           value={stats.totalRecords}
           icon={<HospitalIcon />}
           color="#2196f3"
-        />
-      </Grid>
-      <Grid item xs={12} sm={6} md={3}>
-        <StatCard
-          title="Today's Appointments"
-          value={stats.appointmentsToday}
-          icon={<CalendarIcon />}
-          color="#ff9800"
         />
       </Grid>
       <Grid item xs={12} sm={6} md={3}>
@@ -770,227 +758,108 @@ const Dashboard = memo(({ user }) => {
           bgcolor: 'white',
           boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
         }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-              <Typography variant="h4" fontWeight="bold" sx={{ 
-                color: 'text.primary',
-                display: 'flex',
-                alignItems: 'center'
-              }}>
-                <CampaignIcon sx={{ mr: 2, fontSize: 40, color: 'primary.main' }} />
-                Latest Health Content
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+            <Typography variant="h4" fontWeight="bold" sx={{ 
+              color: 'text.primary',
+              display: 'flex',
+              alignItems: 'center'
+            }}>
+              <CampaignIcon sx={{ mr: 2, fontSize: 40, color: 'primary.main' }} />
+              Health Campaigns
+            </Typography>
+            <Button
+              component={Link}
+              to="/campaigns"
+              variant="contained"
+              color="primary"
+              endIcon={<ArrowForwardIcon />}
+            >
+              View All
+            </Button>
+          </Box>
+          <Divider sx={{ mb: 3 }} />
+          
+          {/* Health Campaigns */}
+          {stats.latestCampaigns.length > 0 ? (
+            <Grid container spacing={3}>
+              {stats.latestCampaigns.slice(0, 4).map((campaign, index) => (
+                <Grid item xs={12} md={6} key={campaign.id || index}>
+                  <Box sx={{ 
+                    p: 3, 
+                    borderRadius: 3, 
+                    bgcolor: 'grey.50',
+                    border: '1px solid',
+                    borderColor: 'grey.200',
+                    transition: 'all 0.3s ease',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    '&:hover': {
+                      bgcolor: 'grey.100',
+                      transform: 'translateY(-2px)',
+                      boxShadow: 2
+                    }
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+                      <Avatar sx={{ 
+                        width: 48, 
+                        height: 48, 
+                        bgcolor: 'primary.main', 
+                        mr: 2,
+                        border: '2px solid',
+                        borderColor: 'primary.light'
+                      }}>
+                        <CampaignIcon sx={{ fontSize: 28, color: 'white' }} />
+                      </Avatar>
+                      <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                        <Typography variant="h6" fontWeight="bold" sx={{ 
+                          lineHeight: 1.3, 
+                          mb: 1,
+                          color: 'text.primary'
+                        }}>
+                          {campaign.title}
+                        </Typography>
+                        {campaign.campaign_type && (
+                          <Chip
+                            size="small"
+                            label={campaign.campaign_type}
+                            sx={{ 
+                              fontSize: '0.75rem', 
+                              height: 22,
+                              bgcolor: 'primary.main',
+                              color: 'white'
+                            }}
+                          />
+                        )}
+                      </Box>
+                    </Box>
+                    <Typography variant="body1" sx={{ 
+                      color: 'text.secondary',
+                      lineHeight: 1.5,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      flexGrow: 1
+                    }}>
+                      {campaign.summary || campaign.description?.substring(0, 120)}
+                      {(campaign.summary || campaign.description)?.length > 120 ? '...' : ''}
+                    </Typography>
+                  </Box>
+                </Grid>
+              ))}
+            </Grid>
+          ) : (
+            <Box textAlign="center" py={8}>
+              <CampaignIcon sx={{ fontSize: 80, color: 'text.disabled', mb: 2 }} />
+              <Typography variant="h5" sx={{ mb: 2, color: 'text.primary' }}>
+                No Campaigns Available
               </Typography>
-              <Button
-                component={Link}
-                to="/campaigns"
-                variant="contained"
-                color="primary"
-                endIcon={<ArrowForwardIcon />}
-              >
-                View All
-              </Button>
+              <Typography variant="body1" sx={{ mb: 4, color: 'text.secondary' }}>
+                Check back soon for new health campaigns
+              </Typography>
             </Box>
-            <Divider sx={{ mb: 3 }} />
-            
-            {/* Latest Campaigns Section */}
-            {stats.latestCampaigns.length > 0 && (
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', color: 'text.primary', fontWeight: 'bold' }}>
-                  <CampaignIcon sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
-                  Latest Health Campaigns
-                </Typography>
-                <Grid container spacing={3}>
-                  {stats.latestCampaigns.slice(0, 4).map((campaign, index) => (
-                    <Grid item xs={12} md={6} key={campaign.id || index}>
-                      <Box sx={{ 
-                        p: 3, 
-                        borderRadius: 3, 
-                        bgcolor: 'grey.50',
-                        border: '1px solid',
-                        borderColor: 'grey.200',
-                        transition: 'all 0.3s ease',
-                        height: '100%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        '&:hover': {
-                          bgcolor: 'grey.100',
-                          transform: 'translateY(-2px)',
-                          boxShadow: 2
-                        }
-                      }}>
-                        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-                          <Avatar sx={{ 
-                            width: 48, 
-                            height: 48, 
-                            bgcolor: 'primary.main', 
-                            mr: 2,
-                            border: '2px solid',
-                            borderColor: 'primary.light'
-                          }}>
-                            <CampaignIcon sx={{ fontSize: 28, color: 'white' }} />
-                          </Avatar>
-                          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                            <Typography variant="h6" fontWeight="bold" sx={{ 
-                              lineHeight: 1.3, 
-                              mb: 1,
-                              color: 'text.primary'
-                            }}>
-                              {campaign.title}
-                            </Typography>
-                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                              <Chip
-                                size="small"
-                                label={campaign.campaign_type?.replace('_', ' ') || 'General'}
-                                sx={{ 
-                                  fontSize: '0.75rem', 
-                                  height: 22,
-                                  bgcolor: 'primary.light',
-                                  color: 'white',
-                                  fontWeight: 'bold'
-                                }}
-                              />
-                              {campaign.status && (
-                                <Chip
-                                  size="small"
-                                  label={campaign.status}
-                                  sx={{ 
-                                    fontSize: '0.75rem', 
-                                    height: 22,
-                                    bgcolor: campaign.status === 'ACTIVE' ? 'success.main' : 'grey.400',
-                                    color: 'white',
-                                    fontWeight: 'bold'
-                                  }}
-                                />
-                              )}
-                            </Box>
-                          </Box>
-                        </Box>
-                        <Typography variant="body1" sx={{ 
-                          color: 'text.secondary',
-                          lineHeight: 1.5,
-                          display: '-webkit-box',
-                          WebkitLineClamp: 3,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                          flexGrow: 1
-                        }}>
-                          {campaign.summary || campaign.description?.substring(0, 120)}
-                          {(campaign.summary || campaign.description)?.length > 120 ? '...' : ''}
-                        </Typography>
-                      </Box>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Box>
-            )}
-
-            {/* Health Information Section */}
-            {stats.recentHealthInfoPosts.length > 0 && (
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', color: 'text.primary', fontWeight: 'bold' }}>
-                  <ArticleIcon sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
-                  Health Information Posts
-                </Typography>
-                <Grid container spacing={3}>
-                  {stats.recentHealthInfoPosts.slice(0, 4).map((post, index) => (
-                    <Grid item xs={12} md={6} key={post.id || index}>
-                      <Box sx={{ 
-                        p: 3, 
-                        borderRadius: 3, 
-                        bgcolor: 'grey.50',
-                        border: '1px solid',
-                        borderColor: 'grey.200',
-                        transition: 'all 0.3s ease',
-                        height: '100%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        '&:hover': {
-                          bgcolor: 'grey.100',
-                          transform: 'translateY(-2px)',
-                          boxShadow: 2
-                        }
-                      }}>
-                        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-                          <Avatar sx={{ 
-                            width: 48, 
-                            height: 48, 
-                            bgcolor: 'primary.main', 
-                            mr: 2,
-                            border: '2px solid',
-                            borderColor: 'primary.light'
-                          }}>
-                            <ArticleIcon sx={{ fontSize: 28, color: 'white' }} />
-                          </Avatar>
-                          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                            <Typography variant="h6" fontWeight="bold" sx={{ 
-                              lineHeight: 1.3, 
-                              mb: 1,
-                              color: 'text.primary'
-                            }}>
-                              {post.title}
-                            </Typography>
-                            <Chip
-                              size="small"
-                              label={post.category || 'Health Info'}
-                              sx={{ 
-                                fontSize: '0.75rem', 
-                                height: 22,
-                                bgcolor: 'rgba(255, 255, 255, 0.2)',
-                                color: 'white',
-                                fontWeight: 'bold',
-                                border: '1px solid rgba(255, 255, 255, 0.3)'
-                              }}
-                            />
-                          </Box>
-                        </Box>
-                        <Typography variant="body1" sx={{ 
-                          color: 'text.secondary',
-                          lineHeight: 1.5,
-                          display: '-webkit-box',
-                          WebkitLineClamp: 3,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                          flexGrow: 1
-                        }}>
-                          {post.content?.substring(0, 120)}
-                          {post.content?.length > 120 ? '...' : ''}
-                        </Typography>
-                      </Box>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Box>
-            )}
-
-            {/* Empty State */}
-            {stats.latestCampaigns.length === 0 && stats.recentHealthInfoPosts.length === 0 && (
-              <Box textAlign="center" py={8}>
-                <Box sx={{ mb: 4 }}>
-                  <CampaignIcon sx={{ fontSize: 80, color: 'text.disabled', mb: 2, mr: 2 }} />
-                  <ArticleIcon sx={{ fontSize: 80, color: 'text.disabled', mb: 2 }} />
-                </Box>
-                <Typography variant="h4" sx={{ mb: 3, color: 'text.primary' }}>
-                  No Health Content Available
-                </Typography>
-                <Typography variant="h6" sx={{ mb: 4, color: 'text.secondary' }}>
-                  Check back soon for new campaigns and health information
-                </Typography>
-                <Button
-                  variant="contained"
-                  size="large"
-                  component={Link}
-                  to="/campaigns"
-                  startIcon={<CampaignIcon />}
-                  color="primary"
-                  sx={{ 
-                    py: 1.5,
-                    px: 4,
-                    fontSize: '1.1rem'
-                  }}
-                >
-                  Explore Health Content
-                </Button>
-              </Box>
-            )}
+          )}
         </Paper>
       </Grid>
 
@@ -1009,257 +878,86 @@ const Dashboard = memo(({ user }) => {
                 display: 'flex',
                 alignItems: 'center'
               }}>
-                <AnnouncementIcon sx={{ mr: 1.5, fontSize: 32 }} />
-                Latest News
+                <InfoIcon sx={{ mr: 1.5, fontSize: 32 }} />
+                Health Information
               </Typography>
-              <Button
-                component={Link}
-                to="/campaigns"
-                variant="contained"
-                size="small"
-                color="primary"
-                endIcon={<ArrowForwardIcon />}
-              >
-                View All
-              </Button>
             </Box>
             <Divider sx={{ mb: 3 }} />
           
-          {/* Latest Campaigns */}
-          {stats.latestCampaigns.length > 0 && (
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', color: 'text.primary' }}>
-                <CampaignIcon sx={{ mr: 1, fontSize: 24 }} />
-                Latest Campaigns
-              </Typography>
-              {stats.latestCampaigns.slice(0, 2).map((campaign, index) => (
-                <Box key={campaign.id || index} sx={{ 
-                  mb: 3, 
-                  p: 3, 
-                  borderRadius: 3, 
-                  bgcolor: 'grey.50',
-                  border: '1px solid',
-                  borderColor: 'grey.200',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    bgcolor: 'grey.100',
-                    transform: 'translateY(-2px)',
-                    boxShadow: 2
-                  }
-                }}>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-                    <Avatar sx={{ 
-                      width: 40, 
-                      height: 40, 
-                      bgcolor: 'primary.main', 
-                      mr: 2,
-                      border: '2px solid',
-                      borderColor: 'primary.light'
-                    }}>
-                      <CampaignIcon sx={{ fontSize: 24, color: 'white' }} />
-                    </Avatar>
-                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                      <Typography variant="subtitle1" fontWeight="bold" sx={{ 
-                        lineHeight: 1.3, 
-                        mb: 1,
-                        color: 'text.primary'
-                      }}>
-                        {campaign.title}
-                      </Typography>
-                      <Chip
-                        size="small"
-                        label={campaign.campaign_type?.replace('_', ' ') || 'General'}
-                        sx={{ 
-                          fontSize: '0.75rem', 
-                          height: 22,
-                          bgcolor: 'primary.light',
-                          color: 'white',
-                          fontWeight: 'bold'
-                        }}
-                      />
-                    </Box>
-                  </Box>
-                  <Typography variant="body2" sx={{ 
-                    color: 'text.secondary',
-                    lineHeight: 1.4,
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden'
+            {/* Health Info Posts */}
+            {stats.recentHealthInfoPosts.length > 0 ? (
+              <Box>
+                {stats.recentHealthInfoPosts.slice(0, 3).map((post, index) => (
+                  <Box key={post.id || index} sx={{ 
+                    mb: 3, 
+                    p: 3, 
+                    borderRadius: 3, 
+                    bgcolor: 'grey.50',
+                    border: '1px solid',
+                    borderColor: 'grey.200',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      bgcolor: 'grey.100',
+                      transform: 'translateY(-2px)',
+                      boxShadow: 2
+                    }
                   }}>
-                    {campaign.summary || campaign.description?.substring(0, 80)}
-                    {(campaign.summary || campaign.description)?.length > 80 ? '...' : ''}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-          )}
-
-          {/* Health Info Posts */}
-          {stats.recentHealthInfoPosts.length > 0 && (
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', color: 'text.primary' }}>
-                <ArticleIcon sx={{ mr: 1, fontSize: 24 }} />
-                Health Information
-              </Typography>
-              {stats.recentHealthInfoPosts.slice(0, 2).map((post, index) => (
-                <Box key={post.id || index} sx={{ 
-                  mb: 3, 
-                  p: 3, 
-                  borderRadius: 3, 
-                  bgcolor: 'grey.50',
-                  border: '1px solid',
-                  borderColor: 'grey.200',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    bgcolor: 'grey.100',
-                    transform: 'translateY(-2px)',
-                    boxShadow: 2
-                  }
-                }}>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-                    <Avatar sx={{ 
-                      width: 40, 
-                      height: 40, 
-                      bgcolor: 'primary.main', 
-                      mr: 2,
-                      border: '2px solid',
-                      borderColor: 'primary.light'
-                    }}>
-                      <ArticleIcon sx={{ fontSize: 24, color: 'white' }} />
-                    </Avatar>
-                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                      <Typography variant="subtitle1" fontWeight="bold" sx={{ 
-                        lineHeight: 1.3, 
-                        mb: 1,
-                        color: 'text.primary'
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+                      <Avatar sx={{ 
+                        width: 40, 
+                        height: 40, 
+                        bgcolor: 'secondary.main', 
+                        mr: 2,
+                        border: '2px solid',
+                        borderColor: 'secondary.light'
                       }}>
-                        {post.title}
-                      </Typography>
-                      <Chip
-                        size="small"
-                        label={post.category || 'Health Info'}
-                        sx={{ 
-                          fontSize: '0.75rem', 
-                          height: 22,
-                          bgcolor: 'primary.light',
-                          color: 'white',
-                          fontWeight: 'bold'
-                        }}
-                      />
+                        <ArticleIcon sx={{ fontSize: 24, color: 'white' }} />
+                      </Avatar>
+                      <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                        <Typography variant="subtitle1" fontWeight="bold" sx={{ 
+                          lineHeight: 1.3, 
+                          mb: 1,
+                          color: 'text.primary'
+                        }}>
+                          {post.title}
+                        </Typography>
+                        <Chip
+                          size="small"
+                          label={post.category || 'Health Info'}
+                          sx={{ 
+                            fontSize: '0.75rem', 
+                            height: 20,
+                            bgcolor: 'secondary.main',
+                            color: 'white'
+                          }}
+                        />
+                      </Box>
                     </Box>
-                  </Box>
-                  <Typography variant="body2" sx={{ 
-                    color: 'text.secondary',
-                    lineHeight: 1.4,
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden'
-                  }}>
-                    {post.content?.substring(0, 80)}
-                    {post.content?.length > 80 ? '...' : ''}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-          )}
-
-          {/* Announcements */}
-          {stats.announcements.length > 0 && (
-            <Box>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', color: 'text.primary' }}>
-                <AnnouncementIcon sx={{ mr: 1, fontSize: 24 }} />
-                Latest News
-              </Typography>
-              {stats.announcements.slice(0, 2).map((announcement, index) => (
-                <Box key={announcement.id || index} sx={{ 
-                  mb: 3, 
-                  p: 3, 
-                  borderRadius: 3, 
-                  bgcolor: 'grey.50',
-                  border: '1px solid',
-                  borderColor: 'grey.200',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    bgcolor: 'grey.100',
-                    transform: 'translateY(-2px)',
-                    boxShadow: 2
-                  }
-                }}>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-                    <Avatar sx={{ 
-                      width: 40, 
-                      height: 40, 
-                      bgcolor: 'primary.main', 
-                      mr: 2,
-                      border: '2px solid',
-                      borderColor: 'primary.light'
+                    <Typography variant="body2" sx={{ 
+                      color: 'text.secondary',
+                      lineHeight: 1.4,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden'
                     }}>
-                      <AnnouncementIcon sx={{ fontSize: 24, color: 'white' }} />
-                    </Avatar>
-                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                      <Typography variant="subtitle1" fontWeight="bold" sx={{ 
-                        lineHeight: 1.3, 
-                        mb: 1,
-                        color: 'text.primary'
-                      }}>
-                        {announcement.title}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        {new Date(announcement.created_at).toLocaleDateString()}
-                      </Typography>
-                    </Box>
+                      {post.description?.substring(0, 80)}
+                      {post.description?.length > 80 ? '...' : ''}
+                    </Typography>
                   </Box>
-                  <Typography variant="body2" sx={{ 
-                    color: 'text.secondary',
-                    lineHeight: 1.4,
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden'
-                  }}>
-                    {announcement.content?.substring(0, 80)}
-                    {announcement.content?.length > 80 ? '...' : ''}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-          )}
-
-          {/* Empty State */}
-          {stats.latestCampaigns.length === 0 && stats.recentHealthInfoPosts.length === 0 && stats.announcements.length === 0 && (
-            <Box textAlign="center" py={6}>
-              <Box sx={{ mb: 3 }}>
-                <CampaignIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2, mr: 1 }} />
-                <ArticleIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2, mr: 1 }} />
-                <AnnouncementIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
+                ))}
               </Box>
-              <Typography variant="h6" sx={{ mb: 2, color: 'text.primary' }}>
-                No content available
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 3, color: 'text.secondary' }}>
-                Check back soon for new campaigns, health info, and announcements
-              </Typography>
-              <Button
-                variant="contained"
-                component={Link}
-                to="/campaigns"
-                startIcon={<CampaignIcon />}
-                sx={{ 
-                  bgcolor: 'rgba(255,255,255,0.2)',
-                  color: 'white',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  '&:hover': {
-                    bgcolor: 'rgba(255,255,255,0.3)',
-                  }
-                }}
-              >
-                Explore Content
-              </Button>
-            </Box>
-          )}
+            ) : (
+              <Box textAlign="center" py={6}>
+                <ArticleIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
+                <Typography variant="h6" sx={{ mb: 2, color: 'text.primary' }}>
+                  No Health Info Available
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  Check back soon for health information
+                </Typography>
+              </Box>
+            )}
           </Box>
         </Paper>
       </Grid>
@@ -1272,55 +970,6 @@ const Dashboard = memo(({ user }) => {
 
       {renderRoleBasedActions()}
 
-      <Grid item xs={12}>
-        <Paper sx={{ p: 3, borderRadius: 3 }}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h6" fontWeight="bold">
-              Next Appointment
-            </Typography>
-            <Tooltip title="Refresh">
-              <IconButton size="small" onClick={fetchDashboardData}>
-                <RefreshIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
-          <Divider sx={{ mb: 2 }} />
-          {stats.nextAppointment ? (
-            <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
-                  <CalendarIcon />
-                </Avatar>
-                <Box>
-                  <Typography variant="subtitle1" fontWeight="medium">
-                    {new Date(stats.nextAppointment.date).toLocaleDateString()}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {stats.nextAppointment.time}
-                  </Typography>
-                </Box>
-              </Box>
-              <Typography variant="body2" sx={{ mb: 2 }}>
-                <strong>Reason:</strong> {stats.nextAppointment.reason}
-              </Typography>
-              <Typography variant="body2">
-                <strong>Doctor:</strong> {stats.nextAppointment.doctor}
-              </Typography>
-            </Box>
-          ) : (
-            <Box textAlign="center" py={3}>
-              <Typography color="text.secondary">No upcoming appointments</Typography>
-              <Button
-                variant="outlined"
-                sx={{ mt: 2 }}
-                startIcon={<CalendarIcon />}
-              >
-                Schedule Appointment
-              </Button>
-            </Box>
-          )}
-        </Paper>
-      </Grid>
     </Grid>
   );
 
@@ -1348,6 +997,7 @@ const Dashboard = memo(({ user }) => {
       <PageHeader
         title={welcomeMessage}
         subtitle={`You are logged in as ${user?.role?.toLowerCase() || 'a user'}`}
+        helpText="Use the sidebar to open features. Click cards and action icons for more details; hover icons to see quick tips."
       />
       
       {/* Show warning if profile setup is not complete */}

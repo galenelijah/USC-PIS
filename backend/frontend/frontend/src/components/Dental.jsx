@@ -67,6 +67,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
+import InfoTooltip from './utils/InfoTooltip';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../features/authentication/authSlice';
 import { dentalRecordService, patientService } from '../services/api';
@@ -559,9 +560,12 @@ const Dental = () => {
       <Box p={3}>
         {/* Header */}
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h4" gutterBottom>
-            Dental Records Management
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography variant="h4" gutterBottom>
+              Dental Records Management
+            </Typography>
+            <InfoTooltip title="Create, search, and manage dental records. Filter, export, and print as needed." />
+          </Box>
           <Box display="flex" gap={2} alignItems="center">
             {/* Export Buttons */}
             <Button

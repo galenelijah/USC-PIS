@@ -11,6 +11,7 @@ const MyTextField = ({
   type = 'text',
   multiline = false,
   rows = 1,
+  hint = '',
   ...props
 }) => {
   return (
@@ -25,7 +26,7 @@ const MyTextField = ({
             label={label}
             required={required}
             error={!!error || !!fieldError}
-            helperText={error?.message || fieldError?.message}
+            helperText={error?.message || fieldError?.message || hint}
             fullWidth
             type={type}
             multiline={multiline}

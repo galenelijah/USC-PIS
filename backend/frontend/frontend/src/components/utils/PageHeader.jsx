@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Typography, Button, Breadcrumbs, Link, Divider } from '@mui/material';
 import { NavigateNext as NavigateNextIcon } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
+import InfoTooltip from './InfoTooltip';
 
 const PageHeader = ({
   title,
@@ -12,6 +13,7 @@ const PageHeader = ({
   actionLabel = null,
   onAction = null,
   children,
+  helpText = null,
 }) => {
   return (
     <Box sx={{ mb: 4 }}>
@@ -57,9 +59,14 @@ const PageHeader = ({
         }}
       >
         <Box>
-          <Typography variant="h4" component="h1" fontWeight="bold" gutterBottom>
-            {title}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography variant="h4" component="h1" fontWeight="bold" gutterBottom>
+              {title}
+            </Typography>
+            {helpText && (
+              <InfoTooltip title={helpText} placement="right" />
+            )}
+          </Box>
           
           {subtitle && (
             <Typography variant="body1" color="text.secondary">

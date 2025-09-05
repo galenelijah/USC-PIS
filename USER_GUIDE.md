@@ -50,6 +50,7 @@
 5. [Main Features](#main-features)
 6. [Common Tasks](#common-tasks)
 7. [Form Validation Guide](#form-validation-guide)
+8. [Tooltips & Field Hints](#tooltips--field-hints)
 8. [Best Practices](#best-practices)
 9. [Troubleshooting](#troubleshooting)
 10. [Support](#support)
@@ -597,7 +598,7 @@ This page provides the complete medical and dental history view.
 
 USC-PIS features comprehensive form validation to ensure data accuracy and provide clear guidance when filling out forms. Understanding these validation rules will help you complete forms successfully.
 
-### General Validation Rules
+### General Validation Rules (Standardized Sept 2025)
 
 #### **Required Fields**
 - Fields marked with an asterisk (*) are required
@@ -625,6 +626,18 @@ USC-PIS features comprehensive form validation to ensure data accuracy and provi
   - "Password must be at least 8 characters long"
   - "Password must contain at least one uppercase letter, lowercase letter, number, and special character"
   - "Passwords do not match"
+
+#### **Phone Number Validation**
+- Must be numbers only, 7–15 digits
+- Error messages:
+  - "Phone number is required"
+  - "Phone number must be 7-15 digits (numbers only)"
+
+#### **USC ID Number Validation (Student)**
+- Must contain at least 5 digits
+- Error messages:
+  - "ID Number is required"
+  - "ID Number must contain at least 5 digits"
 
 ### Form-Specific Validation
 
@@ -681,6 +694,7 @@ USC-PIS features comprehensive form validation to ensure data accuracy and provi
 - Error messages appear immediately below the field
 - Fields with errors are highlighted in red
 - Valid fields show normal styling
+ - When a field has no error, a subtle hint may appear below to guide you (e.g., "7–15 digits, numbers only")
 
 #### **Common Error Messages**
 - **"[Field] is required"**: You must fill in this field
@@ -728,7 +742,17 @@ USC-PIS features comprehensive form validation to ensure data accuracy and provi
 - **High Contrast**: Error states are clearly visible
 - **Clear Labels**: Every field has descriptive labels
 
-This validation system ensures data quality while providing clear guidance to help you complete forms successfully on your first attempt.
+This validation system ensures data quality while providing clear guidance to help you complete forms successfully on your first attempt. All forms share a common set of messages for a consistent experience.
+
+## Tooltips & Field Hints
+
+- Info tooltips appear as small "i" icons next to page titles and key controls. Hover or tap them for quick guidance.
+- Field hints appear beneath inputs when there is no error. They provide subtle examples or formatting expectations.
+- Examples you’ll see across the app:
+  - Phone: "7–15 digits, numbers only"
+  - Student ID: "Your USC ID (digits only)"
+  - Birthday: "MM/DD/YYYY"
+  - Password: "At least 8 chars with upper/lowercase, number, and special character"
 
 ## Best Practices
 

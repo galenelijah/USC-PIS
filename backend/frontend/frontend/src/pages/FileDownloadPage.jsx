@@ -32,6 +32,7 @@ import {
 } from '@mui/icons-material';
 import { fileUploadService } from '../services/api';
 import FileViewer from '../components/FileViewer';
+import InfoTooltip from '../components/utils/InfoTooltip';
 
 // Get unique file types for filtering
 const getUniqueFileTypes = (files) => {
@@ -189,7 +190,10 @@ const FileDownloadPage = () => {
 
   return (
     <Paper sx={{ p: 3, maxWidth: 1200, mx: 'auto', mt: 4 }} elevation={3}>
-      <Typography variant="h5" gutterBottom>File Downloads</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+        <Typography variant="h5" gutterBottom>File Downloads</Typography>
+        <InfoTooltip title="Preview or download uploaded files. Use search and file type filter to narrow results." />
+      </Box>
       
       {/* Search and Filter Controls */}
       <Box sx={{ mb: 3, display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>

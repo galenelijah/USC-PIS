@@ -10,7 +10,7 @@ import { FormHelperText } from '@mui/material';
 import {Controller} from 'react-hook-form'
 
 export default function MyPassField(props) {
-    const {label, name, control}=props
+    const {label, name, control, error: propError = null, helperText: propHelperText = '', hint = ''}=props
     const [showPassword, setShowPassword] = React.useState(false);
     const handleClickShowPassword = () => setShowPassword((show) => !show);
     const handleMouseDownPassword = (event) => {
@@ -35,7 +35,7 @@ export default function MyPassField(props) {
                 id="outlined-adornment-password"
                 onChange={onChange}
                 value ={value}
-                error = {!!error}
+                error = {!!(propError || error)}
                 type={showPassword ? 'text' : 'password'}
                     endAdornment={
                     <InputAdornment position="end">
@@ -54,7 +54,9 @@ export default function MyPassField(props) {
                         }
                         label={label}
                     />
-                <FormHelperText sx={{color:"#D32F2F"}}> {error?.message} </FormHelperText>
+                <FormHelperText sx={{ color: (propError || error) ? "#D32F2F" : 'text.secondary' }}>
+                  {(propError?.message || error?.message) || (!propError && !error ? hint || propHelperText : '')}
+                </FormHelperText>
             </FormControl>
 
             )

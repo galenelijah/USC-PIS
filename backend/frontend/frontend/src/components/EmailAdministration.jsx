@@ -47,6 +47,7 @@ import {
   Stop as StopIcon
 } from '@mui/icons-material';
 import { authService } from '../services/api';
+import InfoTooltip from './utils/InfoTooltip';
 
 const EmailAdministration = () => {
   const [emailStatus, setEmailStatus] = useState(null);
@@ -211,10 +212,13 @@ const EmailAdministration = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        <EmailIcon sx={{ mr: 2, verticalAlign: 'middle' }} />
-        Email System Administration
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Typography variant="h4" gutterBottom>
+          <EmailIcon sx={{ mr: 2, verticalAlign: 'middle' }} />
+          Email System Administration
+        </Typography>
+        <InfoTooltip title="View status, stats, and run test/automation emails. Use actions to preview or send." />
+      </Box>
 
       {notification && (
         <Alert 

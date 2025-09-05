@@ -23,6 +23,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { reportService } from '../services/api';
+import InfoTooltip from './utils/InfoTooltip';
 import { formatDateTimePH, formatDatePH } from '../utils/dateUtils';
 
 const Reports = () => {
@@ -395,9 +396,12 @@ const Reports = () => {
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box sx={{ p: 3 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-            Reports
-          </Typography>
+          <Box display="flex" alignItems="center">
+            <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
+              Reports
+            </Typography>
+            <InfoTooltip title="Generate and export system reports. Choose a template, set filters, then export or view details." />
+          </Box>
         </Box>
 
         {/* Enhanced Dashboard Cards */}

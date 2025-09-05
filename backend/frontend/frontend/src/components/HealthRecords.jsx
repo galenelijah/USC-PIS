@@ -33,6 +33,7 @@ import {
   Tooltip
 } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import InfoTooltip from './utils/InfoTooltip';
 import { 
   Add as AddIcon, 
   Edit as EditIcon, 
@@ -868,9 +869,12 @@ Treatment: ${r.treatment || 'N/A'}
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Health Records
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          Health Records
+        </Typography>
+        <InfoTooltip title="Search, filter, and manage clinical records. Use tabs for analytics and actions for exports." />
+      </Box>
 
       {/* Quick Stats */}
       <Grid container spacing={2} sx={{ mb: 3 }}>

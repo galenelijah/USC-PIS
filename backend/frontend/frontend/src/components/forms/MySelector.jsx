@@ -9,6 +9,7 @@ const MySelector = ({
   options,
   required = false,
   error = null,
+  hint = '',
   ...props
 }) => {
   return (
@@ -34,9 +35,9 @@ const MySelector = ({
               </MenuItem>
             ))}
           </Select>
-          {(error || fieldError) && (
+          {(error || fieldError || hint) && (
             <FormHelperText>
-              {error?.message || fieldError?.message}
+              {error?.message || fieldError?.message || hint}
             </FormHelperText>
           )}
         </FormControl>

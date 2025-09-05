@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 // import axios from 'axios'; // No longer needed directly
 import { feedbackService } from '../services/api'; // Import the service
 import { Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, CircularProgress, Alert, Box, Chip, TablePagination } from '@mui/material';
+import InfoTooltip from './utils/InfoTooltip';
 import FeedbackAnalytics from './FeedbackAnalytics'; // Import the new component
 
 const AdminFeedbackList = () => {
@@ -44,9 +45,12 @@ const AdminFeedbackList = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom component="div">
-        Admin - Patient Feedback
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Typography variant="h4" gutterBottom component="div">
+          Admin - Patient Feedback
+        </Typography>
+        <InfoTooltip title="Review patient feedback and analytics to improve services. Use pagination to browse responses." />
+      </Box>
 
       <FeedbackAnalytics />
 

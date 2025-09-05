@@ -30,6 +30,7 @@ import {
 import ImageUpload from '../common/ImageUpload';
 import ImageViewer from '../common/ImageViewer';
 import ContentViewer from '../common/ContentViewer';
+import InfoTooltip from '../utils/InfoTooltip';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { healthInfoSchema } from '../../utils/validationSchemas';
@@ -130,9 +131,12 @@ const HealthInfo = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom color="primary">
-        Health Information Dissemination
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+        <Typography variant="h4" gutterBottom color="primary">
+          Health Information Dissemination
+        </Typography>
+        <InfoTooltip title="Browse health articles and visuals. Staff can add posts with images; students view and explore." />
+      </Box>
       <Box sx={{ mb: 2 }}>
         {isStaffOrMedical && <Typography color="success.main">Admin/Staff/Doctor View</Typography>}
         {(isStudent || isPatient) && <Typography color="info.main">Patient/Student View (Read-Only)</Typography>}

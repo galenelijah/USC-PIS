@@ -47,6 +47,7 @@ import BMI_female_2 from "../assets/images/BMI_Visual/BMI_female_2.png";
 import BMI_female_3 from "../assets/images/BMI_Visual/BMI_female_3.png";
 import BMI_female_4 from "../assets/images/BMI_Visual/BMI_female_4.png";
 import BMI_female_5 from "../assets/images/BMI_Visual/BMI_female_5.png";
+import InfoTooltip from './utils/InfoTooltip';
 
 const PatientMedicalDashboard = () => {
   const currentUser = useSelector(selectCurrentUser);
@@ -202,9 +203,12 @@ const PatientMedicalDashboard = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <LocalHospital sx={{ fontSize: 40 }} />
           <Box>
-            <Typography variant="h4" fontWeight="bold">
-              Patient Medical Dashboard
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography variant="h4" fontWeight="bold">
+                Patient Medical Dashboard
+              </Typography>
+              <InfoTooltip title="Overview of your health metrics and profile details. Data reflects your latest clinic records." />
+            </Box>
             <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>
               {currentUser.first_name} {currentUser.middle_name} {currentUser.last_name}
             </Typography>

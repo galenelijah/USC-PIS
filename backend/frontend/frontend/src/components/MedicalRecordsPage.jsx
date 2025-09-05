@@ -68,6 +68,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { healthRecordsService, dentalRecordService, patientService } from '../services/api';
 import { useSelector } from 'react-redux';
 import { formatDateComprehensive, formatDatePH, formatDateTimePH } from '../utils/dateUtils';
+import InfoTooltip from './utils/InfoTooltip';
 
 dayjs.extend(relativeTime);
 
@@ -779,9 +780,12 @@ const MedicalRecordsPage = () => {
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box sx={{ p: 3, maxWidth: 1400, mx: 'auto' }}>
         <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" gutterBottom color="primary">
-            {isStudent ? 'Patient History' : 'Patient Medical History'}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography variant="h4" gutterBottom color="primary">
+              {isStudent ? 'Patient History' : 'Patient Medical History'}
+            </Typography>
+            <InfoTooltip title="Browse medical and dental records. Use tabs to switch, filters to narrow, and actions to export." />
+          </Box>
           <Typography variant="body1" color="text.secondary">
             {isStaffOrMedical 
               ? 'Browse and search through patient medical and dental history records with advanced filtering capabilities.' 

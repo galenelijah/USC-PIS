@@ -668,10 +668,8 @@ def dashboard_stats(request):
             count=Count('id')
         ).order_by('month')
 
-        # Optimized today's appointments and pending requests
-        today = timezone.now().date()
-        appointments_today = Consultation.objects.filter(date_time__date=today).count()
-        pending_requests = Consultation.objects.filter(remarks__icontains='pending').count()
+        # Optimized pending requests (medical certificates, etc.)
+        pending_requests = 0  # Can be updated later if needed for other pending items
 
         # Role-based stats
         if user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.NURSE]:
@@ -683,18 +681,13 @@ def dashboard_stats(request):
                 'recent_patients': PatientSerializer(recent_patients, many=True).data,
                 'visits_by_month': list(visits_by_month),
                 'dental_visits_by_month': list(dental_visits_by_month),
-                'appointments_today': appointments_today,
                 'pending_requests': pending_requests,
             })
         elif user.role == User.Role.STUDENT:
             # Student/Patient dashboard - optimized for single patient
             patient = getattr(user, 'patient_profile', None)
             if patient:
-                # Get patient's next appointment and recent records
-                next_consultation = Consultation.objects.filter(
-                    patient=patient,
-                    date_time__gt=timezone.now()
-                ).order_by('date_time').first()
+                # Get patient's recent records
                 
                 recent_medical_record = MedicalRecord.objects.filter(
                     patient=patient
@@ -704,11 +697,9 @@ def dashboard_stats(request):
                     patient=patient
                 ).order_by('-visit_date').first()
                 
-                next_appointment = next_consultation.date_time if next_consultation else None
                 profile_completion = calculate_profile_completion(user, patient)
                 
                 return Response({
-                    'next_appointment': next_appointment,
                     'recent_medical_record': recent_medical_record.diagnosis if recent_medical_record else None,
                     'recent_dental_record': recent_dental_record.diagnosis if recent_dental_record else None,
                     'profile_completion': profile_completion,
@@ -716,7 +707,6 @@ def dashboard_stats(request):
                 })
             else:
                 return Response({
-                    'next_appointment': None,
                     'recent_medical_record': None,
                     'recent_dental_record': None,
                     'profile_completion': 0,
