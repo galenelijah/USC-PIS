@@ -83,7 +83,7 @@ const Dashboard = memo(({ user }) => {
       const [dashboardResponse, campaignsResponse, latestCampaignsResponse, healthInfoResponse] = await Promise.all([
         authService.getDashboardStats(),
         campaignService.getFeaturedCampaigns().catch(() => ({ data: [] })),
-        campaignService.getLatestCampaigns(5).catch(() => ({ data: [] })),
+        campaignService.getLatestCampaigns(10).catch(() => ({ data: [] })), // Get latest campaigns including ended ones
         healthInfoService.getRecent(5).catch(() => ({ data: [] }))
       ]);
       
@@ -106,7 +106,7 @@ const Dashboard = memo(({ user }) => {
         recentHealthInfo: dashboardResponse.data.recent_health_info || null,
         profileCompletion: dashboardResponse.data.profile_completion || 0,
         featuredCampaigns: Array.isArray(campaignsResponse.data) ? campaignsResponse.data.slice(0, 3) : [],
-        latestCampaigns: Array.isArray(latestCampaignsResponse.data) ? latestCampaignsResponse.data.slice(0, 5) : [],
+        latestCampaigns: Array.isArray(latestCampaignsResponse.data) ? latestCampaignsResponse.data.slice(0, 8) : [], // Show more campaigns for students
         recentHealthInfoPosts: Array.isArray(healthInfoResponse.data) ? healthInfoResponse.data.slice(0, 5) : [],
         announcements: Array.isArray(dashboardResponse.data.announcements) ? dashboardResponse.data.announcements : [],
       });
@@ -819,18 +819,32 @@ const Dashboard = memo(({ user }) => {
                         }}>
                           {campaign.title}
                         </Typography>
-                        {campaign.campaign_type && (
-                          <Chip
-                            size="small"
-                            label={campaign.campaign_type}
-                            sx={{ 
-                              fontSize: '0.75rem', 
-                              height: 22,
-                              bgcolor: 'primary.main',
-                              color: 'white'
-                            }}
-                          />
-                        )}
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                          {campaign.campaign_type && (
+                            <Chip
+                              size="small"
+                              label={campaign.campaign_type.replace('_', ' ')}
+                              sx={{ 
+                                fontSize: '0.75rem', 
+                                height: 22,
+                                bgcolor: 'primary.main',
+                                color: 'white'
+                              }}
+                            />
+                          )}
+                          {campaign.status && (
+                            <Chip
+                              size="small"
+                              label={campaign.status === 'ACTIVE' ? 'Current' : 'Completed'}
+                              sx={{ 
+                                fontSize: '0.75rem', 
+                                height: 22,
+                                bgcolor: campaign.status === 'ACTIVE' ? 'success.main' : 'grey.500',
+                                color: 'white'
+                              }}
+                            />
+                          )}
+                        </Box>
                       </Box>
                     </Box>
                     <Typography variant="body1" sx={{ 
@@ -853,10 +867,10 @@ const Dashboard = memo(({ user }) => {
             <Box textAlign="center" py={8}>
               <CampaignIcon sx={{ fontSize: 80, color: 'text.disabled', mb: 2 }} />
               <Typography variant="h5" sx={{ mb: 2, color: 'text.primary' }}>
-                No Campaigns Available
+                No Health Campaigns Yet
               </Typography>
               <Typography variant="body1" sx={{ mb: 4, color: 'text.secondary' }}>
-                Check back soon for new health campaigns
+                Health campaigns and educational content will appear here
               </Typography>
             </Box>
           )}
