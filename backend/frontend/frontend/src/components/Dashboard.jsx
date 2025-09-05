@@ -780,9 +780,9 @@ const Dashboard = memo(({ user }) => {
           <Divider sx={{ mb: 3 }} />
           
           {/* Health Campaigns */}
-          {stats.latestCampaigns.length > 0 ? (
+          {stats.recentCampaigns.length > 0 ? (
             <Grid container spacing={3}>
-              {stats.latestCampaigns.slice(0, 4).map((campaign, index) => (
+              {stats.recentCampaigns.slice(0, 4).map((campaign, index) => (
                 <Grid item xs={12} md={6} key={campaign.id || index}>
                   <Box sx={{ 
                     p: 3, 
