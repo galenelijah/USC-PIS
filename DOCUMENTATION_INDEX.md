@@ -19,6 +19,20 @@
 - Post-deployment verification
 - Admin credentials and monitoring
 
+### 🧭 Architecture
+- [Architecture Overview](docs/architecture/CODEBASE_OVERVIEW.md) — System layout, apps, API mount points, deployment notes
+
+### 📚 Feature Guides
+- [Features Index](docs/features/README.md) — Per‑feature docs with endpoint tables:
+  - Authentication, Patients, Health Info, Feedback, File Uploads, Medical Certificates, Notifications, Reports, Utilities & Backups
+
+### 🔎 API Matrices
+- [Endpoint Matrix](docs/api/ENDPOINT_MATRIX.md) — One-page list of endpoints grouped by app and typical roles
+
+### 🛠️ Build Consolidated Docs
+- Script: `scripts/build-docs.sh`
+- Output: `docs/build/consolidated.md` (+ HTML/PDF if `pandoc` installed)
+
 ## Cloudinary Integration
 
 ### 🌤️ [CLOUDINARY_SETUP.md](backend/CLOUDINARY_SETUP.md)
@@ -86,6 +100,9 @@ heroku run python manage.py restore_campaign_images
 
 # Run health checks
 heroku run python manage.py check --deploy
+
+# Build consolidated documentation
+bash scripts/build-docs.sh
 ```
 
 ### File Structure
@@ -113,7 +130,14 @@ USC-PIS/
 - [x] **Verification Tools**: Automated checking and validation
 - [x] **Management Commands**: Administrative utilities ready
 
-### 📈 Latest Updates (Sept 6, 2025)
+### 📈 Latest Updates (Sept 8, 2025)
+- Added Architecture Overview and per‑feature documentation with API endpoint tables
+- Introduced consolidated docs builder (`scripts/build-docs.sh`) producing Markdown and optionally HTML/PDF
+- Linked all docs via Features Index and updated Documentation Index cross‑references
+- Added Mermaid diagrams to the Architecture doc
+- Added a master Endpoint Matrix and included topical docs (Campaigns, Health Records) in the consolidated build
+
+### Previous Updates (Sept 6, 2025)
 - Health Records page is medical-only: removed Record Type UI, dental templates, and dental-specific exports/print sections.
 - Student Medical Records export aligned to medical-only (no Record Type, no dental fields).
 - Navigation labels clarified to separate medical vs dental routes.
@@ -137,6 +161,8 @@ USC-PIS/
 2. **For Media Storage**: Follow `CLOUDINARY_SETUP.md`  
 3. **For Issues**: Check `DEPLOYMENT_TROUBLESHOOTING.md`
 4. **For Overview**: Review `CLAUDE.md`
+
+5. **For Consolidated Docs**: Run `bash scripts/build-docs.sh` and open `docs/build/consolidated.md`
 
 ## Support
 

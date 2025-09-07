@@ -61,6 +61,7 @@ import {
 import { useSelector } from 'react-redux';
 import { campaignService } from '../services/api';
 import ContentViewer from './common/ContentViewer';
+import InlineContentRenderer from './common/InlineContentRenderer';
 import InfoTooltip from './utils/InfoTooltip';
 
 const CampaignsPage = () => {
@@ -633,36 +634,87 @@ const CampaignsPage = () => {
         <Grid container spacing={3}>
           {[...Array(6)].map((_, index) => (
             <Grid item xs={12} sm={6} md={4} key={index}>
-              <Card sx={{ borderRadius: 2 }}>
-                <Skeleton variant="rectangular" height={200} />
-                <CardContent>
-                  <Skeleton variant="text" height={32} />
-                  <Skeleton variant="text" height={20} width="60%" />
-                  <Skeleton variant="text" height={60} />
+              <Card 
+                sx={{ 
+                  borderRadius: 4,
+                  height: '100%',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  overflow: 'hidden'
+                }}
+              >
+                <Skeleton variant="rectangular" height={240} />
+                <CardContent sx={{ p: 3 }}>
+                  <Skeleton variant="text" height={40} width="80%" sx={{ mb: 1 }} />
+                  <Skeleton variant="rectangular" height={24} width="40%" sx={{ borderRadius: 3, mb: 2 }} />
+                  <Skeleton variant="text" height={20} width="90%" sx={{ mb: 1 }} />
+                  <Skeleton variant="text" height={20} width="70%" sx={{ mb: 2 }} />
+                  <Skeleton variant="rectangular" height={60} sx={{ borderRadius: 2, mb: 2 }} />
+                  <Skeleton variant="rectangular" height={48} sx={{ borderRadius: 3 }} />
                 </CardContent>
               </Card>
             </Grid>
           ))}
         </Grid>
       ) : filteredCampaigns.length === 0 ? (
-        <Paper sx={{ p: 8, textAlign: 'center', borderRadius: 2 }}>
-          <CampaignIcon sx={{ fontSize: 80, color: 'text.disabled', mb: 2 }} />
-          <Typography variant="h6" color="text.primary" gutterBottom>
+        <Paper 
+          sx={{ 
+            p: 8, 
+            textAlign: 'center', 
+            borderRadius: 4,
+            background: 'linear-gradient(145deg, #ffffff 0%, #fafafa 100%)',
+            border: '1px solid',
+            borderColor: 'divider',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
+          }}
+        >
+          <Box
+            sx={{
+              width: 120,
+              height: 120,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              mx: 'auto',
+              mb: 3
+            }}
+          >
+            <CampaignIcon sx={{ fontSize: 60, color: 'primary.main' }} />
+          </Box>
+          <Typography variant="h5" color="text.primary" gutterBottom fontWeight="bold">
             No campaigns found
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 400, mx: 'auto' }}>
             {searchTerm || filterType !== 'ALL' || filterStatus !== 'ALL'
-              ? 'Try adjusting your search or filters'
-              : 'Get started by creating your first campaign'
+              ? 'Try adjusting your search or filter criteria to find the campaigns you\'re looking for.'
+              : 'Start creating engaging health campaigns to connect with your community and promote wellness.'
             }
           </Typography>
           {isNonStudent && (
             <Button
               variant="contained"
+              size="large"
               startIcon={<AddIcon />}
               onClick={() => setCreateDialogOpen(true)}
+              sx={{
+                borderRadius: 3,
+                textTransform: 'none',
+                fontWeight: 'bold',
+                py: 1.5,
+                px: 4,
+                background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
+                '&:hover': {
+                  background: 'linear-gradient(45deg, #1565c0 30%, #1976d2 90%)',
+                  boxShadow: '0 6px 20px rgba(25, 118, 210, 0.4)',
+                  transform: 'translateY(-1px)'
+                }
+              }}
             >
-              Create Campaign
+              Create Your First Campaign
             </Button>
           )}
         </Paper>
@@ -690,68 +742,174 @@ const CampaignsPage = () => {
               <Grid item xs={12} sm={6} md={4} key={campaign.id}>
                 <Card 
                   sx={{ 
-                    borderRadius: 2,
+                    borderRadius: 4,
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
-                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    background: 'linear-gradient(145deg, #ffffff 0%, #fafafa 100%)',
+                    position: 'relative',
+                    overflow: 'hidden',
                     '&:hover': {
-                      transform: 'translateY(-2px)',
-                      boxShadow: 3
+                      transform: 'translateY(-8px)',
+                      boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
+                      borderColor: statusInfo.color === 'primary' ? 'primary.main' : `${statusInfo.color}.main`,
+                    },
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: '4px',
+                      background: statusInfo.color === 'primary' ? 
+                        'linear-gradient(90deg, #1976d2, #42a5f5)' :
+                        `linear-gradient(90deg, var(--mui-palette-${statusInfo.color}-main), var(--mui-palette-${statusInfo.color}-light))`,
+                      zIndex: 1,
                     }
                   }}
                 >
-                  {/* Campaign Image */}
-                  {(campaign.banner_image_url || campaign.thumbnail_image_url) && (
-                  <CardMedia
-                    component="img"
-                    height={200}
-                    image={campaign.banner_image_url || campaign.thumbnail_image_url}
-                    alt={campaign.title}
-                    sx={{ objectFit: 'cover' }}
-                    loading="lazy"
-                  />
-                  )}
-                  
-                  <CardContent sx={{ flexGrow: 1, pb: 1 }}>
-                    {/* Status and Priority Chips */}
-                    <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                      <Stack direction="row" spacing={1}>
-                        <Chip 
-                          label={statusInfo.label}
-                          color={statusInfo.color}
+                  {/* Campaign Image with Overlay */}
+                  <Box sx={{ position: 'relative', overflow: 'hidden' }}>
+                    {(campaign.banner_image_url || campaign.thumbnail_image_url) ? (
+                      <CardMedia
+                        component="img"
+                        height={240}
+                        image={campaign.banner_image_url || campaign.thumbnail_image_url}
+                        alt={campaign.title}
+                        sx={{ 
+                          objectFit: 'cover',
+                          transition: 'transform 0.3s ease',
+                          '&:hover': {
+                            transform: 'scale(1.05)'
+                          }
+                        }}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <Box
+                        sx={{
+                          height: 240,
+                          background: `linear-gradient(135deg, ${typeInfo.color === 'primary' ? '#1976d2' : `var(--mui-palette-${typeInfo.color}-main)`} 0%, ${typeInfo.color === 'primary' ? '#42a5f5' : `var(--mui-palette-${typeInfo.color}-light)`} 100%)`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white'
+                        }}
+                      >
+                        <CampaignIcon sx={{ fontSize: 80, opacity: 0.7 }} />
+                      </Box>
+                    )}
+                    
+                    {/* Status Badge Overlay */}
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: 16,
+                        right: 16,
+                        zIndex: 2
+                      }}
+                    >
+                      <Chip 
+                        label={statusInfo.label}
+                        color={statusInfo.color}
+                        size="small"
+                        variant="filled"
+                        sx={{
+                          fontWeight: 'bold',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                          backdropFilter: 'blur(10px)',
+                          ...(isActive(campaign) && {
+                            animation: 'pulse 2s infinite',
+                            '@keyframes pulse': {
+                              '0%': { boxShadow: '0 2px 8px rgba(0,0,0,0.2)' },
+                              '50%': { boxShadow: `0 4px 20px ${statusInfo.color === 'primary' ? 'rgba(25, 118, 210, 0.4)' : `rgba(var(--mui-palette-${statusInfo.color}-main-rgb), 0.4)`}` },
+                              '100%': { boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }
+                            }
+                          })
+                        }}
+                      />
+                    </Box>
+
+                    {/* Priority Badge */}
+                    {campaign.priority !== 'MEDIUM' && (
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          top: 16,
+                          left: 16,
+                          zIndex: 2
+                        }}
+                      >
+                        <Chip
+                          label={priorityInfo.label}
+                          color={priorityInfo.color}
                           size="small"
-                          variant={isActive(campaign) ? 'filled' : 'outlined'}
+                          variant="filled"
+                          sx={{
+                            fontWeight: 'bold',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                            backdropFilter: 'blur(10px)'
+                          }}
                         />
-                        {campaign.priority !== 'MEDIUM' && (
-                          <Chip
-                            label={priorityInfo.label}
-                            color={priorityInfo.color}
-                            size="small"
-                            variant="outlined"
-                          />
-                        )}
-                      </Stack>
+                      </Box>
+                    )}
+                  </Box>
+                  
+                  <CardContent sx={{ flexGrow: 1, p: 3 }}>
+                    {/* Header with Menu */}
+                    <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+                      <Box flex={1}>
+                        {/* Campaign Title */}
+                        <Typography 
+                          variant="h5" 
+                          fontWeight="bold" 
+                          gutterBottom
+                          sx={{
+                            color: 'text.primary',
+                            lineHeight: 1.3,
+                            mb: 1
+                          }}
+                        >
+                          {campaign.title}
+                        </Typography>
+                        
+                        {/* Campaign Type */}
+                        <Chip
+                          label={typeInfo.label}
+                          color={typeInfo.color}
+                          size="small"
+                          variant="outlined"
+                          icon={<CampaignIcon />}
+                          sx={{ 
+                            fontWeight: 'medium',
+                            borderWidth: 2,
+                            '& .MuiChip-icon': {
+                              fontSize: '16px'
+                            }
+                          }}
+                        />
+                      </Box>
+                      
                       {isNonStudent && (
                         <IconButton
                           size="small"
                           onClick={(e) => handleMenuOpen(e, campaign)}
+                          sx={{
+                            ml: 1,
+                            backgroundColor: 'action.hover',
+                            '&:hover': {
+                              backgroundColor: 'action.selected'
+                            }
+                          }}
                         >
                           <MoreVertIcon />
                         </IconButton>
                       )}
                     </Box>
-
-                    {/* Campaign Title and Type */}
-                    <Typography variant="h6" fontWeight="bold" gutterBottom>
-                      {campaign.title}
-                    </Typography>
-                    <Chip
-                      label={typeInfo.label}
-                      color={typeInfo.color}
-                      size="small"
-                      sx={{ mb: 2 }}
-                    />
 
                     {/* Campaign Summary */}
                     <Typography 
@@ -762,41 +920,68 @@ const CampaignsPage = () => {
                         WebkitLineClamp: 3,
                         WebkitBoxOrient: 'vertical',
                         overflow: 'hidden',
-                        mb: 2
+                        mb: 3,
+                        lineHeight: 1.6,
+                        fontSize: '0.9rem'
                       }}
                     >
                       {campaign.summary || campaign.description}
                     </Typography>
 
-                    {/* Campaign Stats */}
-                    <Box display="flex" justifyContent="space-between" alignItems="center">
-                      <Box display="flex" alignItems="center" gap={2}>
+                    {/* Campaign Stats with Enhanced Design */}
+                    <Box 
+                      sx={{
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        p: 2,
+                        backgroundColor: 'action.hover',
+                        borderRadius: 2,
+                        border: '1px solid',
+                        borderColor: 'divider'
+                      }}
+                    >
+                      <Box display="flex" alignItems="center" gap={3}>
                         <Box display="flex" alignItems="center">
-                          <VisibilityIcon sx={{ fontSize: 16, color: 'text.secondary', mr: 0.5 }} />
-                          <Typography variant="caption" color="text.secondary">
+                          <VisibilityIcon sx={{ fontSize: 18, color: 'primary.main', mr: 1 }} />
+                          <Typography variant="body2" fontWeight="medium">
                             {campaign.view_count || 0}
                           </Typography>
                         </Box>
                         <Box display="flex" alignItems="center">
-                          <TrendingIcon sx={{ fontSize: 16, color: 'text.secondary', mr: 0.5 }} />
-                          <Typography variant="caption" color="text.secondary">
+                          <TrendingIcon sx={{ fontSize: 18, color: 'success.main', mr: 1 }} />
+                          <Typography variant="body2" fontWeight="medium">
                             {campaign.engagement_count || 0}
                           </Typography>
                         </Box>
                       </Box>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="caption" color="text.secondary" fontWeight="medium">
                         {formatDate(campaign.start_date)}
                       </Typography>
                     </Box>
                   </CardContent>
 
-                  <CardActions sx={{ pt: 0 }}>
+                  <CardActions sx={{ p: 3, pt: 0 }}>
                     <Button
-                      size="small"
+                      variant="contained"
+                      fullWidth
                       onClick={() => openViewDialog(campaign)}
                       startIcon={<VisibilityIcon />}
+                      sx={{
+                        borderRadius: 3,
+                        textTransform: 'none',
+                        fontWeight: 'bold',
+                        py: 1.5,
+                        background: `linear-gradient(45deg, ${statusInfo.color === 'primary' ? '#1976d2' : `var(--mui-palette-${statusInfo.color}-main)`} 30%, ${statusInfo.color === 'primary' ? '#42a5f5' : `var(--mui-palette-${statusInfo.color}-light)`} 90%)`,
+                        boxShadow: `0 4px 12px ${statusInfo.color === 'primary' ? 'rgba(25, 118, 210, 0.3)' : `rgba(var(--mui-palette-${statusInfo.color}-main-rgb), 0.3)`}`,
+                        '&:hover': {
+                          background: `linear-gradient(45deg, ${statusInfo.color === 'primary' ? '#1565c0' : `var(--mui-palette-${statusInfo.color}-dark)`} 30%, ${statusInfo.color === 'primary' ? '#1976d2' : `var(--mui-palette-${statusInfo.color}-main)`} 90%)`,
+                          boxShadow: `0 6px 20px ${statusInfo.color === 'primary' ? 'rgba(25, 118, 210, 0.4)' : `rgba(var(--mui-palette-${statusInfo.color}-main-rgb), 0.4)`}`,
+                          transform: 'translateY(-1px)'
+                        }
+                      }}
                     >
-                      View Details
+                      View Campaign Details
                     </Button>
                   </CardActions>
                 </Card>
@@ -1675,7 +1860,7 @@ const CampaignsPage = () => {
                     <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                       Content
                     </Typography>
-                    <ContentViewer content={selectedCampaign.content} />
+                    <InlineContentRenderer content={selectedCampaign.content} />
                   </Grid>
                 )}
 
@@ -1993,7 +2178,7 @@ const CampaignsPage = () => {
                                 borderLeftColor: 'primary.main'
                               }}
                             >
-                              <ContentViewer content={selectedCampaign.content} />
+                              <InlineContentRenderer content={selectedCampaign.content} />
                             </Box>
                           </Box>
                         )}
