@@ -435,30 +435,43 @@ def health_campaign_notification(sender, instance, created, **kwargs):
     """
     Send notifications when health campaigns are created or status changes
     """
-    from notifications.models import Notification
-    from django.contrib.auth import get_user_model
-    
-    User = get_user_model()
-    
-    if created:
-        # Notify admins when a new campaign is created
-        admins = User.objects.filter(role__in=['ADMIN', 'STAFF'])
-        for admin in admins:
-            Notification.objects.create(
-                recipient=admin,
-                title="New Health Campaign Created",
-                message=f"A new health campaign '{instance.title}' has been created and is ready for review.",
-                notification_type="campaign_created"
-            )
-    else:
-        # Check if status changed to active
-        if instance.status == 'ACTIVE':
-            # Notify all active users about new active campaign
-            active_users = User.objects.filter(is_active=True)
-            for user in active_users[:50]:  # Limit to first 50 users to avoid overwhelming
-                Notification.objects.create(
-                    recipient=user,
-                    title=f"New Health Campaign: {instance.title}",
-                    message=f"A new health campaign about {instance.get_campaign_type_display()} is now active. Check it out!",
-                    notification_type="campaign_activated"
-                )
+    try:
+        from notifications.models import Notification
+        from django.contrib.auth import get_user_model
+        import logging
+        logger = logging.getLogger(__name__)
+
+        User = get_user_model()
+
+        if created:
+            # Notify admins when a new campaign is created
+            admins = User.objects.filter(role__in=['ADMIN', 'STAFF'])
+            for admin in admins:
+                try:
+                    Notification.objects.create(
+                        recipient=admin,
+                        title="New Health Campaign Created",
+                        message=f"A new health campaign '{instance.title}' has been created and is ready for review.",
+                        notification_type="HEALTH_CAMPAIGN",
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to create admin campaign notification: {e}")
+        else:
+            # Check if status changed to active
+            if instance.status == 'ACTIVE':
+                # Notify a subset of users about new active campaign
+                active_users = User.objects.filter(is_active=True)[:50]
+                for user in active_users:
+                    try:
+                        Notification.objects.create(
+                            recipient=user,
+                            title=f"New Health Campaign: {instance.title}",
+                            message=f"A new health campaign about {instance.get_campaign_type_display()} is now active. Check it out!",
+                            notification_type="HEALTH_CAMPAIGN",
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to create user campaign notification: {e}")
+    except Exception:
+        # Never block campaign saves due to notification issues
+        import logging
+        logging.getLogger(__name__).warning("Notification dispatch failed for campaign post_save", exc_info=True)

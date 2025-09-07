@@ -309,6 +309,19 @@ class HealthCampaignCreateUpdateSerializer(serializers.ModelSerializer):
         from django.utils import timezone
         from datetime import datetime
         
+        def _ensure_aware(dt):
+            """Ensure a datetime is timezone-aware using current timezone if naive."""
+            if not dt:
+                return dt
+            try:
+                # Django provides helpers to check/convert awareness
+                if timezone.is_naive(dt):
+                    return timezone.make_aware(dt, timezone.get_current_timezone())
+                return dt
+            except Exception:
+                # If conversion fails, return as-is; comparisons will be guarded
+                return dt
+        
         logger = logging.getLogger(__name__)
         logger.info(f"Validating campaign data: {list(data.keys())}")
         
@@ -324,29 +337,54 @@ class HealthCampaignCreateUpdateSerializer(serializers.ModelSerializer):
         
         # Validate date formats and logic
         try:
-            if isinstance(start_date, str):
-                start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-            if isinstance(end_date, str):
-                end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
-                
-            # Ensure start_date is not in the past for new campaigns
+            # Helper to parse flexible ISO strings (accept date-only)
+            def _parse_dt(value):
+                if isinstance(value, str):
+                    s = value.strip()
+                    try:
+                        return datetime.fromisoformat(s.replace('Z', '+00:00'))
+                    except ValueError:
+                        # Accept YYYY-MM-DD by assuming start of day
+                        try:
+                            return datetime.fromisoformat(f"{s}T00:00:00")
+                        except ValueError:
+                            raise
+                return value
+
+            # Parse incoming strings into datetimes
+            start_date = _parse_dt(start_date)
+            end_date = _parse_dt(end_date)
+
+            # Ensure awareness for safe comparison with timezone.now()
+            start_date = _ensure_aware(start_date)
+            end_date = _ensure_aware(end_date)
+
+            # Ensure start_date is not in the past for new campaigns (soft warning)
             now = timezone.now()
-            if not self.instance and start_date and start_date < now:
+            if not self.instance and start_date and (start_date.tzinfo or now.tzinfo) and start_date < now:
                 logger.warning(f"Start date {start_date} is in the past")
                 # Allow past dates but log warning
-                
+
             if start_date and end_date and start_date >= end_date:
                 logger.error(f"Date validation failed: start_date={start_date} >= end_date={end_date}")
                 raise serializers.ValidationError({"end_date": "End date must be after start date"})
-            
+
             featured_until = data.get('featured_until')
             if featured_until:
-                if isinstance(featured_until, str):
-                    featured_until = datetime.fromisoformat(featured_until.replace('Z', '+00:00'))
-                if end_date and featured_until > end_date:
+                featured_until = _parse_dt(featured_until)
+                featured_until = _ensure_aware(featured_until)
+                if end_date and featured_until and featured_until > end_date:
                     logger.error(f"Featured date validation failed: featured_until={featured_until} > end_date={end_date}")
                     raise serializers.ValidationError({"featured_until": "Featured until date cannot be after campaign end date"})
-                    
+
+            # Persist normalized datetimes back into data for save()
+            if start_date:
+                data['start_date'] = start_date
+            if end_date:
+                data['end_date'] = end_date
+            if featured_until:
+                data['featured_until'] = featured_until
+
         except ValueError as e:
             logger.error(f"Date parsing error: {str(e)}")
             raise serializers.ValidationError({"date_error": "Invalid date format provided"})
