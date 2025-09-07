@@ -99,7 +99,6 @@ class GeneratedReport(models.Model):
     # File Storage
     file_path = models.FileField(
         upload_to='reports/',
-        storage=REPORTS_STORAGE if REPORTS_STORAGE else None,
         validators=[FileExtensionValidator(allowed_extensions=['pdf', 'xlsx', 'csv', 'json', 'html'])],
         null=True,
         blank=True,
