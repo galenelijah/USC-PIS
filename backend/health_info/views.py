@@ -138,6 +138,10 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             self.perform_auth_create(serializer, user)
             headers = self.get_success_headers(serializer.data)
+            # Surface non-fatal upload warnings as response header (non-breaking)
+            warnings = getattr(serializer, '_upload_warnings', None)
+            if warnings:
+                headers['X-Upload-Warnings'] = '; '.join(warnings)
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
         except Exception as e:
             logger.error(f"Campaign create failed: {e}", exc_info=True)

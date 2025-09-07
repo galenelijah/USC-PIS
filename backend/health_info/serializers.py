@@ -308,6 +308,7 @@ class HealthCampaignCreateUpdateSerializer(serializers.ModelSerializer):
         import logging
         from django.utils import timezone
         from datetime import datetime
+        import os
         
         def _ensure_aware(dt):
             """Ensure a datetime is timezone-aware using current timezone if naive."""
@@ -331,6 +332,33 @@ class HealthCampaignCreateUpdateSerializer(serializers.ModelSerializer):
             if not data.get(field):
                 logger.error(f"Required field missing: {field}")
                 raise serializers.ValidationError({field: f"{field.replace('_', ' ').title()} is required"})
+
+        # Validate file sizes early for clear error messages
+        request = self.context.get('request')
+        if request and hasattr(request, 'FILES'):
+            max_image_mb = int(os.environ.get('CAMPAIGN_MAX_IMAGE_MB', '20'))
+            max_pubmat_mb = int(os.environ.get('CAMPAIGN_MAX_PUBMAT_MB', str(max_image_mb)))
+            limits = {
+                'banner_image': max_image_mb,
+                'thumbnail_image': max_image_mb,
+                'pubmat_image': max_pubmat_mb,
+            }
+            errors = {}
+            total_bytes = 0
+            for field, max_mb in limits.items():
+                f = request.FILES.get(field)
+                if f:
+                    size_mb = f.size / (1024 * 1024)
+                    total_bytes += f.size
+                    if size_mb > max_mb:
+                        errors[field] = f"File too large (>{max_mb} MB). Please upload a smaller file."
+            # Optional: aggregate cap aligned with DATA_UPLOAD_MAX_MEMORY_SIZE default (25MB)
+            max_total_mb = int(os.environ.get('CAMPAIGN_TOTAL_UPLOAD_MB', '29'))
+            if total_bytes and (total_bytes / (1024 * 1024)) > max_total_mb:
+                errors['__all__'] = f"Total upload size exceeds {max_total_mb} MB. Reduce file sizes."
+            if errors:
+                logger.error(f"Campaign file size validation errors: {errors}")
+                raise serializers.ValidationError(errors)
         
         start_date = data.get('start_date')
         end_date = data.get('end_date')
@@ -440,10 +468,16 @@ class HealthCampaignCreateUpdateSerializer(serializers.ModelSerializer):
             except Exception as e:
                 # Log and continue - do not fail the entire creation
                 logger.error(f"Error saving campaign files during create: {e}")
+                setattr(self, '_upload_warnings', [
+                    'Some files failed to upload. The campaign was created without one or more images.'
+                ])
         else:
             # Log that images were skipped due to configuration
             if banner or thumb or pubmat:
                 logger.warning("Skipping image uploads: Cloudinary not configured")
+                setattr(self, '_upload_warnings', [
+                    'Image uploads were skipped because Cloudinary is not configured.'
+                ])
 
         return campaign
 
@@ -481,6 +515,9 @@ class HealthCampaignCreateUpdateSerializer(serializers.ModelSerializer):
         else:
             if banner is not None or thumb is not None or pubmat is not None:
                 logger.warning("Skipping image uploads on update: Cloudinary not configured")
+                setattr(self, '_upload_warnings', [
+                    'Image uploads were skipped because Cloudinary is not configured.'
+                ])
 
         return instance
 

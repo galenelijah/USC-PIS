@@ -433,8 +433,11 @@ FILE_SCAN_ENABLED = os.environ.get('FILE_SCAN_ENABLED', 'True') == 'True'
 SYSTEM_MONITORING = os.environ.get('SYSTEM_MONITORING', 'True') == 'True'
 
 # File upload settings
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
-DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+# Upload size limits
+# Max size stored in-memory per uploaded file (fallback spills to disk)
+FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get('FILE_UPLOAD_MAX_MEMORY_SIZE', 20 * 1024 * 1024))  # default 20MB
+# Hard cap on total request body size for multipart/form-data (Heroku ~30MB limit)
+DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get('DATA_UPLOAD_MAX_MEMORY_SIZE', 29 * 1024 * 1024))  # default 29MB
 
 # Create temp uploads directory if it doesn't exist
 import os
