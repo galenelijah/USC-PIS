@@ -113,7 +113,12 @@ USC-PIS/
 - [x] **Verification Tools**: Automated checking and validation
 - [x] **Management Commands**: Administrative utilities ready
 
-### 📈 Latest Updates (Sept 5, 2025)
+### 📈 Latest Updates (Sept 6, 2025)
+- Health Records page is medical-only: removed Record Type UI, dental templates, and dental-specific exports/print sections.
+- Student Medical Records export aligned to medical-only (no Record Type, no dental fields).
+- Navigation labels clarified to separate medical vs dental routes.
+
+### Recent Updates (Sept 5, 2025)
 - UX: Contextual tooltips across major pages and headers
 - Forms: Field hints on registration and profile setup
 - Validation: Standardized Yup messages (email, password, phone, ID, dates)

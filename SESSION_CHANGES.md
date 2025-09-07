@@ -45,3 +45,33 @@ This document lists all changes made in this session, with file paths and brief 
   - Frontend routes and service calls match these endpoints; legacy fallback `/api/utils/backup-health/` also exists.
 - Student dashboard routing
   - Code shows distinct STUDENT quick actions in `src/components/Dashboard.jsx` (links to `/health-records`, `/health-info`, `/campaigns`). If duplicates appear, likely a stale build/environment mismatch.
+
+---
+
+# Session Changes (2025-09-06)
+
+This document lists all changes made on Sept 6, 2025 related to making Health Records medical-only and clarifying navigation.
+
+## New Files
+- `docs/session-notes/2025-09-06-health-records-medical-only.md`
+  - Session log covering rationale, changes, verification steps, user prompts, and implemented follow-ups.
+
+## Modified Files
+- `backend/frontend/frontend/src/components/HealthRecords.jsx`
+  - Made page medical-only: removed Record Type field entirely, removed dental templates, removed Type column, cleaned quick stats/actions, simplified exports and print to medical-only.
+- `backend/frontend/frontend/src/components/StudentHealthRecords.jsx`
+  - Export CSV now medical-only: removed Record Type and dental-specific columns; kept medical fields.
+- `backend/frontend/frontend/src/components/Layout/Sidebar.jsx`
+  - Clarified labels/descriptions: “Patient History (Medical & Dental)”, refined Medical and Dental Records descriptions.
+- `DOCUMENTATION_INDEX.md`
+  - Added latest updates summary for Sept 6, 2025.
+
+## Verify Quickly
+- Health Records (`/health-records`):
+  - Create/edit forms show no Record Type; new saves succeed; templates are medical-only.
+  - Table has no Type column; View/Edit/Delete work as expected.
+  - Exports (CSV/Excel) contain only medical fields; Print title reads “Medical Records Report”.
+- Student Health Records:
+  - Export CSV excludes Record Type and dental-only fields.
+- Sidebar:
+  - Items show updated labels/descriptions for medical vs dental routes.

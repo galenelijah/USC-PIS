@@ -136,37 +136,77 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
             # Save the campaign instance with user info if available
             user = self.request.user if self.request.user.is_authenticated else None
             
+            # Check if Cloudinary is properly configured
+            import os
+            cloudinary_configured = (
+                os.environ.get('USE_CLOUDINARY') == 'True' and 
+                os.environ.get('CLOUDINARY_CLOUD_NAME') and 
+                os.environ.get('CLOUDINARY_API_KEY') and 
+                os.environ.get('CLOUDINARY_API_SECRET')
+            )
+            
             # Process files before creating the campaign to avoid Cloudinary empty file errors
             file_data = {}
             
-            # Handle specific image field uploads
+            # Handle specific image field uploads only if properly configured or files are valid
             if 'banner_image' in self.request.FILES:
                 file_obj = self.request.FILES['banner_image']
                 if file_obj and file_obj.size > 0:
                     # Reset file pointer to beginning
                     file_obj.seek(0)
-                    file_data['banner_image'] = file_obj
-                    logger.info(f"Prepared banner_image: {file_obj.name} ({file_obj.size} bytes)")
+                    if cloudinary_configured:
+                        file_data['banner_image'] = file_obj
+                        logger.info(f"Prepared banner_image: {file_obj.name} ({file_obj.size} bytes)")
+                    else:
+                        logger.warning("Cloudinary not configured - skipping banner_image upload")
             
             if 'thumbnail_image' in self.request.FILES:
                 file_obj = self.request.FILES['thumbnail_image']
                 if file_obj and file_obj.size > 0:
                     # Reset file pointer to beginning
                     file_obj.seek(0)
-                    file_data['thumbnail_image'] = file_obj
-                    logger.info(f"Prepared thumbnail_image: {file_obj.name} ({file_obj.size} bytes)")
+                    if cloudinary_configured:
+                        file_data['thumbnail_image'] = file_obj
+                        logger.info(f"Prepared thumbnail_image: {file_obj.name} ({file_obj.size} bytes)")
+                    else:
+                        logger.warning("Cloudinary not configured - skipping thumbnail_image upload")
             
             if 'pubmat_image' in self.request.FILES:
                 file_obj = self.request.FILES['pubmat_image']
                 if file_obj and file_obj.size > 0:
                     # Reset file pointer to beginning
                     file_obj.seek(0)
-                    file_data['pubmat_image'] = file_obj
-                    logger.info(f"Prepared pubmat_image: {file_obj.name} ({file_obj.size} bytes)")
+                    if cloudinary_configured:
+                        file_data['pubmat_image'] = file_obj
+                        logger.info(f"Prepared pubmat_image: {file_obj.name} ({file_obj.size} bytes)")
+                    else:
+                        logger.warning("Cloudinary not configured - skipping pubmat_image upload")
             
-            # Save campaign with file data included in serializer
-            campaign = serializer.save(created_by=user, last_modified_by=user, **file_data)
+            # Save campaign instance first without file data
+            campaign = serializer.save(created_by=user, last_modified_by=user)
+            
+            # Then handle file uploads after campaign is created
+            if file_data and cloudinary_configured:
+                for field_name, file_obj in file_data.items():
+                    try:
+                        setattr(campaign, field_name, file_obj)
+                        logger.info(f"Successfully set {field_name} for campaign {campaign.id}")
+                    except Exception as file_error:
+                        logger.error(f"Error setting {field_name} for campaign {campaign.id}: {str(file_error)}")
+                
+                # Save the campaign again with files
+                try:
+                    campaign.save()
+                    logger.info(f"Campaign files saved successfully for campaign {campaign.id}")
+                except Exception as save_error:
+                    logger.error(f"Error saving campaign files: {str(save_error)}")
+                    # Don't fail the entire operation, campaign was created successfully
+            
             logger.info(f"Campaign created successfully: {campaign.title} (ID: {campaign.id})")
+            
+            # If Cloudinary not configured, warn user
+            if not cloudinary_configured and self.request.FILES:
+                logger.warning("Campaign created without images - Cloudinary not configured")
             
         except Exception as e:
             logger.error(f"Error in perform_create: {str(e)}", exc_info=True)
@@ -203,8 +243,33 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
                     file_data['pubmat_image'] = file_obj
                     logger.info(f"Prepared pubmat_image for update: {file_obj.name} ({file_obj.size} bytes)")
             
-            # Save campaign with file data included in serializer
-            campaign = serializer.save(last_modified_by=self.request.user, **file_data)
+            # Save campaign instance first without file data
+            campaign = serializer.save(last_modified_by=self.request.user)
+            
+            # Then handle file uploads after campaign is updated
+            import os
+            cloudinary_configured = (
+                os.environ.get('USE_CLOUDINARY') == 'True' and 
+                os.environ.get('CLOUDINARY_CLOUD_NAME') and 
+                os.environ.get('CLOUDINARY_API_KEY') and 
+                os.environ.get('CLOUDINARY_API_SECRET')
+            )
+            
+            if file_data and cloudinary_configured:
+                for field_name, file_obj in file_data.items():
+                    try:
+                        setattr(campaign, field_name, file_obj)
+                        logger.info(f"Successfully updated {field_name} for campaign {campaign.id}")
+                    except Exception as file_error:
+                        logger.error(f"Error updating {field_name} for campaign {campaign.id}: {str(file_error)}")
+                
+                # Save the campaign again with files
+                try:
+                    campaign.save()
+                    logger.info(f"Campaign files updated successfully for campaign {campaign.id}")
+                except Exception as save_error:
+                    logger.error(f"Error saving campaign file updates: {str(save_error)}")
+            
             logger.info(f"Campaign updated successfully: {campaign.title} (ID: {campaign.id})")
             
         except Exception as e:

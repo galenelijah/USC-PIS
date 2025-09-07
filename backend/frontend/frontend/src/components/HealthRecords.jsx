@@ -125,14 +125,6 @@ const HealthRecords = () => {
       notes: "Patient counseled on trigger identification and lifestyle modifications. Return if severe or persistent."
     },
     {
-      name: "Routine Dental Cleaning",
-      category: "DENTAL",
-      chief_complaint: "Routine dental checkup and cleaning",
-      diagnosis: "Routine dental prophylaxis, good oral hygiene",
-      treatment: "Professional dental cleaning, fluoride treatment, oral hygiene education.",
-      notes: "Regular 6-month dental checkups recommended. Patient demonstrates good oral hygiene practices."
-    },
-    {
       name: "Minor Wound Care",
       category: "MEDICAL",
       chief_complaint: "Minor cut/abrasion requiring care",
@@ -148,14 +140,7 @@ const HealthRecords = () => {
       treatment: "Lifestyle counseling, dietary recommendations as appropriate.",
       notes: "Patient advised on regular monitoring and healthy lifestyle practices."
     },
-    {
-      name: "Dental Pain Assessment",
-      category: "DENTAL",
-      chief_complaint: "Dental pain and discomfort",
-      diagnosis: "Dental caries/tooth sensitivity",
-      treatment: "Pain management, dental restoration referral if needed.",
-      notes: "Patient referred for comprehensive dental evaluation and treatment planning."
-    }
+    
   ];
 
   useEffect(() => {
@@ -219,7 +204,7 @@ const HealthRecords = () => {
     setCurrentRecord({
       patient: null,
       visit_date: dayjs().format('YYYY-MM-DD'),
-      record_type: template.category,
+      record_type: 'MEDICAL',
       chief_complaint: template.chief_complaint,
       diagnosis: template.diagnosis,
       treatment: template.treatment,
@@ -318,8 +303,7 @@ const HealthRecords = () => {
     // Generate comprehensive clinical report
     const reportData = {
       totalRecords: records.length,
-      medicalRecords: records.filter(r => r.record_type === 'MEDICAL').length,
-      dentalRecords: records.filter(r => r.record_type === 'DENTAL').length,
+      medicalRecords: records.length,
       recentRecords: records.filter(r => dayjs(r.visit_date).isAfter(dayjs().subtract(30, 'day'))).length,
       commonDiagnoses: getCommonDiagnoses(),
       patientStats: getPatientStatistics(),
@@ -361,7 +345,6 @@ Generated: ${data.generatedAt}
 === SUMMARY STATISTICS ===
 Total Records: ${data.totalRecords}
 Medical Records: ${data.medicalRecords}
-Dental Records: ${data.dentalRecords}
 Records (Last 30 Days): ${data.recentRecords}
 
 === PATIENT STATISTICS ===
@@ -376,7 +359,6 @@ ${data.commonDiagnoses.map(d => `${d.diagnosis}: ${d.count} cases`).join('\n')}
 ${filteredRecords.map(r => `
 Date: ${r.visit_date}
 Patient: ${r.patient_name || `Patient ID: ${r.patient}`}
-Type: ${r.record_type}
 Diagnosis: ${r.diagnosis || 'N/A'}
 Treatment: ${r.treatment || 'N/A'}
 `).join('\n')}
@@ -496,10 +478,8 @@ Treatment: ${r.treatment || 'N/A'}
     
     const dateMatch = selectedDate ? record.visit_date === dayjs(selectedDate).format('YYYY-MM-DD') : true;
     
-    // Filter based on tab selection (0: All, 1: Analytics)
-    const typeMatch = tabValue === 0 || tabValue === 1; // Both tabs show all records
-    
-    return searchMatch && dateMatch && typeMatch;
+    // Medical-only page; no type filtering needed
+    return searchMatch && dateMatch;
   });
 
   // Enhanced Export Functions
@@ -509,68 +489,29 @@ Treatment: ${r.treatment || 'N/A'}
       return;
     }
 
-    const exportData = filteredRecords.map(record => {
-      const baseData = {
-        'Record ID': record.id,
-        'Record Type': record.record_type === 'MEDICAL' ? 'Medical' : 'Dental',
-        'Visit Date': dayjs(record.visit_date).format('YYYY-MM-DD'),
-        'Patient Name': record.patient_name || 'Unknown',
-        'Patient ID': record.patient_id || 'N/A',
-        'USC ID': record.patient_usc_id || 'N/A',
-        'Clinical Diagnosis': record.diagnosis || 'No diagnosis',
-        'Treatment': record.treatment || record.treatment_performed || 'No treatment',
-        'Clinical Notes': record.notes || 'No additional notes',
-        'Created Date': dayjs(record.created_at).format('YYYY-MM-DD HH:mm'),
-        'Last Updated': dayjs(record.updated_at).format('YYYY-MM-DD HH:mm')
-      };
-
-      // Add medical-specific fields if it's a medical record
-      if (record.record_type === 'MEDICAL' || record.chief_complaint) {
-        return {
-          ...baseData,
-          'Chief Complaint': record.chief_complaint || 'Not specified',
-          'Present Illness History': record.history_present_illness || 'Not documented',
-          'Past Medical History': record.past_medical_history || 'None reported',
-          'Physical Examination': record.physical_examination || 'Not performed',
-          'Blood Pressure': record.blood_pressure || 'N/A',
-          'Temperature (°C)': record.temperature || 'N/A',
-          'Pulse Rate (bpm)': record.pulse_rate || 'N/A',
-          'Respiratory Rate': record.respiratory_rate || 'N/A',
-          'Medications': record.medications || 'None prescribed',
-          'Laboratory Results': record.laboratory_results || 'None ordered',
-          'Follow-up Instructions': record.follow_up_instructions || 'None specified',
-          'Dental Procedure': 'N/A',
-          'Tooth Number': 'N/A',
-          'Priority Level': 'N/A',
-          'Pain Level': 'N/A',
-          'Cost': 'N/A',
-          'Insurance Covered': 'N/A'
-        };
-      } 
-      // Add dental-specific fields if it's a dental record
-      else {
-        return {
-          ...baseData,
-          'Chief Complaint': 'N/A',
-          'Present Illness History': 'N/A',
-          'Past Medical History': 'N/A',
-          'Physical Examination': 'N/A',
-          'Blood Pressure': 'N/A',
-          'Temperature (°C)': 'N/A',
-          'Pulse Rate (bpm)': 'N/A',
-          'Respiratory Rate': 'N/A',
-          'Medications': 'N/A',
-          'Laboratory Results': 'N/A',
-          'Follow-up Instructions': 'N/A',
-          'Dental Procedure': record.procedure_performed_display || 'Not specified',
-          'Tooth Number': record.tooth_number || 'N/A',
-          'Priority Level': record.priority || 'N/A',
-          'Pain Level': record.pain_level || 'N/A',
-          'Cost': record.cost ? `₱${parseFloat(record.cost).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : 'N/A',
-          'Insurance Covered': record.insurance_covered ? 'Yes' : 'No'
-        };
-      }
-    });
+    const exportData = filteredRecords.map(record => ({
+      'Record ID': record.id,
+      'Visit Date': dayjs(record.visit_date).format('YYYY-MM-DD'),
+      'Patient Name': record.patient_name || 'Unknown',
+      'Patient ID': record.patient_id || 'N/A',
+      'USC ID': record.patient_usc_id || 'N/A',
+      'Clinical Diagnosis': record.diagnosis || 'No diagnosis',
+      'Treatment': record.treatment || 'No treatment',
+      'Clinical Notes': record.notes || 'No additional notes',
+      'Created Date': dayjs(record.created_at).format('YYYY-MM-DD HH:mm'),
+      'Last Updated': dayjs(record.updated_at).format('YYYY-MM-DD HH:mm'),
+      'Chief Complaint': record.chief_complaint || 'Not specified',
+      'Present Illness History': record.history_present_illness || 'Not documented',
+      'Past Medical History': record.past_medical_history || 'None reported',
+      'Physical Examination': record.physical_examination || 'Not performed',
+      'Blood Pressure': record.blood_pressure || 'N/A',
+      'Temperature (°C)': record.temperature || 'N/A',
+      'Pulse Rate (bpm)': record.pulse_rate || 'N/A',
+      'Respiratory Rate': record.respiratory_rate || 'N/A',
+      'Medications': record.medications || 'None prescribed',
+      'Laboratory Results': record.laboratory_results || 'None ordered',
+      'Follow-up Instructions': record.follow_up_instructions || 'None specified'
+    }));
 
     const csvContent = [
       Object.keys(exportData[0]).join(','),
@@ -599,66 +540,29 @@ Treatment: ${r.treatment || 'N/A'}
       return;
     }
 
-    const exportData = filteredRecords.map(record => {
-      const baseData = {
-        'ID': record.id,
-        'Type': record.record_type === 'MEDICAL' ? 'Medical' : 'Dental',
-        'Visit Date': record.visit_date,
-        'Patient': record.patient_name || 'Unknown',
-        'Patient ID': record.patient_id || '',
-        'USC ID': record.patient_usc_id || '',
-        'Diagnosis': record.diagnosis || '',
-        'Treatment': record.treatment || record.treatment_performed || '',
-        'Notes': record.notes || '',
-        'Created': record.created_at,
-        'Updated': record.updated_at
-      };
-
-      // Add type-specific fields
-      if (record.record_type === 'MEDICAL' || record.chief_complaint) {
-        return {
-          ...baseData,
-          'Chief Complaint': record.chief_complaint || '',
-          'Present Illness': record.history_present_illness || '',
-          'Medical History': record.past_medical_history || '',
-          'Physical Exam': record.physical_examination || '',
-          'Blood Pressure': record.blood_pressure || '',
-          'Temperature': record.temperature || '',
-          'Pulse Rate': record.pulse_rate || '',
-          'Respiratory Rate': record.respiratory_rate || '',
-          'Medications': record.medications || '',
-          'Lab Results': record.laboratory_results || '',
-          'Follow-up': record.follow_up_instructions || '',
-          'Procedure': '',
-          'Tooth Number': '',
-          'Priority': '',
-          'Pain Level': '',
-          'Cost': '',
-          'Insurance': ''
-        };
-      } else {
-        return {
-          ...baseData,
-          'Chief Complaint': '',
-          'Present Illness': '',
-          'Medical History': '',
-          'Physical Exam': '',
-          'Blood Pressure': '',
-          'Temperature': '',
-          'Pulse Rate': '',
-          'Respiratory Rate': '',
-          'Medications': '',
-          'Lab Results': '',
-          'Follow-up': '',
-          'Procedure': record.procedure_performed_display || '',
-          'Tooth Number': record.tooth_number || '',
-          'Priority': record.priority || '',
-          'Pain Level': record.pain_level || '',
-          'Cost': record.cost || '',
-          'Insurance': record.insurance_covered ? 'Covered' : 'Not Covered'
-        };
-      }
-    });
+    const exportData = filteredRecords.map(record => ({
+      'ID': record.id,
+      'Visit Date': record.visit_date,
+      'Patient': record.patient_name || 'Unknown',
+      'Patient ID': record.patient_id || '',
+      'USC ID': record.patient_usc_id || '',
+      'Diagnosis': record.diagnosis || '',
+      'Treatment': record.treatment || '',
+      'Notes': record.notes || '',
+      'Created': record.created_at,
+      'Updated': record.updated_at,
+      'Chief Complaint': record.chief_complaint || '',
+      'Present Illness': record.history_present_illness || '',
+      'Medical History': record.past_medical_history || '',
+      'Physical Exam': record.physical_examination || '',
+      'Blood Pressure': record.blood_pressure || '',
+      'Temperature': record.temperature || '',
+      'Pulse Rate': record.pulse_rate || '',
+      'Respiratory Rate': record.respiratory_rate || '',
+      'Medications': record.medications || '',
+      'Lab Results': record.laboratory_results || '',
+      'Follow-up': record.follow_up_instructions || ''
+    }));
 
     const tsvContent = [
       Object.keys(exportData[0]).join('\t'),
@@ -692,7 +596,7 @@ Treatment: ${r.treatment || 'N/A'}
       <!DOCTYPE html>
       <html>
         <head>
-          <title>USC-PIS Health Records Report</title>
+          <title>USC-PIS Medical Records Report</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.4; }
             .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #1976d2; padding-bottom: 20px; }
@@ -702,7 +606,7 @@ Treatment: ${r.treatment || 'N/A'}
             .summary { background: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px; }
             .record { border: 1px solid #ddd; margin: 15px 0; padding: 15px; border-radius: 5px; page-break-inside: avoid; }
             .record-header { background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c8 100%); padding: 10px; margin: -15px -15px 15px -15px; border-radius: 5px 5px 0 0; }
-            .record-type { display: inline-block; background: #2e7d32; color: white; padding: 3px 8px; border-radius: 3px; font-size: 12px; margin-right: 10px; }
+            
             .record-title { font-weight: bold; color: #2e7d32; font-size: 16px; margin-top: 5px; }
             .record-meta { color: #666; font-size: 14px; margin-top: 5px; }
             .record-body { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
@@ -720,7 +624,7 @@ Treatment: ${r.treatment || 'N/A'}
           <div class="header">
             <h1>University of Southern California</h1>
             <h2>Patient Information System</h2>
-            <h2>Comprehensive Health Records Report</h2>
+            <h2>Comprehensive Medical Records Report</h2>
             <p>Generated on: ${dayjs().format('MMMM DD, YYYY [at] HH:mm')}</p>
             <p>Total Records: ${filteredRecords.length}</p>
           </div>
@@ -728,19 +632,16 @@ Treatment: ${r.treatment || 'N/A'}
           <div class="summary">
             <h3>Report Summary</h3>
             <p><strong>Total Records:</strong> ${filteredRecords.length}</p>
-            <p><strong>Medical Records:</strong> ${filteredRecords.filter(r => r.record_type === 'MEDICAL' || r.chief_complaint).length}</p>
-            <p><strong>Dental Records:</strong> ${filteredRecords.filter(r => r.record_type === 'DENTAL' || r.procedure_performed_display).length}</p>
+            
             <p><strong>Date Filter:</strong> ${selectedDate ? dayjs(selectedDate).format('MMMM DD, YYYY') : 'All dates'}</p>
             <p><strong>Search Term:</strong> ${searchTerm || 'None'}</p>
-            <p><strong>Report Type:</strong> Combined Medical & Dental Health Records</p>
+            <p><strong>Report Type:</strong> Medical Health Records</p>
           </div>
           
           ${filteredRecords.map(record => {
-            const isMedical = record.record_type === 'MEDICAL' || record.chief_complaint;
             return `
             <div class="record">
               <div class="record-header">
-                <span class="record-type">${isMedical ? 'MEDICAL' : 'DENTAL'}</span>
                 <div class="record-title">${record.patient_name || 'Unknown Patient'}</div>
                 <div class="record-meta">
                   Record #${record.id} | Visit: ${dayjs(record.visit_date).format('MMM DD, YYYY')} | 
@@ -749,7 +650,7 @@ Treatment: ${r.treatment || 'N/A'}
               </div>
               <div class="record-body">
                 <div>
-                  ${isMedical ? `
+                  
                     <div class="field-group">
                       <h4>Clinical Assessment</h4>
                       <div class="field">
@@ -784,35 +685,6 @@ Treatment: ${r.treatment || 'N/A'}
                         <span class="field-value">${record.respiratory_rate || 'N/A'}/min</span>
                       </div>
                     </div>
-                  ` : `
-                    <div class="field-group">
-                      <h4>Dental Information</h4>
-                      <div class="field">
-                        <span class="field-label">Procedure:</span>
-                        <span class="field-value">${record.procedure_performed_display || 'Not specified'}</span>
-                      </div>
-                      <div class="field">
-                        <span class="field-label">Tooth Number:</span>
-                        <span class="field-value">${record.tooth_number || 'N/A'}</span>
-                      </div>
-                      <div class="field">
-                        <span class="field-label">Priority Level:</span>
-                        <span class="field-value">${record.priority || 'N/A'}</span>
-                      </div>
-                      <div class="field">
-                        <span class="field-label">Pain Level:</span>
-                        <span class="field-value">${record.pain_level || 'N/A'}/10</span>
-                      </div>
-                      <div class="field">
-                        <span class="field-label">Cost:</span>
-                        <span class="field-value">${record.cost ? '₱' + parseFloat(record.cost).toLocaleString('en-US', { minimumFractionDigits: 2 }) : 'N/A'}</span>
-                      </div>
-                      <div class="field">
-                        <span class="field-label">Insurance:</span>
-                        <span class="field-value">${record.insurance_covered ? 'Covered' : 'Not Covered'}</span>
-                      </div>
-                    </div>
-                  `}
                 </div>
                 <div>
                   <div class="field-group">
@@ -825,20 +697,18 @@ Treatment: ${r.treatment || 'N/A'}
                       <span class="field-label">Treatment:</span>
                       <span class="field-value">${record.treatment || record.treatment_performed || 'No treatment'}</span>
                     </div>
-                    ${isMedical ? `
-                      <div class="field">
-                        <span class="field-label">Medications:</span>
-                        <span class="field-value">${record.medications || 'None prescribed'}</span>
-                      </div>
-                      <div class="field">
-                        <span class="field-label">Lab Results:</span>
-                        <span class="field-value">${record.laboratory_results || 'None ordered'}</span>
-                      </div>
-                      <div class="field">
-                        <span class="field-label">Follow-up:</span>
-                        <span class="field-value">${record.follow_up_instructions || 'None specified'}</span>
-                      </div>
-                    ` : ''}
+                    <div class="field">
+                      <span class="field-label">Medications:</span>
+                      <span class="field-value">${record.medications || 'None prescribed'}</span>
+                    </div>
+                    <div class="field">
+                      <span class="field-label">Lab Results:</span>
+                      <span class="field-value">${record.laboratory_results || 'None ordered'}</span>
+                    </div>
+                    <div class="field">
+                      <span class="field-label">Follow-up:</span>
+                      <span class="field-value">${record.follow_up_instructions || 'None specified'}</span>
+                    </div>
                     <div class="field">
                       <span class="field-label">Notes:</span>
                       <span class="field-value">${record.notes || 'No additional notes'}</span>
@@ -890,30 +760,7 @@ Treatment: ${r.treatment || 'N/A'}
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={3}>
-          <Card elevation={1}>
-            <CardContent sx={{ textAlign: 'center', py: 2 }}>
-              <Typography variant="h4" color="primary">
-                {records.filter(r => r.record_type === 'MEDICAL').length}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Medical Records
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={3}>
-          <Card elevation={1}>
-            <CardContent sx={{ textAlign: 'center', py: 2 }}>
-              <Typography variant="h4" color="primary">
-                {records.filter(r => r.record_type === 'DENTAL').length}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Dental Records
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+        
         <Grid item xs={12} sm={3}>
           <Card elevation={1}>
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
@@ -951,22 +798,7 @@ Treatment: ${r.treatment || 'N/A'}
             >
               View Medical History
             </Button>
-            <Button
-              variant="outlined"
-              startIcon={<HealingIcon />}
-              onClick={() => window.open('/dental-records', '_blank')}
-              size="small"
-              sx={{ 
-                borderColor: '#764ba2',
-                color: '#764ba2',
-                '&:hover': {
-                  borderColor: '#6a4190',
-                  backgroundColor: 'rgba(118, 75, 162, 0.1)',
-                }
-              }}
-            >
-              Manage Dental Records
-            </Button>
+            
             <Button
               variant="outlined"
               startIcon={<CertificateIcon />}
@@ -1120,17 +952,16 @@ Treatment: ${r.treatment || 'N/A'}
       ) : (
         <TableContainer component={Paper} sx={{ mt: 2 }}>
           <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Date</TableCell>
-                <TableCell>Patient</TableCell>
-                <TableCell>ID Number</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Diagnosis</TableCell>
-                <TableCell>Treatment</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
+          <TableHead>
+            <TableRow>
+              <TableCell>Date</TableCell>
+              <TableCell>Patient</TableCell>
+              <TableCell>ID Number</TableCell>
+              <TableCell>Diagnosis</TableCell>
+              <TableCell>Treatment</TableCell>
+              <TableCell align="right">Actions</TableCell>
+            </TableRow>
+          </TableHead>
             <TableBody>
               {filteredRecords.length > 0 ? (
                 filteredRecords.map((record) => (
@@ -1146,13 +977,7 @@ Treatment: ${r.treatment || 'N/A'}
                         {record.patient_usc_id || 'N/A'}
                       </Typography>
                     </TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={record.record_type || 'MEDICAL'} 
-                        color={record.record_type === 'MEDICAL' ? 'primary' : 'secondary'} 
-                        size="small" 
-                      />
-                    </TableCell>
+                    
                     <TableCell>{record.diagnosis || 'No diagnosis'}</TableCell>
                     <TableCell>{record.treatment || 'No treatment'}</TableCell>
                     <TableCell align="right">
@@ -1188,11 +1013,9 @@ Treatment: ${r.treatment || 'N/A'}
                       
                       {/* Regular Action Buttons */}
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        {record.record_type === 'MEDICAL' && (
-                          <Button size="small" onClick={() => { setSelectedMedicalRecordId(record.id); setOpenMedicalRecordModal(true); }}>
-                            View
-                          </Button>
-                        )}
+                        <Button size="small" onClick={() => { setSelectedMedicalRecordId(record.id); setOpenMedicalRecordModal(true); }}>
+                          View
+                        </Button>
                         <IconButton onClick={() => handleOpenEditDialog(record)} disabled={!canEditRecords}>
                           <EditIcon />
                         </IconButton>
@@ -1205,7 +1028,7 @@ Treatment: ${r.treatment || 'N/A'}
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} align="center">
+                  <TableCell colSpan={6} align="center">
                     No records found
                   </TableCell>
                 </TableRow>
@@ -1296,23 +1119,7 @@ Treatment: ${r.treatment || 'N/A'}
                   />
                 </LocalizationProvider>
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth margin="normal">
-                  <InputLabel>Record Type</InputLabel>
-                  <Select
-                    name="record_type"
-                    value={currentRecord.record_type}
-                    onChange={handleInputChange}
-                    label="Record Type"
-                  >
-                    <MenuItem value="MEDICAL">Medical</MenuItem>
-                    <MenuItem value="DENTAL">Dental</MenuItem>
-                  </Select>
-                  <FormHelperText>
-                    Choose Medical for general clinical visits; Dental for dental procedures.
-                  </FormHelperText>
-                </FormControl>
-              </Grid>
+              
               <Grid item xs={12}>
                 <TextField
                   fullWidth

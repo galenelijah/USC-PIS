@@ -194,10 +194,9 @@ const StudentHealthRecords = () => {
 
     const exportData = filteredRecords.map(record => ({
       'Visit Date': dayjs(record.visit_date).format('YYYY-MM-DD'),
-      'Record Type': record.record_type === 'MEDICAL' ? 'Medical' : 'Dental',
       'Chief Complaint': record.chief_complaint || 'N/A',
       'Diagnosis': record.diagnosis || 'No diagnosis',
-      'Treatment': record.treatment || record.treatment_performed || 'No treatment',
+      'Treatment': record.treatment || 'No treatment',
       'Notes': record.notes || 'No additional notes',
       'Blood Pressure': record.blood_pressure || 'N/A',
       'Temperature': record.temperature || 'N/A',

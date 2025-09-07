@@ -84,6 +84,9 @@ class HealthCampaignListSerializer(serializers.ModelSerializer):
                 return obj.banner_image.url
             except Exception as e:
                 # Handle Cloudinary configuration errors gracefully
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Error accessing banner_image URL for campaign {obj.id}: {str(e)}")
                 return None
         return None
     
@@ -96,6 +99,9 @@ class HealthCampaignListSerializer(serializers.ModelSerializer):
                 return obj.thumbnail_image.url
             except Exception as e:
                 # Handle Cloudinary configuration errors gracefully
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Error accessing thumbnail_image URL for campaign {obj.id}: {str(e)}")
                 return None
         return None
     
@@ -190,26 +196,44 @@ class HealthCampaignDetailSerializer(serializers.ModelSerializer):
     
     def get_banner_image_url(self, obj):
         if obj.banner_image:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.banner_image.url)
-            return obj.banner_image.url
+            try:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(obj.banner_image.url)
+                return obj.banner_image.url
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Error accessing banner_image URL for campaign {obj.id}: {str(e)}")
+                return None
         return None
     
     def get_thumbnail_image_url(self, obj):
         if obj.thumbnail_image:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.thumbnail_image.url)
-            return obj.thumbnail_image.url
+            try:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(obj.thumbnail_image.url)
+                return obj.thumbnail_image.url
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Error accessing thumbnail_image URL for campaign {obj.id}: {str(e)}")
+                return None
         return None
     
     def get_pubmat_image_url(self, obj):
         if obj.pubmat_image:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.pubmat_image.url)
-            return obj.pubmat_image.url
+            try:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(obj.pubmat_image.url)
+                return obj.pubmat_image.url
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Error accessing pubmat_image URL for campaign {obj.id}: {str(e)}")
+                return None
         return None
     
     def get_images(self, obj):
@@ -282,21 +306,60 @@ class HealthCampaignCreateUpdateSerializer(serializers.ModelSerializer):
     def validate(self, data):
         """Validate campaign data with enhanced error handling"""
         import logging
-        logger = logging.getLogger(__name__)
+        from django.utils import timezone
+        from datetime import datetime
         
+        logger = logging.getLogger(__name__)
         logger.info(f"Validating campaign data: {list(data.keys())}")
+        
+        # Validate required fields
+        required_fields = ['title', 'description', 'campaign_type', 'content', 'start_date', 'end_date']
+        for field in required_fields:
+            if not data.get(field):
+                logger.error(f"Required field missing: {field}")
+                raise serializers.ValidationError({field: f"{field.replace('_', ' ').title()} is required"})
         
         start_date = data.get('start_date')
         end_date = data.get('end_date')
         
-        if start_date and end_date and start_date >= end_date:
-            logger.error(f"Date validation failed: start_date={start_date} >= end_date={end_date}")
-            raise serializers.ValidationError("End date must be after start date")
+        # Validate date formats and logic
+        try:
+            if isinstance(start_date, str):
+                start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+            if isinstance(end_date, str):
+                end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+                
+            # Ensure start_date is not in the past for new campaigns
+            now = timezone.now()
+            if not self.instance and start_date and start_date < now:
+                logger.warning(f"Start date {start_date} is in the past")
+                # Allow past dates but log warning
+                
+            if start_date and end_date and start_date >= end_date:
+                logger.error(f"Date validation failed: start_date={start_date} >= end_date={end_date}")
+                raise serializers.ValidationError({"end_date": "End date must be after start date"})
+            
+            featured_until = data.get('featured_until')
+            if featured_until:
+                if isinstance(featured_until, str):
+                    featured_until = datetime.fromisoformat(featured_until.replace('Z', '+00:00'))
+                if end_date and featured_until > end_date:
+                    logger.error(f"Featured date validation failed: featured_until={featured_until} > end_date={end_date}")
+                    raise serializers.ValidationError({"featured_until": "Featured until date cannot be after campaign end date"})
+                    
+        except ValueError as e:
+            logger.error(f"Date parsing error: {str(e)}")
+            raise serializers.ValidationError({"date_error": "Invalid date format provided"})
         
-        featured_until = data.get('featured_until')
-        if featured_until and end_date and featured_until > end_date:
-            logger.error(f"Featured date validation failed: featured_until={featured_until} > end_date={end_date}")
-            raise serializers.ValidationError("Featured until date cannot be after campaign end date")
+        # Validate campaign type
+        valid_types = [choice[0] for choice in data.get('CAMPAIGN_TYPES', [])] or [
+            'GENERAL', 'VACCINATION', 'MENTAL_HEALTH', 'NUTRITION', 'DENTAL_HEALTH',
+            'HYGIENE', 'EXERCISE', 'SAFETY', 'PREVENTION', 'AWARENESS', 'EMERGENCY',
+            'SEASONAL', 'CUSTOM'
+        ]
+        if data.get('campaign_type') not in valid_types:
+            logger.error(f"Invalid campaign type: {data.get('campaign_type')}")
+            raise serializers.ValidationError({"campaign_type": "Invalid campaign type selected"})
         
         logger.info("Campaign data validation passed")
         return data
