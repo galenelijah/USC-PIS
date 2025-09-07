@@ -41,7 +41,7 @@ import {
   Person as PersonIcon,
   CalendarToday as CalendarTodayIcon,
   LocalHospital as MedicalIcon,
-  Healing as DentalIcon,
+  //Healing as DentalIcon,
   Timeline as TimelineIcon,
   Analytics as AnalyticsIcon,
   Print as PrintIcon,
@@ -65,7 +65,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { healthRecordsService, dentalRecordService, patientService } from '../services/api';
+import { healthRecordsService, patientService } from '../services/api';
 import { useSelector } from 'react-redux';
 import { formatDateComprehensive, formatDatePH, formatDateTimePH } from '../utils/dateUtils';
 import InfoTooltip from './utils/InfoTooltip';
@@ -90,9 +90,7 @@ function TabPanel(props) {
 
 const MedicalRecordsPage = () => {
   const [medicalRecords, setMedicalRecords] = useState([]);
-  const [dentalRecords, setDentalRecords] = useState([]);
   const [filteredMedicalRecords, setFilteredMedicalRecords] = useState([]);
-  const [filteredDentalRecords, setFilteredDentalRecords] = useState([]);
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -110,7 +108,6 @@ const MedicalRecordsPage = () => {
 
   useEffect(() => {
     fetchMedicalRecords();
-    fetchDentalRecords();
     if (isStaffOrMedical) {
       fetchPatients();
     }
@@ -118,7 +115,7 @@ const MedicalRecordsPage = () => {
 
   useEffect(() => {
     filterRecords();
-  }, [searchTerm, medicalRecords, dentalRecords, selectedPatient, startDate, endDate, procedureFilter, priorityFilter]);
+  }, [searchTerm, medicalRecords, selectedPatient, startDate, endDate, priorityFilter]);
 
   const fetchMedicalRecords = async () => {
     setLoading(true);
@@ -135,15 +132,7 @@ const MedicalRecordsPage = () => {
     }
   };
 
-  const fetchDentalRecords = async () => {
-    try {
-      const response = await dentalRecordService.getAll();
-      const recordsData = response.data || [];
-      setDentalRecords(recordsData);
-    } catch (err) {
-      console.error('Error fetching dental records:', err);
-    }
-  };
+  // Dental records are handled on the dedicated /dental-records page
 
   const fetchPatients = async () => {
     try {
@@ -205,61 +194,6 @@ const MedicalRecordsPage = () => {
     
     setFilteredMedicalRecords(filteredMedical.sort((a, b) => new Date(b.visit_date) - new Date(a.visit_date)));
     
-    // Filter dental records with enhanced search
-    let filteredDental = dentalRecords;
-    
-    if (selectedPatient) {
-      filteredDental = filteredDental.filter(record => record.patient?.id === selectedPatient.id);
-    }
-    
-    if (searchLower !== '') {
-      filteredDental = filteredDental.filter(record => 
-        // Patient information
-        record.patient_name?.toLowerCase().includes(searchLower) ||
-        record.patient?.first_name?.toLowerCase().includes(searchLower) ||
-        record.patient?.last_name?.toLowerCase().includes(searchLower) ||
-        record.patient?.email?.toLowerCase().includes(searchLower) ||
-        record.patient_usc_id?.toLowerCase().includes(searchLower) ||
-        
-        // Dental information
-        record.diagnosis?.toLowerCase().includes(searchLower) ||
-        record.treatment_performed?.toLowerCase().includes(searchLower) ||
-        record.procedure_performed_display?.toLowerCase().includes(searchLower) ||
-        record.procedure_performed?.toLowerCase().includes(searchLower) ||
-        record.chief_complaint?.toLowerCase().includes(searchLower) ||
-        record.notes?.toLowerCase().includes(searchLower) ||
-        record.affected_teeth_display?.toLowerCase().includes(searchLower) ||
-        
-        // Priority and other fields
-        record.priority?.toLowerCase().includes(searchLower) ||
-        record.cost?.toString().includes(searchLower) ||
-        
-        // Full name search
-        `${record.patient?.first_name} ${record.patient?.last_name}`.toLowerCase().includes(searchLower)
-      );
-    }
-    
-    if (startDate) {
-      filteredDental = filteredDental.filter(record => 
-        dayjs(record.visit_date).isAfter(dayjs(startDate).subtract(1, 'day'))
-      );
-    }
-    
-    if (endDate) {
-      filteredDental = filteredDental.filter(record => 
-        dayjs(record.visit_date).isBefore(dayjs(endDate).add(1, 'day'))
-      );
-    }
-    
-    if (procedureFilter) {
-      filteredDental = filteredDental.filter(record => record.procedure_performed === procedureFilter);
-    }
-    
-    if (priorityFilter) {
-      filteredDental = filteredDental.filter(record => record.priority === priorityFilter);
-    }
-    
-    setFilteredDentalRecords(filteredDental.sort((a, b) => new Date(b.visit_date) - new Date(a.visit_date)));
   };
 
 
@@ -305,7 +239,7 @@ const MedicalRecordsPage = () => {
   // Enhanced export functions with multiple formats and comprehensive data
   const handleExportCSV = (recordType = 'all') => {
     let exportData = [];
-    
+
     if (recordType === 'medical' || recordType === 'all') {
       const medicalExport = filteredMedicalRecords.map(record => ({
         'Record Type': 'Medical',
@@ -330,29 +264,7 @@ const MedicalRecordsPage = () => {
       exportData = [...exportData, ...medicalExport];
     }
     
-    if (recordType === 'dental' || recordType === 'all') {
-      const dentalExport = filteredDentalRecords.map(record => ({
-        'Record Type': 'Dental',
-        'Record ID': record.id,
-        'Visit Date': formatDate(record.visit_date).formatted,
-        'Patient Name': record.patient_name || 'Unknown',
-        'USC ID': record.patient_usc_id || 'N/A',
-        'Procedure': record.procedure_performed_display || 'No procedure',
-        'Tooth Number': record.tooth_number || 'N/A',
-        'Diagnosis': record.diagnosis || 'No diagnosis',
-        'Treatment': record.treatment_performed || 'No treatment',
-        'Priority Level': record.priority || 'N/A',
-        'Pain Level (1-10)': record.pain_level || 'N/A',
-        'Cost': formatCurrency(record.cost),
-        'Insurance Coverage': record.insurance_covered ? 'Covered' : 'Not Covered',
-        'Follow-up Required': record.follow_up_required ? 'Yes' : 'No',
-        'Follow-up Date': record.follow_up_date ? formatDate(record.follow_up_date).formatted : 'N/A',
-        'Clinical Notes': record.notes || 'No additional notes',
-        'Created Date': formatDate(record.created_at).formatted,
-        'Last Updated': formatDate(record.updated_at).formatted
-      }));
-      exportData = [...exportData, ...dentalExport];
-    }
+    // Dental export removed from this page
     
     if (exportData.length === 0) {
       alert('No records to export');
@@ -380,7 +292,7 @@ const MedicalRecordsPage = () => {
     URL.revokeObjectURL(url);
   };
 
-  const handleExportExcel = (recordType = 'all') => {
+  const handleExportExcel = (recordType = 'medical') => {
     let exportData = [];
     
     if (recordType === 'medical' || recordType === 'all') {
@@ -410,29 +322,7 @@ const MedicalRecordsPage = () => {
       exportData = [...exportData, ...medicalExport];
     }
     
-    if (recordType === 'dental' || recordType === 'all') {
-      const dentalExport = filteredDentalRecords.map(record => ({
-        'Record Type': 'Dental',
-        'ID': record.id,
-        'Visit Date': record.visit_date,
-        'Patient': record.patient_name || 'Unknown',
-        'USC ID': record.patient_usc_id || '',
-        'Dental Procedure': record.procedure_performed_display || '',
-        'Tooth/Area': record.tooth_number || '',
-        'Clinical Diagnosis': record.diagnosis || '',
-        'Treatment Performed': record.treatment_performed || '',
-        'Priority Level': record.priority || '',
-        'Pain Assessment': record.pain_level || '',
-        'Total Cost (₱)': record.cost || 0,
-        'Insurance Status': record.insurance_covered ? 'Covered' : 'Not Covered',
-        'Follow-up Needed': record.follow_up_required ? 'Yes' : 'No',
-        'Follow-up Date': record.follow_up_date || '',
-        'Clinical Notes': record.notes || '',
-        'Record Created': record.created_at,
-        'Last Modified': record.updated_at
-      }));
-      exportData = [...exportData, ...dentalExport];
-    }
+    // Dental export removed from this page
     
     if (exportData.length === 0) {
       alert('No records to export');
@@ -461,20 +351,9 @@ const MedicalRecordsPage = () => {
     URL.revokeObjectURL(url);
   };
 
-  const handlePrintReport = (recordType = 'all') => {
-    let recordsToPrint = [];
-    let reportTitle = '';
-    
-    if (recordType === 'medical') {
-      recordsToPrint = filteredMedicalRecords;
-      reportTitle = 'Medical Records Report';
-    } else if (recordType === 'dental') {
-      recordsToPrint = filteredDentalRecords;
-      reportTitle = 'Dental Records Report';
-    } else {
-      recordsToPrint = [...filteredMedicalRecords, ...filteredDentalRecords];
-      reportTitle = 'Comprehensive Health Records Report';
-    }
+  const handlePrintReport = (recordType = 'medical') => {
+    let recordsToPrint = filteredMedicalRecords;
+    let reportTitle = 'Medical Records Report';
     
     if (recordsToPrint.length === 0) {
       alert('No records to print');
@@ -526,7 +405,6 @@ const MedicalRecordsPage = () => {
           <div class="summary">
             <h3>Report Summary</h3>
             <p><strong>Medical Records:</strong> ${filteredMedicalRecords.length}</p>
-            <p><strong>Dental Records:</strong> ${filteredDentalRecords.length}</p>
             <p><strong>Date Range:</strong> ${startDate && endDate ? `${dayjs(startDate).format('MMM DD, YYYY')} - ${dayjs(endDate).format('MMM DD, YYYY')}` : 'All dates'}</p>
             <p><strong>Patient Filter:</strong> ${selectedPatient ? selectedPatient.first_name + ' ' + selectedPatient.last_name : 'All patients'}</p>
           </div>
@@ -662,12 +540,12 @@ const MedicalRecordsPage = () => {
 
   // Generate insights data
   const generateInsights = () => {
-    const allRecords = [...filteredMedicalRecords, ...filteredDentalRecords];
+    const allRecords = [...filteredMedicalRecords];
     
     const insights = {
       totalRecords: allRecords.length,
       medicalRecords: filteredMedicalRecords.length,
-      dentalRecords: filteredDentalRecords.length,
+      dentalRecords: 0,
       recentRecords: allRecords.filter(r => 
         dayjs(r.visit_date).isAfter(dayjs().subtract(30, 'day'))
       ).length,
@@ -782,14 +660,14 @@ const MedicalRecordsPage = () => {
         <Box sx={{ mb: 4 }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <Typography variant="h4" gutterBottom color="primary">
-              {isStudent ? 'Patient History' : 'Patient Medical History'}
+              {isStudent ? 'Patient Medical Records' : 'Patient Medical Records'}
             </Typography>
-            <InfoTooltip title="Browse medical and dental records. Use tabs to switch, filters to narrow, and actions to export." />
+            <InfoTooltip title="Browse medical records. Use filters to narrow and actions to export." />
           </Box>
           <Typography variant="body1" color="text.secondary">
             {isStaffOrMedical 
-              ? 'Browse and search through patient medical and dental history records with advanced filtering capabilities.' 
-              : 'View your complete medical and dental records history, plus personalized health insights.'
+              ? 'Browse and search through patient medical history records with advanced filtering capabilities.' 
+              : 'View your complete medical records history, plus personalized health insights.'
             }
           </Typography>
         </Box>
@@ -806,11 +684,6 @@ const MedicalRecordsPage = () => {
             <Tab 
               label={`Medical Records (${filteredMedicalRecords.length})`} 
               icon={<MedicalIcon />} 
-              iconPosition="start"
-            />
-            <Tab 
-              label={`Dental Records (${filteredDentalRecords.length})`} 
-              icon={<DentalIcon />} 
               iconPosition="start"
             />
             <Tab 
@@ -842,7 +715,7 @@ const MedicalRecordsPage = () => {
                   ),
                 }}
                 placeholder="Search by patient name, diagnosis, treatment, medications, notes..."
-                helperText="Search across all medical and dental records"
+                helperText="Search across all medical records"
               />
             </Grid>
             
@@ -945,7 +818,7 @@ const MedicalRecordsPage = () => {
                   startIcon={<CsvIcon />}
                   onClick={() => handleExportCSV(tabValue === 0 ? 'medical' : tabValue === 1 ? 'dental' : 'all')}
                   size="small"
-                  disabled={tabValue === 0 ? filteredMedicalRecords.length === 0 : tabValue === 1 ? filteredDentalRecords.length === 0 : (filteredMedicalRecords.length + filteredDentalRecords.length) === 0}
+                  disabled={filteredMedicalRecords.length === 0}
                 >
                   CSV
                 </Button>
@@ -954,7 +827,7 @@ const MedicalRecordsPage = () => {
                   startIcon={<ExcelIcon />}
                   onClick={() => handleExportExcel(tabValue === 0 ? 'medical' : tabValue === 1 ? 'dental' : 'all')}
                   size="small"
-                  disabled={tabValue === 0 ? filteredMedicalRecords.length === 0 : tabValue === 1 ? filteredDentalRecords.length === 0 : (filteredMedicalRecords.length + filteredDentalRecords.length) === 0}
+                  disabled={filteredMedicalRecords.length === 0}
                   sx={{ color: '#0d7c34', borderColor: '#0d7c34', '&:hover': { borderColor: '#0d7c34', bgcolor: '#f0f9f0' } }}
                 >
                   Excel
@@ -964,7 +837,7 @@ const MedicalRecordsPage = () => {
                   startIcon={<PrintIcon />}
                   onClick={() => handlePrintReport(tabValue === 0 ? 'medical' : tabValue === 1 ? 'dental' : 'all')}
                   size="small"
-                  disabled={tabValue === 0 ? filteredMedicalRecords.length === 0 : tabValue === 1 ? filteredDentalRecords.length === 0 : (filteredMedicalRecords.length + filteredDentalRecords.length) === 0}
+                  disabled={filteredMedicalRecords.length === 0}
                   sx={{ color: '#d32f2f', borderColor: '#d32f2f', '&:hover': { borderColor: '#d32f2f', bgcolor: '#fff0f0' } }}
                 >
                   Print
@@ -1132,125 +1005,10 @@ const MedicalRecordsPage = () => {
               </Paper>
             </TabPanel>
 
-            {/* Dental Records Tab */}
-            <TabPanel value={tabValue} index={1}>
-              <Paper sx={{ borderRadius: 2, boxShadow: 3 }}>
-                <Box sx={{ p: 3, borderBottom: '1px solid #e0e0e0' }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="h6" color="primary">
-                      Dental Records History
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                      <Chip 
-                        label={`${filteredDentalRecords.length} record${filteredDentalRecords.length !== 1 ? 's' : ''}`}
-                        color="secondary"
-                        variant="outlined"
-                      />
-                      {isStaffOrMedical && (
-                        <Button
-                          variant="contained"
-                          startIcon={<AddIcon />}
-                          onClick={() => window.open('/dental-records', '_blank')}
-                          sx={{ bgcolor: '#f093fb' }}
-                        >
-                          New Dental Record
-                        </Button>
-                      )}
-                    </Box>
-                  </Box>
-                </Box>
-
-                <Box sx={{ p: 3 }}>
-                  {filteredDentalRecords.length === 0 ? (
-                    <Box sx={{ textAlign: 'center', py: 6 }}>
-                      <DentalIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                      <Typography variant="h6" color="text.secondary" gutterBottom>
-                        No dental records found
-                      </Typography>
-                      <Typography color="text.secondary">
-                        {isStaffOrMedical 
-                          ? 'Create the first dental record by clicking the button above.' 
-                          : 'No dental records have been created for your account yet.'
-                        }
-                      </Typography>
-                    </Box>
-                  ) : (
-                    <Grid container spacing={3}>
-                      {filteredDentalRecords.map((record) => (
-                        <Grid item xs={12} md={6} lg={4} key={record.id}>
-                          <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                            <CardContent sx={{ flexGrow: 1 }}>
-                              <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                                <Typography variant="h6" component="div">
-                                  {record.patient_name}
-                                </Typography>
-                                <Chip
-                                  label={record.priority || 'LOW'}
-                                  size="small"
-                                  sx={{
-                                    bgcolor: getPriorityColor(record.priority),
-                                    color: 'white',
-                                    fontWeight: 'bold'
-                                  }}
-                                />
-                              </Box>
-                              
-                              <Typography color="text.secondary" gutterBottom>
-                                <CalendarTodayIcon sx={{ fontSize: 16, mr: 1, verticalAlign: 'middle' }} />
-                                {formatDate(record.visit_date).formatted}
-                              </Typography>
-                              
-                              <Typography variant="body2" color="text.secondary" gutterBottom>
-                                <DentalIcon sx={{ fontSize: 16, mr: 1, verticalAlign: 'middle' }} />
-                                {record.procedure_performed_display}
-                              </Typography>
-                              
-                              {record.tooth_numbers && (
-                                <Typography variant="body2" color="text.secondary" gutterBottom>
-                                  Teeth: {record.affected_teeth_display}
-                                </Typography>
-                              )}
-                              
-                              <Typography variant="body2" sx={{ mt: 1 }}>
-                                {record.diagnosis?.length > 100 
-                                  ? `${record.diagnosis.substring(0, 100)}...` 
-                                  : record.diagnosis}
-                              </Typography>
-                              
-                              {record.pain_level && (
-                                <Box display="flex" alignItems="center" mt={1}>
-                                  <Typography variant="body2" color="text.secondary" mr={1}>
-                                    Pain Level:
-                                  </Typography>
-                                  <Rating value={record.pain_level / 2} readOnly size="small" />
-                                  <Typography variant="body2" color="text.secondary" ml={1}>
-                                    ({record.pain_level}/10)
-                                  </Typography>
-                                </Box>
-                              )}
-                              
-                              {record.cost && (
-                                <Typography variant="body2" color="text.secondary" mt={1}>
-                                  Cost: {formatCurrency(record.cost)}
-                                  {record.insurance_covered && (
-                                    <Chip label="Insured" size="small" sx={{ ml: 1 }} />
-                                  )}
-                                </Typography>
-                              )}
-                            </CardContent>
-                          </Card>
-                        </Grid>
-                      ))}
-                    </Grid>
-                  )}
-                </Box>
-              </Paper>
-            </TabPanel>
-
             {/* Health Insights Tab */}
-            <TabPanel value={tabValue} index={2}>
+            <TabPanel value={tabValue} index={1}>
               {(() => {
-                const insights = generateInsights();
+            const insights = generateInsights();
                 
                 if (insights.totalRecords === 0) {
                   return (
@@ -1260,7 +1018,7 @@ const MedicalRecordsPage = () => {
                         No health data available
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Health insights will appear here once you have medical or dental records.
+                        Health insights will appear here once you have medical records.
                       </Typography>
                     </Paper>
                   );
@@ -1271,9 +1029,9 @@ const MedicalRecordsPage = () => {
                     <Typography variant="h5" gutterBottom fontWeight="bold" color="primary">
                       📊 Your Health Insights
                     </Typography>
-                    <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-                      Personalized insights based on your medical and dental history to help you understand your health better.
-                    </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+              Personalized insights based on your medical history to help you understand your health better.
+            </Typography>
 
                     {/* Summary Cards */}
                     <Grid container spacing={3} sx={{ mb: 4 }}>

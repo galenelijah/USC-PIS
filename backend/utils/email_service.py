@@ -185,6 +185,35 @@ class EmailService:
             recipient_email=medical_record.patient.user.email,
             subject='Share Your Healthcare Experience - USC-PIS'
         )
+
+    @staticmethod
+    def send_feedback_request_for_visit(patient, visit_date, visit_type='Medical Consultation'):
+        """Send feedback request for a generic visit (medical or dental)."""
+        try:
+            # Minimal object to satisfy template fields
+            class VisitObj:
+                def __init__(self, visit_date, visit_type):
+                    self.visit_date = visit_date
+                    self.visit_type = visit_type
+
+            visit = VisitObj(visit_date, visit_type)
+            context = {
+                'patient': patient,
+                'medical_record': visit,  # reusing template variable
+                'feedback_url': 'https://usc-pis-5f030223f7a8.herokuapp.com/feedback',
+                'site_url': 'https://usc-pis-5f030223f7a8.herokuapp.com',
+                'login_url': 'https://usc-pis-5f030223f7a8.herokuapp.com/login'
+            }
+
+            return EmailService.send_template_email(
+                template_name='feedback_request',
+                context=context,
+                recipient_email=patient.user.email,
+                subject='We value your feedback - USC-PIS'
+            )
+        except Exception as e:
+            logger.error(f"Error sending generic feedback email: {e}")
+            return False
     
     @staticmethod
     def send_appointment_reminder(appointment):

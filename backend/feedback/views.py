@@ -9,6 +9,7 @@ from .models import Feedback
 from .serializers import FeedbackSerializer
 from .permissions import IsAdminOrStaff
 from patients.models import Patient  # Add this import at the top if not present
+from patients.models import MedicalRecord, DentalRecord
 
 # Create your views here.
 
@@ -166,6 +167,34 @@ class FeedbackViewSet(viewsets.ModelViewSet):
             ).exists()
 
         return Response({'has_feedback': existing_feedback})
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated], url_path='pending')
+    def pending(self, request):
+        """Return whether the current user has pending feedback for recent visits (medical or dental)."""
+        user = request.user
+        try:
+            patient = Patient.objects.get(user=user)
+        except Patient.DoesNotExist:
+            return Response({'has_pending': False, 'medical_pending': 0, 'dental_pending': 0})
+
+        # Medical: count visits in last 14 days without feedback
+        recent_medical = MedicalRecord.objects.filter(patient=patient).order_by('-visit_date')[:5]
+        medical_pending = 0
+        for mr in recent_medical:
+            if not Feedback.objects.filter(patient=patient, medical_record=mr).exists():
+                medical_pending += 1
+
+        # Dental: count recent visits (no direct link to Feedback model). If any dental visits exist in last 14 days, require feedback.
+        recent_dental_count = DentalRecord.objects.filter(patient=patient).order_by('-visit_date')[:5].count()
+        # If there is at least one recent dental visit, consider it pending until the user submits general feedback
+        has_general_feedback = Feedback.objects.filter(patient=patient, medical_record__isnull=True).exists()
+        dental_pending = recent_dental_count if recent_dental_count and not has_general_feedback else 0
+
+        return Response({
+            'has_pending': (medical_pending + dental_pending) > 0,
+            'medical_pending': medical_pending,
+            'dental_pending': dental_pending
+        })
 
     @action(detail=False, methods=['get'], permission_classes=[IsAdminOrStaff], url_path='analytics')
     def analytics(self, request):

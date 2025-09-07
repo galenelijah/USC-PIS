@@ -7,43 +7,55 @@ from django.utils import timezone
 from datetime import timedelta
 from .models import MedicalRecord, DentalRecord
 from utils.email_service import EmailService
+from notifications.models import Notification
 import logging
 
 logger = logging.getLogger(__name__)
 
 @receiver(post_save, sender=MedicalRecord)
 def schedule_feedback_email_medical(sender, instance, created, **kwargs):
-    """
-    Schedule feedback request email 24 hours after medical visit is created
-    """
+    """Immediately send feedback email and in-app notification for medical visits."""
     if created and instance.patient and hasattr(instance.patient, 'user') and instance.patient.user:
         try:
-            # Create a delayed task to send feedback email after 24 hours
-            # For now, we'll use Django's built-in management command approach
-            # In production, you might want to use Celery for better scheduling
-            
-            logger.info(f"Medical record created for patient {instance.patient.id}. Feedback email will be triggered by management command.")
-            
-            # Note: The actual email will be sent by the management command 
-            # `python manage.py send_feedback_emails --hours 24`
-            # which should be run daily via cron job or scheduler
-            
+            # Send immediate feedback email
+            EmailService.send_feedback_request_email(instance)
+            # Create in-app notification
+            Notification.objects.create(
+                recipient=instance.patient.user,
+                patient=instance.patient,
+                notification_type='FOLLOW_UP',
+                title='Feedback Required',
+                message='Please provide feedback for your recent medical visit.',
+                priority='MEDIUM',
+                delivery_method='IN_APP',
+                action_url='https://usc-pis-5f030223f7a8.herokuapp.com/feedback',
+                action_text='Leave Feedback'
+            )
         except Exception as e:
             logger.error(f"Error scheduling feedback email for medical record {instance.id}: {e}")
 
 @receiver(post_save, sender=DentalRecord)
 def schedule_feedback_email_dental(sender, instance, created, **kwargs):
-    """
-    Schedule feedback request email 24 hours after dental visit is created
-    """
+    """Immediately send feedback email and in-app notification for dental visits."""
     if created and instance.patient and hasattr(instance.patient, 'user') and instance.patient.user:
         try:
-            logger.info(f"Dental record created for patient {instance.patient.id}. Feedback email will be triggered by management command.")
-            
-            # Note: The actual email will be sent by the management command 
-            # `python manage.py send_feedback_emails --hours 24`
-            # which should be run daily via cron job or scheduler
-            
+            # Send immediate email for dental visit
+            EmailService.send_feedback_request_for_visit(
+                patient=instance.patient,
+                visit_date=instance.visit_date,
+                visit_type='Dental Visit'
+            )
+            Notification.objects.create(
+                recipient=instance.patient.user,
+                patient=instance.patient,
+                notification_type='FOLLOW_UP',
+                title='Feedback Required',
+                message='Please provide feedback for your recent dental visit.',
+                priority='MEDIUM',
+                delivery_method='IN_APP',
+                action_url='https://usc-pis-5f030223f7a8.herokuapp.com/feedback',
+                action_text='Leave Feedback'
+            )
         except Exception as e:
             logger.error(f"Error scheduling feedback email for dental record {instance.id}: {e}")
 

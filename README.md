@@ -30,7 +30,7 @@ A comprehensive healthcare management system for the University of Southern Cali
 - **✅ User Experience**: Eliminated confusing content duplication with logical content separation (campaigns vs health info)
 
 ### **✅ COMPREHENSIVE FEATURE SET**:
-- ✅ **Patient Records Management**: Complete medical and dental record workflows
+- ✅ **Patient Records Management**: Medical and dental record workflows (fully separated pages)
 - ✅ **Medical Certificate System**: Full approval workflow with notifications
 - ✅ **Health Campaign Management**: Full CRUD with image uploads and public preview
 - ✅ **Feedback Collection**: Patient feedback with analytics and automated follow-ups
@@ -82,12 +82,12 @@ A comprehensive healthcare management system for the University of Southern Cali
 
 ### **Patient Management**
 - **Complete Patient Profiles** - Comprehensive medical and demographic data
-- **Medical Records System** - Digital medical and dental record management
+- **Medical Records System** - Digital medical record management (dental on dedicated page)  
 - **USC ID Integration** - Advanced search across all patient identifiers
 - **Role-Based Access** - Secure access control (Admin, Staff, Doctor, Nurse, Student)
 
 ### **Health Information System** 
-- **Campaign Management** - Health campaigns with banner, thumbnail, and PubMat images
+- **Campaign Management** - Robust CRUD with images (Cloudinary), JSON errors (no HTML 500), and list payloads include description/content for immediate previews. See docs/CAMPAIGNS.md.
 - **Information Dissemination** - Structured health information distribution
 - **Patient Feedback** - Collection and analytics with duplicate prevention
 
@@ -99,15 +99,14 @@ A comprehensive healthcare management system for the University of Southern Cali
 ### **Email Notification System** 📧
 - **Automated Welcome Emails** - Professional onboarding for new users
 - **Medical Certificate Notifications** - Status updates for students and doctors
-- **Feedback Request Automation** - 24-hour post-visit feedback collection
+- **Feedback Request Automation** - Immediate email + in-app notification after medical/dental visits
 - **Password Reset Security** - Secure token-based password recovery
 - **Professional Templates** - USC-PIS branded, mobile-responsive email design
 
-### **Advanced Analytics & Reporting**
-- **Real-Time Dashboard** - Live system statistics and health insights
-- **Export Capabilities** - Professional PDF, Excel, CSV, and JSON formats
-- **Clinical Safety Features** - Allergy alerts and medication tracking
-- **Performance Monitoring** - System health and user activity tracking
+### **Reporting**
+- **Templates** - Generate reports from predefined templates
+- **Downloads** - Download reports in their generated (original) format
+- **Performance** - Simplified UI (analytics tab removed) for responsiveness
 
 ## 🛠️ Technology Stack
 
@@ -170,6 +169,13 @@ npm run dev
 - **Auto-Deploy**: Connected to GitHub for automatic builds
 - **Database**: Heroku Postgres with enterprise security
 - **Performance**: 90%+ optimized with intelligent caching
+
+#### Campaigns – Production Notes
+- Image storage: Cloudinary is supported. Set env vars `USE_CLOUDINARY=True`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`.
+- Validation: Create requires title, description, campaign_type, content, start_date, end_date (end after start). Errors return HTTP 400 with field messages.
+- Reliability: Image upload failures are logged and do not block campaign creation.
+- Admin edit/view: Always fetches detail before rendering; updates use PATCH to prevent unintended field overwrites.
+- See full guide: `docs/CAMPAIGNS.md`.
 
 ## 📊 API Endpoints
 

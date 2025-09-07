@@ -6,7 +6,7 @@ The USC-PIS medical records management system has been completely redesigned wit
 
 ## 🏥 New Tabbed Interface
 
-### Three Distinct Tabs
+### Two Distinct Tabs (Dental moved to dedicated page)
 
 #### 1. Medical Records Tab 🩺
 **Complete medical record management interface**
@@ -23,21 +23,8 @@ The USC-PIS medical records management system has been completely redesigned wit
 - Action buttons for record management
 - Professional loading states
 
-#### 2. Dental Records Tab 🦷
-**Comprehensive dental records display and management**
-- Visual card-based layout for dental procedures
-- Priority indicators with color coding
-- Pain level ratings with star display
-- Cost tracking with insurance indicators
-- Link to dedicated dental record creation
-
-**Enhanced Display:**
-- Procedure type and date
-- Affected teeth information
-- Pain levels (1-10 scale with star ratings)
-- Priority badges (Low/Medium/High/Urgent)
-- Cost information with insurance status
-- Treatment notes and diagnosis
+#### 2. Dental Records (Moved)
+Dental records now have a dedicated page: `/dental-records`. The Medical Records page focuses on medical records only.
 
 #### 3. Health Insights Tab 📊
 **Personalized health analytics and trend analysis**
@@ -50,7 +37,7 @@ The USC-PIS medical records management system has been completely redesigned wit
 ## 🔍 Advanced Search & Filtering
 
 ### Unified Search System
-- **Multi-Record Search**: Search across both medical and dental records simultaneously
+- **Medical Search**: Search across medical records
 - **Real-Time Results**: Instant filtering as you type
 - **Multi-Field Search**: 
   - Patient names
@@ -68,7 +55,7 @@ The USC-PIS medical records management system has been completely redesigned wit
 ### Export Functionality
 - **CSV Export**: Professional data export with proper formatting
 - **Date-Stamped Files**: Automatic filename generation
-- **Record Type Selection**: Export medical, dental, or combined records
+- **Record Scope**: Export medical records (dental exports available on the Dental Records page)
 - **Complete Data**: Includes all relevant medical information
 
 ## 📊 Health Insights Dashboard
@@ -76,8 +63,7 @@ The USC-PIS medical records management system has been completely redesigned wit
 ### Personalized Analytics
 
 #### Summary Statistics
-- **Total Records**: Combined medical and dental record count
-- **Record Breakdown**: Separate counts for medical vs dental
+- **Total Medical Records**: Count of medical records
 - **Recent Activity**: Records from last 30 days
 - **Health Trends**: Visual trend indicators
 
@@ -96,7 +82,6 @@ The USC-PIS medical records management system has been completely redesigned wit
 #### Personalized Recommendations
 - **Health Check Reminders**: Based on visit history
 - **Condition Monitoring**: Specific advice for recurring issues
-- **Dental Care Suggestions**: Encourages comprehensive care
 - **Preventive Care**: Proactive health maintenance advice
 
 ### Recommendation Types

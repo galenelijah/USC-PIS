@@ -741,7 +741,7 @@ Treatment: ${r.treatment || 'N/A'}
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          Health Records
+          Medical Records
         </Typography>
         <InfoTooltip title="Search, filter, and manage clinical records. Use tabs for analytics and actions for exports." />
       </Box>
@@ -755,7 +755,7 @@ Treatment: ${r.treatment || 'N/A'}
                 {records.length}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Total Records
+                Medical Records
               </Typography>
             </CardContent>
           </Card>

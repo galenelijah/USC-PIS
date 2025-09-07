@@ -533,16 +533,12 @@ const Reports = () => {
             <IconButton onClick={fetchData} disabled={loading}>
               <RefreshIcon />
             </IconButton>
-            <IconButton onClick={fetchAnalytics}>
-              <AnalyticsIcon />
-            </IconButton>
           </Box>
         </Box>
 
         <Tabs value={selectedTab} onChange={(e, newValue) => setSelectedTab(newValue)} sx={{ mb: 3 }}>
           <Tab label="Report Templates" />
           <Tab label="My Reports" />
-          <Tab label="Analytics" />
         </Tabs>
 
         {selectedTab === 0 && (
@@ -839,72 +835,18 @@ const Reports = () => {
                       <TableCell>
                         <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                           {report.status === 'COMPLETED' && (
-                            <>
-                              <Tooltip title="Download Report (Original Format)">
-                                <IconButton
-                                  onClick={() => handleDownloadReport(report.id)}
-                                  size="small"
-                                  sx={{ 
-                                    color: '#1976d2',
-                                    '&:hover': { backgroundColor: '#e3f2fd' }
-                                  }}
-                                >
-                                  <DownloadIcon />
-                                </IconButton>
-                              </Tooltip>
-                              
-                              <Tooltip title="Export as CSV">
-                                <IconButton
-                                  onClick={() => handleExportReportAs(report.id, 'csv')}
-                                  size="small"
-                                  sx={{ 
-                                    color: '#2e7d32',
-                                    '&:hover': { backgroundColor: '#e8f5e9' }
-                                  }}
-                                >
-                                  <CsvIcon />
-                                </IconButton>
-                              </Tooltip>
-                              
-                              <Tooltip title="Export as Excel">
-                                <IconButton
-                                  onClick={() => handleExportReportAs(report.id, 'excel')}
-                                  size="small"
-                                  sx={{ 
-                                    color: '#0d7c34',
-                                    '&:hover': { backgroundColor: '#e8f4e8' }
-                                  }}
-                                >
-                                  <ExcelIcon />
-                                </IconButton>
-                              </Tooltip>
-                              
-                              <Tooltip title="Export as JSON">
-                                <IconButton
-                                  onClick={() => handleExportReportAs(report.id, 'json')}
-                                  size="small"
-                                  sx={{ 
-                                    color: '#7b1fa2',
-                                    '&:hover': { backgroundColor: '#f3e5f5' }
-                                  }}
-                                >
-                                  <JsonIcon />
-                                </IconButton>
-                              </Tooltip>
-                              
-                              <Tooltip title="View Report Details">
-                                <IconButton
-                                  onClick={() => {/* Add view functionality */}}
-                                  size="small"
-                                  sx={{ 
-                                    color: '#f57c00',
-                                    '&:hover': { backgroundColor: '#fff3e0' }
-                                  }}
-                                >
-                                  <ViewIcon />
-                                </IconButton>
-                              </Tooltip>
-                            </>
+                            <Tooltip title="Download Report (Original Format)">
+                              <IconButton
+                                onClick={() => handleDownloadReport(report.id)}
+                                size="small"
+                                sx={{ 
+                                  color: '#1976d2',
+                                  '&:hover': { backgroundColor: '#e3f2fd' }
+                                }}
+                              >
+                                <DownloadIcon />
+                              </IconButton>
+                            </Tooltip>
                           )}
                           
                           {report.status === 'FAILED' && (

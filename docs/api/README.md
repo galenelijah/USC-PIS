@@ -738,3 +738,34 @@ For complete email system deployment instructions, see:
 
 For comprehensive backup & recovery documentation, see:
 **[BACKUP_SYSTEM_GUIDE.md](../../BACKUP_SYSTEM_GUIDE.md)** 
+## Feedback Endpoints (Updated Sept 7, 2025)
+
+### Submit Feedback
+- **URL**: `/api/feedback/`
+- **Method**: `POST`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: Authenticated users (patients)
+- **Data**:
+  ```json
+  {
+    "medical_record": 123,    // optional; omit for general feedback
+    "rating": 5,              // 1–5
+    "comments": "Great service",
+    "courteous": "yes",       // optional: yes/no
+    "recommend": "yes"        // optional: yes/no
+  }
+  ```
+
+### Check Pending Feedback
+- **URL**: `/api/feedback/pending/`
+- **Method**: `GET`
+- **Headers**: `Authorization: Token <token>`
+- **Role Access**: Authenticated users (patients)
+- **Response**:
+  ```json
+  {
+    "has_pending": true,
+    "medical_pending": 1,
+    "dental_pending": 1
+  }
+  ```
