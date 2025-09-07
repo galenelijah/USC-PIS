@@ -402,6 +402,88 @@ class HealthCampaignCreateUpdateSerializer(serializers.ModelSerializer):
         logger.info("Campaign data validation passed")
         return data
 
+    def _cloudinary_configured(self):
+        import os
+        return (
+            os.environ.get('USE_CLOUDINARY') == 'True' and 
+            os.environ.get('CLOUDINARY_CLOUD_NAME') and 
+            os.environ.get('CLOUDINARY_API_KEY') and 
+            os.environ.get('CLOUDINARY_API_SECRET')
+        )
+
+    def create(self, validated_data):
+        import logging
+        logger = logging.getLogger(__name__)
+
+        # Extract file fields to control upload behavior
+        banner = validated_data.pop('banner_image', None)
+        thumb = validated_data.pop('thumbnail_image', None)
+        pubmat = validated_data.pop('pubmat_image', None)
+
+        campaign = HealthCampaign.objects.create(**validated_data)
+
+        # Only attempt file assignment when Cloudinary (or storage) is properly configured
+        if self._cloudinary_configured():
+            changed = []
+            try:
+                if banner and getattr(banner, 'size', 0) > 0:
+                    campaign.banner_image = banner
+                    changed.append('banner_image')
+                if thumb and getattr(thumb, 'size', 0) > 0:
+                    campaign.thumbnail_image = thumb
+                    changed.append('thumbnail_image')
+                if pubmat and getattr(pubmat, 'size', 0) > 0:
+                    campaign.pubmat_image = pubmat
+                    changed.append('pubmat_image')
+                if changed:
+                    campaign.save(update_fields=changed + ['updated_at'])
+            except Exception as e:
+                # Log and continue - do not fail the entire creation
+                logger.error(f"Error saving campaign files during create: {e}")
+        else:
+            # Log that images were skipped due to configuration
+            if banner or thumb or pubmat:
+                logger.warning("Skipping image uploads: Cloudinary not configured")
+
+        return campaign
+
+    def update(self, instance, validated_data):
+        import logging
+        logger = logging.getLogger(__name__)
+
+        # Extract file fields to control upload behavior
+        banner = validated_data.pop('banner_image', None)
+        thumb = validated_data.pop('thumbnail_image', None)
+        pubmat = validated_data.pop('pubmat_image', None)
+
+        # Update non-file fields first
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        # Then handle files if configured
+        if self._cloudinary_configured():
+            changed = []
+            try:
+                if banner is not None and getattr(banner, 'size', 0) > 0:
+                    instance.banner_image = banner
+                    changed.append('banner_image')
+                if thumb is not None and getattr(thumb, 'size', 0) > 0:
+                    instance.thumbnail_image = thumb
+                    changed.append('thumbnail_image')
+                if pubmat is not None and getattr(pubmat, 'size', 0) > 0:
+                    instance.pubmat_image = pubmat
+                    changed.append('pubmat_image')
+                if changed:
+                    instance.save(update_fields=changed + ['updated_at'])
+            except Exception as e:
+                logger.error(f"Error saving campaign files during update: {e}")
+        else:
+            if banner is not None or thumb is not None or pubmat is not None:
+                logger.warning("Skipping image uploads on update: Cloudinary not configured")
+
+        return instance
+
 class CampaignFeedbackSerializer(serializers.ModelSerializer):
     user_name = serializers.CharField(source='user.get_full_name', read_only=True)
     campaign_title = serializers.CharField(source='campaign.title', read_only=True)

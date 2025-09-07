@@ -77,6 +77,7 @@ const CampaignsPage = () => {
   const [campaignToDelete, setCampaignToDelete] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [fieldErrors, setFieldErrors] = useState({});
+  const [editLoading, setEditLoading] = useState(false);
   
   // Form state
   const [campaignForm, setCampaignForm] = useState({
@@ -432,26 +433,38 @@ const CampaignsPage = () => {
     }
   };
 
-  const openEditDialog = (campaign) => {
-    setCampaignForm({
-      title: campaign.title || '',
-      description: campaign.description || '',
-      campaign_type: campaign.campaign_type || 'GENERAL',
-      priority: campaign.priority || 'MEDIUM',
-      content: campaign.content || '',
-      summary: campaign.summary || '',
-      objectives: campaign.objectives || '',
-      call_to_action: campaign.call_to_action || '',
-      contact_info: campaign.contact_info || '',
-      external_link: campaign.external_link || '',
-      tags: campaign.tags || '',
-      start_date: campaign.start_date ? campaign.start_date.split('T')[0] : '',
-      end_date: campaign.end_date ? campaign.end_date.split('T')[0] : '',
-      status: campaign.status || 'DRAFT'
-    });
-    setSelectedCampaign(campaign);
-    setEditDialogOpen(true);
+  const openEditDialog = async (campaign) => {
     setAnchorEl(null);
+    setEditLoading(true);
+    try {
+      // Always fetch full detail to avoid missing fields from list serializer
+      const resp = await campaignService.getCampaign(campaign.id);
+      const data = resp?.data || campaign; // Fallback to provided object
+      setCampaignForm({
+        title: data.title || '',
+        description: data.description || '',
+        campaign_type: data.campaign_type || 'GENERAL',
+        priority: data.priority || 'MEDIUM',
+        content: data.content || '',
+        summary: data.summary || '',
+        objectives: data.objectives || '',
+        call_to_action: data.call_to_action || '',
+        contact_info: data.contact_info || '',
+        external_link: data.external_link || '',
+        tags: data.tags || '',
+        start_date: data.start_date ? String(data.start_date).split('T')[0] : '',
+        end_date: data.end_date ? String(data.end_date).split('T')[0] : '',
+        status: data.status || 'DRAFT'
+      });
+      setSelectedCampaign(data);
+      setFieldErrors({});
+      setEditDialogOpen(true);
+    } catch (e) {
+      console.error('Failed to load campaign details for edit:', e);
+      showSnackbar('Failed to load campaign details', 'error');
+    } finally {
+      setEditLoading(false);
+    }
   };
 
   const openDeleteDialog = (campaign) => {
@@ -460,13 +473,23 @@ const CampaignsPage = () => {
     setAnchorEl(null);
   };
 
-  const openViewDialog = (campaign) => {
-    setSelectedCampaign(campaign);
+  const openViewDialog = async (campaign) => {
+    try {
+      const resp = await campaignService.getCampaign(campaign.id);
+      setSelectedCampaign(resp?.data || campaign);
+    } catch (e) {
+      setSelectedCampaign(campaign);
+    }
     setViewDialogOpen(true);
   };
 
-  const openPublicPreview = (campaign) => {
-    setSelectedCampaign(campaign);
+  const openPublicPreview = async (campaign) => {
+    try {
+      const resp = await campaignService.getCampaign(campaign.id);
+      setSelectedCampaign(resp?.data || campaign);
+    } catch (e) {
+      setSelectedCampaign(campaign);
+    }
     setPublicPreviewOpen(true);
   };
 
@@ -1192,6 +1215,11 @@ const CampaignsPage = () => {
           </Box>
         </DialogTitle>
         <DialogContent dividers>
+          {editLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
           <Grid container spacing={3}>
             {/* Basic Information */}
             <Grid item xs={12}>
@@ -1529,6 +1557,7 @@ const CampaignsPage = () => {
               </Box>
             </Grid>
           </Grid>
+          )}
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={() => setEditDialogOpen(false)}>

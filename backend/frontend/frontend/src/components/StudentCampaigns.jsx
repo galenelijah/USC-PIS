@@ -170,9 +170,16 @@ const UniversalCampaigns = () => {
     }
   };
 
-  const handleCampaignClick = (campaign) => {
+  const handleCampaignClick = async (campaign) => {
+    // Open quickly with available data then hydrate with full details
     setSelectedCampaign(campaign);
     setDialogOpen(true);
+    try {
+      const resp = await campaignService.getCampaign(campaign.id);
+      if (resp?.data) setSelectedCampaign(resp.data);
+    } catch (e) {
+      // ignore; show basic info
+    }
   };
 
   const handleBookmark = (campaignId, event) => {
