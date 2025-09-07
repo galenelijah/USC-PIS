@@ -95,7 +95,9 @@ if not SECRET_KEY:
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['usc-pis-5f030223f7a8.herokuapp.com', 'localhost', '127.0.0.1', 'testserver']
+# Allow overriding via env; include Heroku wildcard by default
+_default_hosts = ['localhost', '127.0.0.1', 'testserver', '.herokuapp.com', 'usc-pis-5f030223f7a8.herokuapp.com']
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get('ALLOWED_HOSTS', ','.join(_default_hosts)).split(',') if h.strip()]
 
 
 # Application definition
@@ -124,7 +126,8 @@ INSTALLED_APPS = [
 ]
 
 # Add Cloudinary apps only when enabled and packages are available
-if os.environ.get('USE_CLOUDINARY') == 'True':
+USE_CLOUDINARY = os.environ.get('USE_CLOUDINARY') == 'True'
+if USE_CLOUDINARY:
     try:
         # Test if cloudinary packages are available
         import cloudinary_storage
@@ -157,19 +160,21 @@ MIDDLEWARE = [
 ]
 
 # CORS settings - Production ready
+# Exact origins
 CORS_ALLOWED_ORIGINS = [
-    "https://usc-pis-5f030223f7a8.herokuapp.com",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
 ]
+# Allow any Heroku app domain via regex (e.g., https://your-app.herokuapp.com)
+CORS_ALLOWED_ORIGIN_REGEXES = [r"^https://.*\\.herokuapp\\.com$"]
 
 CORS_ALLOW_CREDENTIALS = True
 
 # Security settings
 CSRF_TRUSTED_ORIGINS = [
-    "https://usc-pis-5f030223f7a8.herokuapp.com",
+    "https://*.herokuapp.com",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:8000",
@@ -294,53 +299,56 @@ STATICFILES_DIRS = [
 # Media files (User uploads) - Default settings
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media') # Absolute filesystem path to the directory for user-uploaded files
 
-# Cloudinary configuration - Always enabled in production
-try:
-    import cloudinary
-    import cloudinary.uploader
-    import cloudinary.api
-    
-    # Configure Cloudinary connection
-    cloudinary.config(
-        cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
-        api_key=os.environ.get('CLOUDINARY_API_KEY'),
-        api_secret=os.environ.get('CLOUDINARY_API_SECRET'),
-        secure=True
-    )
-    
-    # Django 4.2+ Storage Configuration - PRIMARY METHOD
+# Cloudinary configuration - enabled only when requested and available
+if USE_CLOUDINARY:
+    try:
+        import cloudinary
+        import cloudinary.uploader
+        import cloudinary.api
+
+        # Ensure required env vars exist
+        _c_name = os.environ.get('CLOUDINARY_CLOUD_NAME')
+        _c_key = os.environ.get('CLOUDINARY_API_KEY')
+        _c_secret = os.environ.get('CLOUDINARY_API_SECRET')
+
+        if not all([_c_name, _c_key, _c_secret]):
+            raise RuntimeError("Cloudinary credentials not set")
+
+        cloudinary.config(
+            cloud_name=_c_name,
+            api_key=_c_key,
+            api_secret=_c_secret,
+            secure=True
+        )
+
+        STORAGES = {
+            "default": {"BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage"},
+            "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+        }
+
+        CLOUDINARY_STORAGE = {
+            'CLOUD_NAME': _c_name,
+            'API_KEY': _c_key,
+            'API_SECRET': _c_secret,
+            'SECURE': True,
+            'MEDIA_TAG': 'usc-pis',
+            'INVALID_VIDEO_ERROR_MESSAGE': 'Please upload a valid video file.',
+            'EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS': (),
+        }
+
+        print("Cloudinary storage configured successfully")
+
+    except ImportError:
+        print("Warning: Cloudinary packages not available - using local storage")
+        USE_CLOUDINARY = False
+    except RuntimeError as e:
+        print(f"Warning: {e} - using local storage")
+        USE_CLOUDINARY = False
+
+if not USE_CLOUDINARY:
     STORAGES = {
-        "default": {
-            "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-        },
-    }
-    
-    # Cloudinary-specific settings
-    CLOUDINARY_STORAGE = {
-        'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
-        'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
-        'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
-        'SECURE': True,
-        'MEDIA_TAG': 'usc-pis',
-        'INVALID_VIDEO_ERROR_MESSAGE': 'Please upload a valid video file.',
-        'EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS': (),
-    }
-    
-    # Let Cloudinary handle MEDIA_URL automatically
-    print("Cloudinary storage configured successfully")
-    
-except ImportError:
-    print("Cloudinary packages not available - using local storage")
-    STORAGES = {
-        "default": {
-            "BACKEND": "django.core.files.storage.FileSystemStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-        },
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
     }
     MEDIA_URL = '/media/'
 
