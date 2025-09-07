@@ -21,6 +21,7 @@ import {
   Container,
   Rating,
   TextField,
+  FormHelperText,
   Snackbar,
   Fab,
   FormControl,
@@ -69,6 +70,7 @@ const UniversalCampaigns = () => {
   const [feedback, setFeedback] = useState({ rating: 0, comment: '' });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [campaignForm, setCampaignForm] = useState({
     title: '',
     description: '',
@@ -92,25 +94,44 @@ const UniversalCampaigns = () => {
   const user = useSelector(state => state.auth.user);
 
   useEffect(() => {
-    fetchActiveCampaigns();
+    fetchActiveCampaigns(1, false);
   }, []);
 
-  const fetchActiveCampaigns = async () => {
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextPage, setNextPage] = useState(null);
+
+  const fetchActiveCampaigns = async (page = 1, append = false) => {
     try {
       setLoading(true);
       // Get all campaigns - backend no longer filters by role
-      const response = await campaignService.getCampaigns();
-      const campaignData = response.data.results || response.data;
-      
+      const response = await campaignService.getCampaigns({ ordering: '-created_at', page_size: 24, page });
+      const respData = response.data || {};
+      const campaignData = respData.results || respData;
+
       // Debug: Log campaign data to check images (remove this after testing)
       console.log('Campaign data loaded:', campaignData.length, 'campaigns');
-      
-      setCampaigns(campaignData);
+
+      if (append) {
+        setCampaigns(prev => [...prev, ...campaignData]);
+      } else {
+        setCampaigns(campaignData);
+      }
+      setNextPage(respData.next ? page + 1 : null);
     } catch (error) {
       console.error('Error fetching campaigns:', error);
       showSnackbar('Failed to load campaigns', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMoreCampaigns = async () => {
+    if (!nextPage || loadingMore) return;
+    try {
+      setLoadingMore(true);
+      await fetchActiveCampaigns(nextPage, true);
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -195,8 +216,30 @@ const UniversalCampaigns = () => {
   const handleCampaignCreate = async () => {
     try {
       // Basic required field check to match backend validation
-      if (!campaignForm.title || !campaignForm.description || !campaignForm.content || !campaignForm.start_date || !campaignForm.end_date) {
-        showSnackbar('Title, description, content, start and end dates are required', 'error');
+      const required = ['title', 'description', 'content', 'start_date', 'end_date', 'campaign_type'];
+      const newErrors = {};
+      required.forEach((k) => { if (!campaignForm[k]) newErrors[k] = 'This field is required'; });
+      // Quality checks (recommended minimums)
+      if (campaignForm.title && campaignForm.title.trim().length < 8) {
+        newErrors.title = 'Title is too short (min 8 characters recommended)';
+      }
+      if (campaignForm.description && campaignForm.description.trim().length < 20) {
+        newErrors.description = 'Description is too short (min 20 characters recommended)';
+      }
+      if (campaignForm.content && campaignForm.content.trim().length < 80) {
+        newErrors.content = 'Content is too short (min 80 characters recommended)';
+      }
+      // Additional client-side date logic: end must be after start
+      if (campaignForm.start_date && campaignForm.end_date) {
+        const sd = new Date(campaignForm.start_date);
+        const ed = new Date(campaignForm.end_date);
+        if (!(ed > sd)) {
+          newErrors.end_date = 'End date must be after start date';
+        }
+      }
+      if (Object.keys(newErrors).length) {
+        setFieldErrors(newErrors);
+        showSnackbar('Please correct the highlighted fields', 'error');
         return;
       }
 
@@ -220,19 +263,34 @@ const UniversalCampaigns = () => {
         formData.append('pubmat_image', campaignForm.pubmatFile);
       }
 
-      await campaignService.createCampaign(formData);
+      const resp = await campaignService.createCampaign(formData);
       showSnackbar('Campaign created successfully!', 'success');
       setCreateDialogOpen(false);
       resetCampaignForm();
-      fetchActiveCampaigns(); // Refresh campaigns
+      // Try to open the created campaign in the viewer
+      if (resp?.data?.id) {
+        try {
+          const created = await campaignService.getCampaign(resp.data.id);
+          setSelectedCampaign(created.data);
+          setDialogOpen(true);
+        } catch (e) {
+          fetchActiveCampaigns(1, false);
+        }
+      } else {
+        fetchActiveCampaigns(1, false);
+      }
     } catch (error) {
       console.error('Campaign creation error:', error);
-      // Surface first field error from backend if available
+      // Map backend validation errors to fieldErrors
       const data = error?.response?.data;
       if (data && typeof data === 'object') {
-        const firstKey = Object.keys(data)[0];
-        const msg = Array.isArray(data[firstKey]) ? data[firstKey][0] : String(data[firstKey]);
-        showSnackbar(`${firstKey}: ${msg}`, 'error');
+        const mapped = {};
+        Object.entries(data).forEach(([k, v]) => {
+          mapped[k] = Array.isArray(v) ? v.join(' ') : String(v);
+        });
+        setFieldErrors(mapped);
+        const firstKey = Object.keys(mapped)[0];
+        showSnackbar(`${firstKey}: ${mapped[firstKey]}`, 'error');
       } else {
         showSnackbar('Failed to create campaign', 'error');
       }
@@ -259,6 +317,7 @@ const UniversalCampaigns = () => {
       pubmatFile: null
     });
     setCampaignImages([]);
+    setFieldErrors({});
   };
 
   const showSnackbar = (message, severity = 'success') => {
@@ -365,6 +424,7 @@ const UniversalCampaigns = () => {
                         width: '100%',
                         height: '100%'
                       }}
+                      loading="lazy"
                       onLoad={(e) => {
                         console.log(`Image loaded successfully: ${e.target.src}`);
                       }}
@@ -374,6 +434,32 @@ const UniversalCampaigns = () => {
                         e.target.parentNode.querySelector('.fallback-banner').style.display = 'flex';
                       }}
                     />
+                    {/* Overlay with title and CTA */}
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        p: 2,
+                        background: 'linear-gradient(transparent, rgba(0,0,0,0.6))',
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 1
+                      }}
+                    >
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography variant="subtitle1" noWrap sx={{ fontWeight: 700 }}>
+                          {campaign.title}
+                        </Typography>
+                        <Chip size="small" label={campaign.campaign_type.replace('_', ' ')} sx={{ mt: 0.5, bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }} />
+                      </Box>
+                      <Button variant="contained" size="small" onClick={(e) => { e.stopPropagation(); handleCampaignClick(campaign); }}>
+                        View details
+                      </Button>
+                    </Box>
                     <Box
                       className="fallback-banner"
                       sx={{
@@ -522,6 +608,13 @@ const UniversalCampaigns = () => {
           </Grid>
         ))}
       </Grid>
+      {nextPage && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+          <Button variant="outlined" onClick={loadMoreCampaigns} disabled={loadingMore}>
+            {loadingMore ? 'Loading…' : 'Load more campaigns'}
+          </Button>
+        </Box>
+      )}
 
       {/* Campaign Detail Dialog */}
       <Dialog
@@ -771,27 +864,32 @@ const UniversalCampaigns = () => {
       )}
 
       {/* Simple Campaign Creation Dialog */}
-      <Dialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)} maxWidth="md" fullWidth>
+      <Dialog open={createDialogOpen} onClose={() => { setCreateDialogOpen(false); setFieldErrors({}); }} maxWidth="md" fullWidth>
         <DialogTitle>Create New Health Campaign</DialogTitle>
         <DialogContent>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+            <Chip label={`Quality Score: ${computeQualityScore()} / 100`} color={computeQualityScore() >= 80 ? 'success' : computeQualityScore() >= 60 ? 'warning' : 'default'} />
+          </Box>
           <Box sx={{ pt: 2 }}>
             <Grid container spacing={3}>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Campaign Title"
+                  label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>Campaign Title<InfoTooltip title="Required: A short, clear title" /></Box>}
                   value={campaignForm.title}
-                  onChange={(e) => setCampaignForm({ ...campaignForm, title: e.target.value })}
+                  onChange={(e) => { setCampaignForm({ ...campaignForm, title: e.target.value }); setFieldErrors(prev => ({ ...prev, title: undefined })); }}
                   placeholder="e.g., Winter Flu Prevention Campaign"
+                  error={!!fieldErrors.title}
+                  helperText={fieldErrors.title}
                 />
               </Grid>
               
               <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
+                <FormControl fullWidth error={!!fieldErrors.campaign_type}>
                   <InputLabel>Campaign Type</InputLabel>
                   <Select
                     value={campaignForm.campaign_type}
-                    onChange={(e) => setCampaignForm({ ...campaignForm, campaign_type: e.target.value })}
+                    onChange={(e) => { setCampaignForm({ ...campaignForm, campaign_type: e.target.value }); setFieldErrors(prev => ({ ...prev, campaign_type: undefined })); }}
                     label="Campaign Type"
                   >
                     <MenuItem value="MENTAL_HEALTH">Mental Health</MenuItem>
@@ -801,6 +899,7 @@ const UniversalCampaigns = () => {
                     <MenuItem value="VACCINATION">Vaccination</MenuItem>
                     <MenuItem value="GENERAL">General Health</MenuItem>
                   </Select>
+                  <FormHelperText>{fieldErrors.campaign_type || 'Required: Select a campaign type'}</FormHelperText>
                 </FormControl>
               </Grid>
 
@@ -822,13 +921,15 @@ const UniversalCampaigns = () => {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Description *"
+                  label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>Description<InfoTooltip title="Required: Brief description of the campaign" /></Box>}
                   value={campaignForm.description}
-                  onChange={(e) => setCampaignForm({ ...campaignForm, description: e.target.value })}
+                  onChange={(e) => { setCampaignForm({ ...campaignForm, description: e.target.value }); setFieldErrors(prev => ({ ...prev, description: undefined })); }}
                   placeholder="Brief description of the campaign..."
                   multiline
                   rows={2}
                   required
+                  error={!!fieldErrors.description}
+                  helperText={fieldErrors.description}
                 />
               </Grid>
 
@@ -847,13 +948,14 @@ const UniversalCampaigns = () => {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Campaign Content"
+                  label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>Campaign Content<InfoTooltip title="Required: Detailed content; supports basic HTML" /></Box>}
                   value={campaignForm.content}
-                  onChange={(e) => setCampaignForm({ ...campaignForm, content: e.target.value })}
+                  onChange={(e) => { setCampaignForm({ ...campaignForm, content: e.target.value }); setFieldErrors(prev => ({ ...prev, content: undefined })); }}
                   placeholder="Detailed campaign content (supports basic HTML)..."
                   multiline
                   rows={6}
-                  helperText="You can use basic HTML tags like <h3>, <p>, <ul>, <li>, <strong>, etc."
+                  helperText={fieldErrors.content || 'You can use basic HTML tags like <h3>, <p>, <ul>, <li>, <strong>, etc.'}
+                  error={!!fieldErrors.content}
                 />
               </Grid>
 
@@ -874,28 +976,32 @@ const UniversalCampaigns = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Start Date *"
+                  label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>Start Date<InfoTooltip title="Required: Must be before End Date" /></Box>}
                   type="date"
                   value={campaignForm.start_date}
-                  onChange={(e) => setCampaignForm({ ...campaignForm, start_date: e.target.value })}
+                  onChange={(e) => { setCampaignForm({ ...campaignForm, start_date: e.target.value }); setFieldErrors(prev => ({ ...prev, start_date: undefined })); }}
                   InputLabelProps={{
                     shrink: true,
                   }}
                   required
+                  error={!!fieldErrors.start_date}
+                  helperText={fieldErrors.start_date}
                 />
               </Grid>
 
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="End Date *"
+                  label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>End Date<InfoTooltip title="Required: Must be after Start Date" /></Box>}
                   type="date"
                   value={campaignForm.end_date}
-                  onChange={(e) => setCampaignForm({ ...campaignForm, end_date: e.target.value })}
+                  onChange={(e) => { setCampaignForm({ ...campaignForm, end_date: e.target.value }); setFieldErrors(prev => ({ ...prev, end_date: undefined })); }}
                   InputLabelProps={{
                     shrink: true,
                   }}
                   required
+                  error={!!fieldErrors.end_date}
+                  helperText={fieldErrors.end_date}
                 />
               </Grid>
 

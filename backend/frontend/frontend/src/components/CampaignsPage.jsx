@@ -35,6 +35,7 @@ import {
   Tooltip,
   Badge,
   Stack,
+  FormHelperText,
   Skeleton
 } from '@mui/material';
 import {
@@ -75,6 +76,7 @@ const CampaignsPage = () => {
   const [publicPreviewOpen, setPublicPreviewOpen] = useState(false);
   const [campaignToDelete, setCampaignToDelete] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [fieldErrors, setFieldErrors] = useState({});
   
   // Form state
   const [campaignForm, setCampaignForm] = useState({
@@ -153,7 +155,7 @@ const CampaignsPage = () => {
   const fetchCampaigns = async () => {
     try {
       setLoading(true);
-      const response = await campaignService.getCampaigns();
+      const response = await campaignService.getCampaigns({ ordering: '-created_at', page_size: 24 });
       
       console.log('API Response:', response);
       console.log('Response data:', response?.data);
@@ -279,8 +281,30 @@ const CampaignsPage = () => {
   const handleCreateCampaign = async () => {
     try {
       // Validate required fields
-      if (!campaignForm.title || !campaignForm.description || !campaignForm.content || !campaignForm.start_date || !campaignForm.end_date) {
-        showSnackbar('Title, description, content, start and end dates are required', 'error');
+      const required = ['title', 'description', 'content', 'start_date', 'end_date', 'campaign_type'];
+      const newErrors = {};
+      required.forEach((k) => { if (!campaignForm[k]) newErrors[k] = 'This field is required'; });
+      // Additional client-side date check
+      if (campaignForm.start_date && campaignForm.end_date) {
+        const sd = new Date(campaignForm.start_date);
+        const ed = new Date(campaignForm.end_date);
+        if (!(ed > sd)) {
+          newErrors.end_date = 'End date must be after start date';
+        }
+      }
+      // Quality checks
+      if (campaignForm.title && campaignForm.title.trim().length < 8) {
+        newErrors.title = 'Title is too short (min 8 characters recommended)';
+      }
+      if (campaignForm.description && campaignForm.description.trim().length < 20) {
+        newErrors.description = 'Description is too short (min 20 characters recommended)';
+      }
+      if (campaignForm.content && campaignForm.content.trim().length < 80) {
+        newErrors.content = 'Content is too short (min 80 characters recommended)';
+      }
+      if (Object.keys(newErrors).length) {
+        setFieldErrors(newErrors);
+        showSnackbar('Please correct the highlighted fields', 'error');
         return;
       }
 
@@ -337,9 +361,13 @@ const CampaignsPage = () => {
       console.error('Error creating campaign:', error);
       const data = error?.response?.data;
       if (data && typeof data === 'object') {
-        const firstKey = Object.keys(data)[0];
-        const msg = Array.isArray(data[firstKey]) ? data[firstKey][0] : String(data[firstKey]);
-        showSnackbar(`${firstKey}: ${msg}`, 'error');
+        const mapped = {};
+        Object.entries(data).forEach(([k, v]) => {
+          mapped[k] = Array.isArray(v) ? v.join(' ') : String(v);
+        });
+        setFieldErrors(mapped);
+        const firstKey = Object.keys(mapped)[0];
+        showSnackbar(firstKey ? `${firstKey}: ${mapped[firstKey]}` : 'Failed to create campaign', 'error');
       } else {
         showSnackbar(error.response?.data?.error || 'Failed to create campaign', 'error');
       }
@@ -376,7 +404,18 @@ const CampaignsPage = () => {
       fetchCampaigns();
     } catch (error) {
       console.error('Error updating campaign:', error);
-      showSnackbar(error.response?.data?.error || 'Failed to update campaign', 'error');
+      const data = error?.response?.data;
+      if (data && typeof data === 'object') {
+        const mapped = {};
+        Object.entries(data).forEach(([k, v]) => {
+          mapped[k] = Array.isArray(v) ? v.join(' ') : String(v);
+        });
+        setFieldErrors(mapped);
+        const firstKey = Object.keys(mapped)[0];
+        showSnackbar(firstKey ? `${firstKey}: ${mapped[firstKey]}` : 'Failed to update campaign', 'error');
+      } else {
+        showSnackbar(error.response?.data?.error || 'Failed to update campaign', 'error');
+      }
     }
   };
 
@@ -641,13 +680,14 @@ const CampaignsPage = () => {
                 >
                   {/* Campaign Image */}
                   {(campaign.banner_image_url || campaign.thumbnail_image_url) && (
-                    <CardMedia
-                      component="img"
-                      height={200}
-                      image={campaign.banner_image_url || campaign.thumbnail_image_url}
-                      alt={campaign.title}
-                      sx={{ objectFit: 'cover' }}
-                    />
+                  <CardMedia
+                    component="img"
+                    height={200}
+                    image={campaign.banner_image_url || campaign.thumbnail_image_url}
+                    alt={campaign.title}
+                    sx={{ objectFit: 'cover' }}
+                    loading="lazy"
+                  />
                   )}
                   
                   <CardContent sx={{ flexGrow: 1, pb: 1 }}>
@@ -788,7 +828,7 @@ const CampaignsPage = () => {
       {/* Create Campaign Dialog - Part 1 */}
       <Dialog 
         open={createDialogOpen} 
-        onClose={() => setCreateDialogOpen(false)}
+        onClose={() => { setCreateDialogOpen(false); setFieldErrors({}); }}
         maxWidth="md"
         fullWidth
         PaperProps={{ sx: { borderRadius: 2 } }}
@@ -800,6 +840,9 @@ const CampaignsPage = () => {
           </Box>
         </DialogTitle>
         <DialogContent dividers>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+            <Chip label={`Quality Score: ${(() => { let s=0; const t=(campaignForm.title||'').trim().length; const d=(campaignForm.description||'').trim().length; const c=(campaignForm.content||'').trim().length; if(t>=8)s+=20; if(d>=20)s+=25; if(c>=80)s+=35; if(campaignForm.campaign_type)s+=10; if(campaignForm.start_date && campaignForm.end_date){const sd=new Date(campaignForm.start_date); const ed=new Date(campaignForm.end_date); if(ed>sd)s+=10;} return s; })()} / 100`} color={(() => { const s = (()=>{ let s=0; const t=(campaignForm.title||'').trim().length; const d=(campaignForm.description||'').trim().length; const c=(campaignForm.content||'').trim().length; if(t>=8)s+=20; if(d>=20)s+=25; if(c>=80)s+=35; if(campaignForm.campaign_type)s+=10; if(campaignForm.start_date && campaignForm.end_date){const sd=new Date(campaignForm.start_date); const ed=new Date(campaignForm.end_date); if(ed>sd)s+=10;} return s; })(); return s>=80?'success': s>=60?'warning':'default'; })()} />
+          </Box>
           <Grid container spacing={3}>
             {/* Basic Information */}
             <Grid item xs={12}>
@@ -810,19 +853,21 @@ const CampaignsPage = () => {
             <Grid item xs={12} md={8}>
               <TextField
                 fullWidth
-                label="Campaign Title"
+                label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>Campaign Title<InfoTooltip title="Required: A short, clear title" /></Box>}
                 value={campaignForm.title}
-                onChange={(e) => setCampaignForm({...campaignForm, title: e.target.value})}
+                onChange={(e) => { setCampaignForm({...campaignForm, title: e.target.value}); setFieldErrors(prev => ({ ...prev, title: undefined })); }}
                 required
+                error={!!fieldErrors.title}
+                helperText={fieldErrors.title}
               />
             </Grid>
             <Grid item xs={12} md={4}>
-              <FormControl fullWidth required>
+              <FormControl fullWidth required error={!!fieldErrors.campaign_type}>
                 <InputLabel>Campaign Type</InputLabel>
                 <Select
                   value={campaignForm.campaign_type}
                   label="Campaign Type"
-                  onChange={(e) => setCampaignForm({...campaignForm, campaign_type: e.target.value})}
+                  onChange={(e) => { setCampaignForm({...campaignForm, campaign_type: e.target.value}); setFieldErrors(prev => ({ ...prev, campaign_type: undefined })); }}
                 >
                   {CAMPAIGN_TYPES.map(type => (
                     <MenuItem key={type.value} value={type.value}>
@@ -830,6 +875,9 @@ const CampaignsPage = () => {
                     </MenuItem>
                   ))}
                 </Select>
+                {!!fieldErrors.campaign_type && (
+                  <FormHelperText>{fieldErrors.campaign_type}</FormHelperText>
+                )}
               </FormControl>
             </Grid>
             <Grid item xs={12}>
@@ -846,13 +894,15 @@ const CampaignsPage = () => {
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Campaign Description"
+                label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>Campaign Description<InfoTooltip title="Required: Brief description of the campaign" /></Box>}
                 value={campaignForm.description}
-                onChange={(e) => setCampaignForm({...campaignForm, description: e.target.value})}
+                onChange={(e) => { setCampaignForm({...campaignForm, description: e.target.value}); setFieldErrors(prev => ({ ...prev, description: undefined })); }}
                 placeholder="Detailed description of the campaign..."
                 multiline
                 rows={4}
                 required
+                error={!!fieldErrors.description}
+                helperText={fieldErrors.description}
               />
             </Grid>
 
@@ -897,23 +947,27 @@ const CampaignsPage = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Start Date"
+                label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>Start Date<InfoTooltip title="Required: Must be before End Date" /></Box>}
                 type="date"
                 value={campaignForm.start_date}
-                onChange={(e) => setCampaignForm({...campaignForm, start_date: e.target.value})}
+                onChange={(e) => { setCampaignForm({...campaignForm, start_date: e.target.value}); setFieldErrors(prev => ({ ...prev, start_date: undefined })); }}
                 InputLabelProps={{ shrink: true }}
                 required
+                error={!!fieldErrors.start_date}
+                helperText={fieldErrors.start_date}
               />
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="End Date"
+                label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>End Date<InfoTooltip title="Required: Must be after Start Date" /></Box>}
                 type="date"
                 value={campaignForm.end_date}
-                onChange={(e) => setCampaignForm({...campaignForm, end_date: e.target.value})}
+                onChange={(e) => { setCampaignForm({...campaignForm, end_date: e.target.value}); setFieldErrors(prev => ({ ...prev, end_date: undefined })); }}
                 InputLabelProps={{ shrink: true }}
                 required
+                error={!!fieldErrors.end_date}
+                helperText={fieldErrors.end_date}
               />
             </Grid>
             <Grid item xs={12}>
@@ -955,12 +1009,14 @@ const CampaignsPage = () => {
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Campaign Content"
+                label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>Campaign Content<InfoTooltip title="Required: Detailed content for the campaign" /></Box>}
                 value={campaignForm.content}
-                onChange={(e) => setCampaignForm({...campaignForm, content: e.target.value})}
+                onChange={(e) => { setCampaignForm({...campaignForm, content: e.target.value}); setFieldErrors(prev => ({ ...prev, content: undefined })); }}
                 placeholder="Detailed content for the campaign..."
                 multiline
                 rows={6}
+                error={!!fieldErrors.content}
+                helperText={fieldErrors.content}
               />
             </Grid>
 
@@ -1124,7 +1180,7 @@ const CampaignsPage = () => {
       {/* Edit Campaign Dialog */}
       <Dialog 
         open={editDialogOpen} 
-        onClose={() => setEditDialogOpen(false)}
+        onClose={() => { setEditDialogOpen(false); setFieldErrors({}); }}
         maxWidth="md"
         fullWidth
         PaperProps={{ sx: { borderRadius: 2 } }}
@@ -1148,17 +1204,19 @@ const CampaignsPage = () => {
                 fullWidth
                 label="Campaign Title"
                 value={campaignForm.title}
-                onChange={(e) => setCampaignForm({...campaignForm, title: e.target.value})}
+                onChange={(e) => { setCampaignForm({...campaignForm, title: e.target.value}); setFieldErrors(prev => ({ ...prev, title: undefined })); }}
                 required
+                error={!!fieldErrors.title}
+                helperText={fieldErrors.title}
               />
             </Grid>
             <Grid item xs={12} md={4}>
-              <FormControl fullWidth required>
+              <FormControl fullWidth required error={!!fieldErrors.campaign_type}>
                 <InputLabel>Campaign Type</InputLabel>
                 <Select
                   value={campaignForm.campaign_type}
                   label="Campaign Type"
-                  onChange={(e) => setCampaignForm({...campaignForm, campaign_type: e.target.value})}
+                  onChange={(e) => { setCampaignForm({...campaignForm, campaign_type: e.target.value}); setFieldErrors(prev => ({ ...prev, campaign_type: undefined })); }}
                 >
                   {CAMPAIGN_TYPES.map(type => (
                     <MenuItem key={type.value} value={type.value}>
@@ -1166,6 +1224,9 @@ const CampaignsPage = () => {
                     </MenuItem>
                   ))}
                 </Select>
+                {!!fieldErrors.campaign_type && (
+                  <FormHelperText>{fieldErrors.campaign_type}</FormHelperText>
+                )}
               </FormControl>
             </Grid>
             <Grid item xs={12}>
@@ -1184,11 +1245,13 @@ const CampaignsPage = () => {
                 fullWidth
                 label="Campaign Description"
                 value={campaignForm.description}
-                onChange={(e) => setCampaignForm({...campaignForm, description: e.target.value})}
+                onChange={(e) => { setCampaignForm({...campaignForm, description: e.target.value}); setFieldErrors(prev => ({ ...prev, description: undefined })); }}
                 placeholder="Detailed description of the campaign..."
                 multiline
                 rows={4}
                 required
+                error={!!fieldErrors.description}
+                helperText={fieldErrors.description}
               />
             </Grid>
 
@@ -1236,9 +1299,11 @@ const CampaignsPage = () => {
                 label="Start Date"
                 type="date"
                 value={campaignForm.start_date}
-                onChange={(e) => setCampaignForm({...campaignForm, start_date: e.target.value})}
+                onChange={(e) => { setCampaignForm({...campaignForm, start_date: e.target.value}); setFieldErrors(prev => ({ ...prev, start_date: undefined })); }}
                 InputLabelProps={{ shrink: true }}
                 required
+                error={!!fieldErrors.start_date}
+                helperText={fieldErrors.start_date}
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -1247,9 +1312,11 @@ const CampaignsPage = () => {
                 label="End Date"
                 type="date"
                 value={campaignForm.end_date}
-                onChange={(e) => setCampaignForm({...campaignForm, end_date: e.target.value})}
+                onChange={(e) => { setCampaignForm({...campaignForm, end_date: e.target.value}); setFieldErrors(prev => ({ ...prev, end_date: undefined })); }}
                 InputLabelProps={{ shrink: true }}
                 required
+                error={!!fieldErrors.end_date}
+                helperText={fieldErrors.end_date}
               />
             </Grid>
 
@@ -1264,11 +1331,12 @@ const CampaignsPage = () => {
                 fullWidth
                 label="Campaign Content"
                 value={campaignForm.content}
-                onChange={(e) => setCampaignForm({...campaignForm, content: e.target.value})}
+                onChange={(e) => { setCampaignForm({...campaignForm, content: e.target.value}); setFieldErrors(prev => ({ ...prev, content: undefined })); }}
                 placeholder="Detailed content for the campaign..."
                 multiline
                 rows={6}
-                helperText="Full campaign content and details"
+                helperText={fieldErrors.content || 'Full campaign content and details'}
+                error={!!fieldErrors.content}
               />
             </Grid>
             <Grid item xs={12}>
