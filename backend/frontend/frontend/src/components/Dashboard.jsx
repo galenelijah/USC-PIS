@@ -82,8 +82,8 @@ const Dashboard = memo(({ user }) => {
       console.log('Fetching dashboard data for user role:', user?.role);
       const [dashboardResponse, campaignsResponse, latestCampaignsResponse, healthInfoResponse] = await Promise.all([
         authService.getDashboardStats(),
-        campaignService.getFeaturedCampaigns().catch(() => ({ data: [] })),
-        campaignService.getLatestCampaigns(10).catch(() => ({ data: [] })), // Get latest campaigns including ended ones
+        campaignService.getCampaigns({ status: 'ACTIVE', limit: 5 }).catch(() => ({ data: [] })), // Get active campaigns for featured
+        campaignService.getCampaigns({ limit: 10, ordering: '-created_at' }).catch(() => ({ data: [] })), // Get latest campaigns including all statuses
         healthInfoService.getRecent(5).catch(() => ({ data: [] }))
       ]);
       
@@ -96,6 +96,10 @@ const Dashboard = memo(({ user }) => {
       console.log('Latest campaigns data received:', latestCampaignsResponse.data);
       console.log('Health info data received:', healthInfoResponse.data);
       
+      // Handle campaign responses - they might have paginated structure or direct array
+      const featuredCampaignsData = campaignsResponse.data?.results || campaignsResponse.data || [];
+      const latestCampaignsData = latestCampaignsResponse.data?.results || latestCampaignsResponse.data || [];
+      
       // Safely handle the response data with fallbacks for all properties
       setStats({
         totalPatients: dashboardResponse.data.total_patients || 0,
@@ -105,8 +109,8 @@ const Dashboard = memo(({ user }) => {
         pendingRequests: dashboardResponse.data.pending_requests || 0,
         recentHealthInfo: dashboardResponse.data.recent_health_info || null,
         profileCompletion: dashboardResponse.data.profile_completion || 0,
-        featuredCampaigns: Array.isArray(campaignsResponse.data) ? campaignsResponse.data.slice(0, 3) : [],
-        latestCampaigns: Array.isArray(latestCampaignsResponse.data) ? latestCampaignsResponse.data.slice(0, 8) : [], // Show more campaigns for students
+        featuredCampaigns: Array.isArray(featuredCampaignsData) ? featuredCampaignsData.slice(0, 3) : [],
+        latestCampaigns: Array.isArray(latestCampaignsData) ? latestCampaignsData.slice(0, 8) : [], // Show more campaigns for students
         recentHealthInfoPosts: Array.isArray(healthInfoResponse.data) ? healthInfoResponse.data.slice(0, 5) : [],
         announcements: Array.isArray(dashboardResponse.data.announcements) ? dashboardResponse.data.announcements : [],
       });

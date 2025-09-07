@@ -42,7 +42,6 @@ const FileUploadPage = lazy(() => import('./pages/FileUploadPage'));
 const FileDownloadPage = lazy(() => import('./pages/FileDownloadPage'));
 const MedicalCertificatesPage = lazy(() => import('./pages/MedicalCertificatesPage'));
 const MedicalHistoryPage = lazy(() => import('./components/MedicalHistoryPage'));
-const MedicalRecordsPage = lazy(() => import('./components/MedicalRecordsPage'));
 const PatientMedicalDashboard = lazy(() => import('./components/PatientMedicalDashboard'));
 const EditProfile = lazy(() => import('./components/EditProfile'));
 
@@ -526,7 +525,7 @@ const App = () => {
           }
         />
         
-        {/* Medical Records Route - Enhanced Tabbed Interface */}
+        {/* Health Insights & History (replaces old Medical Records) */}
         <Route
           path="/medical-records"
           element={
@@ -534,7 +533,7 @@ const App = () => {
               <RequireProfileSetup>
                 <Layout>
                   <Suspense fallback={<PageLoader />}>
-                    <MedicalRecordsPage />
+                    <MedicalHistoryPage />
                   </Suspense>
                 </Layout>
               </RequireProfileSetup>

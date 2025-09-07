@@ -167,8 +167,8 @@ const MedicalHistoryPage = () => {
       // No filtering needed
     }
 
-    // Sort by date (newest first)
-    filtered.sort((a, b) => new Date(b.visit_date) - new Date(a.visit_date));
+    // Sort by date (newest first) without mutating original state
+    filtered = [...filtered].sort((a, b) => new Date(b.visit_date) - new Date(a.visit_date));
 
     setFilteredRecords(filtered);
   };
@@ -935,15 +935,14 @@ const MedicalHistoryPage = () => {
       <Box sx={{ mb: 4 }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <Typography variant="h4" gutterBottom color="primary">
-            Medical History
+            Health Insights & History
           </Typography>
-          <InfoTooltip title="View historical clinical records in a timeline. Use filters and expand rows for details." />
+          <InfoTooltip title="Explore patient history with a timeline and personalized health insights. Use filters and expand rows for details." />
         </Box>
         <Typography variant="body1" color="text.secondary">
-          {isStaffOrMedical 
-            ? 'Browse patient medical histories in a timeline format. View comprehensive records, vital signs, and treatment progression.' 
-            : 'View your complete medical history and health records in an easy-to-read timeline format.'
-          }
+          {isStaffOrMedical
+            ? 'Browse patient history with summaries, trends, and insights. View comprehensive records, vitals, and treatment progression.'
+            : 'See your health history, summaries, and insights at a glance.'}
         </Typography>
       </Box>
 
@@ -1179,10 +1178,8 @@ const MedicalHistoryPage = () => {
       {/* Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="medical history tabs">
-          <Tab label="All Records" id="medical-history-tab-0" />
-          {isStudent && (
-            <Tab label="Health Insights" id="medical-history-tab-1" icon={<ExpandMoreIcon />} iconPosition="start" />
-          )}
+          <Tab label="History" id="medical-history-tab-0" />
+          <Tab label="Health Insights" id="medical-history-tab-1" icon={<ExpandMoreIcon />} iconPosition="start" />
         </Tabs>
       </Box>
 
@@ -1249,7 +1246,7 @@ const MedicalHistoryPage = () => {
 
           {/* Timeline or Health Insights */}
           <Paper elevation={1} sx={{ p: 3 }}>
-            {tabValue === 1 && isStudent ? renderHealthInsights() : renderRecordTimeline()}
+            {tabValue === 1 ? renderHealthInsights() : renderRecordTimeline()}
           </Paper>
         </>
       )}
