@@ -68,7 +68,7 @@ class HealthCampaignListSerializer(serializers.ModelSerializer):
     class Meta:
         model = HealthCampaign
         fields = [
-            'id', 'title', 'summary', 'campaign_type', 'status', 'priority',
+            'id', 'title', 'summary', 'description', 'content', 'campaign_type', 'status', 'priority',
             'start_date', 'end_date', 'featured_until', 'view_count', 'engagement_count',
             'created_at', 'updated_at', 'created_by_name', 'banner_image_url', 
             'thumbnail_image_url', 'images', 'is_active', 'is_featured', 'resource_count',
