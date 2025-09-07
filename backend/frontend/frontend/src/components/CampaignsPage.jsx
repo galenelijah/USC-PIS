@@ -279,8 +279,8 @@ const CampaignsPage = () => {
   const handleCreateCampaign = async () => {
     try {
       // Validate required fields
-      if (!campaignForm.title || !campaignForm.description || !campaignForm.start_date || !campaignForm.end_date) {
-        showSnackbar('Please fill in all required fields', 'error');
+      if (!campaignForm.title || !campaignForm.description || !campaignForm.content || !campaignForm.start_date || !campaignForm.end_date) {
+        showSnackbar('Title, description, content, start and end dates are required', 'error');
         return;
       }
 
@@ -335,7 +335,14 @@ const CampaignsPage = () => {
       fetchCampaigns();
     } catch (error) {
       console.error('Error creating campaign:', error);
-      showSnackbar(error.response?.data?.error || 'Failed to create campaign', 'error');
+      const data = error?.response?.data;
+      if (data && typeof data === 'object') {
+        const firstKey = Object.keys(data)[0];
+        const msg = Array.isArray(data[firstKey]) ? data[firstKey][0] : String(data[firstKey]);
+        showSnackbar(`${firstKey}: ${msg}`, 'error');
+      } else {
+        showSnackbar(error.response?.data?.error || 'Failed to create campaign', 'error');
+      }
     }
   };
 

@@ -31,6 +31,19 @@ api.interceptors.request.use(request => {
   if (token) {
     request.headers.Authorization = `Token ${token}`;
   }
+  // Ensure correct headers for FormData submissions
+  try {
+    const isFormData = typeof FormData !== 'undefined' && request.data instanceof FormData;
+    if (isFormData) {
+      // Remove any preset content-type so the browser sets proper multipart boundary
+      if (request.headers) {
+        delete request.headers['Content-Type'];
+        delete request.headers['content-type'];
+      }
+    }
+  } catch (e) {
+    // No-op: conservative fallback if environment doesn't expose FormData
+  }
   return request;
 }, error => {
   logger.error('Request interceptor error:', error);

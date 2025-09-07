@@ -194,6 +194,12 @@ const UniversalCampaigns = () => {
 
   const handleCampaignCreate = async () => {
     try {
+      // Basic required field check to match backend validation
+      if (!campaignForm.title || !campaignForm.description || !campaignForm.content || !campaignForm.start_date || !campaignForm.end_date) {
+        showSnackbar('Title, description, content, start and end dates are required', 'error');
+        return;
+      }
+
       const formData = new FormData();
       
       // Add form fields (excluding file fields)
@@ -221,7 +227,15 @@ const UniversalCampaigns = () => {
       fetchActiveCampaigns(); // Refresh campaigns
     } catch (error) {
       console.error('Campaign creation error:', error);
-      showSnackbar('Failed to create campaign', 'error');
+      // Surface first field error from backend if available
+      const data = error?.response?.data;
+      if (data && typeof data === 'object') {
+        const firstKey = Object.keys(data)[0];
+        const msg = Array.isArray(data[firstKey]) ? data[firstKey][0] : String(data[firstKey]);
+        showSnackbar(`${firstKey}: ${msg}`, 'error');
+      } else {
+        showSnackbar('Failed to create campaign', 'error');
+      }
     }
   };
 
