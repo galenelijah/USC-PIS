@@ -785,7 +785,7 @@ Treatment: ${r.treatment || 'N/A'}
             <Button
               variant="outlined"
               startIcon={<TimelineIcon />}
-              onClick={() => window.open('/medical-records', '_blank')}
+              onClick={() => window.open('/health-insights', '_blank')}
               size="small"
               sx={{ 
                 borderColor: '#667eea',
@@ -796,7 +796,7 @@ Treatment: ${r.treatment || 'N/A'}
                 }
               }}
             >
-              View Medical History
+              Health Insights & History
             </Button>
             
             <Button

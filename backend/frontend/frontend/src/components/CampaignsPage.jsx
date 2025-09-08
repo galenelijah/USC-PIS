@@ -965,7 +965,7 @@ const CampaignsPage = () => {
                     <Button
                       variant="contained"
                       fullWidth
-                      onClick={() => (isNonStudent ? openViewDialog(campaign) : openPublicPreview(campaign))}
+                      onClick={() => openViewDialog(campaign)}
                       startIcon={<VisibilityIcon />}
                       sx={{
                         borderRadius: 3,
@@ -981,7 +981,7 @@ const CampaignsPage = () => {
                         }
                       }}
                     >
-                      {isNonStudent ? 'View Campaign Details' : 'View Campaign'}
+                      View Campaign Details
                     </Button>
                   </CardActions>
                 </Card>

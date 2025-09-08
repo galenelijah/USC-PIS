@@ -525,9 +525,9 @@ const App = () => {
           }
         />
         
-        {/* Health Insights & History (replaces old Medical Records) */}
+        {/* Health Insights & History */}
         <Route
-          path="/medical-records"
+          path="/health-insights"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
@@ -540,6 +540,9 @@ const App = () => {
             </RequireAuth>
           }
         />
+
+        {/* Backward compatibility: redirect old /medical-records to /health-insights */}
+        <Route path="/medical-records" element={<Navigate to="/health-insights" replace />} />
         
         {/* Medical History Route - Timeline View */}
         <Route

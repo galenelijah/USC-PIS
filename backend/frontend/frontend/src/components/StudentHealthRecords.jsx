@@ -229,6 +229,21 @@ const StudentHealthRecords = () => {
 
   return (
     <Box sx={{ p: 3 }}>
+      {/* Header and quick access */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="h4" color="primary">My Health Records</Typography>
+          <InfoTooltip title="Your medical visits and records. For summaries and trends, see Health Insights & History." />
+        </Box>
+        <Button
+          variant="outlined"
+          startIcon={<InsightsIcon />}
+          size="small"
+          onClick={() => window.open('/health-insights', '_blank')}
+        >
+          Health Insights & History
+        </Button>
+      </Box>
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
         <Typography variant="h4" component="h1" gutterBottom>
           My Medical Records

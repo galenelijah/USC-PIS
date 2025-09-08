@@ -93,8 +93,15 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
   const patientItems = [
     { text: 'Patients', icon: <PeopleIcon />, path: '/patients', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'] },
     { text: 'Patient Medical Dashboard', icon: <MedicalInformationIcon />, path: '/patient-dashboard' },
-    { text: 'Health Insights & History', icon: <LocalHospitalIcon />, path: '/medical-records', description: 'Patient history timeline with health insights' },
-    { text: 'Medical Records', icon: <LocalHospitalIcon />, path: '/health-records', description: 'Create and manage medical (clinic) records' },
+    { text: 'Health Insights & History', icon: <LocalHospitalIcon />, path: '/health-insights', description: 'Patient history timeline with health insights' },
+    {
+      text: user && user.role === 'STUDENT' ? 'My Health Records' : 'Medical Records (Manage)',
+      icon: <LocalHospitalIcon />,
+      path: '/health-records',
+      description: user && user.role === 'STUDENT'
+        ? 'View your medical records and visit details'
+        : 'Create and manage medical (clinic) records'
+    },
     { text: 'Dental Records', icon: <DentalIcon />, path: '/dental-records', description: 'Manage dental procedures and records' },
     { text: 'Medical Certificates', icon: <MedicalInformationIcon />, path: '/medical-certificates', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE', 'STUDENT'] },
   ];

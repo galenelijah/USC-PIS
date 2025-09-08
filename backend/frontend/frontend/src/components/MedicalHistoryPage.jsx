@@ -55,6 +55,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { healthRecordsService, patientService } from '../services/api';
+import { dentalRecordService } from '../services/api';
 import { useSelector } from 'react-redux';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -110,9 +111,37 @@ const MedicalHistoryPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await healthRecordsService.getAll();
-      const recordsData = response.data || [];
-      setRecords(recordsData);
+      // Fetch both medical and dental records
+      const [medResp, dentResp] = await Promise.all([
+        healthRecordsService.getAll(),
+        dentalRecordService.getAll().catch(() => ({ data: [] }))
+      ]);
+
+      const medical = (medResp?.data || []).map(r => ({
+        ...r,
+        record_type: 'MEDICAL'
+      }));
+
+      const dental = (dentResp?.data || []).map(r => ({
+        id: r.id,
+        patient: r.patient,
+        patient_name: r.patient_name,
+        visit_date: r.visit_date,
+        diagnosis: r.diagnosis,
+        treatment: r.treatment_performed || r.treatment_plan,
+        notes: r.clinical_notes,
+        record_type: 'DENTAL',
+        // Dental-specific fields kept for rendering
+        procedure_performed: r.procedure_performed_display || r.procedure_performed,
+        tooth_numbers: r.tooth_numbers,
+        affected_teeth_display: r.affected_teeth_display,
+        pain_level: r.pain_level,
+        cost: r.cost,
+        priority: r.priority,
+      }));
+
+      const combined = [...medical, ...dental].sort((a, b) => new Date(b.visit_date) - new Date(a.visit_date));
+      setRecords(combined);
     } catch (err) {
       setError('Failed to load medical records.');
       console.error('Error fetching records:', err);
@@ -161,11 +190,7 @@ const MedicalHistoryPage = () => {
       );
     }
 
-    // Filter by record type based on tab
-    if (tabValue === 1) {
-      // Health Insights tab - show all records for analysis
-      // No filtering needed
-    }
+    // Health Insights tab shows all records (medical + dental)
 
     // Sort by date (newest first) without mutating original state
     filtered = [...filtered].sort((a, b) => new Date(b.visit_date) - new Date(a.visit_date));
@@ -847,6 +872,43 @@ const MedicalHistoryPage = () => {
                   <Collapse in={expandedRecord === record.id}>
                     <Divider sx={{ my: 2 }} />
                     <Grid container spacing={2}>
+                      {record.record_type === 'DENTAL' && (
+                        <>
+                          <Grid item xs={12}>
+                            <Typography variant="body2" fontWeight="medium" gutterBottom>
+                              🦷 Dental Details
+                            </Typography>
+                          </Grid>
+                          {record.procedure_performed && (
+                            <Grid item xs={12} md={6}>
+                              <Typography variant="body2" color="text.secondary">
+                                Procedure: <strong>{record.procedure_performed}</strong>
+                              </Typography>
+                            </Grid>
+                          )}
+                          {record.affected_teeth_display && (
+                            <Grid item xs={12} md={6}>
+                              <Typography variant="body2" color="text.secondary">
+                                Affected Teeth: <strong>{record.affected_teeth_display}</strong>
+                              </Typography>
+                            </Grid>
+                          )}
+                          {(record.pain_level !== undefined && record.pain_level !== null) && (
+                            <Grid item xs={12} md={6}>
+                              <Typography variant="body2" color="text.secondary">
+                                Pain Level: <strong>{record.pain_level}</strong>
+                              </Typography>
+                            </Grid>
+                          )}
+                          {(record.cost !== undefined && record.cost !== null) && (
+                            <Grid item xs={12} md={6}>
+                              <Typography variant="body2" color="text.secondary">
+                                Cost: <strong>{record.cost}</strong>
+                              </Typography>
+                            </Grid>
+                          )}
+                        </>
+                      )}
                       {record.vital_signs && Object.values(record.vital_signs).some(v => v) && (
                         <Grid item xs={12} md={6}>
                           <Typography variant="body2" fontWeight="medium" gutterBottom>
