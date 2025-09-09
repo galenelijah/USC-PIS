@@ -1,5 +1,7 @@
 # Medical Records Management Enhancement (August 2025)
 
+Note (Sept 2025): Health Insights is now a standalone page at `/health-insights` (legacy `/medical-records` redirects) and presents a unified medical + dental timeline for all roles. The Medical Records management page remains at `/health-records`.
+
 ## Overview
 
 The USC-PIS medical records management system has been completely redesigned with a modern tabbed interface, advanced analytics, and enhanced user experience. This document outlines the comprehensive enhancements implemented in August 2025.

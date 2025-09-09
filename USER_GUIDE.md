@@ -292,7 +292,7 @@ For complete API documentation, see **[API Documentation](docs/api/README.md#ema
 ### Student
 - **Medical Records**: Access dedicated medical records page (`/health-records`) showing only medical visits
 - **Dental Records**: Access dedicated dental records page (`/dental-records`) for dental care history  
-- **Patient History**: Comprehensive view of all medical and dental records (`/medical-records`)
+- **Health Insights & History**: Comprehensive view of medical and dental records (`/health-insights`; legacy `/medical-records` redirects)
 - **Medical Certificates**: Request and track medical certificates for school/work
 - **Health Information**: Access health campaigns and wellness resources
 - **Profile Management**: Update personal information and account settings
@@ -493,7 +493,7 @@ This page is exclusively for students and shows only medical records (no dental 
    - **Clinical Notes**: Treatment details, medications, and follow-up instructions
    - **Record Timestamps**: Creation dates for record tracking
 
-#### **Patient History Page (/medical-records) - All Users**
+#### **Health Insights & History Page (/health-insights) - All Users**
 This page provides the complete medical and dental history view.
 
 **For Students:**
@@ -505,7 +505,7 @@ This page provides the complete medical and dental history view.
 
 #### **Key Differences Between Pages**
 
-| Feature | /health-records (Students) | /medical-records (All Users) |
+| Feature | /health-records (Students) | /health-insights (All Users) |
 |---------|---------------------------|------------------------------|
 | **Purpose** | Medical records only | Complete health history |
 | **Interface** | Single-page accordion | Three-tab interface |

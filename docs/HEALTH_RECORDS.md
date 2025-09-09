@@ -3,7 +3,9 @@
 As of September 2025, the system separates Medical and Dental records into dedicated pages. This improves clarity, makes counts accurate, and prevents cross‑contamination of filters/exports.
 
 - Medical Records (staff + students)
-  - Route: `/medical-records` (staff) and `/health-records` (simplified student view)
+- Routes:
+  - `/health-insights` — Health Insights & History for all roles (includes medical + dental history). Legacy `/medical-records` redirects here.
+  - `/health-records` — Record management. Students see “My Health Records” (read-only). Staff see “Medical Records (Manage)”.
   - Shows medical records only
   - Counts and quick stats reflect medical records only
   - Exports/prints output medical fields only
@@ -16,5 +18,5 @@ As of September 2025, the system separates Medical and Dental records into dedic
 
 Notes
 - The sidebar labels have been updated to reflect the separation.
-- APIs remain unchanged (`/api/patients/medical-records/` and `/api/patients/dental-records/`), but the UI no longer mixes them on Medical Records pages.
+- APIs remain unchanged (`/api/patients/medical-records/` and `/api/patients/dental-records/`). The Insights page merges medical+dental for chronology; the management page focuses on medical record CRUD.
 - For combined reporting across medical and dental, use the Reports module or export separately from each page.

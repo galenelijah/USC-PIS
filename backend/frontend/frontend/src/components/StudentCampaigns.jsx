@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -59,8 +60,10 @@ import { useSelector } from 'react-redux';
 import { campaignService } from '../services/api';
 import ImageUpload from './common/ImageUpload';
 import InfoTooltip from './utils/InfoTooltip';
+import InlineContentRenderer from './common/InlineContentRenderer';
 
 const UniversalCampaigns = () => {
+  const navigate = useNavigate();
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
@@ -179,6 +182,13 @@ const UniversalCampaigns = () => {
       if (resp?.data) setSelectedCampaign(resp.data);
     } catch (e) {
       // ignore; show basic info
+    }
+  };
+
+  const openFullPreview = (e) => {
+    e?.stopPropagation?.();
+    if (selectedCampaign?.id) {
+      navigate(`/campaigns/${selectedCampaign.id}`);
     }
   };
 
@@ -752,10 +762,14 @@ const UniversalCampaigns = () => {
 
               {/* Campaign Content */}
               <Box sx={{ mb: 3 }}>
-                <div 
-                  dangerouslySetInnerHTML={{ __html: selectedCampaign.content }} 
-                  style={{ lineHeight: 1.6 }}
-                />
+                {typeof selectedCampaign.content === 'string' && /<[^>]+>/.test(selectedCampaign.content) ? (
+                  <div
+                    dangerouslySetInnerHTML={{ __html: selectedCampaign.content }}
+                    style={{ lineHeight: 1.6 }}
+                  />
+                ) : (
+                  <InlineContentRenderer content={selectedCampaign.content} />
+                )}
               </Box>
 
               {/* Call to Action */}
@@ -790,7 +804,7 @@ const UniversalCampaigns = () => {
               </Paper>
             </DialogContent>
 
-            <DialogActions sx={{ p: 3, gap: 1 }}>
+            <DialogActions sx={{ p: 3, gap: 1, flexWrap: 'wrap' }}>
               <Button
                 variant="outlined"
                 startIcon={<CommentIcon />}
@@ -810,6 +824,12 @@ const UniversalCampaigns = () => {
                 }}
               >
                 Share Campaign
+              </Button>
+              <Button
+                variant="text"
+                onClick={openFullPreview}
+              >
+                Open Full Preview
               </Button>
             </DialogActions>
           </>

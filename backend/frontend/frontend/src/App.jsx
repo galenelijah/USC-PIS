@@ -34,6 +34,8 @@ const StudentHealthRecords = lazy(() => import('./components/StudentHealthRecord
 const ConsultationHistory = lazy(() => import('./components/ConsultationHistory'));
 const Notifications = lazy(() => import('./components/Notifications'));
 const Campaigns = lazy(() => import('./components/Campaigns'));
+const StudentCampaigns = lazy(() => import('./components/StudentCampaigns'));
+const PublicCampaignPreview = lazy(() => import('./components/PublicCampaignPreview'));
 const Reports = lazy(() => import('./components/Reports'));
 const FeedbackForm = lazy(() => import('./components/FeedbackForm'));
 const FeedbackSelector = lazy(() => import('./components/FeedbackSelector'));
@@ -264,7 +266,22 @@ const App = () => {
                 <RequireProfileSetup>
                   <Layout>
                     <Suspense fallback={<PageLoader />}>
-                      <Campaigns />
+                      {userRoles.isStudent ? <StudentCampaigns /> : <Campaigns />}
+                    </Suspense>
+                  </Layout>
+                </RequireProfileSetup>
+              </RequireAuth>
+            }
+          />
+
+          <Route
+            path="/campaigns/:id"
+            element={
+              <RequireAuth isAuthenticated={isAuthenticated}>
+                <RequireProfileSetup>
+                  <Layout>
+                    <Suspense fallback={<PageLoader />}>
+                      <PublicCampaignPreview />
                     </Suspense>
                   </Layout>
                 </RequireProfileSetup>

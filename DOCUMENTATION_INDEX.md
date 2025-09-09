@@ -136,6 +136,7 @@ USC-PIS/
 - Linked all docs via Features Index and updated Documentation Index cross‑references
 - Added Mermaid diagrams to the Architecture doc
 - Added a master Endpoint Matrix and included topical docs (Campaigns, Health Records) in the consolidated build
+- Renamed “Patient History” route to `/health-insights` (legacy `/medical-records` redirects); Insights now include dental history alongside medical
 
 ### Previous Updates (Sept 6, 2025)
 - Health Records page is medical-only: removed Record Type UI, dental templates, and dental-specific exports/print sections.

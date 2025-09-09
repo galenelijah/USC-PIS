@@ -15,10 +15,11 @@ This document summarizes the recent changes shipped to stabilize key areas (Camp
   - Kept Templates + My Reports tabs; Refresh remains.
 
 - Health Records separation (frontend)
-  - Medical and Dental are fully separated:
-    - `/health-records` (students) and `/medical-records` (staff) show medical records only. Counts and exports are medical‑only.
-    - `/dental-records` is the dedicated dental UI.
-  - Sidebar labels updated to reflect separation.
+  - Management vs. Insights split:
+    - `/health-records` is the management page. Students see “My Health Records” (read‑only). Staff see “Medical Records (Manage)”.
+    - “Health Insights & History” moved to `/health-insights` (legacy `/medical-records` redirects). Insights include both medical and dental records in a unified timeline.
+    - `/dental-records` remains the dedicated dental management UI.
+  - Sidebar labels updated accordingly.
 
 - Feedback (backend)
   - Immediate email + in‑app notification after visit creation (both medical and dental).
@@ -33,7 +34,7 @@ This document summarizes the recent changes shipped to stabilize key areas (Camp
   - Push code and rebuild frontend assets.
   - Smoke test Campaigns: create/update (with/without images), edit uses PATCH, previews have content.
   - Smoke test Reports: only Templates + My Reports; single download action; no analytics tab.
-  - Smoke test Health Records: medical‑only counts in both staff and student UI; dental on dedicated page.
+  - Smoke test Health pages: `/health-insights` shows medical+dental timeline; `/health-records` focuses on medical management; `/dental-records` for dental management.
   - Create medical and dental records for a test student → verify immediate email + in‑app “Feedback Required” notification. Confirm `/api/feedback/pending/` values.
 
 - Security hygiene
