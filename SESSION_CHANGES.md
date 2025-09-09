@@ -75,3 +75,51 @@ This document lists all changes made on Sept 6, 2025 related to making Health Re
   - Export CSV excludes Record Type and dental-only fields.
 - Sidebar:
   - Items show updated labels/descriptions for medical vs dental routes.
+
+---
+
+# Session Changes (2025-09-09)
+
+This entry documents the student campaign preview, UI polish, and favicon/manifest adjustments.
+
+## New Files
+- `backend/frontend/frontend/src/components/PublicCampaignPreview.jsx`
+  - Full-page campaign preview for students and staff; hero banner, formatted content, and image gallery.
+- `backend/frontend/frontend/public/favicon.svg`
+  - Neutral, generic app icon used for browser tab and PWA.
+ - `docs/THESIS_ALIGNMENT_COMPARISON.md`
+   - Comparison of project vs thesis summary (pis.md), gaps, and recommended adjustments.
+
+## Modified Files
+- `backend/frontend/frontend/src/App.jsx`
+  - Route `/campaigns` now renders `StudentCampaigns` for students and `CampaignsPage` for staff/admin.
+  - Added new route `/campaigns/:id` protected preview page using `PublicCampaignPreview`.
+- `backend/frontend/frontend/src/components/StudentCampaigns.jsx`
+  - Added “Open Full Preview” action to navigate to `/campaigns/:id`.
+  - Improved content rendering: HTML vs. formatted text fallback via `InlineContentRenderer`.
+  - Implemented `computeQualityScore()` for the create dialog score chip.
+- `backend/frontend/frontend/index.html`
+  - Updated favicon and manifest paths to `/static/...`; favicon now `favicon.svg`.
+- `backend/frontend/frontend/public/manifest.json`
+  - Icon now `favicon.svg`; paths aligned with Vite `base: '/static/'`.
+
+### RBAC & Security Enhancements
+- Roles
+  - Added `DENTIST` role across backend and frontend where medical staff access applies (Patients, Reports, Email Admin, certificates).
+- Selective Column Encryption (pgcrypto)
+  - Added encrypted columns: `illness_enc`, `existing_medical_condition_enc`, `medications_enc`, `allergies_enc`, `emergency_contact_number_enc`.
+  - Migration enables `pgcrypto` on Postgres and backfills ciphertext if `PGP_ENCRYPTION_KEY` is set.
+  - Post-save signal mirrors plaintext fields into encrypted columns via `pgp_sym_encrypt`.
+  - Settings/env: Add `PGP_ENCRYPTION_KEY`.
+
+## Verify Quickly — RBAC & Encryption
+- DENTIST role can access Patients, Reports, Email Administration, and medical/dental records.
+- On Postgres: run `SELECT octet_length(allergies_enc) FROM authentication_user WHERE allergies_enc IS NOT NULL LIMIT 1;` and try `pgp_sym_decrypt` with your key.
+
+## Verify Quickly
+- Campaigns (Student role):
+  - Visit `/campaigns`, click a card to open details, then “Open Full Preview” to view `/campaigns/:id`.
+  - Content displays with formatting; images render in a simple gallery.
+- Favicon/Manifest:
+  - Browser tab shows generic icon; PWA install shows the same icon.
+  - No console error for missing `/vite.svg`. If cached, hard refresh.

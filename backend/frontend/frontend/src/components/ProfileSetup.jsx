@@ -274,7 +274,7 @@ const ProfileSetup = () => {
   // User role checks
   const userRole = currentUser?.role;
   const isStudent = currentUser && currentUser.role === 'STUDENT';
-  const isStaffOrMedical = currentUser && ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'].includes(currentUser.role);
+  const isStaffOrMedical = currentUser && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(currentUser.role);
   
   // Get role-based configuration
   const steps = getStepsForRole(userRole);

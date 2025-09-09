@@ -32,7 +32,7 @@ A comprehensive healthcare management system for the University of Southern Cali
 ### **✅ COMPREHENSIVE FEATURE SET**:
 - ✅ **Patient Records Management**: Medical and dental record workflows (fully separated pages)
 - ✅ **Medical Certificate System**: Full approval workflow with notifications
-- ✅ **Health Campaign Management**: Full CRUD with image uploads and public preview
+- ✅ **Health Campaign Management**: Full CRUD with image uploads and full-page student preview
 - ✅ **Feedback Collection**: Patient feedback with analytics and automated follow-ups
 - ✅ **Reports & Analytics**: Multi-format export with enterprise reliability
 - ✅ **Email System**: Professional delivery with AWS SES and web-based management
@@ -87,7 +87,7 @@ A comprehensive healthcare management system for the University of Southern Cali
 - **Role-Based Access** - Secure access control (Admin, Staff, Doctor, Nurse, Student)
 
 ### **Health Information System** 
-- **Campaign Management** - Robust CRUD with images (Cloudinary), JSON errors (no HTML 500), and list payloads include description/content for immediate previews. See docs/CAMPAIGNS.md.
+- **Campaign Management** - Robust CRUD with images (Cloudinary), JSON errors (no HTML 500), and list payloads include description/content for immediate previews. Students access campaigns at `/campaigns` with full-page preview at `/campaigns/:id`. See docs/CAMPAIGNS.md.
 - **Information Dissemination** - Structured health information distribution
 - **Patient Feedback** - Collection and analytics with duplicate prevention
 
@@ -175,6 +175,8 @@ npm run dev
 - Validation: Create requires title, description, campaign_type, content, start_date, end_date (end after start). Errors return HTTP 400 with field messages.
 - Reliability: Image upload failures are logged and do not block campaign creation.
 - Admin edit/view: Always fetches detail before rendering; updates use PATCH to prevent unintended field overwrites.
+- Student routing: `/campaigns` shows student campaigns for STUDENT role; staff/admin see the management view.
+- Full-page preview: `/campaigns/:id` shows a clean preview with hero banner and gallery.
 - See full guide: `docs/CAMPAIGNS.md`.
 
 ## 📊 API Endpoints
@@ -224,6 +226,7 @@ GET    /api/system/health/        # System monitoring
 | **Admin** | Full | Full | Full | Full | Full | Full |
 | **Staff** | Full | Full | Full | Create Only | Full | Full |
 | **Doctor** | Full | Full | Full | Approve/Reject | Full | Full |
+| **Dentist** | Full | Full | Full | Approve/Reject | Full | Full |
 | **Nurse** | Limited | Full | Full | Create Only | View | Limited |
 | **Student** | Personal | Personal Only | Personal Only | View Own | View | None |
 
@@ -235,6 +238,7 @@ GET    /api/system/health/        # System monitoring
 - **Input Validation** - Comprehensive form validation with Yup schemas
 - **SQL Injection Protection** - Django ORM with parameterized queries
 - **File Upload Security** - Type validation and secure storage
+- **Selective Column Encryption (pgcrypto)** - Encrypts sensitive fields (illness, existing conditions, medications, allergies, emergency contact number) using PostgreSQL `pgcrypto` with `PGP_ENCRYPTION_KEY`
 
 ## 📈 Performance Metrics
 

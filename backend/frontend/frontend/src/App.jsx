@@ -64,8 +64,8 @@ const App = () => {
   // Memoized user role checks
   const userRoles = useMemo(() => ({
     isAdminOrStaff: !!user && ['ADMIN', 'STAFF'].includes(user.role),
-    isAdminOrStaffOrDoctor: !!user && ['ADMIN', 'STAFF', 'DOCTOR'].includes(user.role),
-    isDoctor: !!user && user.role === 'DOCTOR',
+    isAdminOrStaffOrDoctor: !!user && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST'].includes(user.role),
+    isDoctor: !!user && (user.role === 'DOCTOR' || user.role === 'DENTIST'),
     isNurse: !!user && user.role === 'NURSE',
     isStudent: !!user && user.role === 'STUDENT'
   }), [user]);

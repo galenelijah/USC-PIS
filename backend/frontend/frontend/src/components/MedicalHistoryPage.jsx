@@ -93,7 +93,7 @@ const MedicalHistoryPage = () => {
   const [showAllergyAlert, setShowAllergyAlert] = useState(false);
   
   const user = useSelector(state => state.auth.user);
-  const isStaffOrMedical = user?.role && ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'].includes(user.role);
+  const isStaffOrMedical = user?.role && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
   const isStudent = user?.role === 'STUDENT';
 
   useEffect(() => {

@@ -26,7 +26,7 @@ const ConsultationHistory = () => {
   const [error, setError] = useState(null);
   
   const currentUser = useSelector(selectCurrentUser);
-  const isAdminOrStaffOrDoctorOrStaffOrDoctor = currentUser && ['ADMIN', 'STAFF', 'DOCTOR'].includes(currentUser.role);
+  const isAdminOrStaffOrDoctorOrStaffOrDoctor = currentUser && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST'].includes(currentUser.role);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentConsultationData, setCurrentConsultationData] = useState(null);

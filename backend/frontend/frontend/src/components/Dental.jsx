@@ -91,7 +91,7 @@ const Dental = () => {
   const [success, setSuccess] = useState(null);
 
   const user = useSelector(selectCurrentUser);
-  const canEdit = user && ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'].includes(user.role);
+  const canEdit = user && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
 
   // Form state for new/edit record
   const [formData, setFormData] = useState({

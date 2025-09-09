@@ -130,7 +130,14 @@ USC-PIS/
 - [x] **Verification Tools**: Automated checking and validation
 - [x] **Management Commands**: Administrative utilities ready
 
-### 📈 Latest Updates (Sept 8, 2025)
+### 📈 Latest Updates (Sept 9, 2025)
+- Student Campaigns: `/campaigns` now routes students to a polished card view with a one-click full-page preview at `/campaigns/:id`.
+- Content Rendering: Campaign content renders as HTML when present; plain text is formatted for readability.
+- Icons/Manifest: Replaced Vite icon with a neutral favicon; manifest updated to `favicon.svg` and `/static/` paths.
+- RBAC: Added `DENTIST` role with medical-staff privileges.
+- Security: Selective pgcrypto column encryption enabled for sensitive profile fields (requires `PGP_ENCRYPTION_KEY`).
+
+### Previous Updates (Sept 8, 2025)
 - Added Architecture Overview and per‑feature documentation with API endpoint tables
 - Introduced consolidated docs builder (`scripts/build-docs.sh`) producing Markdown and optionally HTML/PDF
 - Linked all docs via Features Index and updated Documentation Index cross‑references
@@ -174,3 +181,6 @@ All documentation is current as of August 1, 2025, and covers the production-rea
 **Documentation Grade**: A+ (Complete)  
 **Coverage**: 100% of deployment scenarios + Latest UI/UX enhancements  
 **Status**: Production-ready with advanced user interfaces and comprehensive analytics
+## Security
+
+- [Selective Column Encryption (pgcrypto)](docs/SECURITY_PGCRYPTO.md) — Encrypted fields, configuration, migration/backfill, verification, and key rotation

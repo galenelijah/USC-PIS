@@ -65,8 +65,8 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
     }
   }, [userFromRedux]);
 
-  const isAdminOrStaffOrDoctor = user && ['ADMIN', 'STAFF', 'DOCTOR'].includes(user.role);
-  const isDoctor = user && user.role === 'DOCTOR';
+  const isAdminOrStaffOrDoctor = user && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST'].includes(user.role);
+  const isDoctor = user && (user.role === 'DOCTOR' || user.role === 'DENTIST');
   const isNurse = user && user.role === 'NURSE';
 
   const handleLogout = async () => {
@@ -91,7 +91,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
   ];
 
   const patientItems = [
-    { text: 'Patients', icon: <PeopleIcon />, path: '/patients', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'] },
+    { text: 'Patients', icon: <PeopleIcon />, path: '/patients', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'] },
     { text: 'Patient Medical Dashboard', icon: <MedicalInformationIcon />, path: '/patient-dashboard' },
     { text: 'Health Insights & History', icon: <LocalHospitalIcon />, path: '/health-insights', description: 'Patient history timeline with health insights' },
     {
@@ -103,7 +103,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
         : 'Create and manage medical (clinic) records'
     },
     { text: 'Dental Records', icon: <DentalIcon />, path: '/dental-records', description: 'Manage dental procedures and records' },
-    { text: 'Medical Certificates', icon: <MedicalInformationIcon />, path: '/medical-certificates', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE', 'STUDENT'] },
+    { text: 'Medical Certificates', icon: <MedicalInformationIcon />, path: '/medical-certificates', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE', 'STUDENT'] },
   ];
 
   const infoItems = [
@@ -114,7 +114,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
   ];
 
   const reportItems = [
-    { text: 'Reports', icon: <ReportsIcon />, path: '/reports', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'] },
+    { text: 'Reports', icon: <ReportsIcon />, path: '/reports', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'] },
   ];
 
   const fileItems = [
@@ -123,7 +123,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
 
   const adminItems = [
     { text: 'Database Monitor', icon: <StorageIcon />, path: '/database-monitor', requiredRole: ['ADMIN', 'STAFF'] },
-    { text: 'Email Administration', icon: <EmailIcon />, path: '/email-administration', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR'] },
+    { text: 'Email Administration', icon: <EmailIcon />, path: '/email-administration', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST'] },
     { text: 'User Management', icon: <UserManagementIcon />, path: '/user-management', requiredRole: ['ADMIN'] },
   ];
 

@@ -41,6 +41,7 @@ git push heroku main
 - **ADMIN**: Full system access and administrative control
 - **STAFF**: Complete administrative functions  
 - **DOCTOR**: Full administrative access with medical focus
+- **DENTIST**: Full administrative access with dental focus
 - **NURSE**: Medical record management capabilities
 - **STUDENT**: Limited access to personal records
 
@@ -65,6 +66,7 @@ git push heroku main
 - **XSS Protection**: Content Security Policy and output escaping
 - **CSRF Protection**: Django CSRF middleware enabled
 - **Secure Headers**: HSTS, X-Frame-Options, X-Content-Type-Options
+- **Selective Column Encryption (pgcrypto)**: Encrypts sensitive profile fields with PostgreSQL `pgcrypto` using `PGP_ENCRYPTION_KEY`
 - **Role-based Access**: Granular permissions by user role
 
 ### Performance Optimizations ⚡
@@ -116,6 +118,7 @@ git push heroku main
 - `DATABASE_URL`: Heroku Postgres connection string
 - `SECRET_KEY`: Django secret key
 - `DEBUG`: False (production)
+ - `PGP_ENCRYPTION_KEY`: Symmetric key for pgcrypto column encryption (PostgreSQL)
 
 ### Optional (Cloudinary)
 - `USE_CLOUDINARY`: True (activates Cloudinary)
@@ -137,6 +140,8 @@ Heroku automatically runs migrations during deployment.
 ```bash
 heroku run python manage.py migrate
 ```
+
+If using Postgres, migration will enable `pgcrypto` and backfill encrypted columns for existing data.
 
 ### Database Status
 ```bash
@@ -170,6 +175,19 @@ heroku run python manage.py shell -c "
 from django.core.files.storage import default_storage
 print('Storage backend:', default_storage.__class__.__name__)
 "
+```
+
+### 5. Verify Column Encryption (PostgreSQL)
+```sql
+-- Check encrypted bytes are present
+SELECT id, octet_length(allergies_enc) AS enc_len
+FROM authentication_user
+WHERE allergies IS NOT NULL LIMIT 5;
+
+-- Decrypt sample (replace with your key)
+SELECT pgp_sym_decrypt(allergies_enc, '$PGP_ENCRYPTION_KEY')
+FROM authentication_user
+WHERE allergies_enc IS NOT NULL LIMIT 1;
 ```
 
 ## Admin Credentials

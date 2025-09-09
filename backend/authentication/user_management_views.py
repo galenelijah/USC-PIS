@@ -72,6 +72,7 @@ def get_all_users(request):
             'role_counts': {
                 'ADMIN': User.objects.filter(role=User.Role.ADMIN).count(),
                 'DOCTOR': User.objects.filter(role=User.Role.DOCTOR).count(),
+                'DENTIST': User.objects.filter(role=User.Role.DENTIST).count(),
                 'NURSE': User.objects.filter(role=User.Role.NURSE).count(),
                 'STAFF': User.objects.filter(role=User.Role.STAFF).count(),
                 'STUDENT': User.objects.filter(role=User.Role.STUDENT).count(),
@@ -111,7 +112,7 @@ def update_user_role(request, user_id):
         if new_role == User.Role.ADMIN:
             user.is_staff = True
             user.is_superuser = True
-        elif new_role in [User.Role.DOCTOR, User.Role.NURSE, User.Role.STAFF]:
+        elif new_role in [User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE, User.Role.STAFF]:
             user.is_staff = True
             user.is_superuser = False
         else:  # STUDENT

@@ -72,7 +72,7 @@ const HealthInfo = () => {
     }
   }, [editing, reset]);
 
-  const isStaffOrMedical = user && ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'].includes(user.role);
+  const isStaffOrMedical = user && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
   const isStudent = user && user.role === 'STUDENT';
   const isPatient = user && user.role === 'PATIENT';
   const isReadOnly = !isStaffOrMedical;

@@ -423,7 +423,7 @@ const UniversalCampaigns = () => {
             color="success" 
           />
           <Chip icon={<PeopleIcon />} label="For Everyone" color="secondary" />
-          {user && ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'].includes(user.role) && (
+          {user && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role) && (
             <Chip icon={<EditIcon />} label="Can Create" color="warning" />
           )}
         </Box>
@@ -910,7 +910,7 @@ const UniversalCampaigns = () => {
       </Dialog>
 
       {/* Create Campaign Button (for authorized users) */}
-      {user && ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE'].includes(user.role) && (
+      {user && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role) && (
         <Fab
           color="primary"
           aria-label="add campaign"

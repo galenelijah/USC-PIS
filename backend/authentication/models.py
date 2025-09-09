@@ -31,6 +31,7 @@ class User(AbstractUser):
     class Role(models.TextChoices):
         ADMIN = 'ADMIN', 'Admin'
         DOCTOR = 'DOCTOR', 'Doctor'
+        DENTIST = 'DENTIST', 'Dentist'
         NURSE = 'NURSE', 'Nurse'
         STAFF = 'STAFF', 'Staff'
         STUDENT = 'STUDENT', 'Student'
@@ -66,6 +67,8 @@ class User(AbstractUser):
     mother_name = models.CharField(max_length=100, null=True, blank=True)
     emergency_contact = models.CharField(max_length=100, null=True, blank=True)
     emergency_contact_number = models.CharField(max_length=100, null=True, blank=True)
+    # Encrypted (pgcrypto) version
+    emergency_contact_number_enc = models.BinaryField(null=True, blank=True, editable=False)
 
     # Medical Information
     illness = models.CharField(max_length=100, null=True, blank=True)
@@ -76,6 +79,11 @@ class User(AbstractUser):
     allergies = models.CharField(max_length=100, null=True, blank=True)
     hospitalization_history = models.CharField(max_length=100, null=True, blank=True)
     surgical_procedures = models.CharField(max_length=100, null=True, blank=True)
+    # Encrypted (pgcrypto) columns for selected sensitive fields
+    illness_enc = models.BinaryField(null=True, blank=True, editable=False)
+    existing_medical_condition_enc = models.BinaryField(null=True, blank=True, editable=False)
+    medications_enc = models.BinaryField(null=True, blank=True, editable=False)
+    allergies_enc = models.BinaryField(null=True, blank=True, editable=False)
 
     # Department and Contact (for staff)
     department = models.CharField(max_length=100, null=True, blank=True)
@@ -97,4 +105,10 @@ class User(AbstractUser):
         # Ensure username is set to email if not provided
         if not self.username:
             self.username = self.email
-        super().save(*args, **kwargs) 
+        super().save(*args, **kwargs)
+
+# Register signal handlers (encryption on save)
+try:
+    from . import signals  # noqa: F401
+except Exception:
+    pass

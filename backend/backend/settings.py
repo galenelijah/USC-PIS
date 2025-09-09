@@ -432,6 +432,9 @@ PASSWORD_BREACH_CHECK = os.environ.get('PASSWORD_BREACH_CHECK', 'True') == 'True
 FILE_SCAN_ENABLED = os.environ.get('FILE_SCAN_ENABLED', 'True') == 'True'
 SYSTEM_MONITORING = os.environ.get('SYSTEM_MONITORING', 'True') == 'True'
 
+# pgcrypto key for selective column encryption (PostgreSQL)
+PGP_ENCRYPTION_KEY = os.environ.get('PGP_ENCRYPTION_KEY')
+
 # File upload settings
 # Upload size limits
 # Max size stored in-memory per uploaded file (fallback spills to disk)

@@ -294,7 +294,7 @@ For complete API documentation, see **[API Documentation](docs/api/README.md#ema
 - **Dental Records**: Access dedicated dental records page (`/dental-records`) for dental care history  
 - **Health Insights & History**: Comprehensive view of medical and dental records (`/health-insights`; legacy `/medical-records` redirects)
 - **Medical Certificates**: Request and track medical certificates for school/work
-- **Health Information**: Access health campaigns and wellness resources
+- **Health Information & Campaigns**: Access health campaigns at `/campaigns`; click a card to see details and use “Open Full Preview” for a full-page view at `/campaigns/:id`.
 - **Profile Management**: Update personal information and account settings
 
 ### Doctor
@@ -308,6 +308,13 @@ For complete API documentation, see **[API Documentation](docs/api/README.md#ema
 - Create and manage health information campaigns
 - Access database monitoring tools
 - Complete administrative menu access
+
+### Dentist
+- Full administrative access similar to Doctor
+- View and manage all patient records (medical and dental)
+- Create and update dental records and medical records
+- Issue prescriptions and medical certificates
+- Access admin dashboard, reports, notifications, and email administration
 
 ### Nurse
 - Register new patients
@@ -334,7 +341,7 @@ For complete API documentation, see **[API Documentation](docs/api/README.md#ema
   - **Featured Campaigns**: Up to 3 featured health campaigns with icons, titles, categories, and descriptions
   - **Recent Announcements**: Up to 2 recent announcements with timestamps and content previews
   - **Visual Design**: Blue icons for campaigns, orange icons for announcements
-  - **Quick Access**: "View All" buttons for detailed campaign/announcement views
+- **Quick Access**: "View All" buttons for detailed campaign/announcement views
 - **Upcoming Appointments**: Next appointment details with date, time, and doctor information
 - **Quick Actions**: Role-based action buttons for common tasks
 - **Real-time Updates**: Refresh functionality to get latest dashboard data
@@ -835,3 +842,14 @@ This validation system ensures data quality while providing clear guidance to he
 ---
 
 For additional assistance, please contact the USC-PIS support team or consult with your system administrator. 
+### Health Campaigns (Updated Sept 9, 2025)
+- Where: `/campaigns` (students see the student view; staff/admin see management)
+- View: Click a campaign card to open details with summary, duration, and images
+- Full Preview: Click “Open Full Preview” for a full-page layout at `/campaigns/:id`
+- Formatting: Rich HTML renders as-is; plain text is formatted into readable sections
+- Gallery: Campaign images shown as a gallery; click to open full image in a new tab
+
+### Icons & Manifest
+- Favicon: Replaced Vite icon with a generic app icon
+- Manifest: Updated to use `favicon.svg` and correct `/static/` paths
+- If your browser cached the old manifest/icon, perform a hard refresh (Ctrl+Shift+R)
