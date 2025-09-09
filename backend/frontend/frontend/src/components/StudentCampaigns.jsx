@@ -128,6 +128,42 @@ const UniversalCampaigns = () => {
     }
   };
 
+  const computeQualityScore = () => {
+    let score = 0;
+    const t = (campaignForm.title || '').trim();
+    const d = (campaignForm.description || '').trim();
+    const c = (campaignForm.content || '').trim();
+    const s = (campaignForm.summary || '').trim();
+    const o = (campaignForm.objectives || '').trim();
+    const a = (campaignForm.call_to_action || '').trim();
+    const tags = (campaignForm.tags || '').trim();
+
+    if (t.length >= 8) score += 15; // clear title
+    if (d.length >= 30) score += 15; // informative description
+    if (c.length >= 200) score += 30; else if (c.length >= 80) score += 20; // solid content
+    if (s.length >= 20) score += 5; // helpful summary
+    if (o.length >= 20) score += 5; // objectives outlined
+    if (a.length >= 10) score += 5; // actionable CTA
+
+    // Date quality
+    if (campaignForm.start_date && campaignForm.end_date) {
+      const sd = new Date(campaignForm.start_date);
+      const ed = new Date(campaignForm.end_date);
+      if (ed > sd) score += 10;
+    }
+
+    if (tags) score += 5; // discoverability
+
+    // Media enhancements (up to 15)
+    let media = 0;
+    if (campaignForm.bannerFile) media += 5;
+    if (campaignForm.thumbnailFile) media += 5;
+    if (campaignForm.pubmatFile) media += 5;
+    score += Math.min(media, 15);
+
+    return Math.max(0, Math.min(100, score));
+  };
+
   const loadMoreCampaigns = async () => {
     if (!nextPage || loadingMore) return;
     try {
