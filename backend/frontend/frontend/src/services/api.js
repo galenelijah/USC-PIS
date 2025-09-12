@@ -230,8 +230,18 @@ export const authService = {
     const response = await api.post('/auth/password-reset-request/', { email });
     return response.data;
   },
+  // Legacy helper (not used by current flow)
   resetPassword: async (token, password) => {
     const response = await api.post('/auth/password-reset/', { token, password });
+    return response.data;
+  },
+  // Confirm password reset using uid/token from email link
+  confirmPasswordReset: async (uidb64, token, password) => {
+    const response = await api.post('/auth/password-reset/confirm/', {
+      uidb64,
+      token,
+      password
+    });
     return response.data;
   },
   completeProfileSetup: async (profileData) => {

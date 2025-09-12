@@ -1,0 +1,21 @@
+Welcome to USC-PIS
+
+Dear {{ user.first_name|default:user.email }},
+
+Welcome to the USC Patient Information System! Your account has been created.
+
+What you can do:
+- Manage Medical Records: View your health information
+- Request Medical Certificates
+- Provide Feedback on your visits
+- View Health Insights and Campaigns
+
+Get started: {{ site_url }}
+
+Need help?
+- Email support: {{ support_email }}
+- Help center: {{ site_url }}/help
+
+USC-PIS Healthcare Team
+University of San Carlos
+

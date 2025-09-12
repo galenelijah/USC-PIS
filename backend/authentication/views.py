@@ -884,29 +884,20 @@ class PasswordResetRequestView(APIView):
             reset_url = f"{settings.FRONTEND_URL}/password-reset/{uidb64}/{token}/"
             print(f"DEBUG: Constructed reset URL: {reset_url}") # DEBUG
 
-            # Send email
-            subject = 'USC-PIS Password Reset Request'
-            message = render_to_string('emails/password_reset_email.html', {
-                'user': user,
-                'reset_url': reset_url,
-            })
-            print("DEBUG: Attempting to send email...") # DEBUG
+            # Send email via centralized EmailService (HTML + text fallback)
+            print("DEBUG: Attempting to send password reset email via EmailService...") # DEBUG
             try:
-                send_mail(
-                    subject,
-                    message, # Use HTML message as plain text for now, or use html_message arg
-                    settings.DEFAULT_FROM_EMAIL,
-                    [user.email],
-                    fail_silently=False,
-                    # html_message=message # Uncomment if using HTML email
-                )
-                print("DEBUG: send_mail function completed.") # DEBUG
-                logger.info(f"Password reset email sent to {user.email}")
+                sent = EmailService.send_password_reset_email(user, reset_url)
+                if sent:
+                    print("DEBUG: EmailService send completed successfully.") # DEBUG
+                    logger.info(f"Password reset email sent to {user.email}")
+                else:
+                    print("DEBUG: EmailService reported failure to send.") # DEBUG
+                    logger.warning(f"EmailService failed to send password reset to {user.email}")
             except Exception as e:
-                print(f"DEBUG: Error during send_mail: {e}") # DEBUG
+                print(f"DEBUG: Error during EmailService send: {e}") # DEBUG
                 logger.error(f"Failed to send password reset email to {user.email}: {e}")
                 # Still return 200 OK but log the error
-                # return Response({'detail': 'Error sending password reset email.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             print("DEBUG: Sending final 200 OK response.") # DEBUG
             return Response({'detail': 'Password reset instructions sent if email exists.'}, status=status.HTTP_200_OK)

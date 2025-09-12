@@ -1,0 +1,19 @@
+Medical Certificate Request Submitted
+
+Dear {{ patient.user.first_name|default:patient.user.email }},
+
+Your medical certificate request has been submitted and is pending approval.
+
+Certificate ID: {{ certificate.id }}
+Submitted: {{ certificate.created_at|date:"F d, Y at g:i A" }}
+Status: Pending Approval
+
+Check status: {{ site_url }}/medical-certificates
+
+Processing time: 24-48 hours during business days.
+
+Questions? Contact: {{ support_email }}
+
+USC Health Center
+University of San Carlos
+

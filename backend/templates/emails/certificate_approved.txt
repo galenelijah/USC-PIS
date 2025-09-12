@@ -1,0 +1,18 @@
+Medical Certificate Approved
+
+Dear {{ patient.user.first_name|default:patient.user.email }},
+
+Your medical certificate has been approved and is ready for download.
+
+Certificate ID: {{ certificate.id }}
+Approved: {{ certificate.updated_at|date:"F d, Y at g:i A" }}
+Valid Until: {{ certificate.valid_until|date:"F d, Y" }}
+
+Download: {{ site_url }}/medical-certificates/{{ certificate.id }}/download
+Request another: {{ site_url }}/medical-certificates/new
+
+Questions? Contact: {{ support_email }}
+
+USC Medical Team
+University of San Carlos Health Center
+

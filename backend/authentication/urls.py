@@ -20,8 +20,8 @@ urlpatterns = [
     # Password Reset URLs
     path('password-reset-request/', views.PasswordResetRequestView.as_view(), name='password-reset-request'),
     path('password-reset/confirm/<uidb64>/<token>/', views.PasswordResetConfirmView.as_view(), name='password-reset-confirm'), # Traditional Django style path
-    # Or, if we handle token/uid extraction purely in the view from POST data:
-    # path('password-reset/confirm/', views.PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
+    # Support POSTing uid/token in request body (used by SPA)
+    path('password-reset/confirm/', views.PasswordResetConfirmView.as_view(), name='password-reset-confirm-post'),
 
     # User Management URLs (Admin only)
     path('admin/users/', user_management_views.get_all_users, name='admin-users'),

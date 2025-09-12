@@ -136,7 +136,7 @@ const App = () => {
             } 
           />
           <Route 
-            path="/password-reset/:token" 
+            path="/password-reset/:uidb64/:token" 
             element={
               <RequireNoAuth isAuthenticated={isAuthenticated}>
                 <Suspense fallback={<PageLoader />}>

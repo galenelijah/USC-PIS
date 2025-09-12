@@ -106,6 +106,8 @@ A comprehensive healthcare management system for the University of Southern Cali
 ### **Reporting**
 - **Templates** - Generate reports from predefined templates
 - **Downloads** - Download reports in their generated (original) format
+- **Unified Styles** - HTML exports now share a consistent header/footer/branding; refresh defaults with:
+  - `python backend/manage.py create_default_report_templates --force`
 - **Performance** - Simplified UI (analytics tab removed) for responsiveness
 
 ## 🛠️ Technology Stack

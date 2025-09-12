@@ -101,6 +101,12 @@ class Command(BaseCommand):
         updated_count = 0
         
         for template_data in templates_data:
+            # Inject shared stylesheet into HTML content
+            try:
+                template_data['template_content'] = self._apply_shared_styles(template_data['template_content'])
+            except Exception:
+                pass
+
             template, created = ReportTemplate.objects.get_or_create(
                 name=template_data['name'],
                 report_type=template_data['report_type'],
@@ -134,6 +140,32 @@ class Command(BaseCommand):
             self.style.SUCCESS(
                 f"\nSummary: {created_count} templates created, {updated_count} templates updated"
             )
+        )
+
+    def _apply_shared_styles(self, content: str) -> str:
+        """Insert shared report CSS after the first <style> tag or inside <head>."""
+        css = self.shared_css()
+        if not isinstance(content, str):
+            return content
+        if '<style>' in content:
+            return content.replace('<style>', '<style>\n' + css + '\n', 1)
+        if '<head>' in content:
+            return content.replace('<head>', '<head>\n<style>\n' + css + '\n</style>\n', 1)
+        # No head/style — prepend minimal style
+        return '<style>\n' + css + '\n</style>\n' + content
+
+    def shared_css(self) -> str:
+        return (
+            "/* Shared USC-PIS Report Styles */\n"
+            ".usc-header { text-align:center; border-bottom:2px solid #0B4F6C; padding-bottom:16px; margin-bottom:24px; }\n"
+            ".usc-title { color:#0B4F6C; font-size:22px; font-weight:700; margin:4px 0; }\n"
+            ".usc-subtitle { color:#246A73; font-size:14px; }\n"
+            ".usc-logo { color:#0B4F6C; font-size:16px; font-weight:600; }\n"
+            ".usc-footer { text-align:center; margin-top:28px; padding-top:12px; border-top:1px solid #ddd; font-size:12px; color:#666; }\n"
+            ".usc-table { width:100%; border-collapse:collapse; margin:8px 0 16px 0; }\n"
+            ".usc-table th, .usc-table td { border:1px solid #ddd; padding:8px; text-align:left; }\n"
+            ".usc-table th { background:#f5f7fa; font-weight:700; }\n"
+            ".usc-badge { display:inline-block; background:#e8f4fd; color:#0B4F6C; padding:2px 8px; border-radius:10px; font-size:12px; }\n"
         )
 
     def get_patient_summary_template(self):

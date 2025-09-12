@@ -136,6 +136,8 @@ USC-PIS/
 - Icons/Manifest: Replaced Vite icon with a neutral favicon; manifest updated to `favicon.svg` and `/static/` paths.
 - RBAC: Added `DENTIST` role with medical-staff privileges.
 - Security: Selective pgcrypto column encryption enabled for sensitive profile fields (requires `PGP_ENCRYPTION_KEY`).
+- Reports: Unified HTML template styling via shared stylesheet; refresh DB templates with `create_default_report_templates --force`.
+- Emails: Improved templates (branding, dynamic links) + added plain-text fallbacks.
 
 ### Previous Updates (Sept 8, 2025)
 - Added Architecture Overview and per‑feature documentation with API endpoint tables

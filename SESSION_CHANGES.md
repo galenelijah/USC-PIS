@@ -114,7 +114,19 @@ This entry documents the student campaign preview, UI polish, and favicon/manife
 
 ## Verify Quickly — RBAC & Encryption
 - DENTIST role can access Patients, Reports, Email Administration, and medical/dental records.
-- On Postgres: run `SELECT octet_length(allergies_enc) FROM authentication_user WHERE allergies_enc IS NOT NULL LIMIT 1;` and try `pgp_sym_decrypt` with your key.
+  - On Postgres: run `SELECT octet_length(allergies_enc) FROM authentication_user WHERE allergies_enc IS NOT NULL LIMIT 1;` and try `pgp_sym_decrypt` with your key.
+
+### Email Template Improvements
+- Fixed university name to “University of San Carlos” in base/alerts
+- Removed appointments mention in welcome email; added campaigns link
+- Replaced hardcoded links with `{{ site_url }}` in feedback emails
+- Added plain text fallbacks: welcome.txt, certificate_created.txt, certificate_approved.txt, feedback_request.txt, password_reset.txt
+- Added missing `emails/password_reset_email.html` to match view usage
+
+### Report Templates (HTML) — Shared Styles
+- Added shared stylesheet injection in `create_default_report_templates` to unify header/footer/branding across HTML exports
+- To refresh existing templates, run:
+  - `python backend/manage.py create_default_report_templates --force`
 
 ## Verify Quickly
 - Campaigns (Student role):

@@ -485,8 +485,16 @@ else:
 
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'webmaster@localhost') # Change this
 
+# Password reset token expiry (seconds). Match email copy: 24 hours by default.
+PASSWORD_RESET_TIMEOUT = int(os.environ.get('PASSWORD_RESET_TIMEOUT', 60 * 60 * 24))
+
 # Frontend URL (adjust based on your frontend's address)
-FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173') # Default for local Vite dev
+# Use env var if provided; otherwise default to dev in DEBUG and production URL when not DEBUG
+_env_frontend_url = os.environ.get('FRONTEND_URL')
+if _env_frontend_url:
+    FRONTEND_URL = _env_frontend_url
+else:
+    FRONTEND_URL = 'http://localhost:5173' if DEBUG else 'https://usc-pis-5f030223f7a8.herokuapp.com'
 
 # Logging Configuration (optional but recommended)
 LOGGING = {

@@ -190,6 +190,13 @@ FROM authentication_user
 WHERE allergies_enc IS NOT NULL LIMIT 1;
 ```
 
+### 6. Refresh Report HTML Templates (Shared Styles)
+To apply the unified stylesheet/header/footer to all default report templates:
+```bash
+python backend/manage.py create_default_report_templates --force
+```
+This updates existing templates in the database with shared USC-PIS branding/styles for HTML exports.
+
 ## Admin Credentials
 
 ### Primary Admin

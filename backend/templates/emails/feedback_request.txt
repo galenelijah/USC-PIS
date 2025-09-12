@@ -1,0 +1,15 @@
+Share Your Healthcare Experience
+
+Dear {{ patient.user.first_name|default:patient.user.email }},
+
+We value your feedback about your recent visit.
+
+Date: {{ medical_record.visit_date|date:"F d, Y" }}
+Visit Type: {{ medical_record.visit_type|default:"Medical Consultation" }}
+
+Leave feedback: {{ site_url }}/feedback
+Preferences: {{ site_url }}/profile/preferences
+
+USC Healthcare Quality Team
+University of San Carlos Health Center
+

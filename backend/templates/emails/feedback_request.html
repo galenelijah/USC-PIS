@@ -18,10 +18,10 @@
 <p>Please take a moment to leave your feedback on our website. Your input helps us provide better care for all students.</p>
 
 <div style="text-align: center; margin: 30px 0;">
-    <a href="https://usc-pis-5f030223f7a8.herokuapp.com/feedback" class="button">Leave Feedback on Website</a>
+    <a href="{{ site_url }}/feedback" class="button">Leave Feedback on Website</a>
 </div>
 
-<p>Visit our feedback page at: <a href="https://usc-pis-5f030223f7a8.herokuapp.com/feedback">https://usc-pis-5f030223f7a8.herokuapp.com/feedback</a></p>
+<p>Visit our feedback page at: <a href="{{ site_url }}/feedback">{{ site_url }}/feedback</a></p>
 
 <p>Your feedback is confidential and helps us improve our medical services, enhance patient experience, and maintain high healthcare standards.</p>
 
@@ -32,6 +32,6 @@ University of San Carlos Health Center</p>
 <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
 
 <p style="font-size: 12px; color: #666; text-align: center;">
-    If you don't want to receive feedback requests, you can <a href="https://usc-pis-5f030223f7a8.herokuapp.com/profile/preferences">update your email preferences</a> anytime.
+    If you don't want to receive feedback requests, you can <a href="{{ site_url }}/profile/preferences">update your email preferences</a> anytime.
 </p>
 {% endblock %}
