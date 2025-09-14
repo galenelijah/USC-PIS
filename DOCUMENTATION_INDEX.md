@@ -25,6 +25,12 @@
 ### 📚 Feature Guides
 - [Features Index](docs/features/README.md) — Per‑feature docs with endpoint tables:
   - Authentication, Patients, Health Info, Feedback, File Uploads, Medical Certificates, Notifications, Reports, Utilities & Backups
+  - Automated Emails & Notifications: see [docs/AUTOMATED_EMAILS_AND_NOTIFICATIONS.md](docs/AUTOMATED_EMAILS_AND_NOTIFICATIONS.md)
+  - Scheduler Jobs (Heroku/Cron): see [docs/SCHEDULER_JOBS.md](docs/SCHEDULER_JOBS.md)
+  - Password Reset Flow: see [docs/AUTH_PASSWORD_RESET.md](docs/AUTH_PASSWORD_RESET.md)
+  - Email Templates Rollout: see [docs/EMAIL_TEMPLATES_ROLLOUT_GUIDE.md](docs/EMAIL_TEMPLATES_ROLLOUT_GUIDE.md)
+  - Report Templates Rollout: see [docs/REPORT_TEMPLATES_ROLLOUT_GUIDE.md](docs/REPORT_TEMPLATES_ROLLOUT_GUIDE.md)
+  - Replace Report Templates Cmd: see [docs/REPLACE_REPORT_TEMPLATES.md](docs/REPLACE_REPORT_TEMPLATES.md)
 
 ### 🔎 API Matrices
 - [Endpoint Matrix](docs/api/ENDPOINT_MATRIX.md) — One-page list of endpoints grouped by app and typical roles
@@ -138,6 +144,10 @@ USC-PIS/
 - Security: Selective pgcrypto column encryption enabled for sensitive profile fields (requires `PGP_ENCRYPTION_KEY`).
 - Reports: Unified HTML template styling via shared stylesheet; refresh DB templates with `create_default_report_templates --force`.
 - Emails: Improved templates (branding, dynamic links) + added plain-text fallbacks.
+- Password Reset: End-to-end flow with SPA confirm endpoint, token expiry, and EmailService templates.
+- Report Templates: HTML export path now renders stored `ReportTemplate.template_content`; added `replace_report_templates` command and rollout guides.
+- Automation Docs: Added Automated Emails overview and Scheduler Jobs setup guides.
+ - Comprehensive Docs: Added Password Reset, Email/Report Templates rollout, Replace Templates guide; linked from index.
 
 ### Previous Updates (Sept 8, 2025)
 - Added Architecture Overview and per‑feature documentation with API endpoint tables

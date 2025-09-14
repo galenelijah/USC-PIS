@@ -1,24 +1,42 @@
 # USC-PIS Email Notifications Setup Guide
 
+> 2025-09 Update: The email system now centralizes on `utils/email_service.EmailService`, supports SES or SMTP (SendGrid/Gmail App Password), and includes automatic triggers with scheduler jobs. For a full overview see:
+> - Automated emails and triggers: `docs/AUTOMATED_EMAILS_AND_NOTIFICATIONS.md`
+> - Scheduler jobs: `docs/SCHEDULER_JOBS.md`
+> - Password reset flow: `docs/AUTH_PASSWORD_RESET.md`
+
 ## 📧 Email System Implementation Complete
 
 The USC-PIS email notification system has been successfully implemented with professional templates and automated workflows.
 
 ## 🚀 Quick Setup (Production)
 
-### Step 1: Create SendGrid Account (Recommended)
+### Step 1: Choose Provider (SES or SMTP)
+Option A — AWS SES (production recommended):
+1. Verify domain/sender in SES, get AWS keys and region
+2. Set env vars: `USE_AWS_SES=True`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SES_REGION_NAME`
+
+Option B — SMTP (SendGrid or Gmail App Password):
 1. Visit [SendGrid](https://sendgrid.com) and create a free account (100 emails/day)
 2. Go to Settings → API Keys
 3. Create a new API key with "Full Access" permissions
 4. Copy the API key (starts with `SG.`)
 
 ### Step 2: Set Environment Variables
-Add these variables to your Heroku app:
+Add these variables to your Heroku app (choose SES or SMTP):
 
 ```bash
 # Via Heroku CLI
+heroku config:set DEFAULT_FROM_EMAIL="noreply@your-domain"
+heroku config:set FRONTEND_URL="https://your-domain"  # used in password reset links
+heroku config:set PASSWORD_RESET_TIMEOUT="86400"       # optional; 24h default
+
+# For SMTP (e.g., SendGrid)
 heroku config:set EMAIL_HOST_PASSWORD="your_sendgrid_api_key_here"
-heroku config:set DEFAULT_FROM_EMAIL="noreply@usc-pis.herokuapp.com"
+heroku config:set EMAIL_HOST="smtp.sendgrid.net"
+heroku config:set EMAIL_PORT="587"
+heroku config:set EMAIL_USE_TLS="True"
+heroku config:set EMAIL_HOST_USER="apikey"
 
 # Or via Heroku Dashboard
 # Go to Settings → Config Vars → Add:
@@ -33,7 +51,7 @@ git commit -m "Add email notification system"
 git push heroku main
 
 # Test the system
-heroku run python manage.py test_email --email your-email@usc.edu.ph
+heroku run python backend/manage.py test_all_emails --email your-email@usc.edu.ph --app <your-heroku-app>
 ```
 
 ## 🛠️ Development Setup
@@ -44,7 +62,7 @@ By default, emails are printed to console in development:
 ```bash
 cd USC-PIS/backend
 source venv/Scripts/activate  # Windows
-python manage.py test_email --email test@usc.edu.ph
+python backend/manage.py test_all_emails --email test@usc.edu.ph --dry-run
 ```
 
 ### Local Testing (Gmail SMTP)
@@ -58,6 +76,7 @@ EMAIL_USE_TLS=True
 EMAIL_HOST_USER=your-gmail@gmail.com
 EMAIL_HOST_PASSWORD=your-app-password  # Not your regular password!
 DEFAULT_FROM_EMAIL=your-gmail@gmail.com
+FRONTEND_URL=http://localhost:5173
 ```
 
 ## 📋 Email Templates Created
@@ -83,48 +102,45 @@ DEFAULT_FROM_EMAIL=your-gmail@gmail.com
 - **Recipient**: Patients
 - **Content**: Quick feedback buttons, detailed feedback form link
 
-## 🔧 Management Commands
+## 🔧 Management Commands (Canonical)
 
 ### Test Email System
 ```bash
-# Test welcome email
-python manage.py test_email --email your@email.com --type welcome
-
-# Test password reset email
-python manage.py test_email --email your@email.com --type password_reset
+# Test all email types
+python backend/manage.py test_all_emails --email your@email.com
 ```
 
 ### Send Automated Feedback Emails
 ```bash
-# Dry run (see what would be sent)
-python manage.py send_feedback_emails --dry-run
+# Send due scheduled notifications (use Scheduler in prod)
+python backend/manage.py send_scheduled_notifications
 
-# Send actual emails for visits from 24 hours ago
-python manage.py send_feedback_emails --hours 24
+# Health alerts (use Scheduler in prod)
+python backend/manage.py health_check_alerts
 
-# Send for visits from 48 hours ago
-python manage.py send_feedback_emails --hours 48
+# Optional feedback backfill/reminders
+python backend/manage.py auto_send_feedback_emails --hours 24
 ```
 
-## 📅 Automated Email Schedule (Future Setup)
+## 📅 Automated Email Schedule
 
 To fully automate feedback emails, set up a daily cron job or Heroku Scheduler:
 
 ### Heroku Scheduler Setup
 1. Install Heroku Scheduler addon:
    ```bash
-   heroku addons:create scheduler:standard
+   heroku addons:create scheduler:standard --app <your-app>
    ```
 
 2. Add scheduled job:
    ```bash
-   heroku addons:open scheduler
+   heroku addons:open scheduler --app <your-app>
    ```
 
 3. Create daily job:
-   - **Command**: `python manage.py send_feedback_emails --hours 24`
-   - **Schedule**: Daily at 10:00 AM
-   - **Description**: Send feedback emails for visits from 24h ago
+   - **Command**: `python backend/manage.py send_scheduled_notifications` (every 10 min)
+   - **Command**: `python backend/manage.py health_check_alerts` (every 6h)
+   - **Optional**: `python backend/manage.py auto_send_feedback_emails --hours 24` (daily)
 
 ## 🎯 Email Features Implemented
 

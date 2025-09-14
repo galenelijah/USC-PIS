@@ -60,35 +60,35 @@ def generate_report_task(report_id, template_id, filters, date_start, date_end, 
         report_data = None
         if template.report_type == 'PATIENT_SUMMARY':
             report_data = service.generate_patient_summary_report(
-                date_start, date_end, filters, export_format
+                date_start, date_end, filters, export_format, template_html=template.template_content
             )
         elif template.report_type == 'VISIT_TRENDS':
             report_data = service.generate_visit_trends_report(
-                date_start, date_end, filters, export_format
+                date_start, date_end, filters, export_format, template_html=template.template_content
             )
         elif template.report_type == 'TREATMENT_OUTCOMES':
             report_data = service.generate_treatment_outcomes_report(
-                date_start, date_end, filters, export_format
+                date_start, date_end, filters, export_format, template_html=template.template_content
             )
         elif template.report_type == 'FEEDBACK_ANALYSIS':
             report_data = service.generate_feedback_analysis_report(
-                date_start, date_end, filters, export_format
+                date_start, date_end, filters, export_format, template_html=template.template_content
             )
         elif template.report_type == 'COMPREHENSIVE_ANALYTICS':
             report_data = service.generate_comprehensive_analytics_report(
-                date_start, date_end, filters, export_format
+                date_start, date_end, filters, export_format, template_html=template.template_content
             )
         elif template.report_type == 'MEDICAL_STATISTICS':
             report_data = service.generate_medical_statistics_report(
-                date_start, date_end, filters, export_format
+                date_start, date_end, filters, export_format, template_html=template.template_content
             )
         elif template.report_type == 'DENTAL_STATISTICS':
             report_data = service.generate_dental_statistics_report(
-                date_start, date_end, filters, export_format
+                date_start, date_end, filters, export_format, template_html=template.template_content
             )
         elif template.report_type == 'CAMPAIGN_PERFORMANCE':
             report_data = service.generate_campaign_performance_report(
-                date_start, date_end, filters, export_format
+                date_start, date_end, filters, export_format, template_html=template.template_content
             )
         
         if report_data:
@@ -97,7 +97,8 @@ def generate_report_task(report_id, template_id, filters, date_start, date_end, 
                 'PDF': 'pdf',
                 'EXCEL': 'xlsx',
                 'CSV': 'csv',
-                'JSON': 'json'
+                'JSON': 'json',
+                'HTML': 'html'
             }.get(export_format, 'pdf')
             
             filename = f"report_{report.id}_{uuid.uuid4().hex[:8]}.{file_extension}"

@@ -640,6 +640,33 @@ class ReportExportService:
     """Service for exporting reports in different formats"""
     
     @staticmethod
+    def export_to_html(report_data, template_content, title="Report", extra_context=None):
+        """Render an HTML report using a Django template string.
+
+        Returns UTF-8 encoded HTML bytes.
+        """
+        try:
+            from django.template import Template, Context
+            context = {
+                'title': title,
+                'generated_at': timezone.now(),
+                'report_data': report_data,
+            }
+            if extra_context:
+                context.update(extra_context)
+
+            tpl = Template(template_content or "<html><body><pre>{{ report_data|safe }}</pre></body></html>")
+            html = tpl.render(Context(context))
+            return html.encode('utf-8')
+        except Exception as e:
+            logger.error(f"Error rendering HTML report: {str(e)}")
+            # Fallback to JSON if template rendering fails
+            try:
+                return ReportExportService.export_to_json(report_data, title)
+            except Exception:
+                return None
+
+    @staticmethod
     def export_to_pdf(report_data, template_content, title="Report"):
         """Export report to PDF using ReportLab"""
         try:
@@ -936,7 +963,7 @@ class ReportGenerationService:
         self.data_service = ReportDataService()
         self.export_service = ReportExportService()
     
-    def generate_patient_summary_report(self, date_start=None, date_end=None, filters=None, export_format='PDF'):
+    def generate_patient_summary_report(self, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
         """Generate patient summary report"""
         data = self.data_service.get_patient_summary_data(date_start, date_end, filters)
         
@@ -980,6 +1007,17 @@ class ReportGenerationService:
         
         if export_format == 'PDF':
             return self.export_service.export_to_pdf(data, template_content, "Patient Summary Report")
+        elif export_format == 'HTML' and template_html:
+            return self.export_service.export_to_html(
+                data,
+                template_html,
+                title="Patient Summary Report",
+                extra_context={
+                    'date_range_start': date_start,
+                    'date_range_end': date_end,
+                    'filters': filters or {}
+                }
+            )
         elif export_format == 'EXCEL':
             return self.export_service.export_to_excel(data, "Patient Summary Report")
         elif export_format == 'CSV':
@@ -989,12 +1027,23 @@ class ReportGenerationService:
         
         return None
     
-    def generate_visit_trends_report(self, date_start=None, date_end=None, filters=None, export_format='PDF'):
+    def generate_visit_trends_report(self, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
         """Generate visit trends report"""
         data = self.data_service.get_visit_trends_data(date_start, date_end, filters)
         
         if export_format == 'PDF':
             return self.export_service.export_to_pdf(data, "", "Visit Trends Report")
+        elif export_format == 'HTML' and template_html:
+            return self.export_service.export_to_html(
+                data,
+                template_html,
+                title="Visit Trends Report",
+                extra_context={
+                    'date_range_start': date_start,
+                    'date_range_end': date_end,
+                    'filters': filters or {}
+                }
+            )
         elif export_format == 'EXCEL':
             return self.export_service.export_to_excel(data, "Visit Trends Report")
         elif export_format == 'CSV':
@@ -1004,12 +1053,23 @@ class ReportGenerationService:
         
         return None
     
-    def generate_treatment_outcomes_report(self, date_start=None, date_end=None, filters=None, export_format='PDF'):
+    def generate_treatment_outcomes_report(self, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
         """Generate treatment outcomes report"""
         data = self.data_service.get_treatment_outcomes_data(date_start, date_end, filters)
         
         if export_format == 'PDF':
             return self.export_service.export_to_pdf(data, "", "Treatment Outcomes Report")
+        elif export_format == 'HTML' and template_html:
+            return self.export_service.export_to_html(
+                data,
+                template_html,
+                title="Treatment Outcomes Report",
+                extra_context={
+                    'date_range_start': date_start,
+                    'date_range_end': date_end,
+                    'filters': filters or {}
+                }
+            )
         elif export_format == 'EXCEL':
             return self.export_service.export_to_excel(data, "Treatment Outcomes Report")
         elif export_format == 'CSV':
@@ -1019,12 +1079,23 @@ class ReportGenerationService:
         
         return None
     
-    def generate_feedback_analysis_report(self, date_start=None, date_end=None, filters=None, export_format='PDF'):
+    def generate_feedback_analysis_report(self, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
         """Generate feedback analysis report"""
         data = self.data_service.get_feedback_analysis_data(date_start, date_end, filters)
         
         if export_format == 'PDF':
             return self.export_service.export_to_pdf(data, "", "Feedback Analysis Report")
+        elif export_format == 'HTML' and template_html:
+            return self.export_service.export_to_html(
+                data,
+                template_html,
+                title="Feedback Analysis Report",
+                extra_context={
+                    'date_range_start': date_start,
+                    'date_range_end': date_end,
+                    'filters': filters or {}
+                }
+            )
         elif export_format == 'EXCEL':
             return self.export_service.export_to_excel(data, "Feedback Analysis Report")
         elif export_format == 'CSV':
@@ -1034,7 +1105,7 @@ class ReportGenerationService:
         
         return None
     
-    def generate_comprehensive_analytics_report(self, date_start=None, date_end=None, filters=None, export_format='PDF'):
+    def generate_comprehensive_analytics_report(self, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
         """Generate comprehensive analytics report"""
         data = self.data_service.get_comprehensive_analytics_data(date_start, date_end, filters)
         
@@ -1049,7 +1120,7 @@ class ReportGenerationService:
         
         return None
     
-    def generate_medical_statistics_report(self, date_start=None, date_end=None, filters=None, export_format='PDF'):
+    def generate_medical_statistics_report(self, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
         """Generate medical statistics report"""
         # Use patient summary data for medical statistics
         data = self.data_service.get_patient_summary_data(date_start, date_end, filters)
@@ -1062,10 +1133,21 @@ class ReportGenerationService:
             return self.export_service.export_to_csv(data, "Medical Statistics Report")
         elif export_format == 'JSON':
             return self.export_service.export_to_json(data, "Medical Statistics Report")
+        elif export_format == 'HTML' and template_html:
+            return self.export_service.export_to_html(
+                data,
+                template_html,
+                title="Medical Statistics Report",
+                extra_context={
+                    'date_range_start': date_start,
+                    'date_range_end': date_end,
+                    'filters': filters or {}
+                }
+            )
         
         return None
     
-    def generate_dental_statistics_report(self, date_start=None, date_end=None, filters=None, export_format='PDF'):
+    def generate_dental_statistics_report(self, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
         """Generate dental statistics report"""
         # Use visit trends data focusing on dental records
         data = self.data_service.get_visit_trends_data(date_start, date_end, filters)
@@ -1078,10 +1160,21 @@ class ReportGenerationService:
             return self.export_service.export_to_csv(data, "Dental Statistics Report")
         elif export_format == 'JSON':
             return self.export_service.export_to_json(data, "Dental Statistics Report")
+        elif export_format == 'HTML' and template_html:
+            return self.export_service.export_to_html(
+                data,
+                template_html,
+                title="Dental Statistics Report",
+                extra_context={
+                    'date_range_start': date_start,
+                    'date_range_end': date_end,
+                    'filters': filters or {}
+                }
+            )
         
         return None
     
-    def generate_campaign_performance_report(self, date_start=None, date_end=None, filters=None, export_format='PDF'):
+    def generate_campaign_performance_report(self, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
         """Generate campaign performance report"""
         # Use comprehensive analytics data for campaign performance
         data = self.data_service.get_comprehensive_analytics_data(date_start, date_end, filters)
@@ -1102,5 +1195,16 @@ class ReportGenerationService:
             return self.export_service.export_to_csv(campaign_data, "Campaign Performance Report")
         elif export_format == 'JSON':
             return self.export_service.export_to_json(campaign_data, "Campaign Performance Report")
+        elif export_format == 'HTML' and template_html:
+            return self.export_service.export_to_html(
+                campaign_data,
+                template_html,
+                title="Campaign Performance Report",
+                extra_context={
+                    'date_range_start': date_start,
+                    'date_range_end': date_end,
+                    'filters': filters or {}
+                }
+            )
         
         return None 

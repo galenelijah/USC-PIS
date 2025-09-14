@@ -120,6 +120,15 @@ git push heroku main
 - `DEBUG`: False (production)
  - `PGP_ENCRYPTION_KEY`: Symmetric key for pgcrypto column encryption (PostgreSQL)
 
+### Email & Links (Production)
+- `DEFAULT_FROM_EMAIL`: Sender address, e.g., `noreply@your-domain`
+- `FRONTEND_URL`: Public site URL for links in emails (e.g., password reset)
+- `PASSWORD_RESET_TIMEOUT`: Optional; seconds (default 86400)
+
+Choose one email provider path:
+- SES: `USE_AWS_SES=True`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SES_REGION_NAME`
+- SMTP: `EMAIL_HOST`, `EMAIL_PORT=587`, `EMAIL_USE_TLS=True`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`
+
 ### Optional (Cloudinary)
 - `USE_CLOUDINARY`: True (activates Cloudinary)
 - `CLOUDINARY_CLOUD_NAME`: Your Cloudinary cloud name
@@ -163,6 +172,13 @@ heroku logs --tail
 - [ ] Generate a report
 - [ ] Check user profile functionality
 
+### 2b. Test Email & Notifications
+- [ ] Registration sends welcome email
+- [ ] Password reset sends email and link works
+- [ ] Medical/Dental visit triggers feedback email (via signals)
+- [ ] Medical certificate lifecycle emails
+- [ ] General notifications send email when created
+
 ### 3. Run Health Checks
 ```bash
 heroku run python manage.py check --deploy
@@ -196,6 +212,14 @@ To apply the unified stylesheet/header/footer to all default report templates:
 python backend/manage.py create_default_report_templates --force
 ```
 This updates existing templates in the database with shared USC-PIS branding/styles for HTML exports.
+
+### 7. Set Scheduler Jobs
+Use Heroku Scheduler (or cron) to run background email tasks automatically:
+- `python backend/manage.py send_scheduled_notifications` — every 10 minutes
+- `python backend/manage.py health_check_alerts` — every 6 hours
+- Optional: `python backend/manage.py auto_send_feedback_emails` — daily
+
+See details: `docs/SCHEDULER_JOBS.md` and `docs/AUTOMATED_EMAILS_AND_NOTIFICATIONS.md`.
 
 ## Admin Credentials
 
