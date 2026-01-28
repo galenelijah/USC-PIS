@@ -7,10 +7,13 @@ class PatientAdmin(admin.ModelAdmin):
     list_filter = ('gender', 'user__course')
 
     def get_course(self, obj):
-        if obj.user and obj.user.course:
-            return obj.user.course
-        return "N/A"
-    get_course.short_description = 'Course'
+        try:
+            if obj.user and obj.user.course:
+                return obj.user.course
+        except Exception:
+            pass
+        return "Not Linked"
+    get_course.short_description = 'STUDENT COURSE (TEST)'
     get_course.admin_order_field = 'user__course'
 
 # Register your models here.

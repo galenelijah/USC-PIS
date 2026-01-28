@@ -21,6 +21,7 @@ const PatientRow = memo(({ patient }) => (
   <TableRow key={patient.id}>
     <TableCell>{patient.usc_id || 'N/A'}</TableCell>
     <TableCell>{`${patient.first_name} ${patient.last_name}`}</TableCell>
+    <TableCell>{patient.course || 'N/A'}</TableCell>
     <TableCell>{patient.date_of_birth}</TableCell>
     <TableCell>{getSexLabel(patient.gender)}</TableCell>
     <TableCell>{patient.email}</TableCell>
@@ -44,6 +45,9 @@ const PatientCard = memo(({ patient }) => (
           </Typography>
           <Typography variant="body2" color="text.secondary">
             {patient.usc_id || 'No USC ID'}
+          </Typography>
+          <Typography variant="body2" color="primary" sx={{ fontWeight: 500 }}>
+            {patient.course || 'N/A'}
           </Typography>
         </Box>
       </Box>
@@ -92,6 +96,7 @@ const PatientList = memo(({ patients }) => {
               <TableRow>
                 <TableCell>USC ID</TableCell>
                 <TableCell>Name</TableCell>
+                <TableCell>Course</TableCell>
                 <TableCell>Date of Birth</TableCell>
                 <TableCell>Gender</TableCell>
                 <TableCell>Email</TableCell>
@@ -108,7 +113,7 @@ const PatientList = memo(({ patients }) => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                     <Typography variant="body1" color="text.secondary">
                       No patients found in the system.
                     </Typography>
