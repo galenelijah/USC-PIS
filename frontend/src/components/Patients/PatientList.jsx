@@ -16,12 +16,21 @@ import {
   useMediaQuery,
 } from '@mui/material';
 import { getSexLabel } from '../../utils/fieldMappers';
+import { ProgramsChoices } from '../../static/choices';
+
+// Helper to get course label from ID
+const getCourseLabel = (courseId) => {
+  if (!courseId) return 'N/A';
+  // Try to find by ID (handling both string and number inputs)
+  const course = ProgramsChoices.find(c => c.id == courseId);
+  return course ? course.label : courseId; // Fallback to ID if not found (e.g. if it was saved as text)
+};
 
 const PatientRow = memo(({ patient }) => (
   <TableRow key={patient.id}>
     <TableCell>{patient.usc_id || 'N/A'}</TableCell>
     <TableCell>{`${patient.first_name} ${patient.last_name}`}</TableCell>
-    <TableCell>{patient.course || 'N/A'}</TableCell>
+    <TableCell>{getCourseLabel(patient.course)}</TableCell>
     <TableCell>{patient.date_of_birth}</TableCell>
     <TableCell>{getSexLabel(patient.gender)}</TableCell>
     <TableCell>{patient.email}</TableCell>
@@ -47,7 +56,7 @@ const PatientCard = memo(({ patient }) => (
             {patient.usc_id || 'No USC ID'}
           </Typography>
           <Typography variant="body2" color="primary" sx={{ fontWeight: 500 }}>
-            {patient.course || 'N/A'}
+            {getCourseLabel(patient.course)}
           </Typography>
         </Box>
       </Box>
