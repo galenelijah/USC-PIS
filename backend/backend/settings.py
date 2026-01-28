@@ -223,7 +223,7 @@ TEMPLATES = [
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
             os.path.join(BASE_DIR, 'templates'),  # Email templates directory
-            os.path.join(BASE_DIR, 'frontend', 'frontend', 'dist'),  # Add the frontend build directory
+            os.path.join(BASE_DIR.parent, 'frontend', 'dist'),  # Add the frontend build directory
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -291,7 +291,7 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'frontend', 'frontend', 'dist'),  # Add the frontend build directory
+    os.path.join(BASE_DIR.parent, 'frontend', 'dist'),  # Add the frontend build directory
 ]
 
 # Whitenoise settings - handled by STORAGES configuration below
