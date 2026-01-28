@@ -17,8 +17,25 @@ class FeedbackAnalyticsAPITests(APITestCase):
         self.student_user = User.objects.create_user(email='student@test.com', username='student', password='password123', role='STUDENT')
 
         # Create patients (link student to a patient profile)
-        self.patient1 = Patient.objects.create(email='patient1@test.com', first_name='P1', last_name='LN1', date_of_birth='2000-01-01')
-        self.patient_student = Patient.objects.create(user=self.student_user, email=self.student_user.email, first_name='Student', last_name='User', date_of_birth='2002-05-05')
+        self.patient1 = Patient.objects.create(
+            email='patient1@test.com',
+            first_name='P1',
+            last_name='LN1',
+            date_of_birth='2000-01-01',
+            gender='M',
+            phone_number='1234567890',
+            address='123 Main St'
+        )
+        self.patient_student = Patient.objects.create(
+            user=self.student_user,
+            email=self.student_user.email,
+            first_name='Student',
+            last_name='User',
+            date_of_birth='2002-05-05',
+            gender='F',
+            phone_number='0987654321',
+            address='456 Student St'
+        )
         self.student_user.patient_profile = self.patient_student
         self.student_user.save()
 
@@ -121,3 +138,4 @@ class FeedbackEndpointTest(TestCase):
             url = '/api/feedback/'
         response = self.client.get(url)
         self.assertIn(response.status_code, [200, 403, 401])
+
