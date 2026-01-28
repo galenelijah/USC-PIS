@@ -16,7 +16,7 @@ import {
   useMediaQuery,
 } from '@mui/material';
 import { getSexLabel } from '../../utils/fieldMappers';
-import { ProgramsChoices } from '../../static/choices';
+import { ProgramsChoices } from '../static/choices';
 
 // Helper to get course label from ID
 const getCourseLabel = (courseId) => {

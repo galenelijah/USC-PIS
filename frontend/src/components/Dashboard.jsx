@@ -546,7 +546,6 @@ const Dashboard = memo(({ user }) => {
                     variant="caption" 
                     color="text.secondary" 
                     sx={{ 
-                      display: 'block',
                       lineHeight: 1.3,
                       display: '-webkit-box',
                       WebkitLineClamp: 2,
@@ -627,7 +626,6 @@ const Dashboard = memo(({ user }) => {
                     variant="caption" 
                     color="text.secondary" 
                     sx={{ 
-                      display: 'block',
                       lineHeight: 1.3,
                       display: '-webkit-box',
                       WebkitLineClamp: 2,
