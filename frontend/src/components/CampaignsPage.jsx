@@ -495,6 +495,7 @@ const CampaignsPage = () => {
   };
 
   const handleMenuOpen = (event, campaign) => {
+    event.stopPropagation();
     setAnchorEl(event.currentTarget);
     setMenuCampaign(campaign);
   };
@@ -741,12 +742,14 @@ const CampaignsPage = () => {
             return (
               <Grid item xs={12} sm={6} md={4} key={campaign.id}>
                 <Card 
+                  onClick={() => openViewDialog(campaign)}
                   sx={{ 
                     borderRadius: 4,
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
                     transition: 'all 0.3s ease',
+                    cursor: 'pointer',
                     boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
                     border: '1px solid',
                     borderColor: 'divider',
