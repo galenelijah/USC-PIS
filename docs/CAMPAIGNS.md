@@ -54,11 +54,14 @@ Images (optional):
 - Server never returns an HTML 500 page for expected validation/storage errors.
 
 ## Frontend Integration (React)
+- **Unified View:** A single component (`CampaignsPage`) serves all user roles.
+  - **Staff/Admin:** Access to Create, Edit, and Delete actions via buttons and menus.
+  - **Student/Patient:** Read-only view. Administrative actions are conditionally hidden.
 - Create/Update forms use FormData and do not force `Content-Type`; Axios sets multipart boundaries automatically.
 - Quality gates (client‑side): minimum lengths for title/description/content and date sanity check; shows inline field errors.
 - Updates use `PATCH` to avoid blanking fields not included in the payload.
 - Admin edit/view/preview always fetch detail by id before rendering.
-- Student list shows newest campaigns first, lazy‑loads images, provides overlay CTA, and supports “Load more” when paginated.
+- List view shows newest campaigns first, lazy‑loads images, provides overlay CTA, and supports filtering/searching for all users.
 
 ## Troubleshooting
 - 500 on create with images:

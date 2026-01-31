@@ -481,7 +481,7 @@ const CampaignsPage = () => {
     } catch (e) {
       setSelectedCampaign(campaign);
     }
-    setViewDialogOpen(true);
+    setPublicPreviewOpen(true);
   };
 
   const openPublicPreview = async (campaign) => {
@@ -2540,32 +2540,36 @@ const CampaignsPage = () => {
                   )}
 
                   {/* Admin Preview Notice */}
-                  <Grid item xs={12}>
-                    <Alert severity="info" sx={{ borderRadius: 2 }}>
-                      <Typography variant="body2">
-                        <strong>Admin Preview:</strong> This is how the campaign will appear to the public when active. 
-                        The actual public view may vary slightly based on the platform and user device.
-                      </Typography>
-                    </Alert>
-                  </Grid>
+                  {isNonStudent && (
+                    <Grid item xs={12}>
+                      <Alert severity="info" sx={{ borderRadius: 2 }}>
+                        <Typography variant="body2">
+                          <strong>Admin Preview:</strong> This is how the campaign will appear to the public when active. 
+                          The actual public view may vary slightly based on the platform and user device.
+                        </Typography>
+                      </Alert>
+                    </Grid>
+                  )}
                 </Grid>
               </Container>
             </DialogContent>
             <DialogActions sx={{ p: 3, backgroundColor: '#f8f9fa' }}>
               <Button onClick={() => setPublicPreviewOpen(false)} size="large">
-                Close Preview
+                Close
               </Button>
-              <Button 
-                variant="contained" 
-                onClick={() => {
-                  setPublicPreviewOpen(false);
-                  openEditDialog(selectedCampaign);
-                }}
-                startIcon={<EditIcon />}
-                size="large"
-              >
-                Edit Campaign
-              </Button>
+              {isNonStudent && (
+                <Button 
+                  variant="contained" 
+                  onClick={() => {
+                    setPublicPreviewOpen(false);
+                    openEditDialog(selectedCampaign);
+                  }}
+                  startIcon={<EditIcon />}
+                  size="large"
+                >
+                  Edit Campaign
+                </Button>
+              )}
             </DialogActions>
           </>
         )}
