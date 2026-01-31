@@ -34,7 +34,6 @@ const StudentHealthRecords = lazy(() => import('./components/StudentHealthRecord
 const ConsultationHistory = lazy(() => import('./components/ConsultationHistory'));
 const Notifications = lazy(() => import('./components/Notifications'));
 const Campaigns = lazy(() => import('./components/Campaigns'));
-const StudentCampaigns = lazy(() => import('./components/StudentCampaigns'));
 const PublicCampaignPreview = lazy(() => import('./components/PublicCampaignPreview'));
 const Reports = lazy(() => import('./components/Reports'));
 const FeedbackForm = lazy(() => import('./components/FeedbackForm'));
@@ -266,7 +265,7 @@ const App = () => {
                 <RequireProfileSetup>
                   <Layout>
                     <Suspense fallback={<PageLoader />}>
-                      {userRoles.isStudent ? <StudentCampaigns /> : <Campaigns />}
+                      <Campaigns />
                     </Suspense>
                   </Layout>
                 </RequireProfileSetup>
