@@ -361,18 +361,29 @@ const CampaignsPage = () => {
       fetchCampaigns();
     } catch (error) {
       console.error('Error creating campaign:', error);
-      const data = error?.response?.data;
-      if (data && typeof data === 'object') {
-        const mapped = {};
-        Object.entries(data).forEach(([k, v]) => {
-          mapped[k] = Array.isArray(v) ? v.join(' ') : String(v);
-        });
-        setFieldErrors(mapped);
-        const firstKey = Object.keys(mapped)[0];
-        showSnackbar(firstKey ? `${firstKey}: ${mapped[firstKey]}` : 'Failed to create campaign', 'error');
-      } else {
-        showSnackbar(error.response?.data?.error || 'Failed to create campaign', 'error');
+      let errorMessage = 'Failed to create campaign';
+      
+      if (error.response?.data) {
+        const data = error.response.data;
+        if (typeof data === 'object') {
+          // Handle field-specific errors
+          const mapped = {};
+          let firstError = null;
+          
+          Object.entries(data).forEach(([k, v]) => {
+            const msg = Array.isArray(v) ? v.join(' ') : String(v);
+            mapped[k] = msg;
+            if (!firstError) firstError = `${k}: ${msg}`;
+          });
+          
+          setFieldErrors(mapped);
+          if (firstError) errorMessage = firstError;
+        } else if (typeof data === 'string') {
+          errorMessage = data;
+        }
       }
+      
+      showSnackbar(errorMessage, 'error');
     }
   };
 
@@ -406,18 +417,29 @@ const CampaignsPage = () => {
       fetchCampaigns();
     } catch (error) {
       console.error('Error updating campaign:', error);
-      const data = error?.response?.data;
-      if (data && typeof data === 'object') {
-        const mapped = {};
-        Object.entries(data).forEach(([k, v]) => {
-          mapped[k] = Array.isArray(v) ? v.join(' ') : String(v);
-        });
-        setFieldErrors(mapped);
-        const firstKey = Object.keys(mapped)[0];
-        showSnackbar(firstKey ? `${firstKey}: ${mapped[firstKey]}` : 'Failed to update campaign', 'error');
-      } else {
-        showSnackbar(error.response?.data?.error || 'Failed to update campaign', 'error');
+      let errorMessage = 'Failed to update campaign';
+      
+      if (error.response?.data) {
+        const data = error.response.data;
+        if (typeof data === 'object') {
+          // Handle field-specific errors
+          const mapped = {};
+          let firstError = null;
+          
+          Object.entries(data).forEach(([k, v]) => {
+            const msg = Array.isArray(v) ? v.join(' ') : String(v);
+            mapped[k] = msg;
+            if (!firstError) firstError = `${k}: ${msg}`;
+          });
+          
+          setFieldErrors(mapped);
+          if (firstError) errorMessage = firstError;
+        } else if (typeof data === 'string') {
+          errorMessage = data;
+        }
       }
+      
+      showSnackbar(errorMessage, 'error');
     }
   };
 
@@ -1298,6 +1320,9 @@ const CampaignsPage = () => {
                     </IconButton>
                   </Box>
                 )}
+                {fieldErrors.banner_image && (
+                  <FormHelperText error>{fieldErrors.banner_image}</FormHelperText>
+                )}
               </Box>
             </Grid>
             <Grid item xs={12} md={4}>
@@ -1334,6 +1359,9 @@ const CampaignsPage = () => {
                     </IconButton>
                   </Box>
                 )}
+                {fieldErrors.thumbnail_image && (
+                  <FormHelperText error>{fieldErrors.thumbnail_image}</FormHelperText>
+                )}
               </Box>
             </Grid>
             <Grid item xs={12} md={4}>
@@ -1369,6 +1397,9 @@ const CampaignsPage = () => {
                       <CloseIcon fontSize="small" />
                     </IconButton>
                   </Box>
+                )}
+                {fieldErrors.pubmat_image && (
+                  <FormHelperText error>{fieldErrors.pubmat_image}</FormHelperText>
                 )}
               </Box>
             </Grid>
@@ -1660,6 +1691,9 @@ const CampaignsPage = () => {
                     Current banner uploaded
                   </Typography>
                 )}
+                {fieldErrors.banner_image && (
+                  <FormHelperText error>{fieldErrors.banner_image}</FormHelperText>
+                )}
               </Box>
             </Grid>
             <Grid item xs={12} md={4}>
@@ -1701,6 +1735,9 @@ const CampaignsPage = () => {
                     Current thumbnail uploaded
                   </Typography>
                 )}
+                {fieldErrors.thumbnail_image && (
+                  <FormHelperText error>{fieldErrors.thumbnail_image}</FormHelperText>
+                )}
               </Box>
             </Grid>
             <Grid item xs={12} md={4}>
@@ -1741,6 +1778,9 @@ const CampaignsPage = () => {
                   <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
                     Current PubMat uploaded
                   </Typography>
+                )}
+                {fieldErrors.pubmat_image && (
+                  <FormHelperText error>{fieldErrors.pubmat_image}</FormHelperText>
                 )}
               </Box>
             </Grid>
