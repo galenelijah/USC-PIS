@@ -27,7 +27,11 @@ const InlineContentRenderer = ({ content }) => {
             variant={headerVariant} 
             fontWeight="bold" 
             color="primary.main"
-            sx={{ mt: index > 0 ? 3 : 0, mb: 1.5 }}
+            sx={{ 
+              mt: index > 0 ? 3 : 0, 
+              mb: 1.5,
+              overflowWrap: 'break-word'
+            }}
           >
             {headerText}
           </Typography>
@@ -44,7 +48,11 @@ const InlineContentRenderer = ({ content }) => {
                 key={itemIndex} 
                 component="li" 
                 variant="body1" 
-                sx={{ mb: 0.5, lineHeight: 1.7 }}
+                sx={{ 
+                  mb: 0.5, 
+                  lineHeight: 1.7,
+                  overflowWrap: 'break-word'
+                }}
               >
                 {item.replace(/^[-*•]\s+/, '')}
               </Typography>
@@ -63,7 +71,11 @@ const InlineContentRenderer = ({ content }) => {
                 key={itemIndex} 
                 component="li" 
                 variant="body1" 
-                sx={{ mb: 0.5, lineHeight: 1.7 }}
+                sx={{ 
+                  mb: 0.5, 
+                  lineHeight: 1.7,
+                  overflowWrap: 'break-word'
+                }}
               >
                 {item.replace(/^\d+\.\s+/, '')}
               </Typography>
@@ -81,7 +93,8 @@ const InlineContentRenderer = ({ content }) => {
             mt: index > 0 ? 2 : 0,
             mb: 1,
             lineHeight: 1.7,
-            whiteSpace: 'pre-wrap'
+            whiteSpace: 'pre-wrap',
+            overflowWrap: 'break-word'
           }}
         >
           {trimmed}

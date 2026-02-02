@@ -2199,7 +2199,9 @@ const CampaignsPage = () => {
                               fontSize: '1.1rem', 
                               lineHeight: 1.8,
                               textAlign: 'justify',
-                              mb: 3
+                              mb: 3,
+                              overflowWrap: 'break-word',
+                              whiteSpace: 'pre-wrap'
                             }}
                           >
                             {selectedCampaign.description}
@@ -2247,7 +2249,9 @@ const CampaignsPage = () => {
                                 sx={{ 
                                   lineHeight: 1.8,
                                   textAlign: 'justify',
-                                  mb: 0
+                                  mb: 0,
+                                  overflowWrap: 'break-word',
+                                  whiteSpace: 'pre-wrap'
                                 }}
                               >
                                 {selectedCampaign.objectives}

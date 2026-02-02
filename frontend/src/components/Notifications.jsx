@@ -117,6 +117,36 @@ const Notifications = () => {
             loadUnreadNotifications();
             loadStats();
         }
+
+        // Polling mechanism
+        const pollInterval = 30000; // 30 seconds
+        let timeoutId;
+
+        const poll = async () => {
+            // Only poll if window is visible to save resources
+            if (document.visibilityState === 'visible' && isMountedRef.current) {
+                try {
+                    // We only background refresh unread count and stats to be lightweight
+                    // The full list refresh happens only if user manually refreshes or filters change
+                    // This prevents the list from jumping around while reading
+                    await Promise.all([
+                        loadUnreadNotifications(),
+                        loadStats()
+                    ]);
+                } catch (error) {
+                    console.debug('Background polling failed:', error);
+                }
+            }
+            timeoutId = setTimeout(poll, pollInterval);
+        };
+
+        // Start polling
+        timeoutId = setTimeout(poll, pollInterval);
+
+        // Cleanup
+        return () => {
+            if (timeoutId) clearTimeout(timeoutId);
+        };
     }, []);
 
     const loadNotifications = async () => {
