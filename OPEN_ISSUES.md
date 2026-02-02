@@ -43,6 +43,21 @@ Status: Tracking; updated with current progress (2025-08-23)
 - Status: Addressed (normalized via `getSexLabel` before selecting BMI image).
 
 
+## Campaign Paragraphs Horizontal Overflow — New
+- Status: Open
+- Description: Paragraphs in campaign descriptions/content are extending horizontally instead of wrapping vertically.
+- Severity: UI/UX (Minor)
+
+## Reports Page: Missing Templates — New
+- Status: Open
+- Description: No report templates are visible or available in the /reports page.
+- Note: Needs backend verification of template seeding or frontend fetch logic.
+
+## Notifications Optimization — New
+- Status: Open
+- Description: Notifications system is functional but not yet optimized for performance or UX.
+- Note: Needs review of polling interval or WebSocket implementation.
+
 ## Database & Backup Monitor — Proposed Enhancements
 - Status: Proposed (add to roadmap and implement iteratively)
 - Notes:
