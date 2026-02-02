@@ -11,9 +11,10 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write('Seeding pilot data...')
 
-        # Common data for Tourism students
-        course = 'BS Tourism Management'
-        year_level = '1st Year'
+        # IDs based on frontend/src/components/static/choices.jsx
+        course_id = '34' # Bachelor of Science in Tourism Management
+        year_level_id = '1' # 1st Year
+        civil_status_id = '1' # Single
         
         # Sample names to generate realistic-looking data
         first_names = ['Liam', 'Noah', 'Oliver', 'Elijah', 'James', 'Olivia', 'Emma', 'Charlotte', 'Amelia', 'Sophia']
@@ -32,6 +33,8 @@ class Command(BaseCommand):
                 self.stdout.write(f'User {email} already exists. Skipping.')
                 continue
 
+            sex_id = random.choice(['1', '2']) # 1=Male, 2=Female
+
             user = User.objects.create_user(
                 email=email,
                 password='password123',
@@ -40,18 +43,28 @@ class Command(BaseCommand):
                 last_name=lname,
                 username=email,
                 
-                # Student Profile Fields
-                course=course,
-                year_level=year_level,
+                # Student Profile Fields (Using IDs to match frontend mappers)
+                course=course_id,
+                year_level=year_level_id,
                 id_number=f"26100{i:03d}", # e.g., 26100001
-                sex=random.choice(['Male', 'Female']),
+                sex=sex_id, 
+                civil_status=civil_status_id,
+                nationality="Filipino",
+                religion="Roman Catholic",
                 birthday=timezone.now().date() - timedelta(days=365*19), # approx 19 years old
                 phone=f"0917{random.randint(1000000, 9999999)}",
                 address_present="Cebu City",
+                address_permanent="Cebu Province",
                 
-                # Medical Profile (Encrypted fields)
+                # Emergency Contact (To avoid unknowns)
+                emergency_contact="Parent/Guardian",
+                emergency_contact_number=f"0918{random.randint(1000000, 9999999)}",
+                
+                # Medical Profile
                 allergies="Peanuts" if i % 3 == 0 else "None",
                 existing_medical_condition="Asthma" if i % 4 == 0 else "None",
+                illness="None",
+                medications="None",
                 completeSetup=True,
                 is_active=True
             )
@@ -63,10 +76,10 @@ class Command(BaseCommand):
                 last_name=lname,
                 email=email,
                 date_of_birth=user.birthday,
-                gender='M' if user.sex == 'Male' else 'F',
+                gender='M' if sex_id == '1' else 'F',
                 phone_number=user.phone,
                 address=user.address_present,
-                created_by=user # Self-registered
+                created_by=user
             )
 
             # 3. Add Sample Medical Record (for 50% of students)
@@ -77,7 +90,7 @@ class Command(BaseCommand):
                     diagnosis="Upper Respiratory Tract Infection" if i % 4 == 0 else "Tension Headache",
                     treatment="Prescribed analgesics and rest.",
                     physical_examination={"bp": "120/80", "temp": "36.5"},
-                    created_by=user # Created by system or staff technically, but using user for simplicity here
+                    created_by=user
                 )
 
             # 4. Add Sample Dental Record (for 30% of students)

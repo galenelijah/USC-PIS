@@ -7,7 +7,7 @@ import { CivilStatusChoices, SexChoices, ProgramsChoices, YearLevelChoices } fro
 export const getSexLabel = (sexId) => {
   if (!sexId) return 'Not specified';
   const sex = SexChoices.find(s => s.id.toString() === sexId.toString());
-  return sex ? sex.label : `Unknown (${sexId})`;
+  return sex ? sex.label : (isNaN(sexId) ? sexId : 'Unspecified');
 };
 
 /**
@@ -16,7 +16,7 @@ export const getSexLabel = (sexId) => {
 export const getCivilStatusLabel = (statusId) => {
   if (!statusId) return 'Not specified';
   const status = CivilStatusChoices.find(s => s.id.toString() === statusId.toString());
-  return status ? status.label : `Unknown (${statusId})`;
+  return status ? status.label : (isNaN(statusId) ? statusId : 'Unspecified');
 };
 
 /**
@@ -25,7 +25,7 @@ export const getCivilStatusLabel = (statusId) => {
 export const getCourseLabel = (courseId) => {
   if (!courseId) return 'Not specified';
   const course = ProgramsChoices.find(c => c.id.toString() === courseId.toString());
-  return course ? course.label : `Unknown (${courseId})`;
+  return course ? course.label : (isNaN(courseId) ? courseId : 'Unspecified');
 };
 
 /**
@@ -34,7 +34,7 @@ export const getCourseLabel = (courseId) => {
 export const getYearLevelLabel = (yearId) => {
   if (!yearId) return 'Not specified';
   const year = YearLevelChoices.find(y => y.id.toString() === yearId.toString());
-  return year ? year.label : `Unknown (${yearId})`;
+  return year ? year.label : (isNaN(yearId) ? yearId : 'Unspecified');
 };
 
 /**
