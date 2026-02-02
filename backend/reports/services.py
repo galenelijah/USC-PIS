@@ -15,6 +15,7 @@ from feedback.models import Feedback
 from health_info.models import HealthCampaign, CampaignFeedback
 from notifications.models import Notification
 import logging
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -172,170 +173,75 @@ class ReportDataService:
     
     @staticmethod
     def get_visit_trends_data(date_start=None, date_end=None, filters=None):
-        """Get visit trends data with optimized queries and caching"""
+        """Get visit trends data using Pandas for efficient aggregation"""
         cache_key = ReportDataService._get_cache_key('visit_trends', date_start, date_end, filters or {})
         cached_data = cache.get(cache_key)
         if cached_data:
             return cached_data
         
-        # Combine medical and dental records for comprehensive visit data
-        medical_qs = MedicalRecord.objects.annotate(visit_type=Value('Medical', output_field=models.CharField()))
-        dental_qs = DentalRecord.objects.annotate(visit_type=Value('Dental', output_field=models.CharField()))
+        # 1. Fetch raw data (Values only for efficiency)
+        medical_data = list(MedicalRecord.objects.filter(
+            created_at__gte=date_start or (timezone.now() - timedelta(days=365)),
+            created_at__lte=date_end or timezone.now()
+        ).values('created_at', 'diagnosis'))
         
-        # Apply date filters
-        if date_start:
-            medical_qs = medical_qs.filter(created_at__gte=date_start)
-            dental_qs = dental_qs.filter(created_at__gte=date_start)
-        if date_end:
-            medical_qs = medical_qs.filter(created_at__lte=date_end)
-            dental_qs = dental_qs.filter(created_at__lte=date_end)
+        dental_data = list(DentalRecord.objects.filter(
+            created_at__gte=date_start or (timezone.now() - timedelta(days=365)),
+            created_at__lte=date_end or timezone.now()
+        ).values('created_at', 'diagnosis'))
         
-        # Get trends using database aggregation for better performance (PostgreSQL compatible)
-        with connection.cursor() as cursor:
-            # Monthly trends query - database agnostic
-            if connection.vendor == 'postgresql':
-                cursor.execute("""
-                    SELECT 
-                        DATE_TRUNC('month', created_at)::date as month,
-                        COUNT(*) as visits,
-                        'Medical' as type
-                    FROM patients_medicalrecord 
-                    WHERE created_at >= %s AND created_at <= %s
-                    GROUP BY month
-                    UNION ALL
-                    SELECT 
-                        DATE_TRUNC('month', created_at)::date as month,
-                        COUNT(*) as visits,
-                        'Dental' as type
-                    FROM patients_dentalrecord 
-                    WHERE created_at >= %s AND created_at <= %s
-                    GROUP BY month
-                    ORDER BY month
-                """, [
-                    date_start or timezone.now() - timedelta(days=365),
-                    date_end or timezone.now(),
-                    date_start or timezone.now() - timedelta(days=365),
-                    date_end or timezone.now()
-                ])
-            else:
-                # SQLite fallback
-                cursor.execute("""
-                    SELECT 
-                        DATE(created_at, 'start of month') as month,
-                        COUNT(*) as visits,
-                        'Medical' as type
-                    FROM patients_medicalrecord 
-                    WHERE created_at >= ? AND created_at <= ?
-                    GROUP BY month
-                    UNION ALL
-                    SELECT 
-                        DATE(created_at, 'start of month') as month,
-                        COUNT(*) as visits,
-                        'Dental' as type
-                    FROM patients_dentalrecord 
-                    WHERE created_at >= ? AND created_at <= ?
-                    GROUP BY month
-                    ORDER BY month
-                """, [
-                    date_start or timezone.now() - timedelta(days=365),
-                    date_end or timezone.now(),
-                    date_start or timezone.now() - timedelta(days=365),
-                    date_end or timezone.now()
-                ])
-            
-            monthly_data = cursor.fetchall()
-        
-        # Process monthly trends
-        monthly_trends = {}
-        for month_str, visits, visit_type in monthly_data:
-            # Handle both string and date objects
-            if isinstance(month_str, str):
-                month_key = month_str
-            else:
-                # Convert date object to string
-                month_key = month_str.strftime('%Y-%m-%d') if month_str else str(month_str)
-            
-            if month_key not in monthly_trends:
-                monthly_trends[month_key] = {'medical': 0, 'dental': 0, 'total': 0}
-            monthly_trends[month_key][visit_type.lower()] = visits
-            monthly_trends[month_key]['total'] += visits
-        
-        # Convert to list format
-        monthly_list = []
-        for month, data in sorted(monthly_trends.items()):
-            # Ensure month is in YYYY-MM format
-            if len(month) > 7:
-                month_formatted = month[:7]  # YYYY-MM format
-            else:
-                month_formatted = month
-            monthly_list.append({
-                'month': month_formatted,
-                'medical_visits': data['medical'],
-                'dental_visits': data['dental'],
-                'total_visits': data['total']
-            })
-        
-        # Visit distribution by day of week and hour (PostgreSQL compatible)
-        hour_distribution = []
-        with connection.cursor() as cursor:
-            if connection.vendor == 'postgresql':
-                cursor.execute("""
-                    SELECT 
-                        EXTRACT(HOUR FROM created_at)::integer as hour,
-                        COUNT(*) as visits
-                    FROM (
-                        SELECT created_at FROM patients_medicalrecord
-                        WHERE created_at >= %s AND created_at <= %s
-                        UNION ALL
-                        SELECT created_at FROM patients_dentalrecord
-                        WHERE created_at >= %s AND created_at <= %s
-                    ) combined
-                    GROUP BY hour
-                    ORDER BY hour
-                """, [
-                    date_start or timezone.now() - timedelta(days=365),
-                    date_end or timezone.now(),
-                    date_start or timezone.now() - timedelta(days=365),
-                    date_end or timezone.now()
-                ])
-            else:
-                # SQLite fallback
-                cursor.execute("""
-                    SELECT 
-                        CAST(strftime('%H', created_at) AS INTEGER) as hour,
-                        COUNT(*) as visits
-                    FROM (
-                        SELECT created_at FROM patients_medicalrecord
-                        WHERE created_at >= ? AND created_at <= ?
-                        UNION ALL
-                        SELECT created_at FROM patients_dentalrecord
-                        WHERE created_at >= ? AND created_at <= ?
-                    ) combined
-                    GROUP BY hour
-                    ORDER BY hour
-                """, [
-                    date_start or timezone.now() - timedelta(days=365),
-                    date_end or timezone.now(),
-                    date_start or timezone.now() - timedelta(days=365),
-                    date_end or timezone.now()
-                ])
-            
-            for hour, visits in cursor.fetchall():
-                hour_distribution.append({'hour': hour, 'visits': visits})
-        
-        # Aggregated statistics
-        total_medical = medical_qs.count()
-        total_dental = dental_qs.count()
+        # 2. Initialize results
+        total_medical = len(medical_data)
+        total_dental = len(dental_data)
         total_visits = total_medical + total_dental
+        monthly_list = []
+        hour_distribution = []
+        common_diagnoses = []
         
-        # Most common diagnoses and treatments
-        common_diagnoses = list(medical_qs.exclude(
-            diagnosis__isnull=True
-        ).exclude(
-            diagnosis__exact=''
-        ).values('diagnosis').annotate(
-            count=Count('id')
-        ).order_by('-count')[:10])
+        # 3. Process with Pandas if data exists
+        if total_visits > 0:
+            try:
+                # Create DataFrames
+                df_med = pd.DataFrame(medical_data)
+                df_den = pd.DataFrame(dental_data)
+                
+                # Add type column
+                if not df_med.empty: df_med['type'] = 'Medical'
+                if not df_den.empty: df_den['type'] = 'Dental'
+                
+                # Combine
+                df = pd.concat([df_med, df_den], ignore_index=True)
+                
+                # Ensure datetime
+                df['created_at'] = pd.to_datetime(df['created_at'])
+                
+                # --- Monthly Trends ---
+                # Resample by month start ('MS')
+                monthly_groups = df.groupby([pd.Grouper(key='created_at', freq='MS'), 'type']).size().unstack(fill_value=0)
+                
+                # Format for output
+                for date, row in monthly_groups.iterrows():
+                    monthly_list.append({
+                        'month': date.strftime('%Y-%m'),
+                        'medical_visits': int(row.get('Medical', 0)),
+                        'dental_visits': int(row.get('Dental', 0)),
+                        'total_visits': int(row.sum())
+                    })
+                
+                # --- Hourly Distribution ---
+                df['hour'] = df['created_at'].dt.hour
+                hourly_counts = df['hour'].value_counts().sort_index()
+                hour_distribution = [{'hour': hour, 'visits': int(count)} for hour, count in hourly_counts.items()]
+                
+                # --- Common Diagnoses ---
+                # Filter out empty/null diagnoses
+                if 'diagnosis' in df.columns:
+                    diagnosis_counts = df['diagnosis'].dropna().value_counts().head(10)
+                    common_diagnoses = [{'diagnosis': name, 'count': int(count)} for name, count in diagnosis_counts.items() if name]
+                    
+            except Exception as e:
+                logger.error(f"Pandas processing error in get_visit_trends_data: {e}")
+                # Fallback handled by empty lists above
         
         data = {
             'total_visits': total_visits,
@@ -398,12 +304,13 @@ class ReportDataService:
     
     @staticmethod
     def get_feedback_analysis_data(date_start=None, date_end=None, filters=None):
-        """Get feedback analysis data with enhanced analytics and caching"""
+        """Get feedback analysis data using Pandas for advanced analytics"""
         cache_key = ReportDataService._get_cache_key('feedback_analysis', date_start, date_end, filters or {})
         cached_data = cache.get(cache_key)
         if cached_data:
             return cached_data
         
+        # 1. Build QuerySet
         queryset = Feedback.objects.select_related('patient', 'medical_record')
         
         if date_start:
@@ -411,153 +318,107 @@ class ReportDataService:
         if date_end:
             queryset = queryset.filter(created_at__lte=date_end)
         
-        # Apply filters
         if filters:
             if filters.get('rating_min'):
                 queryset = queryset.filter(rating__gte=filters['rating_min'])
             if filters.get('rating_max'):
                 queryset = queryset.filter(rating__lte=filters['rating_max'])
         
-        # Aggregate all statistics in one query for better performance
-        aggregate_data = queryset.aggregate(
-            total_feedback=Count('id'),
-            average_rating=Avg('rating'),
-            recommendation_count=Count('id', filter=Q(recommend__iexact='yes')),
-            courtesy_count=Count('id', filter=Q(courteous__iexact='yes')),
-            general_feedback_count=Count('id', filter=Q(medical_record__isnull=True)),
-            visit_feedback_count=Count('id', filter=Q(medical_record__isnull=False))
-        )
+        # 2. Fetch Data
+        feedback_data = list(queryset.values(
+            'rating', 'recommend', 'courteous', 'created_at', 'medical_record__created_at'
+        ))
         
-        total_feedback = aggregate_data['total_feedback']
+        total_feedback = len(feedback_data)
         
-        if total_feedback == 0:
-            return {
-                'total_feedback': 0,
-                'average_rating': 0,
-                'rating_distribution': [],
-                'satisfaction_trends': [],
-                'recommendation_rate': 0,
-                'courtesy_rate': 0,
-                'feedback_types': {'general': 0, 'visit_specific': 0}
-            }
-        
-        # Rating distribution
-        rating_dist = list(queryset.values('rating').annotate(count=Count('id')).order_by('rating'))
-        
-        # Ensure all ratings 1-5 are present
-        rating_dict = {r['rating']: r['count'] for r in rating_dist}
-        for i in range(1, 6):
-            if i not in rating_dict:
-                rating_dict[i] = 0
-        
-        rating_distribution = [{'rating': k, 'count': v} for k, v in sorted(rating_dict.items())]
-        
-        # Monthly satisfaction trends using database aggregation (PostgreSQL compatible)
-        with connection.cursor() as cursor:
-            if connection.vendor == 'postgresql':
-                cursor.execute("""
-                    SELECT 
-                        DATE_TRUNC('month', created_at)::date as month,
-                        AVG(rating) as avg_rating,
-                        COUNT(*) as feedback_count,
-                        COUNT(CASE WHEN recommend = 'yes' THEN 1 END) as recommend_count,
-                        COUNT(CASE WHEN courteous = 'yes' THEN 1 END) as courtesy_count
-                    FROM feedback_feedback 
-                    WHERE created_at >= %s AND created_at <= %s
-                    GROUP BY month
-                    ORDER BY month
-                """, [
-                    date_start or timezone.now() - timedelta(days=180),
-                    date_end or timezone.now()
-                ])
-            else:
-                # SQLite fallback
-                cursor.execute("""
-                    SELECT 
-                        DATE(created_at, 'start of month') as month,
-                        AVG(rating) as avg_rating,
-                        COUNT(*) as feedback_count,
-                        COUNT(CASE WHEN recommend = 'yes' THEN 1 END) as recommend_count,
-                        COUNT(CASE WHEN courteous = 'yes' THEN 1 END) as courtesy_count
-                    FROM feedback_feedback 
-                    WHERE created_at >= ? AND created_at <= ?
-                    GROUP BY month
-                    ORDER BY month
-                """, [
-                    date_start or timezone.now() - timedelta(days=180),
-                    date_end or timezone.now()
-                ])
-            
-            satisfaction_trends = []
-            for row in cursor.fetchall():
-                month, avg_rating, count, recommend, courtesy = row
-                # Handle both string and date objects
-                if isinstance(month, str):
-                    month_formatted = month[:7]  # YYYY-MM format
-                else:
-                    # Convert date object to string
-                    month_formatted = month.strftime('%Y-%m') if month else str(month)[:7]
-                
-                satisfaction_trends.append({
-                    'month': month_formatted,
-                    'average_rating': round(avg_rating or 0, 1),
-                    'feedback_count': count,
-                    'recommendation_rate': round((recommend / max(1, count)) * 100, 1),
-                    'courtesy_rate': round((courtesy / max(1, count)) * 100, 1)
-                })
-        
-        # Response time analysis (if medical record feedback) - PostgreSQL compatible
+        # Default values
+        avg_rating = 0
+        rating_distribution = []
+        satisfaction_trends = []
+        recommendation_rate = 0
+        courtesy_rate = 0
+        feedback_types = {'general': 0, 'visit_specific': 0}
         response_time_stats = None
-        with connection.cursor() as cursor:
-            if connection.vendor == 'postgresql':
-                cursor.execute("""
-                    SELECT 
-                        AVG(EXTRACT(EPOCH FROM (f.created_at - mr.created_at))/86400) as avg_response_days,
-                        COUNT(*) as count
-                    FROM feedback_feedback f
-                    JOIN patients_medicalrecord mr ON f.medical_record_id = mr.id
-                    WHERE f.created_at >= %s AND f.created_at <= %s
-                    AND f.medical_record_id IS NOT NULL
-                """, [
-                    date_start or timezone.now() - timedelta(days=180),
-                    date_end or timezone.now()
-                ])
-            else:
-                # SQLite fallback
-                cursor.execute("""
-                    SELECT 
-                        AVG(julianday(f.created_at) - julianday(mr.created_at)) as avg_response_days,
-                        COUNT(*) as count
-                    FROM feedback_feedback f
-                    JOIN patients_medicalrecord mr ON f.medical_record_id = mr.id
-                    WHERE f.created_at >= ? AND f.created_at <= ?
-                    AND f.medical_record_id IS NOT NULL
-                """, [
-                    date_start or timezone.now() - timedelta(days=180),
-                    date_end or timezone.now()
-                ])
-            
-            row = cursor.fetchone()
-            if row and row[1] > 0:
-                response_time_stats = {
-                    'average_response_days': round(row[0] or 0, 1),
-                    'feedback_with_visits': row[1]
+        
+        # 3. Process with Pandas
+        if total_feedback > 0:
+            try:
+                df = pd.DataFrame(feedback_data)
+                df['created_at'] = pd.to_datetime(df['created_at'])
+                
+                # Basic Stats
+                avg_rating = df['rating'].mean()
+                
+                # Rating Distribution
+                rating_counts = df['rating'].value_counts().sort_index()
+                # Ensure 1-5 keys exist
+                for i in range(1, 6):
+                    if i not in rating_counts:
+                        rating_counts[i] = 0
+                rating_distribution = [{'rating': r, 'count': int(c)} for r, c in rating_counts.sort_index().items()]
+                
+                # Boolean rates
+                recommend_mask = df['recommend'].str.lower() == 'yes'
+                courteous_mask = df['courteous'].str.lower() == 'yes'
+                recommendation_rate = (recommend_mask.sum() / total_feedback) * 100
+                courtesy_rate = (courteous_mask.sum() / total_feedback) * 100
+                
+                # Feedback Types
+                visit_specific_count = df['medical_record__created_at'].notna().sum()
+                feedback_types = {
+                    'general': int(total_feedback - visit_specific_count),
+                    'visit_specific': int(visit_specific_count)
                 }
+                
+                # Monthly Trends
+                monthly = df.set_index('created_at').resample('MS')
+                trends = monthly.agg({
+                    'rating': 'mean',
+                    'recommend': lambda x: (x.str.lower() == 'yes').sum(),
+                    'courteous': lambda x: (x.str.lower() == 'yes').sum()
+                })
+                trends['count'] = monthly.size()
+                
+                for date, row in trends.iterrows():
+                    if row['count'] > 0:
+                        satisfaction_trends.append({
+                            'month': date.strftime('%Y-%m'),
+                            'average_rating': round(row['rating'], 1),
+                            'feedback_count': int(row['count']),
+                            'recommendation_rate': round((row['recommend'] / row['count']) * 100, 1),
+                            'courtesy_rate': round((row['courteous'] / row['count']) * 100, 1)
+                        })
+                
+                # Response Time Analysis
+                if visit_specific_count > 0:
+                    df_visit = df.dropna(subset=['medical_record__created_at']).copy()
+                    df_visit['medical_record__created_at'] = pd.to_datetime(df_visit['medical_record__created_at'])
+                    
+                    # Calculate difference in days
+                    response_times = (df_visit['created_at'] - df_visit['medical_record__created_at']).dt.total_seconds() / 86400
+                    response_time_stats = {
+                        'average_response_days': round(response_times.mean(), 1),
+                        'feedback_with_visits': int(visit_specific_count)
+                    }
+                    
+            except Exception as e:
+                logger.error(f"Pandas processing error in get_feedback_analysis_data: {e}")
         
         data = {
             'total_feedback': total_feedback,
-            'average_rating': round(aggregate_data['average_rating'] or 0, 1),
+            'average_rating': round(avg_rating, 1),
             'rating_distribution': rating_distribution,
             'satisfaction_trends': satisfaction_trends,
-            'recommendation_rate': round((aggregate_data['recommendation_count'] / max(1, total_feedback)) * 100, 1),
-            'courtesy_rate': round((aggregate_data['courtesy_count'] / max(1, total_feedback)) * 100, 1),
-            'feedback_types': {
-                'general': aggregate_data['general_feedback_count'],
-                'visit_specific': aggregate_data['visit_feedback_count']
-            },
+            'recommendation_rate': round(recommendation_rate, 1),
+            'courtesy_rate': round(courtesy_rate, 1),
+            'feedback_types': feedback_types,
             'response_time_stats': response_time_stats,
-            'satisfaction_score': round(((aggregate_data['average_rating'] or 0) / 5) * 100, 1)  # Convert to percentage
+            'satisfaction_score': round((avg_rating / 5) * 100, 1)
         }
+        
+        # Cache for 15 minutes
+        cache.set(cache_key, data, 900)
+        return data
         
         # Cache for 15 minutes (feedback changes frequently)
         cache.set(cache_key, data, 900)
