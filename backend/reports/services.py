@@ -746,7 +746,6 @@ class ReportExportService:
             from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
             from reportlab.lib.units import inch
             from reportlab.lib import colors
-            from io import BytesIO
             
             buffer = BytesIO()
             doc = SimpleDocTemplate(buffer, pagesize=A4)
