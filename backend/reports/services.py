@@ -34,7 +34,44 @@ class ReportDataService:
     
     @staticmethod
     def get_patient_summary_data(date_start=None, date_end=None, filters=None):
-        """Get patient summary data with caching and optimized queries"""
+        """Get patient summary data (Single Patient OR Aggregate)"""
+        # Support for Single Patient Report
+        if filters and filters.get('patient_id'):
+            patient_id = filters.get('patient_id')
+            try:
+                patient = Patient.objects.select_related('user').get(id=patient_id)
+                medical_records = patient.medical_records.all().order_by('-created_at')[:5]
+                dental_records = patient.dental_records.all().order_by('-created_at')[:5]
+                
+                # Calculate age
+                today = timezone.now().date()
+                age = 0
+                if patient.date_of_birth:
+                    age = today.year - patient.date_of_birth.year - ((today.month, today.day) < (patient.date_of_birth.month, patient.date_of_birth.day))
+
+                return {
+                    'report_date': timezone.now().strftime('%b %d, %Y'),
+                    'patient': {
+                        'first_name': patient.first_name,
+                        'last_name': patient.last_name,
+                        'student_id': getattr(patient.user, 'id_number', 'N/A') if patient.user else 'N/A',
+                        'email': patient.email,
+                        'contact_number': getattr(patient.user, 'phone', patient.phone_number) if patient.user else patient.phone_number,
+                        'date_of_birth': patient.date_of_birth,
+                        'age': age,
+                        'gender': patient.get_gender_display(),
+                        'blood_type': 'N/A', # Not currently tracked
+                        'allergies': getattr(patient.user, 'allergies', 'None') if patient.user else 'None',
+                        'medical_conditions': getattr(patient.user, 'existing_medical_condition', 'None') if patient.user else 'None',
+                        'current_medications': getattr(patient.user, 'medications', 'None') if patient.user else 'None',
+                    },
+                    'medical_records': medical_records,
+                    'dental_records': dental_records
+                }
+            except Patient.DoesNotExist:
+                logger.error(f"Patient {patient_id} not found for report")
+                pass # Fall through to aggregate
+
         cache_key = ReportDataService._get_cache_key('patient_summary', date_start, date_end, filters or {})
         cached_data = cache.get(cache_key)
         if cached_data:
@@ -83,7 +120,7 @@ class ReportDataService:
                         END as age_group,
                         COUNT(*) as count
                     FROM patients_patient p
-                    JOIN authentication_user u ON p.user_id = u.id
+                    LEFT JOIN authentication_user u ON p.user_id = u.id
                     WHERE p.date_of_birth IS NOT NULL
                     GROUP BY age_group
                     ORDER BY age_group
@@ -101,7 +138,7 @@ class ReportDataService:
                         END as age_group,
                         COUNT(*) as count
                     FROM patients_patient p
-                    JOIN authentication_user u ON p.user_id = u.id
+                    LEFT JOIN authentication_user u ON p.user_id = u.id
                     WHERE p.date_of_birth IS NOT NULL
                     GROUP BY age_group
                     ORDER BY age_group
@@ -668,8 +705,42 @@ class ReportExportService:
 
     @staticmethod
     def export_to_pdf(report_data, template_content, title="Report"):
-        """Export report to PDF using ReportLab"""
+        """Export report to PDF using xhtml2pdf (with HTML templates) or ReportLab fallback"""
         try:
+            # 1. Try HTML-to-PDF conversion using xhtml2pdf if template is provided
+            if template_content:
+                try:
+                    from xhtml2pdf import pisa
+                    from django.template import Template, Context
+                    
+                    # Prepare context - flatten report_data if it's a dict to make variables accessible directly
+                    context_data = {
+                        'title': title,
+                        'generated_at': timezone.now(),
+                        'report_data': report_data,
+                    }
+                    
+                    # Flatten report_data into context for easier access in templates (e.g. {{ total_patients }} instead of {{ report_data.total_patients }})
+                    if isinstance(report_data, dict):
+                        context_data.update(report_data)
+                    
+                    tpl = Template(template_content)
+                    html = tpl.render(Context(context_data))
+                    
+                    # Convert to PDF
+                    buffer = BytesIO()
+                    pisa_status = pisa.CreatePDF(html, dest=buffer)
+                    
+                    if not pisa_status.err:
+                        return buffer.getvalue()
+                    else:
+                        logger.error(f"xhtml2pdf error: {pisa_status.err}")
+                except ImportError:
+                    logger.warning("xhtml2pdf not installed, falling back to ReportLab")
+                except Exception as e:
+                    logger.error(f"HTML-to-PDF conversion failed: {str(e)}")
+            
+            # 2. Fallback to ReportLab (Programmatic generation)
             from reportlab.lib.pagesizes import letter, A4
             from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
             from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -812,6 +883,18 @@ End of Report
                         ws.cell(row=row, column=1, value=str(key).replace('_', ' ').title())
                         ws.cell(row=row, column=1).font = subheader_font
                         ws.cell(row=row, column=2, value=value)
+                        row += 1
+                    elif isinstance(value, dict):
+                        # Dictionary data (e.g. nested objects)
+                        ws.cell(row=row, column=1, value=str(key).replace('_', ' ').title())
+                        ws.cell(row=row, column=1).font = subheader_font
+                        ws.cell(row=row, column=1).fill = subheader_fill
+                        row += 1
+                        
+                        for sub_key, sub_value in value.items():
+                            ws.cell(row=row, column=1, value=str(sub_key).replace('_', ' ').title())
+                            ws.cell(row=row, column=2, value=str(sub_value))
+                            row += 1
                         row += 1
                     elif isinstance(value, list) and value:
                         # Table data
@@ -1032,7 +1115,7 @@ class ReportGenerationService:
         data = self.data_service.get_visit_trends_data(date_start, date_end, filters)
         
         if export_format == 'PDF':
-            return self.export_service.export_to_pdf(data, "", "Visit Trends Report")
+            return self.export_service.export_to_pdf(data, template_html, "Visit Trends Report")
         elif export_format == 'HTML' and template_html:
             return self.export_service.export_to_html(
                 data,
@@ -1058,7 +1141,7 @@ class ReportGenerationService:
         data = self.data_service.get_treatment_outcomes_data(date_start, date_end, filters)
         
         if export_format == 'PDF':
-            return self.export_service.export_to_pdf(data, "", "Treatment Outcomes Report")
+            return self.export_service.export_to_pdf(data, template_html, "Treatment Outcomes Report")
         elif export_format == 'HTML' and template_html:
             return self.export_service.export_to_html(
                 data,
@@ -1084,7 +1167,7 @@ class ReportGenerationService:
         data = self.data_service.get_feedback_analysis_data(date_start, date_end, filters)
         
         if export_format == 'PDF':
-            return self.export_service.export_to_pdf(data, "", "Feedback Analysis Report")
+            return self.export_service.export_to_pdf(data, template_html, "Feedback Analysis Report")
         elif export_format == 'HTML' and template_html:
             return self.export_service.export_to_html(
                 data,
@@ -1110,7 +1193,7 @@ class ReportGenerationService:
         data = self.data_service.get_comprehensive_analytics_data(date_start, date_end, filters)
         
         if export_format == 'PDF':
-            return self.export_service.export_to_pdf(data, "", "Comprehensive Analytics Report")
+            return self.export_service.export_to_pdf(data, template_html, "Comprehensive Analytics Report")
         elif export_format == 'EXCEL':
             return self.export_service.export_to_excel(data, "Comprehensive Analytics Report")
         elif export_format == 'CSV':
@@ -1122,11 +1205,43 @@ class ReportGenerationService:
     
     def generate_medical_statistics_report(self, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
         """Generate medical statistics report"""
-        # Use patient summary data for medical statistics
-        data = self.data_service.get_patient_summary_data(date_start, date_end, filters)
+        # Get data from multiple sources to populate the full template
+        patient_data = self.data_service.get_patient_summary_data(date_start, date_end, filters)
+        visit_data = self.data_service.get_visit_trends_data(date_start, date_end, filters)
+        
+        # Merge data to match template expectations
+        data = {
+            **patient_data,
+            **visit_data,
+            # Map fields to match template variable names
+            'total_consultations': visit_data.get('total_visits', 0),
+            'medical_consultations': visit_data.get('total_medical_visits', 0),
+            'followup_visits': 0, # Not currently tracked separately in aggregate
+            'emergency_cases': 0, # Not currently tracked separately
+            'referrals_count': 0, # Not currently tracked
+            'top_condition': visit_data.get('common_diagnoses', [{'diagnosis': 'N/A'}])[0]['diagnosis'] if visit_data.get('common_diagnoses') else 'None',
+            'top_diagnoses': [
+                {
+                    'name': d['diagnosis'],
+                    'case_count': d['count'],
+                    'percentage': (d['count'] / max(1, visit_data.get('total_medical_visits', 1))) * 100,
+                    'avg_age': 0, # Requires deeper query
+                    'gender_ratio': 'N/A'
+                } for d in visit_data.get('common_diagnoses', [])
+            ],
+            'monthly_trends': [
+                {
+                    'name': m['month'],
+                    'total': m['total_visits'],
+                    'medical': m['medical_visits'],
+                    'emergency': 0,
+                    'followup': 0
+                } for m in visit_data.get('monthly_trends', [])
+            ]
+        }
         
         if export_format == 'PDF':
-            return self.export_service.export_to_pdf(data, "", "Medical Statistics Report")
+            return self.export_service.export_to_pdf(data, template_html, "Medical Statistics Report")
         elif export_format == 'EXCEL':
             return self.export_service.export_to_excel(data, "Medical Statistics Report")
         elif export_format == 'CSV':
@@ -1153,7 +1268,7 @@ class ReportGenerationService:
         data = self.data_service.get_visit_trends_data(date_start, date_end, filters)
         
         if export_format == 'PDF':
-            return self.export_service.export_to_pdf(data, "", "Dental Statistics Report")
+            return self.export_service.export_to_pdf(data, template_html, "Dental Statistics Report")
         elif export_format == 'EXCEL':
             return self.export_service.export_to_excel(data, "Dental Statistics Report")
         elif export_format == 'CSV':
@@ -1188,7 +1303,7 @@ class ReportGenerationService:
         }
         
         if export_format == 'PDF':
-            return self.export_service.export_to_pdf(campaign_data, "", "Campaign Performance Report")
+            return self.export_service.export_to_pdf(campaign_data, template_html, "Campaign Performance Report")
         elif export_format == 'EXCEL':
             return self.export_service.export_to_excel(campaign_data, "Campaign Performance Report")
         elif export_format == 'CSV':
