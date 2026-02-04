@@ -620,7 +620,7 @@ const ProfileSetup = () => {
     console.log('🔧 DEBUG: User role:', userRole);
     
     setLoading(true);
-    setError(null);
+    setGlobalError(null);
 
     try {
       let profileData = {
@@ -691,21 +691,48 @@ const ProfileSetup = () => {
       console.log('🔧 DEBUG: Error in profile setup:', error);
       logger.error('Profile setup error:', error);
       
-      // More detailed error handling
       let errorMessage = 'Failed to complete profile setup. Please try again.';
       
       if (error.response) {
-        // Server responded with error status
         const { status, data } = error.response;
         console.error('Server error response:', status, data);
         
-        if (data.detail) {
-          errorMessage = data.detail;
-        } else if (data.message) {
-          errorMessage = data.message;
-        } else if (data.errors) {
-          errorMessage = Array.isArray(data.errors) ? data.errors.join(', ') : 'Validation errors occurred.';
-        } else if (status === 401) {
+        // Handle field-specific errors
+        if (data && typeof data === 'object') {
+          // If "errors" key exists (standardized format), use that, otherwise use data directly
+          const fieldErrors = data.errors || data;
+          let hasFieldErrors = false;
+          
+          Object.keys(fieldErrors).forEach(field => {
+            // Skip non-field error keys
+            if (['detail', 'message', 'error_code', 'non_field_errors'].includes(field)) return;
+            
+            const message = Array.isArray(fieldErrors[field]) 
+              ? fieldErrors[field][0] 
+              : fieldErrors[field];
+              
+            if (message) {
+              setError(field, { type: 'server', message: message });
+              hasFieldErrors = true;
+            }
+          });
+          
+          // If we mapped field errors, we don't necessarily need a global alert unless there are other errors
+          if (hasFieldErrors) {
+             errorMessage = 'Please check the highlighted fields for errors.';
+          }
+          
+          // Check for specific global error keys
+          if (data.detail) errorMessage = data.detail;
+          else if (data.message) errorMessage = data.message;
+          else if (data.non_field_errors) {
+            errorMessage = Array.isArray(data.non_field_errors) 
+              ? data.non_field_errors.join(', ') 
+              : data.non_field_errors;
+          }
+        }
+        
+        if (status === 401) {
           errorMessage = 'Authentication failed. Please log in again.';
         } else if (status === 429) {
           errorMessage = 'Too many attempts. Please wait before trying again.';
@@ -713,11 +740,10 @@ const ProfileSetup = () => {
           errorMessage = 'Server error occurred. Please try again later.';
         }
       } else if (error.request) {
-        // No response received
         errorMessage = 'Network error. Please check your connection and try again.';
       }
       
-      setError(errorMessage);
+      setGlobalError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -1320,13 +1346,13 @@ const ProfileSetup = () => {
 
           {/* Content */}
           <Box sx={{ p: 4, pt: 2 }}>
-            {error && (
+            {globalError && (
               <Alert 
                 severity="error" 
                 sx={{ mb: 3, borderRadius: 2 }}
-                onClose={() => setError(null)}
+                onClose={() => setGlobalError(null)}
               >
-                {error}
+                {globalError}
               </Alert>
             )}
 

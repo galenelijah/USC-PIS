@@ -1,109 +1,157 @@
-# USC-PIS System Flow Check Guide
+# USC-PIS Comprehensive System Flow Check Guide
 
-**Date**: February 1, 2026
-**Phase**: Alpha Testing / Bug Checking
-
-This guide outlines the systematic approach to verifying the flow and functionality of the USC Patient Information System (USC-PIS). It is designed for developers and testers during the alpha phase to ensure all user journeys are logical, functional, and bug-free.
-
-## 🧭 Testing Philosophy
-- **User-Centric**: Test as if you are the specific user role (Student, Doctor, Admin).
-- **End-to-End**: Follow complete workflows (e.g., from registration to booking an appointment, from creating a campaign to viewing it).
-- **Negative Testing**: Intentionally try to break things (invalid inputs, unauthorized access).
+**Date**: February 4, 2026
+**Phase**: Pre-Pilot Verification
+**Objective**: To systematically validate every active feature of the USC-PIS prior to the "1st Year Tourism Management" Pilot Test.
 
 ---
 
-## 👤 Role-Based Flow Checks
+## 🧭 Pre-Flight Checklist (Admin/Dev)
+Before starting the role-based checks, verify the environment is ready:
+1.  **Deployment**: Ensure the app is running on Heroku.
+2.  **Worker**: Confirm the Celery worker is active (`heroku ps:scale worker=1`).
+3.  **Data Seed**: Confirm `seed_pilot_data` command has been run (`heroku run python backend/manage.py seed_pilot_data`).
 
-### 1. Student Journey
-**Goal**: Verify a student can access their data and engage with clinic services.
+---
 
-1.  **Registration & Login**:
-    *   Register with a valid `@usc.edu.ph` email.
-    *   Verify email typo detection (e.g., enter `@usc.edu`).
-    *   Login and complete the profile setup (Medical History, etc.).
-    *   **Check**: Are redirects correct? Is the profile data saved?
+## 👤 Role-Based Flow Verification
 
-2.  **Dashboard Navigation**:
-    *   Verify the dashboard loads with personalized greeting.
-    *   Click through "Quick Actions" cards.
-    *   **Check**: Do cards link to the correct pages (`/health-records`, `/campaigns`, etc.)?
+### 1. Student Journey (The "Tourism Student")
+**Log in as**: `tourism_student_1@usc.edu.ph` / `password123` (or one of the seeded users).
 
-3.  **Campaigns**:
-    *   Navigate to `/campaigns`.
-    *   Click on a campaign card.
-    *   **Check**: Does the **Public Preview** dialog open? Is it readable?
-    *   **Check**: Are "Edit" buttons hidden?
+#### A. Onboarding & Error Handling (Negative Test)
+*   [ ] **Registration Error Check**:
+    *   Go to Register page.
+    *   Enter an email that already exists (e.g., `tourism_student_1@usc.edu.ph`).
+    *   **Verify**: The Email field highlights red with the message "This email address is already registered. Please log in instead." (Not a generic banner).
+*   [ ] **Profile Setup Error Check**:
+    *   (Requires a fresh account or incomplete profile).
+    *   Try to submit the form with an empty "Phone Number".
+    *   **Verify**: The Phone Number field shows "Phone number is required" directly below the input.
 
-4.  **Health Records**:
-    *   Navigate to `/health-records` (or `/health-insights`).
-    *   View Medical and Dental history.
-    *   **Check**: Is the data accurate? Are sensitive fields visible?
+#### B. Dashboard & Profile
+*   [ ] **Login**: Verify successful login redirects to `/dashboard`.
+*   [ ] **Personal Greeting**: Check for "Welcome, [Name]".
+*   [ ] **Profile Data Verification**:
+    *   Navigate to **Profile** (or click user avatar).
+    *   **Course**: Must be "Bachelor of Science in Tourism Management".
+    *   **Year Level**: Must be "1st Year".
+    *   **ID Number**: Should mimic `26100...`.
+    *   **Encrypted Fields**: Verify `Illness`, `Allergies`, etc. are readable (decrypted) for the owner.
 
-### 2. Medical Staff (Doctor/Nurse) Journey
-**Goal**: Verify clinical workflows and patient management.
+#### C. Health Information Access
+*   [ ] **Health Records**:
+    *   Navigate to **Health Records**.
+    *   Verify the seeded "Medical Record" exists (e.g., "Upper Respiratory Tract Infection").
+    *   Click to view details.
+    *   **Verify**: Dental records (if applicable) are also visible.
 
-1.  **Patient Management**:
-    *   Navigate to `/patients`.
-    *   Search for a patient (by name or ID).
-    *   Click "View Profile".
-    *   **Check**: Is the search responsive? Does the profile load?
+#### D. Engagement & Feedback
+*   [ ] **Campaigns**:
+    *   Navigate to **Campaigns**.
+    *   Click a campaign card to open the **Public Preview**.
+    *   **UI Check**: Verify text wraps correctly (no horizontal scroll).
+*   [ ] **Submit Feedback**:
+    *   Navigate to **Feedback**.
+    *   Submit a new feedback form (e.g., "Great service!").
+    *   **Verify**: Success message appears.
 
-2.  **Record Creation**:
-    *   From a patient profile, create a new **Medical Record**.
-    *   From a patient profile, create a new **Dental Record**.
-    *   **Check**: Do dropdowns (Record Type, Diagnosis) populate?
-    *   **Check**: Does the list auto-refresh after saving?
+#### E. Notifications
+*   [ ] **Bell Icon**:
+    *   Click the **Bell Icon** (Top Right).
+    *   Verify you can see unread notifications.
+    *   Click "Mark all as read".
 
-3.  **Medical Certificates**:
-    *   Navigate to `/medical-certificates`.
-    *   Create a certificate for a patient.
-    *   **Check**: Does the "Generate" button appear only when appropriate conditions are met?
+---
+
+### 2. Medical Staff Journey (Doctor/Nurse)
+**Log in as**: A user with `MEDICAL_STAFF` role (e.g., `nurse@usc.edu.ph` / `password123`).
+
+#### A. Patient Management
+*   [ ] **Patient Search**:
+    *   Navigate to **Patients**.
+    *   Search for "Tourism".
+    *   **Verify**: The 10 seeded students appear in the list.
+*   [ ] **Patient Profile View**:
+    *   Click on a student's name.
+    *   **Verify**: Medical/Dental history is visible.
+    *   **Verify**: Sensitive fields (e.g., Emergency Contact) are decrypted.
+
+#### B. Clinical Workflows & Uploads
+*   [ ] **Add Medical Record (Error Check)**:
+    *   On the patient's profile, click **"Add Medical Record"**.
+    *   Try to save without a Diagnosis.
+    *   **Verify**: Diagnosis field shows a specific validation error.
+*   [ ] **Add Medical Record (Success)**:
+    *   Fill out: Diagnosis ("Migraine"), Treatment ("Rest").
+    *   Save.
+    *   **Verify**: The new record appears immediately.
+*   [ ] **Document Upload**:
+    *   Find the **"Files"** or **"Attachments"** section.
+    *   Upload a dummy image (e.g., "xray_test.jpg").
+    *   **Verify**: File appears in the list.
+
+#### C. Communications & Certificates
+*   [ ] **Generate Medical Certificate**:
+    *   Navigate to **Medical Certificates**.
+    *   Create a certificate for a Tourism student.
+    *   **Verify**: PDF is generated and downloadable.
+*   [ ] **Create Campaign & Async Check**:
+    *   Navigate to **Campaigns** -> **New Campaign**.
+    *   Title: "Pilot Test Health Drive".
+    *   Audience: "All Patients".
+    *   **Publish**.
+    *   **Backend Check**: Check Heroku logs to see Celery sending emails.
+
+---
 
 ### 3. Administrator Journey
-**Goal**: Verify system oversight and configuration.
+**Log in as**: `admin@usc.edu.ph` / `adminpassword` (or your superuser credentials).
 
-1.  **Campaign Management**:
-    *   Navigate to `/campaigns`.
-    *   Click "New Campaign".
-    *   Upload images (Banner, Thumbnail).
-    *   **Check**: Do error messages appear if validation fails?
-    *   **Check**: Can you publish/unpublish?
-
-2.  **System Monitoring**:
+#### A. System Oversight & Backups
+*   [ ] **System Health**: Verify the dashboard widget is active.
+*   [ ] **Database Monitor**:
     *   Navigate to `/database-monitor`.
-    *   **Check**: Are real-time stats loading?
-    *   Navigate to `/reports`.
-    *   **Check**: Can you generate and download reports? (Note: currently checking for template bugs).
+    *   **Verify**: Connection Status is "Connected".
+*   [ ] **Backup Management**:
+    *   Navigate to the **Backups** tab.
+    *   Click **"Create Manual Backup"**.
+    *   **Verify**: Success message appears (not `[object Object]`).
+
+#### B. Reports & Analytics
+*   [ ] **Feedback Analytics**:
+    *   Navigate to **Feedback** (Admin view).
+    *   **Verify**: You can see the feedback submitted by the student earlier.
+*   [ ] **Patient Summary Report**:
+    *   Navigate to **Reports**.
+    *   Generate a "Patient Summary" PDF for a Tourism student.
+    *   **Validation**: Open PDF and check for USC Header and correct student data.
+
+#### C. User Management
+*   [ ] **Role Assignment**:
+    *   Navigate to **Users**.
+    *   Edit a user and change their role.
+    *   **Verify**: Permissions update immediately.
+
+---
+
+### 4. 🛡️ Security & Negative Testing
+*   [ ] **Unauthorized Access**:
+    *   Log in as a **Student**.
+    *   Try to access `/patients` or `/admin`.
+    *   **Verify**: Redirected to dashboard or shown "403 Forbidden".
+*   [ ] **Cross-Patient Access**:
+    *   As a Student, try to view another student's profile (if URL manipulation is possible).
+    *   **Verify**: Access Denied.
 
 ---
 
 ## 🐞 Bug Reporting Protocol
-
-When you find a bug (like the ones currently in `OPEN_ISSUES.md`), document it with:
-
-1.  **Location**: URL or Component name.
-2.  **Role**: Which user type experienced it?
-3.  **Description**: What happened vs. what should have happened.
-4.  **Steps to Reproduce**: 1... 2... 3...
-5.  **Severity**: Critical (blocker), Major (broken feature), Minor (UI/typo).
-
-**Example**:
-*   **Location**: `/campaigns` (Public Preview)
-*   **Description**: Paragraph text extends horizontally off-screen instead of wrapping.
-*   **Severity**: Minor (UI).
-
----
-
-## 🛠️ Technical Verification (Devs Only)
-
-1.  **Frontend Build**:
-    *   Run `npm run build` to ensure no compilation errors.
-    *   Check browser console for React warnings (key props, unmounted state updates).
-
-2.  **Backend Integrity**:
-    *   Run `python manage.py check`.
-    *   Check server logs for 500 errors during API calls.
-
-3.  **Security**:
-    *   Try to access `/admin` or `/database-monitor` as a Student.
-    *   **Check**: Are you redirected or shown a 403 Forbidden?
+If any step fails:
+1.  **Check Console**: Open Browser DevTools (F12) -> Console. Look for Red errors.
+2.  **Check Network**: Look at the Network tab for failed API calls (400/500 status).
+3.  **Document**:
+    *   **What**: "Feedback submission failed with 500 Error".
+    *   **Who**: Student.
+    *   **Where**: `/feedback`.
+4.  **Log**: Add to `OPEN_ISSUES.md`.

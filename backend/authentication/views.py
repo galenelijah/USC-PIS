@@ -137,8 +137,15 @@ def register_user(request):
                 except IntegrityError as e:
                     logger.error(f"Database integrity error during registration: {str(e)}")
                     rate_limiter.record_attempt(client_ip, 'register', success=False)
+                    
+                    # Check if it's likely a duplicate email error
+                    if 'unique constraint' in str(e).lower() and 'email' in str(e).lower():
+                        return Response({
+                            'email': ['This email address is already registered. Please log in instead.']
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                        
                     return Response({
-                        'detail': 'Registration failed due to database conflict. Email may already exist.',
+                        'detail': 'Registration failed due to database conflict.',
                         'field': 'email'
                     }, status=status.HTTP_400_BAD_REQUEST)
             else:

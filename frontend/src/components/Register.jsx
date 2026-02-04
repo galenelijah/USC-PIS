@@ -94,31 +94,32 @@ const Register = () =>{
                     if (typeof payload === 'string') {
                         errorMessage = payload;
                     } else if (typeof payload === 'object') {
-                        // Map field-specific errors to inputs
-                        const possibleFields = ['email', 'password', 'password2', 'non_field_errors', 'detail'];
-                        possibleFields.forEach((field) => {
+                        let hasFieldErrors = false;
+                        
+                        // Dynamically handle all keys in the payload object
+                        Object.keys(payload).forEach((field) => {
                             const messages = payload[field];
-                            if (messages && Array.isArray(messages) && messages.length > 0) {
-                                if (field === 'non_field_errors' || field === 'detail') {
-                                    errorMessage = messages[0] || messages;
-                                } else {
-                                    setError(field, { type: 'server', message: messages[0] });
-                                }
-                            } else if (typeof messages === 'string') {
-                                if (field === 'non_field_errors' || field === 'detail') {
-                                    errorMessage = messages;
-                                } else {
-                                    setError(field, { type: 'server', message: messages });
+                            
+                            // Check if it's a general error field
+                            if (field === 'non_field_errors' || field === 'detail') {
+                                const msg = Array.isArray(messages) ? messages[0] : messages;
+                                if (msg) errorMessage = msg;
+                            } else {
+                                // It's likely a form field error
+                                const msg = Array.isArray(messages) ? messages[0] : messages;
+                                if (msg) {
+                                    // Only set error if the field exists in our form
+                                    // We can't easily check if field exists in useForm, but setError works safely
+                                    setError(field, { type: 'server', message: msg });
+                                    hasFieldErrors = true;
                                 }
                             }
                         });
 
-                        // Fallback: first error message in object
-                        if (errorMessage === 'Registration failed. Please check your inputs.') {
-                            const fieldErrors = Object.values(payload).flat().filter(Boolean);
-                            if (fieldErrors.length > 0) {
-                                errorMessage = fieldErrors[0];
-                            }
+                        // If we found specific field errors, we might not need a generic top-level error
+                        // unless we also found a 'detail' or 'non_field_errors'
+                        if (hasFieldErrors && errorMessage === 'Registration failed. Please check your inputs.') {
+                             errorMessage = 'Please check the highlighted fields for errors.';
                         }
                     }
                 }

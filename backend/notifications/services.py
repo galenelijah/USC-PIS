@@ -16,6 +16,7 @@ from .models import (
     NotificationPreference,
     NotificationCampaign
 )
+from .tasks import send_email_task
 from authentication.models import User
 from patients.models import Patient
 
@@ -117,7 +118,15 @@ class EmailService:
             result = email.send()
             
             if result:
-                notification.mark_as_sent()
+                # Only update status to SENT if it's not already DELIVERED or READ
+                # This prevents regression of status if In-App delivery already set it to DELIVERED
+                if notification.status not in ['DELIVERED', 'READ']:
+                    notification.mark_as_sent()
+                else:
+                    # Just record the timestamp
+                    notification.sent_at = timezone.now()
+                    notification.save(update_fields=['sent_at'])
+                    
                 EmailService._log_email_success(notification, email)
                 return {
                     'success': True,
@@ -315,20 +324,19 @@ class NotificationService:
             notification.save()
             return {'success': False, 'error': 'Notification has expired'}
         
-        # Send email if configured
+        # Send email if configured (Asynchronous)
         if notification.delivery_method in ['EMAIL', 'BOTH']:
-            results['email'] = EmailService.send_notification_email(notification)
+            # Queue the email task
+            send_email_task.delay(notification.id)
+            results['email'] = {'success': True, 'queued': True, 'message': 'Email task queued'}
         
         # Mark as delivered for in-app (always available for reading)
         if notification.delivery_method in ['IN_APP', 'BOTH']:
             notification.mark_as_delivered()
             results['in_app'] = {'success': True, 'message': 'In-app notification delivered'}
         
-        # Update overall status
-        if results['email'] and not results['email'].get('success', False):
-            notification.mark_as_failed()
-        elif not notification.is_read and notification.status not in ['DELIVERED', 'READ']:
-            notification.mark_as_delivered()
+        # If ONLY email is used, status remains PENDING until task completes
+        # If In-App is used, it's marked as DELIVERED immediately
         
         return results
     

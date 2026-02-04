@@ -17,6 +17,7 @@ import BMI_female_5 from "../assets/images/BMI_Visual/BMI_female_5.png";
 import ReadOnlyTextField from "./forms/ReadOnlyTextField";
 import { healthRecordsService, patientService } from '../services/api';
 import { useSelector } from 'react-redux';
+import { extractErrorMessage, extractFieldErrors } from '../utils/errorUtils';
 
 const defaultUserData = {
     height: "",
@@ -52,7 +53,7 @@ const defaultUserData = {
 
 const MedicalRecord = ({ medicalRecordId }) => {
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [globalError, setGlobalError] = useState(null);
     const [success, setSuccess] = useState(false);
     const user = useSelector(state => state.auth.user);
     const isStaffOrMedical = user?.role && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
@@ -62,7 +63,7 @@ const MedicalRecord = ({ medicalRecordId }) => {
     const [patientSearchTerm, setPatientSearchTerm] = useState('');
     const [filteredPatients, setFilteredPatients] = useState([]);
 
-    const { handleSubmit, control, formState: { errors }, setValue, watch, reset } = useForm({
+    const { handleSubmit, control, formState: { errors }, setValue, watch, reset, setError: setFieldError } = useForm({
         resolver: yupResolver(medicalRecordSchema),
         defaultValues: {
             patient: '',
@@ -203,7 +204,7 @@ const MedicalRecord = ({ medicalRecordId }) => {
                 setSelectedPatient(patient);
             }
         } catch (err) {
-            setError('Failed to load medical record.');
+            setGlobalError('Failed to load medical record.');
             console.error('Error fetching record:', err);
         } finally {
             setLoading(false);
@@ -229,7 +230,7 @@ const MedicalRecord = ({ medicalRecordId }) => {
         if (!isStaffOrMedical) return;
 
         setLoading(true);
-        setError(null);
+        setGlobalError(null);
         setSuccess(false);
 
         try {
@@ -248,8 +249,15 @@ const MedicalRecord = ({ medicalRecordId }) => {
                 resetForm(); // Reset form after successful creation
             }
         } catch (err) {
-            setError('Failed to save medical record. Please check all required fields.');
             console.error('Error saving record:', err);
+            const message = extractErrorMessage(err);
+            setGlobalError(message);
+            
+            // Map field errors to the form
+            const fieldErrors = extractFieldErrors(err);
+            Object.keys(fieldErrors).forEach(field => {
+                setFieldError(field, { type: 'server', message: fieldErrors[field] });
+            });
         } finally {
             setLoading(false);
         }
@@ -284,7 +292,7 @@ const MedicalRecord = ({ medicalRecordId }) => {
 
     return (
         <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ maxWidth: 1200, mx: 'auto' }}>
-            {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+            {globalError && <Alert severity="error" sx={{ mb: 2 }}>{globalError}</Alert>}
             {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
             <Grid container spacing={3}>

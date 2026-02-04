@@ -62,6 +62,7 @@ import {
 } from '@mui/icons-material';
 import { authService } from '../services/api';
 import InfoTooltip from './utils/InfoTooltip';
+import { extractErrorMessage } from '../utils/errorUtils';
 
 function TabPanel({ children, value, index, ...other }) {
     return (
@@ -174,7 +175,7 @@ const DatabaseMonitor = () => {
         } catch (err) {
             setSnackbar({
                 open: true,
-                message: `Failed to create backup: ${err.message}`,
+                message: `Failed to create backup: ${extractErrorMessage(err)}`,
                 severity: 'error'
             });
         } finally {
@@ -200,7 +201,7 @@ const DatabaseMonitor = () => {
         } catch (err) {
             setSnackbar({
                 open: true,
-                message: `Failed to download backup: ${err.message}`,
+                message: `Failed to download backup: ${extractErrorMessage(err)}`,
                 severity: 'error'
             });
         }
@@ -211,7 +212,7 @@ const DatabaseMonitor = () => {
             const res = await authService.verifyBackupDryRun(backupId);
             setSnackbar({ open: true, message: res.valid ? `Dry-run OK: ${res.message}` : `Dry-run failed: ${res.message}` , severity: res.valid ? 'success' : 'error' });
         } catch (err) {
-            setSnackbar({ open: true, message: `Dry-run error: ${err.message}`, severity: 'error' });
+            setSnackbar({ open: true, message: `Dry-run error: ${extractErrorMessage(err)}`, severity: 'error' });
         }
     };
 
@@ -222,7 +223,7 @@ const DatabaseMonitor = () => {
             setScheduleDialogOpen(false);
             fetchData();
         } catch (err) {
-            setSnackbar({ open: true, message: `Failed to create schedule: ${err.message}`, severity: 'error' });
+            setSnackbar({ open: true, message: `Failed to create schedule: ${extractErrorMessage(err)}`, severity: 'error' });
         }
     };
 
@@ -298,7 +299,7 @@ const DatabaseMonitor = () => {
         } catch (err) {
             setSnackbar({
                 open: true,
-                message: `Failed to restore backup: ${err.message}`,
+                message: `Failed to restore backup: ${extractErrorMessage(err)}`,
                 severity: 'error'
             });
         } finally {
@@ -351,7 +352,7 @@ const DatabaseMonitor = () => {
         } catch (err) {
             setSnackbar({
                 open: true,
-                message: `Failed to upload backup: ${err.message}`,
+                message: `Failed to upload backup: ${extractErrorMessage(err)}`,
                 severity: 'error'
             });
         } finally {
