@@ -20,22 +20,30 @@ export const extractErrorMessage = (error) => {
         if (status >= 500) return 'A server error occurred. Please try again later.';
 
         if (data) {
-            // Priority 1: 'detail' or 'message' keys (Standard DRF/Custom)
-            if (data.detail) return data.detail;
-            if (data.message) return data.message;
+            // If there's a nested 'errors' object, flatten it for processing
+            const effectiveData = data.errors && typeof data.errors === 'object' 
+                ? { ...data, ...data.errors } 
+                : data;
 
-            // Priority 2: 'non_field_errors' (DRF global validation)
-            if (data.non_field_errors) {
-                return Array.isArray(data.non_field_errors) 
-                    ? data.non_field_errors[0] 
-                    : data.non_field_errors;
+            // Priority 1: 'non_field_errors' (DRF global validation)
+            if (effectiveData.non_field_errors) {
+                return Array.isArray(effectiveData.non_field_errors) 
+                    ? effectiveData.non_field_errors[0] 
+                    : effectiveData.non_field_errors;
             }
 
+            // Priority 2: 'detail' or 'message' keys (Standard DRF/Custom)
+            // Skip "Validation failed" if it's just a generic wrapper
+            if (effectiveData.detail && effectiveData.detail !== 'Validation failed') return effectiveData.detail;
+            if (effectiveData.message) return effectiveData.message;
+
             // Priority 3: Flatten specific field errors into a summary string
-            // We usually want to map these to inputs, but for a global alert/snackbar, we summarize.
-            if (typeof data === 'object') {
-                const fieldErrors = Object.entries(data)
+            if (typeof effectiveData === 'object') {
+                const fieldErrors = Object.entries(effectiveData)
                     .map(([field, msgs]) => {
+                        // Skip system/metadata keys
+                        if (['detail', 'message', 'non_field_errors', 'errors', 'error_code'].includes(field)) return null;
+                        
                         const msg = Array.isArray(msgs) ? msgs[0] : msgs;
                         // Skip if the message is actually an object (nested error)
                         if (typeof msg === 'object') return null; 
@@ -46,10 +54,13 @@ export const extractErrorMessage = (error) => {
                 if (fieldErrors.length > 0) {
                     // Return the first error, or a summary if short
                     return fieldErrors.length === 1 
-                        ? fieldErrors[0] 
+                        ? fieldErrors[0].split(': ')[1] // Just return the message for single errors
                         : 'Please correct the errors in the form.';
                 }
             }
+
+            // Fallback to generic detail if nothing else found
+            if (effectiveData.detail) return effectiveData.detail;
         }
     }
 
@@ -74,10 +85,13 @@ export const extractFieldErrors = (error) => {
     const data = error.response.data;
     const errors = {};
 
-    if (typeof data === 'object') {
-        Object.entries(data).forEach(([key, value]) => {
+    // Handle nested 'errors' object if present
+    const sourceData = data.errors && typeof data.errors === 'object' ? data.errors : data;
+
+    if (typeof sourceData === 'object') {
+        Object.entries(sourceData).forEach(([key, value]) => {
             // Skip non-field keys
-            if (['detail', 'message', 'non_field_errors', 'error_code'].includes(key)) return;
+            if (['detail', 'message', 'non_field_errors', 'error_code', 'errors'].includes(key)) return;
             
             // Extract first message if array
             errors[key] = Array.isArray(value) ? value[0] : value;
