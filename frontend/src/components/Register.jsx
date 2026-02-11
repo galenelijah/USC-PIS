@@ -30,6 +30,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { registerUser, loginUser, selectAuthStatus, selectAuthError, resetAuthStatus } from '../features/authentication/authSlice';
 import { useEffect, useState } from 'react';
 import { registerSchema } from '../utils/validationSchemas';
+import { extractErrorMessage, extractFieldErrors } from '../utils/errorUtils';
 
 const Register = () =>{
     const navigate = useNavigate()
@@ -87,44 +88,29 @@ const Register = () =>{
                     setTimeout(() => navigate('/'), 2000);
                 }
             } else if (registerUser.rejected.match(registerAction)) {
-                let errorMessage = 'Registration failed. Please check your inputs.';
-                const payload = registerAction.payload;
+                // Use centralized error utilities
+                const errorPayload = registerAction.payload;
+                
+                // Construct a temporary error object compatible with extractErrorMessage
+                const errorObj = { response: { data: errorPayload, status: 400 } };
+                const errorMessage = extractErrorMessage(errorObj);
+                const fieldErrors = extractFieldErrors(errorObj);
 
-                if (payload) {
-                    if (typeof payload === 'string') {
-                        errorMessage = payload;
-                    } else if (typeof payload === 'object') {
-                        let hasFieldErrors = false;
-                        
-                        // Dynamically handle all keys in the payload object
-                        Object.keys(payload).forEach((field) => {
-                            const messages = payload[field];
-                            
-                            // Check if it's a general error field
-                            if (field === 'non_field_errors' || field === 'detail') {
-                                const msg = Array.isArray(messages) ? messages[0] : messages;
-                                if (msg) errorMessage = msg;
-                            } else {
-                                // It's likely a form field error
-                                const msg = Array.isArray(messages) ? messages[0] : messages;
-                                if (msg) {
-                                    // Only set error if the field exists in our form
-                                    // We can't easily check if field exists in useForm, but setError works safely
-                                    setError(field, { type: 'server', message: msg });
-                                    hasFieldErrors = true;
-                                }
-                            }
-                        });
+                // Set field-specific errors if any
+                let hasFieldErrors = false;
+                Object.entries(fieldErrors).forEach(([field, message]) => {
+                    setError(field, { type: 'server', message });
+                    hasFieldErrors = true;
+                });
 
-                        // If we found specific field errors, we might not need a generic top-level error
-                        // unless we also found a 'detail' or 'non_field_errors'
-                        if (hasFieldErrors && errorMessage === 'Registration failed. Please check your inputs.') {
-                             errorMessage = 'Please check the highlighted fields for errors.';
-                        }
-                    }
+                // Set top-level error message
+                if (hasFieldErrors && errorMessage === 'Please correct the errors in the form.') {
+                    setServerError('Please check the highlighted fields for errors.');
+                } else {
+                    setServerError(errorMessage);
                 }
-                setServerError(errorMessage);
-                console.error('Registration error:', payload || 'Unknown error');
+                
+                console.error('Registration error:', errorPayload || 'Unknown error');
             }
         } catch (error) {
             setServerError('An unexpected error occurred. Please try again.');
