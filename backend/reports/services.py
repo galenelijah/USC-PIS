@@ -572,23 +572,19 @@ class ReportExportService:
             if template_content:
                 try:
                     from xhtml2pdf import pisa
-                    from django.template import Template, Context
                     
-                    # Prepare context - flatten report_data if it's a dict to make variables accessible directly
+                    # Prepare context - flatten report_data if it's a dict
                     context_data = {
                         'title': title,
                         'generated_at': timezone.now(),
                         'report_data': report_data,
                     }
-                    
-                    # Flatten report_data into context for easier access in templates (e.g. {{ total_patients }} instead of {{ report_data.total_patients }})
                     if isinstance(report_data, dict):
                         context_data.update(report_data)
                     
                     tpl = Template(template_content)
                     html = tpl.render(Context(context_data))
                     
-                    # Convert to PDF
                     buffer = BytesIO()
                     pisa_status = pisa.CreatePDF(html, dest=buffer)
                     
@@ -596,255 +592,172 @@ class ReportExportService:
                         return buffer.getvalue()
                     else:
                         logger.error(f"xhtml2pdf error: {pisa_status.err}")
-                except ImportError:
-                    logger.warning("xhtml2pdf not installed, falling back to ReportLab")
-                except Exception as e:
-                    logger.error(f"HTML-to-PDF conversion failed: {str(e)}")
+                except (ImportError, Exception) as e:
+                    logger.warning(f"xhtml2pdf failed, falling back to ReportLab: {e}")
             
             # 2. Fallback to ReportLab (Programmatic generation)
-            from reportlab.lib.pagesizes import letter, A4
-            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-            from reportlab.lib.units import inch
-            from reportlab.lib import colors
-            
-            buffer = BytesIO()
-            doc = SimpleDocTemplate(buffer, pagesize=A4)
-            styles = getSampleStyleSheet()
-            story = []
-            
-            # Title
-            title_style = ParagraphStyle(
-                'CustomTitle',
-                parent=styles['Heading1'],
-                fontSize=18,
-                spaceAfter=30,
-            )
-            story.append(Paragraph(title, title_style))
-            
-            # Generation date
-            date_style = ParagraphStyle(
-                'DateStyle',
-                parent=styles['Normal'],
-                fontSize=10,
-                textColor=colors.grey,
-            )
-            story.append(Paragraph(f"Generated on: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}", date_style))
-            story.append(Spacer(1, 20))
-            
-            # Process report data into readable format
-            if isinstance(report_data, dict):
-                for key, value in report_data.items():
-                    # Section header
-                    story.append(Paragraph(str(key).replace('_', ' ').title(), styles['Heading2']))
-                    
-                    if isinstance(value, (list, tuple)):
-                        # Create table for list data
-                        if value and isinstance(value[0], dict):
-                            # Table from dict list
-                            if len(value) > 0:
-                                headers = list(value[0].keys())
-                                table_data = [headers]
-                                for item in value[:10]:  # Limit to 10 rows
-                                    table_data.append([str(item.get(h, '')) for h in headers])
-                                
-                                table = Table(table_data)
-                                table.setStyle(TableStyle([
-                                    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                                    ('FONTSIZE', (0, 0), (-1, 0), 12),
-                                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-                                    ('GRID', (0, 0), (-1, -1), 1, colors.black)
-                                ]))
-                                story.append(table)
-                        else:
-                            # Simple list
-                            for item in value[:10]:  # Limit to 10 items
-                                story.append(Paragraph(f"• {str(item)}", styles['Normal']))
-                    elif isinstance(value, dict):
-                        # Nested dictionary
-                        for sub_key, sub_value in value.items():
-                            story.append(Paragraph(f"{str(sub_key).replace('_', ' ').title()}: {str(sub_value)}", styles['Normal']))
-                    else:
-                        # Simple value
-                        story.append(Paragraph(str(value), styles['Normal']))
-                    
-                    story.append(Spacer(1, 12))
-            
-            # Build PDF
-            doc.build(story)
-            
-            # Get PDF data
-            buffer.seek(0)
-            return buffer.getvalue()
-            
-        except ImportError:
-            # Fallback if ReportLab is not available
-            logger.warning("ReportLab not available, using text fallback for PDF")
             try:
-                content = f"""USC-PIS REPORT
-{title}
-Generated on: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}
-
-REPORT DATA:
-{json.dumps(report_data, indent=2, default=str)}
-
-End of Report
-"""
+                from reportlab.lib.pagesizes import A4
+                from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+                from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+                from reportlab.lib import colors
+                
+                buffer = BytesIO()
+                doc = SimpleDocTemplate(buffer, pagesize=A4)
+                styles = getSampleStyleSheet()
+                story = []
+                
+                # Title
+                title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], fontSize=18, spaceAfter=30, color=colors.hexColor('#0B4F6C'))
+                story.append(Paragraph(title, title_style))
+                story.append(Paragraph(f"Generated on: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
+                story.append(Spacer(1, 20))
+                
+                # Process report data
+                if isinstance(report_data, dict):
+                    for key, value in report_data.items():
+                        story.append(Paragraph(str(key).replace('_', ' ').title(), styles['Heading2']))
+                        if isinstance(value, (list, tuple)) and value:
+                            if isinstance(value[0], dict):
+                                headers = list(value[0].keys())
+                                table_data = [[h.replace('_', ' ').title() for h in headers]]
+                                for item in value[:50]:
+                                    table_data.append([str(item.get(h, '')) for h in headers])
+                                t = Table(table_data, hAlign='LEFT')
+                                t.setStyle(TableStyle([
+                                    ('BACKGROUND', (0, 0), (-1, 0), colors.hexColor('#0B4F6C')),
+                                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                                    ('FONTSIZE', (0, 0), (-1, -1), 8),
+                                ]))
+                                story.append(t)
+                            else:
+                                for item in value[:20]: story.append(Paragraph(f"• {str(item)}", styles['Normal']))
+                        else:
+                            story.append(Paragraph(str(value), styles['Normal']))
+                        story.append(Spacer(1, 12))
+                
+                doc.build(story)
+                return buffer.getvalue()
+            except (ImportError, Exception) as e:
+                logger.error(f"ReportLab fallback failed: {e}")
+                # 3. Final Fallback: Simple text-based PDF content
+                content = f"USC-PIS REPORT: {title}\nGenerated: {timezone.now()}\n\nDATA:\n{json.dumps(report_data, indent=2, default=str)}"
                 return content.encode('utf-8')
-            except Exception as e:
-                logger.error(f"Error in PDF fallback: {str(e)}")
-                return None
+                
         except Exception as e:
-            logger.error(f"Error generating PDF: {str(e)}")
+            logger.error(f"Fatal error in export_to_pdf: {e}")
             return None
     
     @staticmethod
     def export_to_excel(report_data, title="Report"):
         """Export report to Excel using openpyxl for proper .xlsx format"""
         try:
-            # Try using openpyxl for proper Excel format
-            try:
-                from openpyxl import Workbook
-                from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
-                from openpyxl.utils import get_column_letter
+            from openpyxl import Workbook
+            from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
+            from openpyxl.utils import get_column_letter
+            
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Report Data"
+            
+            # Setup styles
+            header_font = Font(name='Arial', bold=True, size=12, color='FFFFFF')
+            header_fill = PatternFill(start_color='0B4F6C', end_color='0B4F6C', fill_type='solid')
+            subheader_font = Font(name='Arial', bold=True, size=11)
+            subheader_fill = PatternFill(start_color='F0F7F9', end_color='F0F7F9', fill_type='solid')
+            border = Border(left=Side(style='thin'), right=Side(style='thin'), 
+                           top=Side(style='thin'), bottom=Side(style='thin'))
+            
+            row = 1
+            
+            # Title
+            ws.cell(row=row, column=1, value="UNIVERSITY OF SAN CARLOS - USC-PIS")
+            ws.cell(row=row, column=1).font = Font(name='Arial', bold=True, size=14, color='0B4F6C')
+            row += 1
+            ws.cell(row=row, column=1, value=title)
+            ws.cell(row=row, column=1).font = Font(name='Arial', bold=True, size=16)
+            row += 1
+            
+            # Generation date
+            ws.cell(row=row, column=1, value="Generated At:")
+            ws.cell(row=row, column=2, value=timezone.now().strftime('%Y-%m-%d %H:%M:%S'))
+            row += 2
+            
+            # Process report data
+            for key, value in report_data.items():
+                label = str(key).replace('_', ' ').title()
                 
-                wb = Workbook()
-                ws = wb.active
-                ws.title = "Report Data"
-                
-                # Setup styles
-                header_font = Font(name='Arial', bold=True, size=14, color='FFFFFF')
-                header_fill = PatternFill(start_color='4472C4', end_color='4472C4', fill_type='solid')
-                subheader_font = Font(name='Arial', bold=True, size=12)
-                subheader_fill = PatternFill(start_color='E7E6E6', end_color='E7E6E6', fill_type='solid')
-                border = Border(left=Side(style='thin'), right=Side(style='thin'), 
-                               top=Side(style='thin'), bottom=Side(style='thin'))
-                
-                row = 1
-                
-                # Title
-                ws.cell(row=row, column=1, value=title)
-                ws.cell(row=row, column=1).font = Font(name='Arial', bold=True, size=16)
-                row += 1
-                
-                # Generation date
-                ws.cell(row=row, column=1, value="Generated At:")
-                ws.cell(row=row, column=2, value=timezone.now().strftime('%Y-%m-%d %H:%M:%S'))
-                row += 2
-                
-                # Process report data
-                for key, value in report_data.items():
-                    if isinstance(value, (int, float, str)):
-                        # Summary data
-                        ws.cell(row=row, column=1, value=str(key).replace('_', ' ').title())
-                        ws.cell(row=row, column=1).font = subheader_font
-                        ws.cell(row=row, column=2, value=value)
-                        row += 1
-                    elif isinstance(value, dict):
-                        # Dictionary data (e.g. nested objects)
-                        ws.cell(row=row, column=1, value=str(key).replace('_', ' ').title())
-                        ws.cell(row=row, column=1).font = subheader_font
-                        ws.cell(row=row, column=1).fill = subheader_fill
-                        row += 1
-                        
-                        for sub_key, sub_value in value.items():
+                if isinstance(value, (int, float, str, bool)) or value is None:
+                    # Summary data
+                    ws.cell(row=row, column=1, value=label)
+                    ws.cell(row=row, column=1).font = subheader_font
+                    ws.cell(row=row, column=2, value=str(value) if value is not None else 'N/A')
+                    row += 1
+                elif isinstance(value, dict):
+                    # Section header
+                    ws.cell(row=row, column=1, value=label)
+                    ws.cell(row=row, column=1).font = subheader_font
+                    ws.cell(row=row, column=1).fill = subheader_fill
+                    row += 1
+                    
+                    for sub_key, sub_value in value.items():
+                        if isinstance(sub_value, (int, float, str, bool)):
                             ws.cell(row=row, column=1, value=str(sub_key).replace('_', ' ').title())
                             ws.cell(row=row, column=2, value=str(sub_value))
                             row += 1
-                        row += 1
-                    elif isinstance(value, list) and value:
-                        # Table data
-                        ws.cell(row=row, column=1, value=str(key).replace('_', ' ').title())
-                        ws.cell(row=row, column=1).font = subheader_font
-                        ws.cell(row=row, column=1).fill = subheader_fill
+                    row += 1
+                elif isinstance(value, (list, tuple)) and value:
+                    # Table data
+                    ws.cell(row=row, column=1, value=label)
+                    ws.cell(row=row, column=1).font = subheader_font
+                    ws.cell(row=row, column=1).fill = subheader_fill
+                    row += 1
+                    
+                    if isinstance(value[0], dict):
+                        # Headers
+                        headers = list(value[0].keys())
+                        for col, header in enumerate(headers, 1):
+                            cell = ws.cell(row=row, column=col, value=header.replace('_', ' ').title())
+                            cell.font = header_font
+                            cell.fill = header_fill
+                            cell.border = border
+                            cell.alignment = Alignment(horizontal='center')
                         row += 1
                         
-                        if isinstance(value[0], dict):
-                            # Headers
-                            headers = list(value[0].keys())
+                        # Data rows
+                        for item in value[:200]:  # Limit rows
                             for col, header in enumerate(headers, 1):
-                                cell = ws.cell(row=row, column=col, value=header.replace('_', ' ').title())
-                                cell.font = header_font
-                                cell.fill = header_fill
+                                val = item.get(header, '')
+                                # Flatten nested dicts/lists in cells
+                                if isinstance(val, (dict, list)): val = json.dumps(val)
+                                cell = ws.cell(row=row, column=col, value=str(val))
                                 cell.border = border
-                                cell.alignment = Alignment(horizontal='center')
                             row += 1
-                            
-                            # Data rows
-                            for item in value[:100]:  # Limit to 100 rows for performance
-                                for col, header in enumerate(headers, 1):
-                                    cell = ws.cell(row=row, column=col, value=str(item.get(header, '')))
-                                    cell.border = border
-                                row += 1
-                        else:
-                            # Simple list
-                            for item in value[:50]:  # Limit to 50 items
-                                ws.cell(row=row, column=1, value=str(item))
-                                row += 1
-                        
-                        row += 1  # Empty row
-                
-                # Auto-adjust column widths
-                for col in range(1, ws.max_column + 1):
-                    max_length = 0
-                    column = get_column_letter(col)
-                    for row_cells in ws[column]:
-                        try:
-                            if len(str(row_cells.value)) > max_length:
-                                max_length = len(str(row_cells.value))
-                        except:
-                            pass
-                    adjusted_width = min(max_length + 2, 50)  # Cap at 50 characters
-                    ws.column_dimensions[column].width = adjusted_width
-                
-                # Save to bytes
-                buffer = BytesIO()
-                wb.save(buffer)
-                buffer.seek(0)
-                return buffer.getvalue()
-                
-            except ImportError:
-                # Fallback to CSV format if openpyxl not available
-                logger.warning("openpyxl not available, using CSV format for Excel export")
-                output = StringIO()
-                
-                # Write title and metadata
-                writer = csv.writer(output)
-                writer.writerow([title])
-                writer.writerow(['Generated At', timezone.now().strftime('%Y-%m-%d %H:%M:%S')])
-                writer.writerow([])  # Empty row
-                
-                # Write summary data
-                writer.writerow(['Summary'])
-                for key, value in report_data.items():
-                    if isinstance(value, (int, float, str)):
-                        writer.writerow([str(key).replace('_', ' ').title(), value])
-                
-                writer.writerow([])  # Empty row
-                
-                # Write detailed data tables
-                for key, value in report_data.items():
-                    if isinstance(value, list) and value:
-                        writer.writerow([str(key).replace('_', ' ').title()])
-                        if isinstance(value[0], dict):
-                            # Write headers
-                            headers = list(value[0].keys())
-                            writer.writerow([header.replace('_', ' ').title() for header in headers])
-                            
-                            # Write data
-                            for item in value:
-                                row = [item.get(header, '') for header in headers]
-                                writer.writerow(row)
-                        
-                        writer.writerow([])  # Empty row
-                
-                csv_content = output.getvalue()
-                output.close()
-                return csv_content.encode('utf-8')
+                    else:
+                        # Simple list
+                        for item in value[:100]:
+                            ws.cell(row=row, column=1, value=str(item))
+                            row += 1
+                    
+                    row += 1  # Empty row
+            
+            # Auto-adjust column widths
+            for col in range(1, ws.max_column + 1):
+                column = get_column_letter(col)
+                ws.column_dimensions[column].width = 20
+            
+            buffer = BytesIO()
+            wb.save(buffer)
+            buffer.seek(0)
+            return buffer.getvalue()
+            
+        except ImportError:
+            logger.warning("openpyxl not available, falling back to CSV")
+            return ReportExportService.export_to_csv(report_data, title)
+        except Exception as e:
+            logger.error(f"Excel export failed: {e}")
+            return None
         
         except Exception as e:
             logger.error(f"Error generating Excel: {str(e)}")
@@ -906,248 +819,167 @@ class ReportGenerationService:
         self.data_service = ReportDataService()
         self.export_service = ReportExportService()
     
-    def generate_patient_summary_report(self, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
-        """Generate patient summary report"""
-        data = self.data_service.get_patient_summary_data(date_start, date_end, filters)
-        
-        template_content = """
+    def get_default_template(self, report_type, title):
+        """Provide a fallback HTML template if one is missing from the database"""
+        return f"""
+        {{% load report_tags %}}
+        <!DOCTYPE html>
         <html>
         <head>
-            <title>Patient Summary Report</title>
+            <meta charset="utf-8">
+            <title>{title}</title>
             <style>
-                body { font-family: Arial, sans-serif; margin: 20px; }
-                .header { text-align: center; margin-bottom: 30px; }
-                .metric { margin: 10px 0; padding: 10px; background: #f5f5f5; }
-                table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                th { background-color: #4472C4; color: white; }
+                body {{ font-family: 'Helvetica', 'Arial', sans-serif; color: #333; line-height: 1.5; margin: 0; padding: 40px; }}
+                .usc-header {{ text-align: center; border-bottom: 2px solid #0B4F6C; padding-bottom: 20px; margin-bottom: 30px; }}
+                .usc-logo {{ color: #0B4F6C; font-size: 20px; font-weight: bold; margin-bottom: 5px; }}
+                .usc-title {{ color: #246A73; font-size: 28px; margin: 10px 0; }}
+                .meta-info {{ color: #666; font-size: 12px; margin-bottom: 30px; }}
+                .section {{ margin-bottom: 30px; page-break-inside: avoid; }}
+                .section-title {{ color: #0B4F6C; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 15px; }}
+                table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
+                th, td {{ border: 1px solid #e0e0e0; padding: 10px; text-align: left; font-size: 13px; }}
+                th {{ background-color: #f8f9fa; font-weight: bold; color: #0B4F6C; }}
+                .metric-box {{ background: #f0f7f9; border-radius: 8px; padding: 15px; margin-bottom: 20px; display: inline-block; min-width: 200px; border: 1px solid #d0e4ea; }}
+                .metric-label {{ font-size: 12px; color: #5a8a92; text-transform: uppercase; letter-spacing: 1px; }}
+                .metric-value {{ font-size: 24px; font-weight: bold; color: #0B4F6C; }}
+                .footer {{ text-align: center; margin-top: 50px; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 20px; }}
             </style>
         </head>
         <body>
-            <div class="header">
-                <h1>Patient Summary Report</h1>
-                <p>Generated on: {{ generated_at|date:"Y-m-d H:i:s" }}</p>
+            <div class="usc-header">
+                <div class="usc-logo">UNIVERSITY OF SAN CARLOS</div>
+                <div class="usc-logo">Health Services Clinic</div>
+                <h1 class="usc-title">{title}</h1>
+                <div class="meta-info">Generated on: {{{{ generated_at|date:"F d, Y H:i" }}}}</div>
             </div>
-            
-            <div class="metric">
-                <h3>Total Patients: {{ report_data.total_patients }}</h3>
+
+            <div class="section">
+                <div class="section-title">Summary Metrics</div>
+                {{% for key, value in report_data.items %}}
+                    {{% if value|is_simple %}}
+                        <div class="metric-box">
+                            <div class="metric-label">{{{{ key|title_clean }}}}</div>
+                            <div class="metric-value">{{{{ value }}}}</div>
+                        </div>
+                    {{% endif %}}
+                {{% endfor %}}
             </div>
-            
-            <div class="metric">
-                <h3>New Registrations (Last 30 Days): {{ report_data.new_registrations }}</h3>
+
+            {{% for key, value in report_data.items %}}
+                {{% if value|is_list %}}
+                    <div class="section">
+                        <div class="section-title">{{{{ key|title_clean }}}}</div>
+                        {{% if value.0|is_dict %}}
+                            <table>
+                                <thead>
+                                    <tr>
+                                        {{% for header in value.0.keys %}}
+                                            <th>{{{{ header|title_clean }}}}</th>
+                                        {{% endfor %}}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {{% for row in value|slice:":50" %}}
+                                        <tr>
+                                            {{% for val in row.values %}}
+                                                <td>{{{{ val }}}}</td>
+                                            {{% endfor %}}
+                                        </tr>
+                                    {{% endfor %}}
+                                </tbody>
+                            </table>
+                        {{% else %}}
+                            <ul>
+                                {{% for item in value|slice:":20" %}}
+                                    <li>{{{{ item }}}}</li>
+                                {{% endfor %}}
+                            </ul>
+                        {{% endif %}}
+                    </div>
+                {{% endif %}}
+            {{% endfor %}}
+
+            <div class="footer">
+                <p>USC-PIS Automated Reporting System • Confidential Medical Record</p>
+                <p>&copy; {{{{ generated_at|date:"Y" }}}} University of San Carlos Health Services. All Rights Reserved.</p>
             </div>
-            
-            <h3>Gender Distribution</h3>
-            <table>
-                <tr><th>Gender</th><th>Count</th></tr>
-                {% for item in report_data.gender_distribution %}
-                <tr><td>{{ item.gender }}</td><td>{{ item.count }}</td></tr>
-                {% endfor %}
-            </table>
         </body>
         </html>
         """
+
+    def _generate_generic_report(self, report_type, title, date_start, date_end, filters, export_format, template_html):
+        """Helper to generate any report type with consistent format handling"""
+        # Use template from DB or fall back to default USC template
+        final_template = template_html or self.get_default_template(report_type, title)
         
+        # 1. Get Data
+        if report_type == 'PATIENT_SUMMARY':
+            data = self.data_service.get_patient_summary_data(date_start, date_end, filters)
+        elif report_type == 'VISIT_TRENDS':
+            data = self.data_service.get_visit_trends_data(date_start, date_end, filters)
+        elif report_type == 'TREATMENT_OUTCOMES':
+            data = self.data_service.get_treatment_outcomes_data(date_start, date_end, filters)
+        elif report_type == 'FEEDBACK_ANALYSIS':
+            data = self.data_service.get_feedback_analysis_data(date_start, date_end, filters)
+        elif report_type == 'COMPREHENSIVE_ANALYTICS':
+            data = self.data_service.get_comprehensive_analytics_data(date_start, date_end, filters)
+        elif report_type == 'MEDICAL_STATISTICS':
+            p_data = self.data_service.get_patient_summary_data(date_start, date_end, filters)
+            v_data = self.data_service.get_visit_trends_data(date_start, date_end, filters)
+            data = {**p_data, **v_data}
+        elif report_type == 'DENTAL_STATISTICS':
+            data = self.data_service.get_visit_trends_data(date_start, date_end, filters)
+        elif report_type == 'CAMPAIGN_PERFORMANCE':
+            c_data = self.data_service.get_comprehensive_analytics_data(date_start, date_end, filters)
+            data = {
+                'campaign_overview': c_data.get('overview', {}),
+                'user_engagement': c_data.get('user_activity', []),
+                'health_metrics': c_data.get('health_metrics', {}),
+                'system_efficiency': c_data.get('efficiency_metrics', {})
+            }
+        else:
+            data = {}
+
+        # 2. Export based on format
         if export_format == 'PDF':
-            return self.export_service.export_to_pdf(data, template_content, "Patient Summary Report")
-        elif export_format == 'HTML' and template_html:
+            return self.export_service.export_to_pdf(data, final_template, title)
+        elif export_format == 'HTML':
             return self.export_service.export_to_html(
-                data,
-                template_html,
-                title="Patient Summary Report",
-                extra_context={
-                    'date_range_start': date_start,
-                    'date_range_end': date_end,
-                    'filters': filters or {}
-                }
+                data, final_template, title, 
+                extra_context={'date_range_start': date_start, 'date_range_end': date_end, 'filters': filters or {}}
             )
         elif export_format == 'EXCEL':
-            return self.export_service.export_to_excel(data, "Patient Summary Report")
+            return self.export_service.export_to_excel(data, title)
         elif export_format == 'CSV':
-            return self.export_service.export_to_csv(data, "Patient Summary Report")
+            return self.export_service.export_to_csv(data, title)
         elif export_format == 'JSON':
-            return self.export_service.export_to_json(data, "Patient Summary Report")
+            return self.export_service.export_to_json(data, title)
         
         return None
+
+    def generate_patient_summary_report(self, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
+        return self._generate_generic_report('PATIENT_SUMMARY', "Patient Summary Report", date_start, date_end, filters, export_format, template_html)
     
     def generate_visit_trends_report(self, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
-        """Generate visit trends report"""
-        data = self.data_service.get_visit_trends_data(date_start, date_end, filters)
-        
-        if export_format == 'PDF':
-            return self.export_service.export_to_pdf(data, template_html, "Visit Trends Report")
-        elif export_format == 'HTML' and template_html:
-            return self.export_service.export_to_html(
-                data,
-                template_html,
-                title="Visit Trends Report",
-                extra_context={
-                    'date_range_start': date_start,
-                    'date_range_end': date_end,
-                    'filters': filters or {}
-                }
-            )
-        elif export_format == 'EXCEL':
-            return self.export_service.export_to_excel(data, "Visit Trends Report")
-        elif export_format == 'CSV':
-            return self.export_service.export_to_csv(data, "Visit Trends Report")
-        elif export_format == 'JSON':
-            return self.export_service.export_to_json(data, "Visit Trends Report")
-        
-        return None
+        return self._generate_generic_report('VISIT_TRENDS', "Visit Trends Report", date_start, date_end, filters, export_format, template_html)
     
     def generate_treatment_outcomes_report(self, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
-        """Generate treatment outcomes report"""
-        data = self.data_service.get_treatment_outcomes_data(date_start, date_end, filters)
-        
-        if export_format == 'PDF':
-            return self.export_service.export_to_pdf(data, template_html, "Treatment Outcomes Report")
-        elif export_format == 'HTML' and template_html:
-            return self.export_service.export_to_html(
-                data,
-                template_html,
-                title="Treatment Outcomes Report",
-                extra_context={
-                    'date_range_start': date_start,
-                    'date_range_end': date_end,
-                    'filters': filters or {}
-                }
-            )
-        elif export_format == 'EXCEL':
-            return self.export_service.export_to_excel(data, "Treatment Outcomes Report")
-        elif export_format == 'CSV':
-            return self.export_service.export_to_csv(data, "Treatment Outcomes Report")
-        elif export_format == 'JSON':
-            return self.export_service.export_to_json(data, "Treatment Outcomes Report")
-        
-        return None
+        return self._generate_generic_report('TREATMENT_OUTCOMES', "Treatment Outcomes Report", date_start, date_end, filters, export_format, template_html)
     
     def generate_feedback_analysis_report(self, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
-        """Generate feedback analysis report"""
-        data = self.data_service.get_feedback_analysis_data(date_start, date_end, filters)
-        
-        if export_format == 'PDF':
-            return self.export_service.export_to_pdf(data, template_html, "Feedback Analysis Report")
-        elif export_format == 'HTML' and template_html:
-            return self.export_service.export_to_html(
-                data,
-                template_html,
-                title="Feedback Analysis Report",
-                extra_context={
-                    'date_range_start': date_start,
-                    'date_range_end': date_end,
-                    'filters': filters or {}
-                }
-            )
-        elif export_format == 'EXCEL':
-            return self.export_service.export_to_excel(data, "Feedback Analysis Report")
-        elif export_format == 'CSV':
-            return self.export_service.export_to_csv(data, "Feedback Analysis Report")
-        elif export_format == 'JSON':
-            return self.export_service.export_to_json(data, "Feedback Analysis Report")
-        
-        return None
+        return self._generate_generic_report('FEEDBACK_ANALYSIS', "Feedback Analysis Report", date_start, date_end, filters, export_format, template_html)
     
     def generate_comprehensive_analytics_report(self, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
-        """Generate comprehensive analytics report"""
-        data = self.data_service.get_comprehensive_analytics_data(date_start, date_end, filters)
-        
-        if export_format == 'PDF':
-            return self.export_service.export_to_pdf(data, template_html, "Comprehensive Analytics Report")
-        elif export_format == 'EXCEL':
-            return self.export_service.export_to_excel(data, "Comprehensive Analytics Report")
-        elif export_format == 'CSV':
-            return self.export_service.export_to_csv(data, "Comprehensive Analytics Report")
-        elif export_format == 'JSON':
-            return self.export_service.export_to_json(data, "Comprehensive Analytics Report")
-        
-        return None
+        return self._generate_generic_report('COMPREHENSIVE_ANALYTICS', "Comprehensive Analytics Report", date_start, date_end, filters, export_format, template_html)
     
     def generate_medical_statistics_report(self, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
-        """Generate medical statistics report"""
-        # Get data from multiple sources to populate the full template
-        patient_data = self.data_service.get_patient_summary_data(date_start, date_end, filters)
-        visit_data = self.data_service.get_visit_trends_data(date_start, date_end, filters)
-        
-        # Merge data to match template expectations
-        data = {
-            **patient_data,
-            **visit_data,
-            # Map fields to match template variable names
-            'total_consultations': visit_data.get('total_visits', 0),
-            'medical_consultations': visit_data.get('total_medical_visits', 0),
-            'followup_visits': 0, # Not currently tracked separately in aggregate
-            'emergency_cases': 0, # Not currently tracked separately
-            'referrals_count': 0, # Not currently tracked
-            'top_condition': visit_data.get('common_diagnoses', [{'diagnosis': 'N/A'}])[0]['diagnosis'] if visit_data.get('common_diagnoses') else 'None',
-            'top_diagnoses': [
-                {
-                    'name': d['diagnosis'],
-                    'case_count': d['count'],
-                    'percentage': (d['count'] / max(1, visit_data.get('total_medical_visits', 1))) * 100,
-                    'avg_age': 0, # Requires deeper query
-                    'gender_ratio': 'N/A'
-                } for d in visit_data.get('common_diagnoses', [])
-            ],
-            'monthly_trends': [
-                {
-                    'name': m['month'],
-                    'total': m['total_visits'],
-                    'medical': m['medical_visits'],
-                    'emergency': 0,
-                    'followup': 0
-                } for m in visit_data.get('monthly_trends', [])
-            ]
-        }
-        
-        if export_format == 'PDF':
-            return self.export_service.export_to_pdf(data, template_html, "Medical Statistics Report")
-        elif export_format == 'EXCEL':
-            return self.export_service.export_to_excel(data, "Medical Statistics Report")
-        elif export_format == 'CSV':
-            return self.export_service.export_to_csv(data, "Medical Statistics Report")
-        elif export_format == 'JSON':
-            return self.export_service.export_to_json(data, "Medical Statistics Report")
-        elif export_format == 'HTML' and template_html:
-            return self.export_service.export_to_html(
-                data,
-                template_html,
-                title="Medical Statistics Report",
-                extra_context={
-                    'date_range_start': date_start,
-                    'date_range_end': date_end,
-                    'filters': filters or {}
-                }
-            )
-        
-        return None
+        return self._generate_generic_report('MEDICAL_STATISTICS', "Medical Statistics Report", date_start, date_end, filters, export_format, template_html)
     
     def generate_dental_statistics_report(self, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
-        """Generate dental statistics report"""
-        # Use visit trends data focusing on dental records
-        data = self.data_service.get_visit_trends_data(date_start, date_end, filters)
-        
-        if export_format == 'PDF':
-            return self.export_service.export_to_pdf(data, template_html, "Dental Statistics Report")
-        elif export_format == 'EXCEL':
-            return self.export_service.export_to_excel(data, "Dental Statistics Report")
-        elif export_format == 'CSV':
-            return self.export_service.export_to_csv(data, "Dental Statistics Report")
-        elif export_format == 'JSON':
-            return self.export_service.export_to_json(data, "Dental Statistics Report")
-        elif export_format == 'HTML' and template_html:
-            return self.export_service.export_to_html(
-                data,
-                template_html,
-                title="Dental Statistics Report",
-                extra_context={
-                    'date_range_start': date_start,
-                    'date_range_end': date_end,
-                    'filters': filters or {}
-                }
-            )
-        
-        return None
+        return self._generate_generic_report('DENTAL_STATISTICS', "Dental Statistics Report", date_start, date_end, filters, export_format, template_html)
+    
+    def generate_campaign_performance_report(self, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
+        return self._generate_generic_report('CAMPAIGN_PERFORMANCE', "Campaign Performance Report", date_start, date_end, filters, export_format, template_html)
     
     def generate_campaign_performance_report(self, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
         """Generate campaign performance report"""

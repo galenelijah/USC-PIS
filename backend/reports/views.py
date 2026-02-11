@@ -101,6 +101,13 @@ def generate_report_task(report_id, template_id, filters, date_start, date_end, 
                 'HTML': 'html'
             }.get(export_format, 'pdf')
             
+            # Detect if EXCEL fallback to CSV occurred
+            if export_format == 'EXCEL':
+                # openpyxl files are ZIP archives starting with PK header
+                if not report_data.startswith(b'PK\x03\x04'):
+                    file_extension = 'csv'
+                    logger.warning(f"Excel generation for report {report_id} fell back to CSV format (missing openpyxl?). Correcting extension to .csv.")
+
             filename = f"report_{report.id}_{uuid.uuid4().hex[:8]}.{file_extension}"
             report.file_path.save(filename, ContentFile(report_data))
             report.file_size = len(report_data)

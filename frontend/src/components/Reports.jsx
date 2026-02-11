@@ -216,6 +216,10 @@ const Reports = () => {
           fileExtension = 'json';
           mimeType = 'application/json';
           break;
+        case 'html':
+          fileExtension = 'html';
+          mimeType = 'text/html';
+          break;
         case 'pdf':
         default:
           fileExtension = 'pdf';
@@ -380,6 +384,7 @@ const Reports = () => {
       case 'EXCEL': return <ExcelIcon />;
       case 'CSV': return <CsvIcon />;
       case 'JSON': return <JsonIcon />;
+      case 'HTML': return <ViewIcon />;
       default: return <ReportIcon />;
     }
   };
@@ -1113,6 +1118,7 @@ const Reports = () => {
                         <MenuItem value="EXCEL">Excel Spreadsheet</MenuItem>
                         <MenuItem value="CSV">CSV File</MenuItem>
                         <MenuItem value="JSON">JSON Data</MenuItem>
+                        <MenuItem value="HTML">HTML Report</MenuItem>
                       </Select>
                     </FormControl>
                   </Grid>
