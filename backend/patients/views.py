@@ -686,9 +686,27 @@ def dashboard_stats(request):
         elif user.role == User.Role.STUDENT:
             # Student/Patient dashboard - optimized for single patient
             patient = getattr(user, 'patient_profile', None)
+            
+            # Self-healing: if setup is complete but patient profile is missing, try to create it
+            if not patient and user.completeSetup:
+                logger.info(f"Student {user.email} has completeSetup=True but no patient profile. Attempting to create...")
+                try:
+                    from authentication.views import _prepare_patient_data
+                    patient_data = _prepare_patient_data(user, {}, {})
+                    if patient_data:
+                        patient = Patient.objects.create(user=user, **patient_data)
+                        logger.info(f"Successfully self-healed patient profile for {user.email}")
+                except Exception as e:
+                    logger.error(f"Failed to self-heal patient profile: {str(e)}")
+
+            logger.info(f"Dashboard stats for student {user.email}: patient_profile exists: {patient is not None}")
+            
+            # Always calculate completion, even if patient object is None (falls back to user data)
+            profile_completion = calculate_profile_completion(user, patient)
+            logger.info(f"Calculated profile completion for {user.email}: {profile_completion}%")
+            
             if patient:
                 # Get patient's recent records
-                
                 recent_medical_record = MedicalRecord.objects.filter(
                     patient=patient
                 ).order_by('-visit_date').first()
@@ -697,8 +715,6 @@ def dashboard_stats(request):
                     patient=patient
                 ).order_by('-visit_date').first()
                 
-                profile_completion = calculate_profile_completion(user, patient)
-                
                 return Response({
                     'recent_medical_record': recent_medical_record.diagnosis if recent_medical_record else None,
                     'recent_dental_record': recent_dental_record.diagnosis if recent_dental_record else None,
@@ -706,10 +722,11 @@ def dashboard_stats(request):
                     'patient_id': patient.id,
                 })
             else:
+                logger.warning(f"Student {user.email} still has no patient profile record after attempt")
                 return Response({
                     'recent_medical_record': None,
                     'recent_dental_record': None,
-                    'profile_completion': 0,
+                    'profile_completion': profile_completion, # Return calculated value from user data
                     'patient_id': None,
                 })
         else:
@@ -725,75 +742,91 @@ def dashboard_stats(request):
 def calculate_profile_completion(user, patient):
     """
     Calculate profile completion percentage for a user.
-    Fixed to properly calculate completion without duplicate counting and with correct field names.
+    Checks both User and Patient objects for field values.
     """
     total_fields = 0
     completed_fields = 0
+    found_fields = []
     
-    def field_has_value(obj, field_name):
-        """Check if a field has a meaningful value (not None, empty string, or whitespace)."""
-        try:
-            field_value = getattr(obj, field_name, None)
-            if field_value is None:
-                return False
-            # Convert to string and check if it's not just whitespace
-            str_value = str(field_value).strip()
-            return len(str_value) > 0 and str_value.lower() not in ['none', 'null', '']
-        except:
-            return False
-    
-    # Essential profile fields (required for basic profile completion)
+    def get_field_value(field_name):
+        """Helper to check field value in both user and patient objects."""
+        # Check user object first
+        val = getattr(user, field_name, None)
+        if val is not None and str(val).strip().lower() not in ['none', 'null', '']:
+            return val
+            
+        # If not in user, check patient object
+        if patient:
+            # Handle field name differences
+            patient_field = field_name
+            if field_name == 'phone':
+                patient_field = 'phone_number'
+            elif field_name == 'birthday':
+                patient_field = 'date_of_birth'
+            elif field_name == 'sex':
+                patient_field = 'gender'
+            elif field_name == 'address_present':
+                patient_field = 'address'
+                
+            val = getattr(patient, patient_field, None)
+            if val is not None and str(val).strip().lower() not in ['none', 'null', '']:
+                return val
+        
+        return None
+
+    # Essential profile fields (3 points each)
     essential_fields = [
         'first_name', 'last_name', 'email', 'birthday', 'sex', 
         'address_present', 'emergency_contact', 'emergency_contact_number'
     ]
     
-    # Important profile fields (good to have for complete profile)
+    # Important profile fields (2 points each)
     important_fields = [
         'middle_name', 'id_number', 'course', 'year_level', 'school',
         'civil_status', 'nationality', 'phone'
     ]
     
-    # Medical information fields (important for healthcare records)
+    # Medical information fields (2 points each)
     medical_fields = [
-        'allergies', 'existing_medical_condition', 'medications',
+        'illness', 'allergies', 'existing_medical_condition', 'medications',
         'weight', 'height', 'father_name', 'mother_name'
     ]
     
-    # Optional fields (nice to have)
+    # Optional fields (1 point each)
     optional_fields = [
         'religion', 'address_permanent', 'childhood_diseases', 
         'hospitalization_history', 'surgical_procedures'
     ]
     
-    # Weight essential fields more heavily (they count as 3 points each)
     for field in essential_fields:
         total_fields += 3
-        if field_has_value(user, field):
+        if get_field_value(field):
             completed_fields += 3
+            found_fields.append(field)
     
-    # Important fields count as 2 points each
     for field in important_fields:
         total_fields += 2
-        if field_has_value(user, field):
+        if get_field_value(field):
             completed_fields += 2
-    
-    # Medical fields count as 2 points each (important for health records)
+            found_fields.append(field)
+            
     for field in medical_fields:
         total_fields += 2
-        if field_has_value(user, field):
+        if get_field_value(field):
             completed_fields += 2
-    
-    # Optional fields count as 1 point each
+            found_fields.append(field)
+            
     for field in optional_fields:
         total_fields += 1
-        if field_has_value(user, field):
+        if get_field_value(field):
             completed_fields += 1
+            found_fields.append(field)
     
     # Calculate percentage
+    percentage = 0
     if total_fields > 0:
         percentage = int((completed_fields / total_fields) * 100)
-        # Ensure percentage doesn't exceed 100%
-        return min(percentage, 100)
-    else:
-        return 0
+        percentage = min(percentage, 100)
+        
+    logger.info(f"Profile completion for {user.email}: {percentage}% ({completed_fields}/{total_fields}). Fields found: {', '.join(found_fields)}")
+    return percentage

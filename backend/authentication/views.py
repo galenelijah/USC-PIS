@@ -774,68 +774,69 @@ def _prepare_patient_data(user, validated_data, raw_data):
     """Prepare patient data with enhanced validation and edge case handling."""
     try:
         # Accept both 'birthday' and 'date_of_birth' from frontend
-        dob = raw_data.get('date_of_birth') or raw_data.get('birthday') or validated_data.get('birthday')
+        dob = raw_data.get('date_of_birth') or raw_data.get('birthday') or validated_data.get('birthday') or getattr(user, 'birthday', None)
         
         if not dob:
-            logger.error("No date of birth provided for patient creation")
+            logger.error(f"No date of birth provided for patient creation for user {user.email}")
             return None
         
         # Parse date with multiple format support
         parsed_date = None
         date_formats = ['%Y-%m-%d', '%m/%d/%Y', '%d/%m/%Y', '%Y-%m-%d %H:%M:%S']
         
-        for date_format in date_formats:
-            try:
-                if isinstance(dob, str):
-                    parsed_date = datetime.datetime.strptime(dob.split()[0], date_format).date()
-                    break
-                elif hasattr(dob, 'date'):
-                    parsed_date = dob.date()
-                    break
-                elif isinstance(dob, datetime.date):
-                    parsed_date = dob
-                    break
-            except ValueError:
-                continue
+        if isinstance(dob, (datetime.date, datetime.datetime)):
+            parsed_date = dob if isinstance(dob, datetime.date) else dob.date()
+        else:
+            for date_format in date_formats:
+                try:
+                    if isinstance(dob, str):
+                        parsed_date = datetime.datetime.strptime(dob.split()[0], date_format).date()
+                        break
+                except ValueError:
+                    continue
         
         if not parsed_date:
-            logger.error(f"Failed to parse date of birth: {dob}")
+            logger.error(f"Failed to parse date of birth: {dob} for user {user.email}")
             return None
         
-        # Validate required fields
+        # Validate required fields - check validated_data first, then user object
         required_fields = {
-            'first_name': validated_data.get('first_name'),
-            'last_name': validated_data.get('last_name'),
-            'sex': validated_data.get('sex'),
-            'phone': validated_data.get('phone'),
-            'email': validated_data.get('email', user.email),
+            'first_name': validated_data.get('first_name') or user.first_name,
+            'last_name': validated_data.get('last_name') or user.last_name,
+            'sex': validated_data.get('sex') or getattr(user, 'sex', None),
+            'phone': validated_data.get('phone') or getattr(user, 'phone', None),
+            'email': validated_data.get('email') or user.email,
         }
         
-        # Address handling (prefer present, fall back to permanent)
+        # Address handling (prefer present, fall back to permanent, then user object)
         address = (validated_data.get('address_present') or 
                   validated_data.get('address_permanent') or 
                   raw_data.get('address_present') or 
-                  raw_data.get('address_permanent'))
+                  raw_data.get('address_permanent') or
+                  getattr(user, 'address_present', None) or
+                  getattr(user, 'address_permanent', None))
         
         if not address:
-            logger.error("No address provided for patient creation")
+            logger.error(f"No address provided for patient creation for user {user.email}")
             return None
         
         # Check for missing required fields
         missing_fields = [field for field, value in required_fields.items() if not value]
         if missing_fields:
-            logger.error(f"Missing required fields for Patient: {missing_fields}")
-            return None
+            logger.error(f"Missing required fields for Patient creation (user {user.email}): {missing_fields}")
+            # If we're missing first/last name or sex, we can't create a valid patient
+            if any(f in ['first_name', 'last_name', 'sex'] for f in missing_fields):
+                return None
         
         # Prepare patient data
         patient_data = {
-            'first_name': required_fields['first_name'].strip(),
-            'last_name': required_fields['last_name'].strip(),
+            'first_name': str(required_fields['first_name'] or '').strip(),
+            'last_name': str(required_fields['last_name'] or '').strip(),
             'date_of_birth': parsed_date,
-            'gender': required_fields['sex'][0].upper() if required_fields['sex'] else 'O',
-            'phone_number': required_fields['phone'].strip(),
-            'email': required_fields['email'].strip().lower(),
-            'address': address.strip(),
+            'gender': str(required_fields['sex'] or 'O')[0].upper(),
+            'phone_number': str(required_fields['phone'] or '').strip(),
+            'email': str(required_fields['email'] or '').strip().lower(),
+            'address': str(address).strip(),
             'created_by': user
         }
         
@@ -843,7 +844,7 @@ def _prepare_patient_data(user, validated_data, raw_data):
         return patient_data
         
     except Exception as e:
-        logger.error(f"Error preparing patient data: {str(e)}")
+        logger.error(f"Error preparing patient data for {user.email}: {str(e)}\n{traceback.format_exc()}")
         return None
 
 class PasswordResetRequestView(APIView):
