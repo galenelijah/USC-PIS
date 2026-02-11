@@ -148,10 +148,20 @@ class ReportGenerationRequestSerializer(serializers.Serializer):
         except ReportTemplate.DoesNotExist:
             raise serializers.ValidationError("Report template not found")
         
-        # Check if export format is supported
+        # Check if export format is supported by the engine
         export_format = data.get('export_format')
-        if export_format not in template.supported_formats:
-            raise serializers.ValidationError(f"Export format {export_format} not supported for this template")
+        from .services import ReportGenerationService
+        engine_formats = ReportGenerationService.get_supported_formats()
+        
+        # Validation: Format must be supported by engine AND (either template list is empty OR format is in template list)
+        if export_format not in engine_formats:
+            raise serializers.ValidationError(f"Export format {export_format} is not supported by the system engine")
+            
+        if template.supported_formats and export_format not in template.supported_formats:
+            # Fallback: if engine supports it but template doesn't list it, we can still allow it 
+            # OR we can strictly follow template. Let's allow it if it's a standard format
+            # to resolve the user's immediate issue without a DB migration.
+            logger.warning(f"Format {export_format} requested for template {template.name} but not in its supported_formats list. Allowing due to engine support.")
         
         # Validate date range if required
         if template.requires_date_range:

@@ -37,7 +37,7 @@ class Command(BaseCommand):
                 'report_type': 'PATIENT_SUMMARY',
                 'template_content': self.get_patient_summary_template(),
                 'default_filters': {'include_medical_history': True, 'include_dental_records': True},
-                'supported_formats': ['PDF', 'HTML'],
+                'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
                 'requires_patient_filter': True,
                 'allowed_roles': ['DOCTOR', 'NURSE', 'STAFF', 'ADMIN']
             },
@@ -47,7 +47,7 @@ class Command(BaseCommand):
                 'report_type': 'VISIT_TRENDS',
                 'template_content': self.get_visit_trends_template(),
                 'default_filters': {'group_by': 'month', 'include_charts': True},
-                'supported_formats': ['PDF', 'EXCEL', 'HTML'],
+                'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
                 'allowed_roles': ['DOCTOR', 'STAFF', 'ADMIN']
             },
             {
@@ -56,7 +56,7 @@ class Command(BaseCommand):
                 'report_type': 'TREATMENT_OUTCOMES',
                 'template_content': self.get_treatment_outcomes_template(),
                 'default_filters': {'include_success_rates': True, 'group_by_treatment': True},
-                'supported_formats': ['PDF', 'EXCEL', 'HTML'],
+                'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
                 'allowed_roles': ['DOCTOR', 'STAFF', 'ADMIN']
             },
             {
@@ -65,7 +65,7 @@ class Command(BaseCommand):
                 'report_type': 'MEDICAL_STATISTICS',
                 'template_content': self.get_medical_statistics_template(),
                 'default_filters': {'include_demographics': True, 'include_diagnosis_trends': True},
-                'supported_formats': ['PDF', 'HTML'],
+                'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
                 'allowed_roles': ['DOCTOR', 'STAFF', 'ADMIN']
             },
             {
@@ -74,7 +74,7 @@ class Command(BaseCommand):
                 'report_type': 'DENTAL_STATISTICS',
                 'template_content': self.get_dental_statistics_template(),
                 'default_filters': {'include_procedures': True, 'include_oral_health_index': True},
-                'supported_formats': ['PDF', 'HTML'],
+                'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
                 'allowed_roles': ['DOCTOR', 'STAFF', 'ADMIN']
             },
             {
@@ -83,7 +83,7 @@ class Command(BaseCommand):
                 'report_type': 'FEEDBACK_ANALYSIS',
                 'template_content': self.get_feedback_analysis_template(),
                 'default_filters': {'include_ratings': True, 'include_comments': True},
-                'supported_formats': ['PDF', 'EXCEL', 'HTML'],
+                'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
                 'allowed_roles': ['STAFF', 'ADMIN']
             },
             {
@@ -92,7 +92,7 @@ class Command(BaseCommand):
                 'report_type': 'CAMPAIGN_PERFORMANCE',
                 'template_content': self.get_campaign_performance_template(),
                 'default_filters': {'include_participation_rates': True, 'include_feedback': True},
-                'supported_formats': ['PDF', 'HTML'],
+                'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
                 'allowed_roles': ['STAFF', 'ADMIN']
             }
         ]

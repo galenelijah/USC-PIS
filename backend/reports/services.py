@@ -41,8 +41,13 @@ class ReportDataService:
             patient_id = filters.get('patient_id')
             try:
                 patient = Patient.objects.select_related('user').get(id=patient_id)
-                medical_records = patient.medical_records.all().order_by('-created_at')[:5]
-                dental_records = patient.dental_records.all().order_by('-created_at')[:5]
+                # Convert records to values for consistent export across all formats
+                medical_records = list(patient.medical_records.all().order_by('-visit_date').values(
+                    'visit_date', 'diagnosis', 'treatment', 'notes'
+                )[:10])
+                dental_records = list(patient.dental_records.all().order_by('-visit_date').values(
+                    'visit_date', 'procedure_performed', 'diagnosis', 'treatment_performed', 'notes'
+                )[:10])
                 
                 # Calculate age
                 today = timezone.now().date()
@@ -61,7 +66,7 @@ class ReportDataService:
                         'date_of_birth': patient.date_of_birth,
                         'age': age,
                         'gender': patient.get_gender_display(),
-                        'blood_type': 'N/A', # Not currently tracked
+                        'blood_type': 'N/A',
                         'allergies': getattr(patient.user, 'allergies', 'None') if patient.user else 'None',
                         'medical_conditions': getattr(patient.user, 'existing_medical_condition', 'None') if patient.user else 'None',
                         'current_medications': getattr(patient.user, 'medications', 'None') if patient.user else 'None',
@@ -815,6 +820,11 @@ class ReportExportService:
 class ReportGenerationService:
     """Main service for generating reports"""
     
+    @staticmethod
+    def get_supported_formats():
+        """Returns the list of all formats supported by the generation engine"""
+        return ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML']
+
     def __init__(self):
         self.data_service = ReportDataService()
         self.export_service = ReportExportService()
