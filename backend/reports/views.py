@@ -58,38 +58,30 @@ def generate_report_task(report_id, template_id, filters, date_start, date_end, 
         
         # Generate report based on type
         report_data = None
+        common_kwargs = {
+            'date_start': date_start,
+            'date_end': date_end,
+            'filters': filters,
+            'export_format': export_format,
+            'template_html': template.template_content
+        }
+        
         if template.report_type == 'PATIENT_SUMMARY':
-            report_data = service.generate_patient_summary_report(
-                date_start, date_end, filters, export_format, template_html=template.template_content
-            )
+            report_data = service.generate_patient_summary_report(**common_kwargs)
         elif template.report_type == 'VISIT_TRENDS':
-            report_data = service.generate_visit_trends_report(
-                date_start, date_end, filters, export_format, template_html=template.template_content
-            )
+            report_data = service.generate_visit_trends_report(**common_kwargs)
         elif template.report_type == 'TREATMENT_OUTCOMES':
-            report_data = service.generate_treatment_outcomes_report(
-                date_start, date_end, filters, export_format, template_html=template.template_content
-            )
+            report_data = service.generate_treatment_outcomes_report(**common_kwargs)
         elif template.report_type == 'FEEDBACK_ANALYSIS':
-            report_data = service.generate_feedback_analysis_report(
-                date_start, date_end, filters, export_format, template_html=template.template_content
-            )
+            report_data = service.generate_feedback_analysis_report(**common_kwargs)
         elif template.report_type == 'COMPREHENSIVE_ANALYTICS':
-            report_data = service.generate_comprehensive_analytics_report(
-                date_start, date_end, filters, export_format, template_html=template.template_content
-            )
+            report_data = service.generate_comprehensive_analytics_report(**common_kwargs)
         elif template.report_type == 'MEDICAL_STATISTICS':
-            report_data = service.generate_medical_statistics_report(
-                date_start, date_end, filters, export_format, template_html=template.template_content
-            )
+            report_data = service.generate_medical_statistics_report(**common_kwargs)
         elif template.report_type == 'DENTAL_STATISTICS':
-            report_data = service.generate_dental_statistics_report(
-                date_start, date_end, filters, export_format, template_html=template.template_content
-            )
+            report_data = service.generate_dental_statistics_report(**common_kwargs)
         elif template.report_type == 'CAMPAIGN_PERFORMANCE':
-            report_data = service.generate_campaign_performance_report(
-                date_start, date_end, filters, export_format, template_html=template.template_content
-            )
+            report_data = service.generate_campaign_performance_report(**common_kwargs)
         
         if report_data:
             # Save file
