@@ -620,7 +620,7 @@ const ProfileSetup = () => {
     console.log('🔧 DEBUG: User role:', userRole);
     
     setLoading(true);
-    setGlobalError(null);
+    setError(null);
 
     try {
       let profileData = {
@@ -743,7 +743,7 @@ const ProfileSetup = () => {
         errorMessage = 'Network error. Please check your connection and try again.';
       }
       
-      setGlobalError(errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -1346,13 +1346,13 @@ const ProfileSetup = () => {
 
           {/* Content */}
           <Box sx={{ p: 4, pt: 2 }}>
-            {globalError && (
+            {error && (
               <Alert 
                 severity="error" 
                 sx={{ mb: 3, borderRadius: 2 }}
-                onClose={() => setGlobalError(null)}
+                onClose={() => setError(null)}
               >
-                {globalError}
+                {error}
               </Alert>
             )}
 
