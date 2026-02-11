@@ -17,6 +17,7 @@ import {
   Chip,
   IconButton,
   Tooltip,
+  alpha,
 } from '@mui/material';
 import {
   People as PeopleIcon,
