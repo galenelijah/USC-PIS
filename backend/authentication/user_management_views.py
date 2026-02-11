@@ -198,6 +198,15 @@ def delete_user(request, user_id):
         user_email = user.email
         user_role = user.role
         
+        # Explicitly delete associated patient profile if it exists
+        # This ensures cleanup on the patients page
+        try:
+            if hasattr(user, 'patient_profile'):
+                user.patient_profile.delete()
+        except Exception as e:
+            # Log but don't block user deletion if patient deletion fails
+            print(f"Warning: Failed to delete patient profile for user {user_id}: {e}")
+        
         user.delete()
         
         return Response({
