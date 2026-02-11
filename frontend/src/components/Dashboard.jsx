@@ -41,6 +41,8 @@ import {
   Info as InfoIcon,
   Article as ArticleIcon,
   LocalLibrary as LibraryIcon,
+  Check as CheckIcon,
+  Check,
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import { authService, campaignService, healthInfoService } from '../services/api';
@@ -60,6 +62,7 @@ const Dashboard = memo(({ user }) => {
     pendingRequests: 0,
     recentHealthInfo: null,
     profileCompletion: null,
+    missingFields: [],
     featuredCampaigns: [],
     latestCampaigns: [],
     recentHealthInfoPosts: [],
@@ -109,6 +112,7 @@ const Dashboard = memo(({ user }) => {
         pendingRequests: dashboardResponse.data.pending_requests || 0,
         recentHealthInfo: dashboardResponse.data.recent_health_info || null,
         profileCompletion: dashboardResponse.data.profile_completion || 0,
+        missingFields: dashboardResponse.data.missing_fields || [],
         featuredCampaigns: Array.isArray(featuredCampaignsData) ? featuredCampaignsData.slice(0, 3) : [],
         latestCampaigns: Array.isArray(latestCampaignsData) ? latestCampaignsData.slice(0, 8) : [], // Show more campaigns for students
         recentHealthInfoPosts: Array.isArray(healthInfoResponse.data) ? healthInfoResponse.data.slice(0, 5) : [],
@@ -744,12 +748,90 @@ const Dashboard = memo(({ user }) => {
         />
       </Grid>
       <Grid item xs={12} md={4}>
-        <StatCard
-          title="Profile Completion"
-          value={`${stats.profileCompletion || 0}%`}
-          icon={<AssessmentIcon />}
-          color="#ff9800"
-        />
+        <Card 
+          sx={{ 
+            height: '100%', 
+            borderRadius: 3, 
+            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            border: '1px solid',
+            borderColor: 'divider'
+          }}
+        >
+          <Box sx={{ p: 2, bgcolor: '#ff9800', color: 'white', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <AssessmentIcon />
+            <Typography variant="subtitle1" fontWeight="bold">Profile Status</Typography>
+          </Box>
+          <CardContent sx={{ flexGrow: 1, p: 3, display: 'flex', flexDirection: 'column' }}>
+            {stats.missingFields && stats.missingFields.length > 0 ? (
+              <>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Missing information:
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
+                  {stats.missingFields.slice(0, 6).map((field, idx) => (
+                    <Chip 
+                      key={idx} 
+                      label={field} 
+                      size="small" 
+                      sx={{ 
+                        fontSize: '0.7rem', 
+                        height: 20,
+                        bgcolor: alpha('#ff9800', 0.1),
+                        color: '#e65100',
+                        border: '1px solid',
+                        borderColor: alpha('#ff9800', 0.2)
+                      }} 
+                    />
+                  ))}
+                  {stats.missingFields.length > 6 && (
+                    <Typography variant="caption" sx={{ mt: 0.5, ml: 0.5, color: 'text.secondary' }}>
+                      +{stats.missingFields.length - 6} more
+                    </Typography>
+                  )}
+                </Box>
+                <Typography variant="h4" fontWeight="bold" color="warning.main" sx={{ mb: 1 }}>
+                  {stats.profileCompletion}%
+                </Typography>
+                <Button 
+                  component={Link}
+                  to="/profile-setup"
+                  variant="outlined" 
+                  color="warning" 
+                  size="small"
+                  fullWidth
+                  sx={{ mt: 'auto', borderRadius: 2 }}
+                >
+                  Complete Profile
+                </Button>
+              </>
+            ) : (
+              <Box sx={{ textAlign: 'center', py: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%' }}>
+                <Avatar sx={{ bgcolor: 'success.light', mb: 2, width: 50, height: 50 }}>
+                  <Check />
+                </Avatar>
+                <Typography variant="h6" fontWeight="bold" color="success.main">
+                  Profile Complete
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Your healthcare record is fully updated.
+                </Typography>
+                <Button 
+                  component={Link}
+                  to="/profile-setup"
+                  variant="text" 
+                  color="primary" 
+                  size="small"
+                  sx={{ mt: 'auto' }}
+                >
+                  Edit Profile
+                </Button>
+              </Box>
+            )}
+          </CardContent>
+        </Card>
       </Grid>
 
       <Grid item xs={12} md={8}>

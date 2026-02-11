@@ -702,7 +702,7 @@ def dashboard_stats(request):
             logger.info(f"Dashboard stats for student {user.email}: patient_profile exists: {patient is not None}")
             
             # Always calculate completion, even if patient object is None (falls back to user data)
-            profile_completion = calculate_profile_completion(user, patient)
+            profile_completion, missing_fields = calculate_profile_completion(user, patient)
             logger.info(f"Calculated profile completion for {user.email}: {profile_completion}%")
             
             if patient:
@@ -719,6 +719,7 @@ def dashboard_stats(request):
                     'recent_medical_record': recent_medical_record.diagnosis if recent_medical_record else None,
                     'recent_dental_record': recent_dental_record.diagnosis if recent_dental_record else None,
                     'profile_completion': profile_completion,
+                    'missing_fields': missing_fields,
                     'patient_id': patient.id,
                 })
             else:
@@ -726,7 +727,8 @@ def dashboard_stats(request):
                 return Response({
                     'recent_medical_record': None,
                     'recent_dental_record': None,
-                    'profile_completion': profile_completion, # Return calculated value from user data
+                    'profile_completion': profile_completion, 
+                    'missing_fields': missing_fields,
                     'patient_id': None,
                 })
         else:
@@ -741,15 +743,13 @@ def dashboard_stats(request):
 
 def calculate_profile_completion(user, patient):
     """
-    Calculate profile completion percentage for a user.
-    Checks both User and Patient objects for field values.
+    Calculate profile completion percentage and identify missing fields.
     """
     total_fields = 0
     completed_fields = 0
-    found_fields = []
+    missing_fields = []
     
     def get_field_value(field_name):
-        """Helper to check field value in both user and patient objects."""
         # Check user object first
         val = getattr(user, field_name, None)
         if val is not None and str(val).strip().lower() not in ['none', 'null', '']:
@@ -757,76 +757,43 @@ def calculate_profile_completion(user, patient):
             
         # If not in user, check patient object
         if patient:
-            # Handle field name differences
             patient_field = field_name
-            if field_name == 'phone':
-                patient_field = 'phone_number'
-            elif field_name == 'birthday':
-                patient_field = 'date_of_birth'
-            elif field_name == 'sex':
-                patient_field = 'gender'
-            elif field_name == 'address_present':
-                patient_field = 'address'
+            if field_name == 'phone': patient_field = 'phone_number'
+            elif field_name == 'birthday': patient_field = 'date_of_birth'
+            elif field_name == 'sex': patient_field = 'gender'
+            elif field_name == 'address_present': patient_field = 'address'
                 
             val = getattr(patient, patient_field, None)
             if val is not None and str(val).strip().lower() not in ['none', 'null', '']:
                 return val
-        
         return None
 
-    # Essential profile fields (3 points each)
-    essential_fields = [
-        'first_name', 'last_name', 'email', 'birthday', 'sex', 
-        'address_present', 'emergency_contact', 'emergency_contact_number'
+    # Categories with display names
+    categories = [
+        ('Essential', 3, [
+            ('first_name', 'First Name'), ('last_name', 'Last Name'), 
+            ('email', 'Email'), ('birthday', 'Birthday'), ('sex', 'Sex'), 
+            ('address_present', 'Present Address'), ('emergency_contact', 'Emergency Contact Name'), 
+            ('emergency_contact_number', 'Emergency Contact Number')
+        ]),
+        ('Profile', 2, [
+            ('id_number', 'ID Number'), ('course', 'Course'), 
+            ('year_level', 'Year Level'), ('phone', 'Phone Number'),
+            ('civil_status', 'Civil Status'), ('nationality', 'Nationality')
+        ]),
+        ('Medical', 2, [
+            ('illness', 'Illness History'), ('allergies', 'Allergies'), 
+            ('medications', 'Medications'), ('weight', 'Weight'), ('height', 'Height')
+        ])
     ]
     
-    # Important profile fields (2 points each)
-    important_fields = [
-        'middle_name', 'id_number', 'course', 'year_level', 'school',
-        'civil_status', 'nationality', 'phone'
-    ]
+    for cat_name, points, fields in categories:
+        for field_key, display_name in fields:
+            total_fields += points
+            if get_field_value(field_key):
+                completed_fields += points
+            else:
+                missing_fields.append(display_name)
     
-    # Medical information fields (2 points each)
-    medical_fields = [
-        'illness', 'allergies', 'existing_medical_condition', 'medications',
-        'weight', 'height', 'father_name', 'mother_name'
-    ]
-    
-    # Optional fields (1 point each)
-    optional_fields = [
-        'religion', 'address_permanent', 'childhood_diseases', 
-        'hospitalization_history', 'surgical_procedures'
-    ]
-    
-    for field in essential_fields:
-        total_fields += 3
-        if get_field_value(field):
-            completed_fields += 3
-            found_fields.append(field)
-    
-    for field in important_fields:
-        total_fields += 2
-        if get_field_value(field):
-            completed_fields += 2
-            found_fields.append(field)
-            
-    for field in medical_fields:
-        total_fields += 2
-        if get_field_value(field):
-            completed_fields += 2
-            found_fields.append(field)
-            
-    for field in optional_fields:
-        total_fields += 1
-        if get_field_value(field):
-            completed_fields += 1
-            found_fields.append(field)
-    
-    # Calculate percentage
-    percentage = 0
-    if total_fields > 0:
-        percentage = int((completed_fields / total_fields) * 100)
-        percentage = min(percentage, 100)
-        
-    logger.info(f"Profile completion for {user.email}: {percentage}% ({completed_fields}/{total_fields}). Fields found: {', '.join(found_fields)}")
-    return percentage
+    percentage = int((completed_fields / total_fields) * 100) if total_fields > 0 else 0
+    return min(percentage, 100), missing_fields
