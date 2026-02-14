@@ -26,11 +26,14 @@ def generate_report_task_celery(report_id):
         logger.info(f"Celery task started for report {report_id} ({template.report_type}) format {report.export_format}")
         
         report.status = 'GENERATING'
-        report.progress_percentage = 20
+        report.progress_percentage = 10
         report.save()
         
         # Initialize report generation service
         service = ReportGenerationService()
+        
+        report.progress_percentage = 30
+        report.save()
         
         # Generate report data
         common_kwargs = {
@@ -41,7 +44,7 @@ def generate_report_task_celery(report_id):
             'template_html': template.template_content
         }
         
-        report.progress_percentage = 40
+        report.progress_percentage = 50
         report.save()
 
         # Mapping report types to service methods

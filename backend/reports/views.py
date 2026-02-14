@@ -75,7 +75,7 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def generate(self, request, pk=None):
-        """Generate a report from this template using Celery"""
+        """Generate a report from this template using Celery with sync fallback"""
         import traceback
         try:
             template = self.get_object()
@@ -107,18 +107,39 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
                 expires_at=timezone.now() + timedelta(days=30)  # Reports expire after 30 days
             )
             
+            # Check if synchronous generation is requested or if we should fallback
+            force_sync = request.query_params.get('sync', 'false').lower() == 'true'
+            
+            use_celery = not force_sync
+            if use_celery:
+                try:
+                    from celery import current_app
+                    # Quick check for active workers
+                    # Set a very short timeout so we don't block the request too long
+                    inspect = current_app.control.inspect(timeout=0.1)
+                    active_workers = inspect.active()
+                    if not active_workers:
+                        logger.warning("No active Celery workers detected. Falling back to synchronous generation.")
+                        use_celery = False
+                except Exception as e:
+                    logger.warning(f"Could not inspect Celery workers: {e}. Attempting background task anyway.")
+
             # Start background task via Celery - pass only ID to avoid serialization issues
-            try:
-                generate_report_task_celery.delay(report.id)
-                msg = 'Report generation started via background worker'
-            except Exception as celery_err:
-                logger.warning(f"Celery .delay() failed, running synchronously: {str(celery_err)}")
+            if use_celery:
+                try:
+                    generate_report_task_celery.delay(report.id)
+                    msg = 'Report generation started via background worker'
+                except Exception as celery_err:
+                    logger.warning(f"Celery .delay() failed, running synchronously: {str(celery_err)}")
+                    use_celery = False
+            
+            if not use_celery:
                 # Synchronous fallback
                 try:
                     generate_report_task_celery(report.id)
-                    msg = 'Report generated successfully (synchronous fallback)'
+                    msg = 'Report generated successfully'
                 except Exception as sync_err:
-                    logger.error(f"Synchronous fallback also failed: {str(sync_err)}")
+                    logger.error(f"Synchronous fallback failed: {str(sync_err)}")
                     report.status = 'FAILED'
                     report.error_message = f"Generation failed: {str(sync_err)}"
                     report.save()
@@ -457,12 +478,26 @@ class ReportScheduleViewSet(viewsets.ModelViewSet):
             expires_at=timezone.now() + timedelta(days=30)
         )
         
-        # Start background task via Celery
+        # Try to use background worker, fallback if none online
+        use_celery = True
         try:
-            generate_report_task_celery.delay(report.id)
-            msg = 'Report generation started via Celery'
-        except Exception as e:
-            logger.warning(f"Celery failed for run_now, falling back to sync: {str(e)}")
+            from celery import current_app
+            inspect = current_app.control.inspect(timeout=0.1)
+            if not inspect.active():
+                use_celery = False
+        except Exception:
+            pass
+
+        # Start background task via Celery
+        if use_celery:
+            try:
+                generate_report_task_celery.delay(report.id)
+                msg = 'Report generation started via Celery'
+            except Exception as e:
+                logger.warning(f"Celery failed for run_now, falling back to sync: {str(e)}")
+                use_celery = False
+        
+        if not use_celery:
             generate_report_task_celery(report.id)
             msg = 'Report generated successfully (sync fallback)'
         
@@ -507,12 +542,26 @@ class ReportBookmarkViewSet(viewsets.ModelViewSet):
             expires_at=timezone.now() + timedelta(days=30)
         )
         
-        # Start background task via Celery
+        # Try to use background worker, fallback if none online
+        use_celery = True
         try:
-            generate_report_task_celery.delay(report.id)
-            msg = 'Report generation started from bookmark via Celery'
-        except Exception as e:
-            logger.warning(f"Celery failed for use_bookmark, falling back to sync: {str(e)}")
+            from celery import current_app
+            inspect = current_app.control.inspect(timeout=0.1)
+            if not inspect.active():
+                use_celery = False
+        except Exception:
+            pass
+
+        # Start background task via Celery
+        if use_celery:
+            try:
+                generate_report_task_celery.delay(report.id)
+                msg = 'Report generation started from bookmark via Celery'
+            except Exception as e:
+                logger.warning(f"Celery failed for use_bookmark, falling back to sync: {str(e)}")
+                use_celery = False
+        
+        if not use_celery:
             generate_report_task_celery(report.id)
             msg = 'Report generated successfully (sync fallback)'
         
