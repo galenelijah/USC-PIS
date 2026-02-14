@@ -89,6 +89,21 @@ def generate_report_task(report_id, template_id, filters, date_start, date_end, 
             report_data = service.generate_dental_statistics_report(**common_kwargs)
         elif template.report_type == 'CAMPAIGN_PERFORMANCE':
             report_data = service.generate_campaign_performance_report(**common_kwargs)
+        elif template.report_type == 'USER_ACTIVITY':
+            report_data = service.generate_user_activity_report(**common_kwargs)
+        elif template.report_type == 'HEALTH_METRICS':
+            report_data = service.generate_health_metrics_report(**common_kwargs)
+        elif template.report_type == 'INVENTORY_REPORT':
+            report_data = service.generate_inventory_report(**common_kwargs)
+        elif template.report_type == 'FINANCIAL_REPORT':
+            report_data = service.generate_financial_report(**common_kwargs)
+        elif template.report_type == 'COMPLIANCE_REPORT':
+            report_data = service.generate_compliance_report(**common_kwargs)
+        elif template.report_type == 'CUSTOM':
+            report_data = service.generate_custom_report(**common_kwargs)
+        else:
+            # Catch-all for any other types
+            report_data = service.generate_comprehensive_analytics_report(**common_kwargs)
         
         if report_data:
             logger.info(f"Data generated ({len(report_data)} bytes). Saving file...")
