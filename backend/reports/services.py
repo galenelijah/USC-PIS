@@ -114,7 +114,13 @@ class ReportDataService:
             )
             
             # Gender distribution
-            gender_distribution = list(queryset.values('gender').annotate(count=Count('id')).order_by('gender'))
+            raw_gender_dist = list(queryset.values('gender').annotate(count=Count('id')).order_by('gender'))
+            gender_map = {'M': 'Male', 'F': 'Female', 'O': 'Other', '1': 'Male', '2': 'Female'} # Handle potential legacy data
+            gender_distribution = []
+            for item in raw_gender_dist:
+                g_code = item['gender']
+                g_name = gender_map.get(g_code, g_code if g_code else 'Unknown')
+                gender_distribution.append({'gender': g_name, 'count': item['count']})
             
             # Age calculation
             age_groups = {'0-17': 0, '18-25': 0, '26-35': 0, '36-45': 0, '46-60': 0, '60+': 0}
