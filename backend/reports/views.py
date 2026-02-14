@@ -76,50 +76,53 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def generate(self, request, pk=None):
         """Generate a report from this template using Celery"""
-        template = self.get_object()
-        
-        # Validate request data
-        serializer = ReportGenerationRequestSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
-        validated_data = serializer.validated_data
-        
-        # Check user permissions
-        user_role = request.user.role
-        if template.allowed_roles and user_role not in template.allowed_roles:
-            return Response(
-                {'error': 'You do not have permission to generate this report'},
-                status=status.HTTP_403_FORBIDDEN
+        import traceback
+        try:
+            template = self.get_object()
+            
+            # Validate request data
+            serializer = ReportGenerationRequestSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            validated_data = serializer.validated_data
+            
+            # Check user permissions
+            user_role = request.user.role
+            if template.allowed_roles and user_role not in template.allowed_roles:
+                return Response(
+                    {'error': 'You do not have permission to generate this report'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Create report record
+            report = GeneratedReport.objects.create(
+                template=template,
+                generated_by=request.user,
+                title=validated_data['title'],
+                date_range_start=validated_data.get('date_range_start'),
+                date_range_end=validated_data.get('date_range_end'),
+                filters=validated_data.get('filters', {}),
+                export_format=validated_data['export_format'],
+                expires_at=timezone.now() + timedelta(days=30)  # Reports expire after 30 days
             )
-        
-        # Create report record
-        report = GeneratedReport.objects.create(
-            template=template,
-            generated_by=request.user,
-            title=validated_data['title'],
-            date_range_start=validated_data.get('date_range_start'),
-            date_range_end=validated_data.get('date_range_end'),
-            filters=validated_data.get('filters', {}),
-            export_format=validated_data['export_format'],
-            expires_at=timezone.now() + timedelta(days=30)  # Reports expire after 30 days
-        )
-        
-        # Start background task via Celery
-        generate_report_task_celery.delay(
-            report.id,
-            template.id,
-            validated_data.get('filters', {}),
-            validated_data.get('date_range_start'),
-            validated_data.get('date_range_end'),
-            validated_data['export_format']
-        )
-        
-        return Response({
-            'report_id': report.id,
-            'status': 'PENDING',
-            'message': 'Report generation started via background worker'
-        }, status=status.HTTP_202_ACCEPTED)
+            
+            # Start background task via Celery - pass only ID to avoid serialization issues
+            generate_report_task_celery.delay(report.id)
+            
+            return Response({
+                'report_id': report.id,
+                'status': 'PENDING',
+                'message': 'Report generation started via background worker'
+            }, status=status.HTTP_202_ACCEPTED)
+            
+        except Exception as e:
+            logger.error(f"Error in generate action: {str(e)}")
+            logger.error(traceback.format_exc())
+            return Response(
+                {'error': f'Internal server error: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class GeneratedReportViewSet(viewsets.ModelViewSet):
     """ViewSet for managing generated reports"""
@@ -438,14 +441,7 @@ class ReportScheduleViewSet(viewsets.ModelViewSet):
         )
         
         # Start background task via Celery
-        generate_report_task_celery.delay(
-            report.id,
-            schedule.template.id,
-            schedule.filters,
-            timezone.now() - timedelta(days=30),
-            timezone.now(),
-            schedule.export_format
-        )
+        generate_report_task_celery.delay(report.id)
         
         return Response({
             'report_id': report.id,
@@ -489,14 +485,7 @@ class ReportBookmarkViewSet(viewsets.ModelViewSet):
         )
         
         # Start background task via Celery
-        generate_report_task_celery.delay(
-            report.id,
-            bookmark.template.id,
-            bookmark.saved_filters,
-            timezone.now() - timedelta(days=30),
-            timezone.now(),
-            bookmark.preferred_format
-        )
+        generate_report_task_celery.delay(report.id)
         
         return Response({
             'report_id': report.id,

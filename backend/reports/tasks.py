@@ -10,20 +10,20 @@ from .services import ReportGenerationService
 logger = logging.getLogger(__name__)
 
 @shared_task(name="reports.tasks.generate_report_celery")
-def generate_report_task_celery(report_id, template_id, filters, date_start, date_end, export_format):
+def generate_report_task_celery(report_id):
     """Celery task for generating reports asynchronously using Pandas and ReportLab"""
     try:
         # Ensure fresh DB connection
         db.close_old_connections()
         
         try:
-            report = GeneratedReport.objects.get(id=report_id)
-            template = ReportTemplate.objects.get(id=template_id)
-        except (GeneratedReport.DoesNotExist, ReportTemplate.DoesNotExist) as e:
-            logger.error(f"Report or Template not found: {str(e)}")
+            report = GeneratedReport.objects.select_related('template').get(id=report_id)
+            template = report.template
+        except GeneratedReport.DoesNotExist:
+            logger.error(f"Report ID {report_id} not found")
             return False
 
-        logger.info(f"Celery task started for report {report_id} ({template.report_type}) format {export_format}")
+        logger.info(f"Celery task started for report {report_id} ({template.report_type}) format {report.export_format}")
         
         report.status = 'GENERATING'
         report.progress_percentage = 20
@@ -34,10 +34,10 @@ def generate_report_task_celery(report_id, template_id, filters, date_start, dat
         
         # Generate report data
         common_kwargs = {
-            'date_start': date_start,
-            'date_end': date_end,
-            'filters': filters,
-            'export_format': export_format,
+            'date_start': report.date_range_start,
+            'date_end': report.date_range_end,
+            'filters': report.filters,
+            'export_format': report.export_format,
             'template_html': template.template_content
         }
         
@@ -76,10 +76,10 @@ def generate_report_task_celery(report_id, template_id, filters, date_start, dat
                 'CSV': 'csv',
                 'JSON': 'json',
                 'HTML': 'html'
-            }.get(export_format, 'pdf')
+            }.get(report.export_format, 'pdf')
             
             # Verify Excel format (Pandas output should have PK header if using xlsxwriter/openpyxl)
-            if export_format == 'EXCEL' and isinstance(report_data, bytes):
+            if report.export_format == 'EXCEL' and isinstance(report_data, bytes):
                 if not report_data.startswith(b'PK\x03\x04'):
                     file_extension = 'csv'
                     logger.warning(f"Excel generation for report {report_id} fell back to CSV")
