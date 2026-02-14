@@ -48,7 +48,7 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
     queryset = ReportTemplate.objects.all()
     serializer_class = ReportTemplateSerializer
     permission_classes = [IsStaffOrReadOnly]
-    pagination_class = None  # Disable pagination to return data as array
+    pagination_class = ReportPagination  # Use standard pagination structure
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['report_type', 'is_active']
     search_fields = ['name', 'description']
@@ -166,7 +166,7 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
     """ViewSet for managing generated reports"""
     queryset = GeneratedReport.objects.all()
     permission_classes = [permissions.IsAuthenticated]
-    pagination_class = None  # Disable pagination to return data as array
+    pagination_class = ReportPagination  # Use standard pagination structure
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['status', 'export_format', 'template__report_type']
     search_fields = ['title', 'template__name']
@@ -442,7 +442,7 @@ class ReportScheduleViewSet(viewsets.ModelViewSet):
     queryset = ReportSchedule.objects.all()
     serializer_class = ReportScheduleSerializer
     permission_classes = [IsStaffOrReadOnly]
-    pagination_class = None  # Disable pagination to return data as array
+    pagination_class = ReportPagination  # Use standard pagination structure
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['frequency', 'is_active', 'template__report_type']
     search_fields = ['name', 'description']
@@ -511,7 +511,7 @@ class ReportBookmarkViewSet(viewsets.ModelViewSet):
     queryset = ReportBookmark.objects.all()
     serializer_class = ReportBookmarkSerializer
     permission_classes = [permissions.IsAuthenticated]
-    pagination_class = None  # Disable pagination to return data as array
+    pagination_class = ReportPagination  # Use standard pagination structure
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['template__report_type']
     search_fields = ['name', 'template__name']
