@@ -10,11 +10,12 @@ from .services import ReportGenerationService
 logger = logging.getLogger(__name__)
 
 @shared_task(name="reports.tasks.generate_report_celery", ignore_result=True)
-def generate_report_task_celery(report_id):
+def generate_report_task_celery(report_id, is_sync=False):
     """Celery task for generating reports asynchronously using Pandas and ReportLab"""
     try:
-        # Ensure fresh DB connection
-        db.close_old_connections()
+        # Ensure fresh DB connection only if async to avoid breaking request transactions
+        if not is_sync:
+            db.close_old_connections()
         
         try:
             report = GeneratedReport.objects.select_related('template').get(id=report_id)
@@ -116,7 +117,8 @@ def generate_report_task_celery(report_id):
         error_details = f"Celery error generating report {report_id}: {str(e)}\n{traceback.format_exc()}"
         logger.error(error_details)
         try:
-            db.close_old_connections()
+            if not is_sync:
+                db.close_old_connections()
             report = GeneratedReport.objects.get(id=report_id)
             report.status = 'FAILED'
             report.error_message = f"{str(e)}"
@@ -124,5 +126,3 @@ def generate_report_task_celery(report_id):
         except Exception:
             pass
         return False
-    finally:
-        db.close_old_connections()

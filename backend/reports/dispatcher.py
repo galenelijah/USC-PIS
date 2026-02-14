@@ -62,7 +62,7 @@ class ReportDispatcher:
         try:
             # We reuse the logic inside the Celery task function for consistency,
             # but call it directly as a standard function.
-            generate_report_task_celery(report_id)
+            generate_report_task_celery(report_id, is_sync=True)
             
             # Check final status
             report = GeneratedReport.objects.get(id=report_id)
