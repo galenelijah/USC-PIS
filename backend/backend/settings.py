@@ -68,8 +68,9 @@ if DATABASE_URL:
     }
     # Apply PostgreSQL specific settings
     DATABASES['default']['ATOMIC_REQUESTS'] = True
-    DATABASES['default'].setdefault('OPTIONS', {})
-    DATABASES['default']['OPTIONS']['connect_timeout'] = 10
+    if 'postgresql' in DATABASES['default'].get('ENGINE', ''):
+        DATABASES['default'].setdefault('OPTIONS', {})
+        DATABASES['default']['OPTIONS']['connect_timeout'] = 10
     # Add other PostgreSQL-specific options here if needed (e.g., keepalives)
 else:
     # Configure for local SQLite development

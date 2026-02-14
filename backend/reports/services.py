@@ -36,184 +36,194 @@ class ReportDataService:
     @staticmethod
     def get_patient_summary_data(date_start=None, date_end=None, filters=None):
         """Get patient summary data (Single Patient OR Aggregate)"""
-        # Support for Single Patient Report
-        if filters and filters.get('patient_id'):
-            patient_id = filters.get('patient_id')
-            try:
-                patient = Patient.objects.select_related('user').get(id=patient_id)
-                # Convert records to values for consistent export across all formats
-                medical_records = list(patient.medical_records.all().order_by('-visit_date').values(
-                    'visit_date', 'diagnosis', 'treatment', 'notes'
-                )[:10])
-                dental_records = list(patient.dental_records.all().order_by('-visit_date').values(
-                    'visit_date', 'procedure_performed', 'diagnosis', 'treatment_performed', 'notes'
-                )[:10])
-                
-                # Calculate age
-                today = timezone.now().date()
-                age = 0
-                if patient.date_of_birth:
-                    age = today.year - patient.date_of_birth.year - ((today.month, today.day) < (patient.date_of_birth.month, patient.date_of_birth.day))
-
-                return {
-                    'report_date': timezone.now().strftime('%b %d, %Y'),
-                    'patient': {
-                        'first_name': patient.first_name,
-                        'last_name': patient.last_name,
-                        'student_id': getattr(patient.user, 'id_number', 'N/A') if patient.user else 'N/A',
-                        'email': patient.email,
-                        'contact_number': getattr(patient.user, 'phone', patient.phone_number) if patient.user else patient.phone_number,
-                        'date_of_birth': patient.date_of_birth,
-                        'age': age,
-                        'gender': patient.get_gender_display(),
-                        'blood_type': 'N/A',
-                        'allergies': getattr(patient.user, 'allergies', 'None') if patient.user else 'None',
-                        'medical_conditions': getattr(patient.user, 'existing_medical_condition', 'None') if patient.user else 'None',
-                        'current_medications': getattr(patient.user, 'medications', 'None') if patient.user else 'None',
-                    },
-                    'medical_records': medical_records,
-                    'dental_records': dental_records
-                }
-            except Patient.DoesNotExist:
-                logger.error(f"Patient {patient_id} not found for report")
-                pass # Fall through to aggregate
-
-        cache_key = ReportDataService._get_cache_key('patient_summary', date_start, date_end, filters or {})
-        cached_data = cache.get(cache_key)
-        if cached_data:
-            return cached_data
-        
-        # Build optimized query
-        queryset = Patient.objects.select_related('user').prefetch_related('medical_records', 'dental_records')
-        
-        if date_start:
-            queryset = queryset.filter(created_at__gte=date_start)
-        if date_end:
-            queryset = queryset.filter(created_at__lte=date_end)
-        
-        # Apply additional filters
-        if filters:
-            if filters.get('gender'):
-                queryset = queryset.filter(gender=filters['gender'])
-        
-        # Aggregate data in single query
-        aggregate_data = queryset.aggregate(
-            total_patients=Count('id'),
-            new_registrations=Count('id', filter=Q(created_at__gte=timezone.now() - timedelta(days=30))),
-            patients_with_medical_records=Count('id', filter=Q(medical_records__isnull=False), distinct=True),
-            patients_with_dental_records=Count('id', filter=Q(dental_records__isnull=False), distinct=True)
-        )
-        
-        # Gender distribution
-        gender_distribution = list(queryset.values('gender').annotate(count=Count('id')).order_by('gender'))
-        
-        # Age calculation
-        age_groups = {'0-17': 0, '18-25': 0, '26-35': 0, '36-45': 0, '46-60': 0, '60+': 0}
+        logger.info(f"Collecting patient summary data. Start: {date_start}, End: {date_end}, Filters: {filters}")
         try:
-            with connection.cursor() as cursor:
-                if connection.vendor == 'postgresql':
-                    cursor.execute("""
-                        SELECT 
-                            CASE 
-                                WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) < 18 THEN '0-17'
-                                WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) BETWEEN 18 AND 25 THEN '18-25'
-                                WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) BETWEEN 26 AND 35 THEN '26-35'
-                                WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) BETWEEN 36 AND 45 THEN '36-45'
-                                WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) BETWEEN 46 AND 60 THEN '46-60'
-                                ELSE '60+'
-                            END as age_group,
-                            COUNT(*) as count
-                        FROM patients_patient
-                        WHERE date_of_birth IS NOT NULL
-                        GROUP BY age_group
-                    """)
-                else:
-                    cursor.execute("""
-                        SELECT 
-                            CASE 
-                                WHEN CAST((julianday('now') - julianday(date_of_birth)) / 365.25 AS INTEGER) < 18 THEN '0-17'
-                                WHEN CAST((julianday('now') - julianday(date_of_birth)) / 365.25 AS INTEGER) BETWEEN 18 AND 25 THEN '18-25'
-                                WHEN CAST((julianday('now') - julianday(date_of_birth)) / 365.25 AS INTEGER) BETWEEN 26 AND 35 THEN '26-35'
-                                WHEN CAST((julianday('now') - julianday(date_of_birth)) / 365.25 AS INTEGER) BETWEEN 36 AND 45 THEN '36-45'
-                                WHEN CAST((julianday('now') - julianday(date_of_birth)) / 365.25 AS INTEGER) BETWEEN 46 AND 60 THEN '46-60'
-                                ELSE '60+'
-                            END as age_group,
-                            COUNT(*) as count
-                        FROM patients_patient
-                        WHERE date_of_birth IS NOT NULL
-                        GROUP BY age_group
-                    """)
-                for row in cursor.fetchall():
-                    age_groups[row[0]] = row[1]
-        except Exception as e:
-            logger.error(f"Age distribution calculation failed: {e}")
+            # Support for Single Patient Report
+            if filters and filters.get('patient_id'):
+                patient_id = filters.get('patient_id')
+                try:
+                    patient = Patient.objects.select_related('user').get(id=patient_id)
+                    # Convert records to values for consistent export across all formats
+                    medical_records = list(patient.medical_records.all().order_by('-visit_date').values(
+                        'visit_date', 'diagnosis', 'treatment', 'notes'
+                    )[:10])
+                    dental_records = list(patient.dental_records.all().order_by('-visit_date').values(
+                        'visit_date', 'procedure_performed', 'diagnosis', 'treatment_performed', 'notes'
+                    )[:10])
+                    
+                    # Calculate age
+                    today = timezone.now().date()
+                    age = 0
+                    if patient.date_of_birth:
+                        age = today.year - patient.date_of_birth.year - ((today.month, today.day) < (patient.date_of_birth.month, patient.date_of_birth.day))
 
-        data = {
-            **aggregate_data,
-            'gender_distribution': gender_distribution,
-            'age_distribution': age_groups,
-            'active_patients': queryset.filter(
-                Q(medical_records__created_at__gte=timezone.now() - timedelta(days=90)) |
-                Q(dental_records__created_at__gte=timezone.now() - timedelta(days=90))
-            ).distinct().count()
-        }
-        
-        cache.set(cache_key, data, 3600)
-        return data
+                    return {
+                        'report_date': timezone.now().strftime('%b %d, %Y'),
+                        'patient': {
+                            'first_name': patient.first_name,
+                            'last_name': patient.last_name,
+                            'student_id': getattr(patient.user, 'id_number', 'N/A') if patient.user else 'N/A',
+                            'email': patient.email,
+                            'contact_number': getattr(patient.user, 'phone', patient.phone_number) if patient.user else patient.phone_number,
+                            'date_of_birth': patient.date_of_birth,
+                            'age': age,
+                            'gender': patient.get_gender_display(),
+                            'blood_type': 'N/A',
+                            'allergies': getattr(patient.user, 'allergies', 'None') if patient.user else 'None',
+                            'medical_conditions': getattr(patient.user, 'existing_medical_condition', 'None') if patient.user else 'None',
+                            'current_medications': getattr(patient.user, 'medications', 'None') if patient.user else 'None',
+                        },
+                        'medical_records': medical_records,
+                        'dental_records': dental_records
+                    }
+                except Patient.DoesNotExist:
+                    logger.error(f"Patient {patient_id} not found for report")
+                    pass # Fall through to aggregate
+
+            cache_key = ReportDataService._get_cache_key('patient_summary', date_start, date_end, filters or {})
+            cached_data = cache.get(cache_key)
+            if cached_data:
+                return cached_data
+            
+            # Build optimized query
+            queryset = Patient.objects.select_related('user').prefetch_related('medical_records', 'dental_records')
+            
+            if date_start:
+                queryset = queryset.filter(created_at__gte=date_start)
+            if date_end:
+                queryset = queryset.filter(created_at__lte=date_end)
+            
+            # Apply additional filters
+            if filters:
+                if filters.get('gender'):
+                    queryset = queryset.filter(gender=filters['gender'])
+            
+            # Aggregate data in single query
+            aggregate_data = queryset.aggregate(
+                total_patients=Count('id'),
+                new_registrations=Count('id', filter=Q(created_at__gte=timezone.now() - timedelta(days=30))),
+                patients_with_medical_records=Count('id', filter=Q(medical_records__isnull=False), distinct=True),
+                patients_with_dental_records=Count('id', filter=Q(dental_records__isnull=False), distinct=True)
+            )
+            
+            # Gender distribution
+            gender_distribution = list(queryset.values('gender').annotate(count=Count('id')).order_by('gender'))
+            
+            # Age calculation
+            age_groups = {'0-17': 0, '18-25': 0, '26-35': 0, '36-45': 0, '46-60': 0, '60+': 0}
+            try:
+                with connection.cursor() as cursor:
+                    if connection.vendor == 'postgresql':
+                        cursor.execute("""
+                            SELECT 
+                                CASE 
+                                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) < 18 THEN '0-17'
+                                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) BETWEEN 18 AND 25 THEN '18-25'
+                                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) BETWEEN 26 AND 35 THEN '26-35'
+                                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) BETWEEN 36 AND 45 THEN '36-45'
+                                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) BETWEEN 46 AND 60 THEN '46-60'
+                                    ELSE '60+'
+                                END as age_group,
+                                COUNT(*) as count
+                            FROM patients_patient
+                            WHERE date_of_birth IS NOT NULL
+                            GROUP BY age_group
+                        """)
+                    else:
+                        cursor.execute("""
+                            SELECT 
+                                CASE 
+                                    WHEN CAST((julianday('now') - julianday(date_of_birth)) / 365.25 AS INTEGER) < 18 THEN '0-17'
+                                    WHEN CAST((julianday('now') - julianday(date_of_birth)) / 365.25 AS INTEGER) BETWEEN 18 AND 25 THEN '18-25'
+                                    WHEN CAST((julianday('now') - julianday(date_of_birth)) / 365.25 AS INTEGER) BETWEEN 26 AND 35 THEN '26-35'
+                                    WHEN CAST((julianday('now') - julianday(date_of_birth)) / 365.25 AS INTEGER) BETWEEN 36 AND 45 THEN '36-45'
+                                    WHEN CAST((julianday('now') - julianday(date_of_birth)) / 365.25 AS INTEGER) BETWEEN 46 AND 60 THEN '46-60'
+                                    ELSE '60+'
+                                END as age_group,
+                                COUNT(*) as count
+                            FROM patients_patient
+                            WHERE date_of_birth IS NOT NULL
+                            GROUP BY age_group
+                        """)
+                    for row in cursor.fetchall():
+                        age_groups[row[0]] = row[1]
+            except Exception as e:
+                logger.error(f"Age distribution calculation failed: {e}")
+
+            data = {
+                **aggregate_data,
+                'gender_distribution': gender_distribution,
+                'age_distribution': age_groups,
+                'active_patients': queryset.filter(
+                    Q(medical_records__created_at__gte=timezone.now() - timedelta(days=90)) |
+                    Q(dental_records__created_at__gte=timezone.now() - timedelta(days=90))
+                ).distinct().count()
+            }
+            
+            cache.set(cache_key, data, 3600)
+            return data
+        except Exception as e:
+            logger.error(f"Error in get_patient_summary_data: {str(e)}")
+            return {'error': str(e), 'total_patients': Patient.objects.count()}
     
     @staticmethod
     def get_visit_trends_data(date_start=None, date_end=None, filters=None):
         """Get visit trends data using Pandas"""
-        medical_data = list(MedicalRecord.objects.filter(
-            created_at__gte=date_start or (timezone.now() - timedelta(days=365))
-        ).values('created_at', 'diagnosis'))
-        
-        dental_data = list(DentalRecord.objects.filter(
-            created_at__gte=date_start or (timezone.now() - timedelta(days=365))
-        ).values('created_at', 'diagnosis'))
-        
-        total_visits = len(medical_data) + len(dental_data)
-        monthly_list = []
-        hour_distribution = []
-        common_diagnoses = []
-        
-        if total_visits > 0:
-            try:
-                df_med = pd.DataFrame(medical_data); df_med['type'] = 'Medical'
-                df_den = pd.DataFrame(dental_data); df_den['type'] = 'Dental'
-                df = pd.concat([df_med, df_den], ignore_index=True)
-                df['created_at'] = pd.to_datetime(df['created_at'])
-                
-                # Monthly
-                monthly = df.groupby([pd.Grouper(key='created_at', freq='MS'), 'type']).size().unstack(fill_value=0)
-                for date, row in monthly.iterrows():
-                    monthly_list.append({
-                        'month': date.strftime('%Y-%m'),
-                        'medical_visits': int(row.get('Medical', 0)),
-                        'dental_visits': int(row.get('Dental', 0)),
-                        'total_visits': int(row.sum())
-                    })
-                
-                # Hourly
-                df['hour'] = df['created_at'].dt.hour
-                hourly = df['hour'].value_counts().sort_index()
-                hour_distribution = [{'hour': h, 'visits': int(c)} for h, c in hourly.items()]
-                
-                # Diagnoses
-                if 'diagnosis' in df.columns:
-                    diag = df['diagnosis'].dropna().value_counts().head(10)
-                    common_diagnoses = [{'diagnosis': n, 'count': int(c)} for n, c in diag.items() if n]
-            except Exception as e:
-                logger.error(f"Pandas trends error: {e}")
-        
-        return {
-            'total_visits': total_visits,
-            'total_medical_visits': len(medical_data),
-            'total_dental_visits': len(dental_data),
-            'monthly_trends': monthly_list,
-            'hour_distribution': hour_distribution,
-            'common_diagnoses': common_diagnoses
-        }
+        logger.info(f"Collecting visit trends data. Start: {date_start}, End: {date_end}")
+        try:
+            medical_data = list(MedicalRecord.objects.filter(
+                created_at__gte=date_start or (timezone.now() - timedelta(days=365))
+            ).values('created_at', 'diagnosis'))
+            
+            dental_data = list(DentalRecord.objects.filter(
+                created_at__gte=date_start or (timezone.now() - timedelta(days=365))
+            ).values('created_at', 'diagnosis'))
+            
+            total_visits = len(medical_data) + len(dental_data)
+            monthly_list = []
+            hour_distribution = []
+            common_diagnoses = []
+            
+            if total_visits > 0:
+                try:
+                    df_med = pd.DataFrame(medical_data); df_med['type'] = 'Medical'
+                    df_den = pd.DataFrame(dental_data); df_den['type'] = 'Dental'
+                    df = pd.concat([df_med, df_den], ignore_index=True)
+                    df['created_at'] = pd.to_datetime(df['created_at'])
+                    
+                    # Monthly
+                    monthly = df.groupby([pd.Grouper(key='created_at', freq='MS'), 'type']).size().unstack(fill_value=0)
+                    for date, row in monthly.iterrows():
+                        monthly_list.append({
+                            'month': date.strftime('%Y-%m'),
+                            'medical_visits': int(row.get('Medical', 0)),
+                            'dental_visits': int(row.get('Dental', 0)),
+                            'total_visits': int(row.sum())
+                        })
+                    
+                    # Hourly
+                    df['hour'] = df['created_at'].dt.hour
+                    hourly = df['hour'].value_counts().sort_index()
+                    hour_distribution = [{'hour': h, 'visits': int(c)} for h, c in hourly.items()]
+                    
+                    # Diagnoses
+                    if 'diagnosis' in df.columns:
+                        diag = df['diagnosis'].dropna().value_counts().head(10)
+                        common_diagnoses = [{'diagnosis': n, 'count': int(c)} for n, c in diag.items() if n]
+                except Exception as e:
+                    logger.error(f"Pandas trends error: {e}")
+            
+            return {
+                'total_visits': total_visits,
+                'total_medical_visits': len(medical_data),
+                'total_dental_visits': len(dental_data),
+                'monthly_trends': monthly_list,
+                'hour_distribution': hour_distribution,
+                'common_diagnoses': common_diagnoses
+            }
+        except Exception as e:
+            logger.error(f"Error in get_visit_trends_data: {str(e)}")
+            return {'error': str(e), 'total_visits': 0}
 
     @staticmethod
     def get_treatment_outcomes_data(date_start=None, date_end=None, filters=None):
@@ -221,25 +231,33 @@ class ReportDataService:
 
     @staticmethod
     def get_feedback_analysis_data(date_start=None, date_end=None, filters=None):
-        feedback = Feedback.objects.all()
-        avg = feedback.aggregate(Avg('rating'))['rating__avg'] or 0
-        return {
-            'total_feedback': feedback.count(),
-            'average_rating': round(float(avg), 1),
-            'satisfaction_score': round(float(avg/5*100), 1) if avg else 0
-        }
+        try:
+            feedback = Feedback.objects.all()
+            avg = feedback.aggregate(Avg('rating'))['rating__avg'] or 0
+            return {
+                'total_feedback': feedback.count(),
+                'average_rating': round(float(avg), 1),
+                'satisfaction_score': round(float(avg/5*100), 1) if avg else 0
+            }
+        except Exception as e:
+            logger.error(f"Error in get_feedback_analysis_data: {str(e)}")
+            return {'total_feedback': 0, 'average_rating': 0}
 
     @staticmethod
     def get_comprehensive_analytics_data(date_start=None, date_end=None, filters=None):
-        return {
-            'overview': {
-                'total_patients': Patient.objects.count(),
-                'total_visits': MedicalRecord.objects.count() + DentalRecord.objects.count(),
-                'total_feedback': Feedback.objects.count()
-            },
-            'health_metrics': {'patient_growth_rate': 5.2},
-            'efficiency_metrics': {'patient_satisfaction': 92.0}
-        }
+        try:
+            return {
+                'overview': {
+                    'total_patients': Patient.objects.count(),
+                    'total_visits': MedicalRecord.objects.count() + DentalRecord.objects.count(),
+                    'total_feedback': Feedback.objects.count()
+                },
+                'health_metrics': {'patient_growth_rate': 5.2},
+                'efficiency_metrics': {'patient_satisfaction': 92.0}
+            }
+        except Exception as e:
+            logger.error(f"Error in get_comprehensive_analytics_data: {str(e)}")
+            return {'overview': {'total_patients': 0}}
 
 class ReportExportService:
     """Service for exporting reports in different formats"""
@@ -416,10 +434,26 @@ class ReportGenerationService:
 
     def _generate_generic_report(self, report_type, title, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
         final_tpl = template_html or self.get_default_template(report_type, title)
-        if report_type == 'PATIENT_SUMMARY': data = self.data_service.get_patient_summary_data(date_start, date_end, filters)
-        elif report_type == 'VISIT_TRENDS': data = self.data_service.get_visit_trends_data(date_start, date_end, filters)
-        elif report_type == 'FEEDBACK_ANALYSIS': data = self.data_service.get_feedback_analysis_data(date_start, date_end, filters)
-        else: data = self.data_service.get_comprehensive_analytics_data(date_start, date_end, filters)
+        
+        logger.info(f"Generating generic report: {report_type} in {export_format} format")
+        
+        try:
+            if report_type == 'PATIENT_SUMMARY': 
+                data = self.data_service.get_patient_summary_data(date_start, date_end, filters)
+            elif report_type == 'VISIT_TRENDS': 
+                data = self.data_service.get_visit_trends_data(date_start, date_end, filters)
+            elif report_type == 'FEEDBACK_ANALYSIS': 
+                data = self.data_service.get_feedback_analysis_data(date_start, date_end, filters)
+            else: 
+                data = self.data_service.get_comprehensive_analytics_data(date_start, date_end, filters)
+            
+            # Ensure data is a dictionary
+            if not isinstance(data, dict):
+                logger.error(f"Data service returned non-dict for {report_type}: {type(data)}")
+                data = {'error': 'Invalid data format returned', 'report_type': report_type}
+        except Exception as e:
+            logger.error(f"Critical failure in data collection for {report_type}: {str(e)}")
+            data = {'error': f'Data collection failed: {str(e)}', 'report_type': report_type}
 
         if export_format == 'PDF': return self.export_service.export_to_pdf(data, final_tpl, title)
         if export_format == 'HTML': return self.export_service.export_to_html(data, final_tpl, title)

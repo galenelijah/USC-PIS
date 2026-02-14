@@ -45,9 +45,15 @@ class ReportPagination(PageNumberPagination):
 
 def generate_report_task(report_id, template_id, filters, date_start, date_end, export_format):
     """Background task for generating reports"""
+    from django import db
     try:
+        # Close old connections to ensure the thread gets a fresh one
+        db.close_old_connections()
+        
         report = GeneratedReport.objects.get(id=report_id)
         template = ReportTemplate.objects.get(id=template_id)
+        
+        logger.info(f"Task started for report {report_id} ({template.report_type}) format {export_format}")
         
         report.status = 'GENERATING'
         report.progress_percentage = 10
@@ -66,6 +72,7 @@ def generate_report_task(report_id, template_id, filters, date_start, date_end, 
             'template_html': template.template_content
         }
         
+        logger.info(f"Generating data for report {report_id}...")
         if template.report_type == 'PATIENT_SUMMARY':
             report_data = service.generate_patient_summary_report(**common_kwargs)
         elif template.report_type == 'VISIT_TRENDS':
@@ -84,6 +91,7 @@ def generate_report_task(report_id, template_id, filters, date_start, date_end, 
             report_data = service.generate_campaign_performance_report(**common_kwargs)
         
         if report_data:
+            logger.info(f"Data generated ({len(report_data)} bytes). Saving file...")
             # Save file
             file_extension = {
                 'PDF': 'pdf',
@@ -95,10 +103,10 @@ def generate_report_task(report_id, template_id, filters, date_start, date_end, 
             
             # Detect if EXCEL fallback to CSV occurred
             if export_format == 'EXCEL':
-                # openpyxl files are ZIP archives starting with PK header
-                if not report_data.startswith(b'PK\x03\x04'):
+                # openpyxl/xlsxwriter files are ZIP archives starting with PK header
+                if isinstance(report_data, bytes) and not report_data.startswith(b'PK\x03\x04'):
                     file_extension = 'csv'
-                    logger.warning(f"Excel generation for report {report_id} fell back to CSV format (missing openpyxl?). Correcting extension to .csv.")
+                    logger.warning(f"Excel generation for report {report_id} fell back to CSV format. Correcting extension to .csv.")
 
             filename = f"report_{report.id}_{uuid.uuid4().hex[:8]}.{file_extension}"
             
@@ -107,6 +115,7 @@ def generate_report_task(report_id, template_id, filters, date_start, date_end, 
                 report.file_size = len(report_data)
                 report.status = 'COMPLETED'
                 report.progress_percentage = 100
+                logger.info(f"Report {report_id} completed successfully")
             except Exception as save_err:
                 logger.error(f"Failed to save report file {filename}: {str(save_err)}")
                 report.status = 'FAILED'
@@ -116,8 +125,9 @@ def generate_report_task(report_id, template_id, filters, date_start, date_end, 
             report.generation_time = timezone.now() - report.created_at
             
         else:
+            logger.error(f"No report data generated for report {report_id}")
             report.status = 'FAILED'
-            report.error_message = 'Failed to generate report data'
+            report.error_message = 'Failed to generate report data (Service returned None)'
         
         report.save()
         
@@ -126,13 +136,15 @@ def generate_report_task(report_id, template_id, filters, date_start, date_end, 
         error_details = f"Error generating report {report_id}: {str(e)}\n{traceback.format_exc()}"
         logger.error(error_details)
         try:
+            db.close_old_connections()
             report = GeneratedReport.objects.get(id=report_id)
             report.status = 'FAILED'
             report.error_message = f"{str(e)}\n\nFull traceback:\n{traceback.format_exc()}"
             report.save()
         except Exception as save_error:
-            logger.error(f"Failed to save error status: {save_error}")
-            pass
+            logger.error(f"Failed to save error status for report {report_id}: {save_error}")
+    finally:
+        db.close_old_connections()
 
 class ReportTemplateViewSet(viewsets.ModelViewSet):
     """ViewSet for managing report templates"""
