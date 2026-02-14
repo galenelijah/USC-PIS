@@ -1,28 +1,31 @@
 # USC-PIS User Guide
 
 [![System Status](https://img.shields.io/badge/Status-Fully%20Operational-green)]()
-[![Version](https://img.shields.io/badge/Version-August%202025-blue)]()
-[![Users](https://img.shields.io/badge/Active%20Users-7-green)]()
+[![Version](https://img.shields.io/badge/Version-February%202026-blue)]()
+[![Users](https://img.shields.io/badge/Active%20Users-10-green)]()
 
-## 🆕 Latest Updates (August 17, 2025)
+## 🆕 Latest Updates (February 11, 2026)
 
 ### **✅ Major System Achievements**
-- **✅ Enterprise-Grade Backup System**: Complete execution engine with smart restore capabilities and performance optimization
-- **✅ Data Recovery System**: Intelligent conflict detection with merge strategies (replace, merge, skip) and preview functionality
-- **✅ Performance Optimization**: Quick backup option for 50%+ faster completion (~42-46 seconds for database backups)
-- **✅ Backup Download/Upload**: Secure file access for admins with automatic packaging (JSON, ZIP formats)
-- **✅ Administrative Interfaces**: All database monitor and backup management systems fully operational
-- **✅ Email Notification System**: AWS SES configured with automated communications and professional templates
-- **✅ Media Storage System**: Cloudinary integrated with CDN delivery and persistent storage
-- **✅ Enhanced Dashboard**: Campaigns & announcements integration on home page
-- **✅ Advanced Validation**: Comprehensive date validation across all forms (prevents future dates)
-- **✅ Student Specialization**: Dedicated medical vs dental record interfaces
-- **✅ Smart Search**: USC ID search across all medical forms
-- **✅ Export System**: Professional CSV/PDF export capabilities
-- **✅ Clinical Safety**: Allergy alerts and medication tracking features
+- **✅ Enhanced Student Onboarding**: Resolved all registration error message issues and fixed profile setup navigation bugs.
+- **✅ Real-Time Profile Status**: New dashboard interface for students that highlights exactly which fields are missing from their healthcare profile.
+- **✅ Automated Data Integrity**: Deleting a user account now automatically and safely removes their associated patient record, preventing "orphaned" data.
+- **✅ Report Standardization**: Consolidated all clinic reporting into a professional USC-branded PDF generation engine.
+- **✅ Self-Healing Profiles**: The system now automatically repairs missing patient links for students who have completed their setup.
+- **✅ Enterprise-Grade Backup System**: Complete execution engine with smart restore capabilities and performance optimization.
+- **✅ Data Recovery System**: Intelligent conflict detection with merge strategies (replace, merge, skip) and preview functionality.
+- **✅ Email Notification System**: AWS SES configured with automated communications and professional templates.
+- **✅ Media Storage System**: Cloudinary integrated with CDN delivery and persistent storage.
 
-### **🎯 SYSTEM STATUS (August 17, 2025)**
-**All critical infrastructure issues resolved - System ready for healthcare feature development**
+### **🎯 SYSTEM STATUS (February 2026)**
+**All core infrastructure and data integrity issues resolved - System ready for Pilot Testing.**
+
+### **🚀 Next Development Phase - Pilot Testing**
+
+#### **🧪 PILOT TEST PHASE (Current Priority)**
+- **Tourism Management Dataset**: Validating system with 1st Year student data as per thesis requirements.
+- **Async Verification**: Monitoring Celery logs for automated email delivery success.
+- **Data Accuracy Audit**: Verifying encrypted field readability for authorized medical staff.
 
 ### **🚀 Next Development Phase - Healthcare Systems**
 
@@ -285,6 +288,17 @@ The email administration interface uses RESTful API endpoints for all operations
 
 For complete API documentation, see **[API Documentation](docs/api/README.md#email-administration-apis)**.
 
+### Reporting (Staff & Admin)
+- **Standardized Exports**: All system reports are exported in a professional, USC-branded layout.
+- **Supported Formats**: **Only PDF format is currently supported.** While other options may appear in the menu, they are considered non-functional in the current version.
+- **Available Reports**:
+  - Patient Summary (Individual or Aggregate)
+  - Visit Trends & Frequency
+  - Treatment Outcomes
+  - Medical/Dental Statistics
+  - Health Campaign Performance
+- **Confidentiality**: All generated reports include a "Confidential Medical Record" footer and are intended for authorized personnel only.
+
 ## User Roles
 
 **Important Update (July 24, 2025):** Doctor roles now have full administrative access identical to Staff and Admin users, ensuring consistent experience across all medical professionals.
@@ -353,7 +367,7 @@ For complete API documentation, see **[API Documentation](docs/api/README.md#ema
 - **Health Insights Tab**: Personalized analytics with visit frequency and health trend analysis
 - Add new medical and dental records with enhanced patient search
 - Advanced search across diagnosis, treatment, medications, and clinical notes
-- Export medical history to CSV format with professional formatting
+- Export medical history to PDF format with professional formatting
 - Date range filtering with Material-UI date pickers
 
 ### Appointments
@@ -402,7 +416,7 @@ For complete API documentation, see **[API Documentation](docs/api/README.md#ema
    - View all medical records with enhanced search and filtering
    - Use advanced search across diagnosis, treatment, medications, and clinical notes
    - Apply date range filters using the professional date picker interface
-   - Export medical history to CSV format with complete patient data
+   - Export medical history to PDF format with complete patient data
    - Create new medical records (medical staff only)
 3. **Dental Records Tab**:
    - View dental procedures with visual priority indicators (Low/Medium/High/Urgent)
@@ -426,7 +440,7 @@ For complete API documentation, see **[API Documentation](docs/api/README.md#ema
 4. View real-time results as you type
 
 #### **Export and Print Features**
-1. Click the "Export CSV" button to download your complete medical history
+1. Click the "Export PDF" button to download your complete medical history
 2. Files are automatically named with current date for easy organization
 3. Exported data includes patient demographics, diagnosis, treatment, medications, and clinical notes
 
@@ -491,7 +505,7 @@ This page is exclusively for students and shows only medical records (no dental 
    - **Request Medical Certificate**: Direct link to certificate request form
    - **View Dental Records**: Navigate to dedicated dental records page
    - **Health Information**: Access wellness resources and health campaigns
-   - **Export My Records**: Download your medical history as CSV file
+   - **Export My Records**: Download your medical history as PDF file
 
 4. **Medical Records Display**:
    - **Clean Accordion Interface**: Expandable cards for each medical visit

@@ -347,7 +347,7 @@ class ReportGenerationService:
         <div>{{% for k, v in report_data.items %}}<p><b>{{{{k|title_clean}}}}:</b> {{{{v}}}}</p>{{% endfor %}}</div>
         </body></html>"""
 
-    def _generate_generic_report(self, report_type, title, date_start, date_end, filters, export_format, template_html):
+    def _generate_generic_report(self, report_type, title, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
         final_tpl = template_html or self.get_default_template(report_type, title)
         if report_type == 'PATIENT_SUMMARY': data = self.data_service.get_patient_summary_data(date_start, date_end, filters)
         elif report_type == 'VISIT_TRENDS': data = self.data_service.get_visit_trends_data(date_start, date_end, filters)

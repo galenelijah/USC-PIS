@@ -8,7 +8,7 @@ import sys
 import django
 
 # Set up Django environment
-sys.path.append('/mnt/c/Users/sgale/OneDrive/Documents/GitHubProjects/USC-PIS/USC-PIS/backend')
+sys.path.append(os.path.join(os.getcwd(), 'backend'))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
 
 try:
