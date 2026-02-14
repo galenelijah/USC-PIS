@@ -101,10 +101,17 @@ def generate_report_task(report_id, template_id, filters, date_start, date_end, 
                     logger.warning(f"Excel generation for report {report_id} fell back to CSV format (missing openpyxl?). Correcting extension to .csv.")
 
             filename = f"report_{report.id}_{uuid.uuid4().hex[:8]}.{file_extension}"
-            report.file_path.save(filename, ContentFile(report_data))
-            report.file_size = len(report_data)
-            report.status = 'COMPLETED'
-            report.progress_percentage = 100
+            
+            try:
+                report.file_path.save(filename, ContentFile(report_data))
+                report.file_size = len(report_data)
+                report.status = 'COMPLETED'
+                report.progress_percentage = 100
+            except Exception as save_err:
+                logger.error(f"Failed to save report file {filename}: {str(save_err)}")
+                report.status = 'FAILED'
+                report.error_message = f"Storage Error: {str(save_err)}"
+            
             report.completed_at = timezone.now()
             report.generation_time = timezone.now() - report.created_at
             

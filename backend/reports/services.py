@@ -288,11 +288,16 @@ class ReportExportService:
 
     @staticmethod
     def export_to_excel(report_data, title="Report"):
+        if not report_data:
+            logger.warning(f"No report data provided for Excel export of '{title}'")
+            return ReportExportService.export_to_csv({'error': 'No data available'}, title)
+            
         try:
             # Prefer XlsxWriter for better performance and robustness
             import xlsxwriter
             buffer = BytesIO()
-            workbook = xlsxwriter.Workbook(buffer)
+            # Enable remove_timezone to prevent crashes with timezone-aware datetimes
+            workbook = xlsxwriter.Workbook(buffer, {'remove_timezone': True})
             worksheet = workbook.add_worksheet("Report Data")
             
             # Formats
@@ -372,6 +377,11 @@ class ReportExportService:
     def export_to_csv(report_data, title="Report"):
         output = StringIO(); writer = csv.writer(output)
         writer.writerow([title]); writer.writerow([])
+        
+        if not report_data:
+            writer.writerow(["No data available for this report"])
+            return output.getvalue().encode('utf-8')
+            
         for k, v in report_data.items():
             if isinstance(v, list) and v and isinstance(v[0], dict):
                 writer.writerow([k.upper()])
