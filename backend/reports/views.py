@@ -11,7 +11,6 @@ from django.core.files.base import ContentFile
 from datetime import datetime, timedelta
 import os
 import uuid
-import threading
 import requests
 import re
 from .models import (
@@ -24,6 +23,7 @@ from .serializers import (
     ReportBookmarkSerializer, ReportDashboardSerializer, ReportFilterSerializer
 )
 from .services import ReportGenerationService
+from .tasks import generate_report_task_celery
 import logging
 
 logger = logging.getLogger(__name__)
@@ -42,124 +42,6 @@ class ReportPagination(PageNumberPagination):
     page_size = 20
     page_size_query_param = 'page_size'
     max_page_size = 100
-
-def generate_report_task(report_id, template_id, filters, date_start, date_end, export_format):
-    """Background task for generating reports"""
-    from django import db
-    try:
-        # Close old connections to ensure the thread gets a fresh one
-        db.close_old_connections()
-        
-        report = GeneratedReport.objects.get(id=report_id)
-        template = ReportTemplate.objects.get(id=template_id)
-        
-        logger.info(f"Task started for report {report_id} ({template.report_type}) format {export_format}")
-        
-        report.status = 'GENERATING'
-        report.progress_percentage = 10
-        report.save()
-        
-        # Initialize report generation service
-        service = ReportGenerationService()
-        
-        # Generate report based on type
-        report_data = None
-        common_kwargs = {
-            'date_start': date_start,
-            'date_end': date_end,
-            'filters': filters,
-            'export_format': export_format,
-            'template_html': template.template_content
-        }
-        
-        logger.info(f"Generating data for report {report_id}...")
-        if template.report_type == 'PATIENT_SUMMARY':
-            report_data = service.generate_patient_summary_report(**common_kwargs)
-        elif template.report_type == 'VISIT_TRENDS':
-            report_data = service.generate_visit_trends_report(**common_kwargs)
-        elif template.report_type == 'TREATMENT_OUTCOMES':
-            report_data = service.generate_treatment_outcomes_report(**common_kwargs)
-        elif template.report_type == 'FEEDBACK_ANALYSIS':
-            report_data = service.generate_feedback_analysis_report(**common_kwargs)
-        elif template.report_type == 'COMPREHENSIVE_ANALYTICS':
-            report_data = service.generate_comprehensive_analytics_report(**common_kwargs)
-        elif template.report_type == 'MEDICAL_STATISTICS':
-            report_data = service.generate_medical_statistics_report(**common_kwargs)
-        elif template.report_type == 'DENTAL_STATISTICS':
-            report_data = service.generate_dental_statistics_report(**common_kwargs)
-        elif template.report_type == 'CAMPAIGN_PERFORMANCE':
-            report_data = service.generate_campaign_performance_report(**common_kwargs)
-        elif template.report_type == 'USER_ACTIVITY':
-            report_data = service.generate_user_activity_report(**common_kwargs)
-        elif template.report_type == 'HEALTH_METRICS':
-            report_data = service.generate_health_metrics_report(**common_kwargs)
-        elif template.report_type == 'INVENTORY_REPORT':
-            report_data = service.generate_inventory_report(**common_kwargs)
-        elif template.report_type == 'FINANCIAL_REPORT':
-            report_data = service.generate_financial_report(**common_kwargs)
-        elif template.report_type == 'COMPLIANCE_REPORT':
-            report_data = service.generate_compliance_report(**common_kwargs)
-        elif template.report_type == 'CUSTOM':
-            report_data = service.generate_custom_report(**common_kwargs)
-        else:
-            # Catch-all for any other types
-            report_data = service.generate_comprehensive_analytics_report(**common_kwargs)
-        
-        if report_data:
-            logger.info(f"Data generated ({len(report_data)} bytes). Saving file...")
-            # Save file
-            file_extension = {
-                'PDF': 'pdf',
-                'EXCEL': 'xlsx',
-                'CSV': 'csv',
-                'JSON': 'json',
-                'HTML': 'html'
-            }.get(export_format, 'pdf')
-            
-            # Detect if EXCEL fallback to CSV occurred
-            if export_format == 'EXCEL':
-                # openpyxl/xlsxwriter files are ZIP archives starting with PK header
-                if isinstance(report_data, bytes) and not report_data.startswith(b'PK\x03\x04'):
-                    file_extension = 'csv'
-                    logger.warning(f"Excel generation for report {report_id} fell back to CSV format. Correcting extension to .csv.")
-
-            filename = f"report_{report.id}_{uuid.uuid4().hex[:8]}.{file_extension}"
-            
-            try:
-                report.file_path.save(filename, ContentFile(report_data))
-                report.file_size = len(report_data)
-                report.status = 'COMPLETED'
-                report.progress_percentage = 100
-                logger.info(f"Report {report_id} completed successfully")
-            except Exception as save_err:
-                logger.error(f"Failed to save report file {filename}: {str(save_err)}")
-                report.status = 'FAILED'
-                report.error_message = f"Storage Error: {str(save_err)}"
-            
-            report.completed_at = timezone.now()
-            report.generation_time = timezone.now() - report.created_at
-            
-        else:
-            logger.error(f"No report data generated for report {report_id}")
-            report.status = 'FAILED'
-            report.error_message = 'Failed to generate report data (Service returned None)'
-        
-        report.save()
-        
-    except Exception as e:
-        import traceback
-        error_details = f"Error generating report {report_id}: {str(e)}\n{traceback.format_exc()}"
-        logger.error(error_details)
-        try:
-            db.close_old_connections()
-            report = GeneratedReport.objects.get(id=report_id)
-            report.status = 'FAILED'
-            report.error_message = f"{str(e)}\n\nFull traceback:\n{traceback.format_exc()}"
-            report.save()
-        except Exception as save_error:
-            logger.error(f"Failed to save error status for report {report_id}: {save_error}")
-    finally:
-        db.close_old_connections()
 
 class ReportTemplateViewSet(viewsets.ModelViewSet):
     """ViewSet for managing report templates"""
@@ -193,7 +75,7 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def generate(self, request, pk=None):
-        """Generate a report from this template"""
+        """Generate a report from this template using Celery"""
         template = self.get_object()
         
         # Validate request data
@@ -223,25 +105,20 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
             expires_at=timezone.now() + timedelta(days=30)  # Reports expire after 30 days
         )
         
-        # Start background task for report generation using threading
-        thread = threading.Thread(
-            target=generate_report_task,
-            args=(
-                report.id,
-                template.id,
-                validated_data.get('filters', {}),
-                validated_data.get('date_range_start'),
-                validated_data.get('date_range_end'),
-                validated_data['export_format']
-            )
+        # Start background task via Celery
+        generate_report_task_celery.delay(
+            report.id,
+            template.id,
+            validated_data.get('filters', {}),
+            validated_data.get('date_range_start'),
+            validated_data.get('date_range_end'),
+            validated_data['export_format']
         )
-        thread.daemon = True
-        thread.start()
         
         return Response({
             'report_id': report.id,
             'status': 'PENDING',
-            'message': 'Report generation started'
+            'message': 'Report generation started via background worker'
         }, status=status.HTTP_202_ACCEPTED)
 
 class GeneratedReportViewSet(viewsets.ModelViewSet):
@@ -545,7 +422,7 @@ class ReportScheduleViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def run_now(self, request, pk=None):
-        """Run scheduled report immediately"""
+        """Run scheduled report immediately using Celery"""
         schedule = self.get_object()
         
         # Create report record
@@ -560,8 +437,8 @@ class ReportScheduleViewSet(viewsets.ModelViewSet):
             expires_at=timezone.now() + timedelta(days=30)
         )
         
-        # Start background task
-        generate_report_task(
+        # Start background task via Celery
+        generate_report_task_celery.delay(
             report.id,
             schedule.template.id,
             schedule.filters,
@@ -572,7 +449,7 @@ class ReportScheduleViewSet(viewsets.ModelViewSet):
         
         return Response({
             'report_id': report.id,
-            'message': 'Report generation started'
+            'message': 'Report generation started via Celery'
         })
 
 class ReportBookmarkViewSet(viewsets.ModelViewSet):
@@ -595,7 +472,7 @@ class ReportBookmarkViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def use(self, request, pk=None):
-        """Use bookmark to generate report"""
+        """Use bookmark to generate report via Celery"""
         bookmark = self.get_object()
         bookmark.increment_use_count()
         
@@ -611,8 +488,8 @@ class ReportBookmarkViewSet(viewsets.ModelViewSet):
             expires_at=timezone.now() + timedelta(days=30)
         )
         
-        # Start background task
-        generate_report_task(
+        # Start background task via Celery
+        generate_report_task_celery.delay(
             report.id,
             bookmark.template.id,
             bookmark.saved_filters,
@@ -623,7 +500,7 @@ class ReportBookmarkViewSet(viewsets.ModelViewSet):
         
         return Response({
             'report_id': report.id,
-            'message': 'Report generation started from bookmark'
+            'message': 'Report generation started from bookmark via Celery'
         })
 
 class ReportAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):

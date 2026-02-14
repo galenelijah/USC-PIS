@@ -449,89 +449,107 @@ class ReportExportService:
 
     @staticmethod
     def export_to_excel(report_data, title="Report"):
+        """Export report data to Excel using Pandas as required by System Requirements"""
         if not report_data:
             logger.warning(f"No report data provided for Excel export of '{title}'")
             return ReportExportService.export_to_csv({'error': 'No data available'}, title)
             
         try:
-            # Prefer XlsxWriter for better performance and robustness
-            import xlsxwriter
             buffer = BytesIO()
-            # Enable remove_timezone to prevent crashes with timezone-aware datetimes
-            workbook = xlsxwriter.Workbook(buffer, {'remove_timezone': True})
-            worksheet = workbook.add_worksheet("Report Data")
             
-            # Formats
-            header_format = workbook.add_format({'bold': True, 'font_size': 14, 'font_color': '#0B4F6C'})
-            subheader_format = workbook.add_format({'bold': True, 'bg_color': '#F0F0F0'})
-            date_format = workbook.add_format({'num_format': 'yyyy-mm-dd hh:mm:ss'})
-            
-            # Header
-            worksheet.write(0, 0, "UNIVERSITY OF SAN CARLOS - USC-PIS", header_format)
-            worksheet.write(1, 0, title, header_format)
-            worksheet.write(2, 0, f"Generated At: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}")
-            
-            row = 4
-            for k, v in report_data.items():
-                if isinstance(v, (list, tuple)) and v and isinstance(v[0], dict):
-                    # Table headers
-                    worksheet.write(row, 0, str(k).upper().replace('_', ' '), subheader_format)
-                    row += 1
-                    headers = list(v[0].keys())
-                    for col, header in enumerate(headers):
-                        worksheet.write(row, col, header.replace('_', ' ').title(), subheader_format)
-                    
-                    row += 1
-                    # Table data
-                    for item in v[:500]: # Limit to 500 rows for safety
-                        for col, header in enumerate(headers):
-                            val = item.get(header, '')
-                            if isinstance(val, (datetime, timezone.datetime)):
-                                worksheet.write_datetime(row, col, val, date_format)
-                            else:
-                                worksheet.write(row, col, str(val))
-                        row += 1
-                    row += 1 # Spacer
-                else:
-                    worksheet.write(row, 0, str(k).replace('_', ' ').title(), subheader_format)
-                    worksheet.write(row, 1, str(v))
-                    row += 1
-            
-            workbook.close()
+            # Prepare DataFrames for each section
+            # We'll create one sheet for the Overview and additional sheets for any lists/tables
+            with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+                # 1. Summary/Overview Sheet
+                summary_items = []
+                list_keys = []
+                
+                for k, v in report_data.items():
+                    if isinstance(v, (list, tuple)):
+                        list_keys.append(k)
+                    elif isinstance(v, dict):
+                        # Flatten single-level dicts
+                        for sub_k, sub_v in v.items():
+                            summary_items.append({'Metric': f"{k} - {sub_k}", 'Value': str(sub_v)})
+                    else:
+                        summary_items.append({'Metric': str(k).replace('_', ' ').title(), 'Value': str(v)})
+                
+                summary_df = pd.DataFrame(summary_items)
+                summary_df.to_excel(writer, sheet_name='Overview', index=False)
+                
+                # Format Overview sheet
+                workbook = writer.book
+                worksheet = writer.sheets['Overview']
+                header_format = workbook.add_format({'bold': True, 'bg_color': '#0B4F6C', 'font_color': 'white'})
+                for col_num, value in enumerate(summary_df.columns.values):
+                    worksheet.write(0, col_num, value, header_format)
+                worksheet.set_column('A:A', 30)
+                worksheet.set_column('B:B', 50)
+
+                # 2. Additional Sheets for Lists
+                for key in list_keys:
+                    data_list = report_data[key]
+                    if data_list and isinstance(data_list[0], dict):
+                        # Convert list of dicts to DataFrame
+                        df = pd.DataFrame(data_list)
+                        
+                        # Clean column names
+                        df.columns = [str(c).replace('_', ' ').title() for c in df.columns]
+                        
+                        # Handle timezones if any (Excel doesn't like them)
+                        for col in df.select_dtypes(include=['datetime64[ns, UTC]', 'datetimetz']).columns:
+                            df[col] = df[col].dt.tz_localize(None)
+                            
+                        sheet_name = str(key).replace('_', ' ').title()[:31] # Excel limit 31 chars
+                        df.to_excel(writer, sheet_name=sheet_name, index=False)
+                        
+                        # Format list sheet
+                        ws = writer.sheets[sheet_name]
+                        for col_num, value in enumerate(df.columns.values):
+                            ws.write(0, col_num, value, header_format)
+                        ws.set_column(0, len(df.columns) - 1, 20)
+
             buffer.seek(0)
             return buffer.getvalue()
             
-        except ImportError:
-            # Fallback to openpyxl if xlsxwriter is missing
-            try:
-                from openpyxl import Workbook
-                wb = Workbook()
-                ws = wb.active
-                ws.title = "Data"
-                ws.append(["UNIVERSITY OF SAN CARLOS - USC-PIS"])
-                ws.append([title])
-                ws.append(["Generated At:", timezone.now().strftime('%Y-%m-%d %H:%M:%S')])
-                ws.append([])
-                for k, v in report_data.items():
-                    if isinstance(v, (list, tuple)) and v and isinstance(v[0], dict):
-                        ws.append([str(k).upper()])
-                        headers = list(v[0].keys())
-                        ws.append(headers)
-                        for item in v[:100]: ws.append([str(item.get(h, '')) for h in headers])
-                        ws.append([])
-                    else:
-                        ws.append([str(k), str(v)])
-                buffer = BytesIO()
-                wb.save(buffer)
-                buffer.seek(0)
-                return buffer.getvalue()
-            except Exception as e:
-                logger.error(f"Excel (openpyxl) fallback failed: {e}")
-                return ReportExportService.export_to_csv(report_data, title)
         except Exception as e:
-            logger.error(f"Excel export failed with error: {str(e)}")
+            logger.error(f"Pandas Excel export failed: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
+            # Fallback to XlsxWriter manually if Pandas fails
+            return ReportExportService._fallback_xlsxwriter(report_data, title)
+
+    @staticmethod
+    def _fallback_xlsxwriter(report_data, title):
+        """Manual XlsxWriter fallback if Pandas fails"""
+        try:
+            import xlsxwriter
+            buffer = BytesIO()
+            workbook = xlsxwriter.Workbook(buffer, {'remove_timezone': True})
+            worksheet = workbook.add_worksheet("Report Data")
+            header_format = workbook.add_format({'bold': True, 'bg_color': '#0B4F6C', 'font_color': 'white'})
+            
+            row = 0
+            for k, v in report_data.items():
+                if isinstance(v, (list, tuple)) and v and isinstance(v[0], dict):
+                    worksheet.write(row, 0, str(k).upper(), header_format)
+                    row += 1
+                    headers = list(v[0].keys())
+                    for col, h in enumerate(headers):
+                        worksheet.write(row, col, h.title(), header_format)
+                    row += 1
+                    for item in v[:500]:
+                        for col, h in enumerate(headers):
+                            worksheet.write(row, col, str(item.get(h, '')))
+                        row += 1
+                    row += 1
+                else:
+                    worksheet.write(row, 0, str(k).title())
+                    worksheet.write(row, 1, str(v))
+                    row += 1
+            workbook.close()
+            return buffer.getvalue()
+        except Exception:
             return ReportExportService.export_to_csv(report_data, title)
 
     @staticmethod

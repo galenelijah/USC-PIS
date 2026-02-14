@@ -570,3 +570,16 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 
+# If Redis is not available locally, run tasks synchronously to ensure system works
+if DEBUG and not os.environ.get('CELERY_BROKER_URL'):
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(1)
+        s.connect(('localhost', 6379))
+        s.close()
+    except (socket.error, socket.timeout):
+        CELERY_TASK_ALWAYS_EAGER = True
+        print("Warning: Redis not found. Running Celery tasks synchronously (CELERY_TASK_ALWAYS_EAGER=True)")
+
+

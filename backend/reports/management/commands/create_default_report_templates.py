@@ -94,6 +94,54 @@ class Command(BaseCommand):
                 'default_filters': {'include_participation_rates': True, 'include_feedback': True},
                 'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
                 'allowed_roles': ['STAFF', 'ADMIN']
+            },
+            {
+                'name': 'User Activity Report',
+                'description': 'Tracking of system usage, logins, and staff actions',
+                'report_type': 'USER_ACTIVITY',
+                'template_content': self.get_generic_template("User Activity Report"),
+                'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
+                'allowed_roles': ['ADMIN']
+            },
+            {
+                'name': 'Health Metrics Report',
+                'description': 'Population-level health indicators and trends',
+                'report_type': 'HEALTH_METRICS',
+                'template_content': self.get_generic_template("Health Metrics Report"),
+                'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
+                'allowed_roles': ['DOCTOR', 'ADMIN']
+            },
+            {
+                'name': 'Inventory Report',
+                'description': 'Overview of medical supplies and stock status',
+                'report_type': 'INVENTORY_REPORT',
+                'template_content': self.get_generic_template("Inventory Report"),
+                'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
+                'allowed_roles': ['STAFF', 'ADMIN']
+            },
+            {
+                'name': 'Financial Overview',
+                'description': 'Operational costs and billing summaries',
+                'report_type': 'FINANCIAL_REPORT',
+                'template_content': self.get_generic_template("Financial Overview"),
+                'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
+                'allowed_roles': ['ADMIN']
+            },
+            {
+                'name': 'Compliance & Privacy Report',
+                'description': 'Data security, privacy audit, and compliance status',
+                'report_type': 'COMPLIANCE_REPORT',
+                'template_content': self.get_generic_template("Compliance & Privacy Report"),
+                'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
+                'allowed_roles': ['ADMIN']
+            },
+            {
+                'name': 'Custom Ad-hoc Report',
+                'description': 'Flexible report based on custom criteria',
+                'report_type': 'CUSTOM',
+                'template_content': self.get_generic_template("Custom Report"),
+                'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
+                'allowed_roles': ['STAFF', 'ADMIN']
             }
         ]
         
@@ -747,6 +795,48 @@ class Command(BaseCommand):
                     </div>
                     {% endfor %}
                 </div>
+            </div>
+        </body>
+        </html>
+        """
+
+    def get_generic_template(self, title):
+        return f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>{title}</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                .header {{ text-align: center; border-bottom: 2px solid #003d7a; padding-bottom: 20px; margin-bottom: 30px; }}
+                .logo {{ color: #003d7a; font-size: 24px; font-weight: bold; }}
+                .section {{ margin-bottom: 25px; }}
+                .table {{ width: 100%; border-collapse: collapse; margin-bottom: 15px; }}
+                .table th, .table td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+                .table th {{ background-color: #f8f9fa; font-weight: bold; }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <div class="logo">University of San Carlos - Patient Information System</div>
+                <h2>{title}</h2>
+                <p>Period: {{{{ date_range_start|date:"M d, Y" }}}} - {{{{ date_range_end|date:"M d, Y" }}}}</p>
+            </div>
+            
+            <div class="section">
+                <h3>Report Data</h3>
+                <table class="table">
+                    <thead>
+                        <tr><th>Metric</th><th>Value</th></tr>
+                    </thead>
+                    <tbody>
+                        {{% for k, v in report_data.items %}}
+                        {{% if v|is_simple %}}
+                        <tr><td><strong>{{{{ k|title_clean }}}}:</strong></td><td>{{{{ v }}}}</td></tr>
+                        {{% endif %}}
+                        {{% endfor %}}
+                    </tbody>
+                </table>
             </div>
         </body>
         </html>
