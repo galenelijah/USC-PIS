@@ -605,20 +605,44 @@ class ReportExportService:
     @staticmethod
     def export_to_csv(report_data, title="Report"):
         output = StringIO(); writer = csv.writer(output)
-        writer.writerow([title]); writer.writerow([])
+        writer.writerow([title])
+        writer.writerow(["Generated At:", timezone.now().strftime('%Y-%m-%d %H:%M:%S')])
+        writer.writerow([])
         
         if not report_data:
             writer.writerow(["No data available for this report"])
             return output.getvalue().encode('utf-8')
             
+        # 1. Summary Section
+        writer.writerow(["SUMMARY / OVERVIEW"])
+        list_keys = []
+        
         for k, v in report_data.items():
-            if isinstance(v, list) and v and isinstance(v[0], dict):
-                writer.writerow([k.upper()])
-                headers = list(v[0].keys()); writer.writerow(headers)
-                for item in v: writer.writerow([item.get(h, '') for h in headers])
-                writer.writerow([])
+            if isinstance(v, (list, tuple)):
+                list_keys.append(k)
+            elif isinstance(v, dict):
+                for sub_k, sub_v in v.items():
+                    writer.writerow([f"{k} - {sub_k}", sub_v])
             else:
-                writer.writerow([k, v])
+                writer.writerow([str(k).replace('_', ' ').title(), v])
+        
+        writer.writerow([])
+        
+        # 2. Detailed Lists
+        for key in list_keys:
+            data_list = report_data[key]
+            if data_list and isinstance(data_list[0], dict):
+                writer.writerow([str(key).upper().replace('_', ' ')])
+                
+                # Get headers from first item
+                headers = list(data_list[0].keys())
+                writer.writerow(headers)
+                
+                for item in data_list:
+                    row = [item.get(h, '') for h in headers]
+                    writer.writerow(row)
+                writer.writerow([])
+                
         return output.getvalue().encode('utf-8')
 
     @staticmethod
@@ -638,9 +662,56 @@ class ReportGenerationService:
         return f"""
         {{% load report_tags %}}
         <!DOCTYPE html><html><head><title>{title}</title>
-        <style>body{{font-family:sans-serif;padding:40px;}}.usc-header{{text-align:center;border-bottom:2px solid #0B4F6C;}}</style>
-        </head><body><div class="usc-header"><h1>{title}</h1></div>
-        <div>{{% for k, v in report_data.items %}}<p><b>{{{{k|title_clean}}}}:</b> {{{{v}}}}</p>{{% endfor %}}</div>
+        <style>
+            body {{ font-family: sans-serif; padding: 20px; }}
+            .usc-header {{ text-align: center; border-bottom: 2px solid #0B4F6C; margin-bottom: 20px; padding-bottom: 10px; }}
+            .section {{ margin-bottom: 30px; }}
+            .section-title {{ color: #0B4F6C; font-size: 16px; font-weight: bold; border-bottom: 1px solid #eee; margin-bottom: 10px; padding-bottom: 5px; }}
+            .summary-table {{ width: 100%; margin-bottom: 20px; }}
+            .summary-table td {{ padding: 5px; border-bottom: 1px solid #f0f0f0; }}
+            .data-table {{ width: 100%; border-collapse: collapse; font-size: 10px; }}
+            .data-table th {{ background: #f8f9fa; text-align: left; padding: 5px; border: 1px solid #ddd; }}
+            .data-table td {{ padding: 5px; border: 1px solid #ddd; }}
+        </style>
+        </head><body>
+        <div class="usc-header"><h1>{title}</h1><p>Generated: {{{{ generated_at|date:"Y-m-d H:i" }}}}</p></div>
+        
+        <div class="section">
+            <div class="section-title">Summary Overview</div>
+            <table class="summary-table">
+            {{% for k, v in report_data.items %}}
+                {{% if v|is_simple %}}
+                <tr><td><strong>{{{{ k|title_clean }}}}</strong></td><td>{{{{ v }}}}</td></tr>
+                {{% endif %}}
+            {{% endfor %}}
+            </table>
+        </div>
+
+        {{% for k, v in report_data.items %}}
+            {{% if v|is_list and v.0|is_dict %}}
+            <div class="section">
+                <div class="section-title">{{{{ k|title_clean }}}}</div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                        {{% for header in v.0.keys %}}
+                            <th>{{{{ header|title_clean }}}}</th>
+                        {{% endfor %}}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{% for row in v %}}
+                        <tr>
+                            {{% for val in row.values %}}
+                            <td>{{{{ val }}}}</td>
+                            {{% endfor %}}
+                        </tr>
+                        {{% endfor %}}
+                    </tbody>
+                </table>
+            </div>
+            {{% endif %}}
+        {{% endfor %}}
         </body></html>"""
 
     def _generate_generic_report(self, report_type, title, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
