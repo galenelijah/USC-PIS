@@ -4,6 +4,9 @@ from .models import (
     ReportSchedule, ReportAnalytics, ReportBookmark
 )
 from authentication.models import User
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ReportTemplateSerializer(serializers.ModelSerializer):
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)

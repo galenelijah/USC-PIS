@@ -244,24 +244,28 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
     def download(self, request, pk=None):
         """Download generated report file"""
         import logging
+        import traceback
         
         logger = logging.getLogger(__name__)
         
         try:
             report = self.get_object()
+            logger.info(f"Download request for report {report.id} ({report.export_format}) by {request.user.email}")
             
             if report.status != 'COMPLETED':
+                logger.warning(f"Report {report.id} is in status {report.status}, not ready for download")
                 return Response(
                     {'error': 'Report is not ready for download'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
             if not report.file_path:
-                logger.error(f"Report {report.id} has no file_path")
+                logger.error(f"Report {report.id} has no file_path record")
                 return Response(
                     {'error': 'Report file not found'},
                     status=status.HTTP_404_NOT_FOUND
                 )
+            
             # Increment download count
             report.increment_download_count()
 
@@ -270,7 +274,8 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
                 'PDF': 'application/pdf',
                 'EXCEL': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 'CSV': 'text/csv',
-                'JSON': 'application/json'
+                'JSON': 'application/json',
+                'HTML': 'text/html'
             }
             content_type = content_type_map.get(report.export_format, 'application/octet-stream')
             
@@ -286,32 +291,31 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
                 if report.file_size:
                     file_response['Content-Length'] = str(report.file_size)
                 file_response['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Length'
-                logger.info(f"Streamed report {report.id} via storage backend to {request.user.email}")
+                logger.info(f"Streamed report {report.id} via storage backend")
                 return file_response
             except Exception as e:
-                logger.warning(f"Storage open failed for report {report.id}: {e}")
+                logger.warning(f"Storage open failed for report {report.id}: {str(e)}")
 
             # Fallback 1: local filesystem path
             try:
-                file_path = report.file_path.path
-                if os.path.exists(file_path):
-                    logger.info(f"Serving local file via path: {file_path}")
-                    with open(file_path, 'rb') as f:
-                        file_content = f.read()
-                    response = HttpResponse(file_content, content_type=content_type)
-                    response['Content-Disposition'] = f'attachment; filename="{filename}"'
-                    response['Content-Length'] = str(len(file_content))
-                    response['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Length'
-                    return response
+                if hasattr(report.file_path, 'path'):
+                    file_path = report.file_path.path
+                    if os.path.exists(file_path):
+                        logger.info(f"Serving local file via path: {file_path}")
+                        with open(file_path, 'rb') as f:
+                            file_content = f.read()
+                        response = HttpResponse(file_content, content_type=content_type)
+                        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+                        response['Content-Length'] = str(len(file_content))
+                        response['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Length'
+                        return response
             except Exception as e:
-                logger.warning(f"Local path read failed for report {report.id}: {e}")
+                logger.warning(f"Local path read failed for report {report.id}: {str(e)}")
 
             # Fallback 2: check local media directory directly
             try:
                 from django.conf import settings
                 local_file_path = os.path.join(settings.MEDIA_ROOT, report.file_path.name)
-                logger.info(f"Checking direct media path: {local_file_path}")
-                
                 if os.path.exists(local_file_path):
                     logger.info(f"Found file in media directory: {local_file_path}")
                     with open(local_file_path, 'rb') as f:
@@ -320,72 +324,61 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
                     response['Content-Disposition'] = f'attachment; filename="{filename}"'
                     response['Content-Length'] = str(len(file_content))
                     response['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Length'
-                    logger.info(f"Served report {report.id} from direct media path to {request.user.email}")
                     return response
-                else:
-                    logger.warning(f"File not found in media directory: {local_file_path}")
             except Exception as e:
-                logger.warning(f"Direct media path read failed for report {report.id}: {e}")
+                logger.warning(f"Direct media path read failed for report {report.id}: {str(e)}")
 
             # Fallback 3: fetch via URL (last resort)
             try:
                 file_url = report.file_path.url
-                logger.info(f"Fetching from URL as last resort: {file_url}")
-                resp = requests.get(file_url, stream=True, timeout=30)
-                resp.raise_for_status()
-                def file_iterator():
-                    for chunk in resp.iter_content(chunk_size=8192):
-                        if chunk:
-                            yield chunk
-                streaming_response = StreamingHttpResponse(file_iterator(), content_type=content_type)
-                streaming_response['Content-Disposition'] = f'attachment; filename="{filename}"'
-                if 'content-length' in resp.headers:
-                    streaming_response['Content-Length'] = resp.headers['content-length']
-                elif report.file_size:
-                    streaming_response['Content-Length'] = str(report.file_size)
-                streaming_response['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Length'
-                return streaming_response
+                logger.info(f"Fetching from URL: {file_url}")
+                if file_url.startswith('http'):
+                    resp = requests.get(file_url, stream=True, timeout=30)
+                    resp.raise_for_status()
+                    def file_iterator():
+                        for chunk in resp.iter_content(chunk_size=8192):
+                            if chunk:
+                                yield chunk
+                    streaming_response = StreamingHttpResponse(file_iterator(), content_type=content_type)
+                    streaming_response['Content-Disposition'] = f'attachment; filename="{filename}"'
+                    if 'content-length' in resp.headers:
+                        streaming_response['Content-Length'] = resp.headers['content-length']
+                    streaming_response['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Length'
+                    return streaming_response
             except Exception as e:
-                logger.error(f"URL download failed for report {report.id}: {e}")
+                logger.error(f"URL download failed for report {report.id}: {str(e)}")
 
-            # Fallback 4: Re-generate the report on-the-fly (last resort for missing files)
+            # Fallback 4: Re-generate the report on-the-fly
             try:
-                logger.info(f"Re-generating report {report.id} on-the-fly as final fallback")
+                logger.info(f"Re-generating report {report.id} on-the-fly")
                 from .services import ReportGenerationService
                 service = ReportGenerationService()
                 
-                # Re-generate based on template type
+                # Use common logic for re-generation
                 if report.template.report_type == 'PATIENT_SUMMARY':
-                    regenerated_data = service.generate_patient_summary_report(export_format=report.export_format)
-                elif report.template.report_type == 'FEEDBACK_ANALYSIS':
-                    regenerated_data = service.generate_feedback_analysis_report(export_format=report.export_format)
-                elif report.template.report_type == 'COMPREHENSIVE_ANALYTICS':
-                    regenerated_data = service.generate_comprehensive_analytics_report(export_format=report.export_format)
+                    regenerated_data = service.generate_patient_summary_report(export_format=report.export_format, filters=report.filters)
+                elif report.template.report_type == 'VISIT_TRENDS':
+                    regenerated_data = service.generate_visit_trends_report(export_format=report.export_format, filters=report.filters)
                 else:
-                    # Default to patient summary
-                    regenerated_data = service.generate_patient_summary_report(export_format=report.export_format)
+                    regenerated_data = service.generate_comprehensive_analytics_report(export_format=report.export_format, filters=report.filters)
                 
                 if regenerated_data:
-                    logger.info(f"Successfully re-generated report {report.id} with {len(regenerated_data)} bytes")
                     response = HttpResponse(regenerated_data, content_type=content_type)
                     response['Content-Disposition'] = f'attachment; filename="{filename}"'
                     response['Content-Length'] = str(len(regenerated_data))
                     response['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Length'
                     return response
-                else:
-                    logger.error(f"Re-generation failed for report {report.id}")
-                    
             except Exception as e:
-                logger.error(f"Re-generation fallback failed for report {report.id}: {e}")
+                logger.error(f"Re-generation failed for report {report.id}: {str(e)}")
 
-            # Final error - all methods exhausted
-            logger.error(f"All download methods failed for report {report.id}")
+            # Final error
             return Response({'error': 'Unable to access report file'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
         except Exception as e:
-            logger.error(f"Unexpected error in download method: {e}", exc_info=True)
+            logger.error(f"CRITICAL error in download action: {str(e)}")
+            logger.error(traceback.format_exc())
             return Response(
-                {'error': 'Internal server error during download'},
+                {'error': f'Internal server error: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     

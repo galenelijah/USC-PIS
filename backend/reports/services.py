@@ -289,27 +289,84 @@ class ReportExportService:
     @staticmethod
     def export_to_excel(report_data, title="Report"):
         try:
-            from openpyxl import Workbook
-            wb = Workbook(); ws = wb.active; ws.title = "Data"
-            ws.append(["UNIVERSITY OF SAN CARLOS - USC-PIS"])
-            ws.append([title])
-            ws.append(["Generated At:", timezone.now().strftime('%Y-%m-%d %H:%M:%S')])
-            ws.append([])
+            # Prefer XlsxWriter for better performance and robustness
+            import xlsxwriter
+            buffer = BytesIO()
+            workbook = xlsxwriter.Workbook(buffer)
+            worksheet = workbook.add_worksheet("Report Data")
+            
+            # Formats
+            header_format = workbook.add_format({'bold': True, 'font_size': 14, 'font_color': '#0B4F6C'})
+            subheader_format = workbook.add_format({'bold': True, 'bg_color': '#F0F0F0'})
+            date_format = workbook.add_format({'num_format': 'yyyy-mm-dd hh:mm:ss'})
+            
+            # Header
+            worksheet.write(0, 0, "UNIVERSITY OF SAN CARLOS - USC-PIS", header_format)
+            worksheet.write(1, 0, title, header_format)
+            worksheet.write(2, 0, f"Generated At: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            
+            row = 4
             for k, v in report_data.items():
                 if isinstance(v, (list, tuple)) and v and isinstance(v[0], dict):
-                    ws.append([str(k).upper()])
+                    # Table headers
+                    worksheet.write(row, 0, str(k).upper().replace('_', ' '), subheader_format)
+                    row += 1
                     headers = list(v[0].keys())
-                    ws.append(headers)
-                    for item in v[:100]: ws.append([str(item.get(h, '')) for h in headers])
-                    ws.append([])
+                    for col, header in enumerate(headers):
+                        worksheet.write(row, col, header.replace('_', ' ').title(), subheader_format)
+                    
+                    row += 1
+                    # Table data
+                    for item in v[:500]: # Limit to 500 rows for safety
+                        for col, header in enumerate(headers):
+                            val = item.get(header, '')
+                            if isinstance(val, (datetime, timezone.datetime)):
+                                worksheet.write_datetime(row, col, val, date_format)
+                            else:
+                                worksheet.write(row, col, str(val))
+                        row += 1
+                    row += 1 # Spacer
                 else:
-                    ws.append([str(k), str(v)])
-            buffer = BytesIO(); wb.save(buffer); buffer.seek(0)
+                    worksheet.write(row, 0, str(k).replace('_', ' ').title(), subheader_format)
+                    worksheet.write(row, 1, str(v))
+                    row += 1
+            
+            workbook.close()
+            buffer.seek(0)
             return buffer.getvalue()
+            
         except ImportError:
-            return ReportExportService.export_to_csv(report_data, title)
+            # Fallback to openpyxl if xlsxwriter is missing
+            try:
+                from openpyxl import Workbook
+                wb = Workbook()
+                ws = wb.active
+                ws.title = "Data"
+                ws.append(["UNIVERSITY OF SAN CARLOS - USC-PIS"])
+                ws.append([title])
+                ws.append(["Generated At:", timezone.now().strftime('%Y-%m-%d %H:%M:%S')])
+                ws.append([])
+                for k, v in report_data.items():
+                    if isinstance(v, (list, tuple)) and v and isinstance(v[0], dict):
+                        ws.append([str(k).upper()])
+                        headers = list(v[0].keys())
+                        ws.append(headers)
+                        for item in v[:100]: ws.append([str(item.get(h, '')) for h in headers])
+                        ws.append([])
+                    else:
+                        ws.append([str(k), str(v)])
+                buffer = BytesIO()
+                wb.save(buffer)
+                buffer.seek(0)
+                return buffer.getvalue()
+            except Exception as e:
+                logger.error(f"Excel (openpyxl) fallback failed: {e}")
+                return ReportExportService.export_to_csv(report_data, title)
         except Exception as e:
-            logger.error(f"Excel export failed: {e}"); return None
+            logger.error(f"Excel export failed with error: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return ReportExportService.export_to_csv(report_data, title)
 
     @staticmethod
     def export_to_csv(report_data, title="Report"):
