@@ -62,7 +62,7 @@ class GeneratedReportListSerializer(serializers.ModelSerializer):
             'id', 'title', 'status', 'export_format', 'progress_percentage',
             'created_at', 'completed_at', 'expires_at', 'download_count',
             'generated_by_name', 'template_name', 'template_type',
-            'file_url', 'file_size_formatted', 'record_count'
+            'file_url', 'file_size_formatted', 'record_count', 'error_message'
         ]
     
     def get_file_url(self, obj):

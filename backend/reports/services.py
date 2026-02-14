@@ -244,6 +244,69 @@ class ReportDataService:
             return {'total_feedback': 0, 'average_rating': 0}
 
     @staticmethod
+    def get_campaign_performance_data(date_start=None, date_end=None, filters=None):
+        """Get analytics for health campaigns"""
+        logger.info("Collecting campaign performance data")
+        try:
+            queryset = HealthCampaign.objects.all()
+            if date_start: queryset = queryset.filter(start_date__gte=date_start)
+            if date_end: queryset = queryset.filter(start_date__lte=date_end)
+            
+            campaigns = list(queryset.annotate(
+                feedback_count=Count('feedback'),
+                avg_rating=Avg('feedback__rating')
+            ).values('title', 'campaign_type', 'status', 'view_count', 'engagement_count', 'feedback_count', 'avg_rating'))
+            
+            return {
+                'total_campaigns': queryset.count(),
+                'active_campaigns': queryset.filter(status='ACTIVE').count(),
+                'total_views': queryset.aggregate(Sum('view_count'))['view_count__sum'] or 0,
+                'total_engagement': queryset.aggregate(Sum('engagement_count'))['engagement_count__sum'] or 0,
+                'campaign_details': campaigns
+            }
+        except Exception as e:
+            logger.error(f"Campaign performance data failed: {e}")
+            return {'error': str(e)}
+
+    @staticmethod
+    def get_medical_statistics_data(date_start=None, date_end=None, filters=None):
+        """Get statistical overview of medical records"""
+        try:
+            queryset = MedicalRecord.objects.all()
+            if date_start: queryset = queryset.filter(visit_date__gte=date_start)
+            if date_end: queryset = queryset.filter(visit_date__lte=date_end)
+            
+            common_diagnoses = list(queryset.values('diagnosis').annotate(count=Count('id')).order_by('-count')[:10])
+            
+            return {
+                'total_medical_records': queryset.count(),
+                'top_diagnoses': common_diagnoses,
+                'recent_activity': list(queryset.order_by('-visit_date')[:10].values('visit_date', 'diagnosis', 'treatment'))
+            }
+        except Exception as e:
+            logger.error(f"Medical statistics data failed: {e}")
+            return {'error': str(e)}
+
+    @staticmethod
+    def get_dental_statistics_data(date_start=None, date_end=None, filters=None):
+        """Get statistical overview of dental records"""
+        try:
+            queryset = DentalRecord.objects.all()
+            if date_start: queryset = queryset.filter(visit_date__gte=date_start)
+            if date_end: queryset = queryset.filter(visit_date__lte=date_end)
+            
+            common_procedures = list(queryset.values('procedure_performed').annotate(count=Count('id')).order_by('-count')[:10])
+            
+            return {
+                'total_dental_records': queryset.count(),
+                'top_procedures': common_procedures,
+                'recent_activity': list(queryset.order_by('-visit_date')[:10].values('visit_date', 'procedure_performed', 'diagnosis'))
+            }
+        except Exception as e:
+            logger.error(f"Dental statistics data failed: {e}")
+            return {'error': str(e)}
+
+    @staticmethod
     def get_comprehensive_analytics_data(date_start=None, date_end=None, filters=None):
         try:
             return {
@@ -444,6 +507,12 @@ class ReportGenerationService:
                 data = self.data_service.get_visit_trends_data(date_start, date_end, filters)
             elif report_type == 'FEEDBACK_ANALYSIS': 
                 data = self.data_service.get_feedback_analysis_data(date_start, date_end, filters)
+            elif report_type == 'CAMPAIGN_PERFORMANCE':
+                data = self.data_service.get_campaign_performance_data(date_start, date_end, filters)
+            elif report_type == 'MEDICAL_STATISTICS':
+                data = self.data_service.get_medical_statistics_data(date_start, date_end, filters)
+            elif report_type == 'DENTAL_STATISTICS':
+                data = self.data_service.get_dental_statistics_data(date_start, date_end, filters)
             else: 
                 data = self.data_service.get_comprehensive_analytics_data(date_start, date_end, filters)
             
