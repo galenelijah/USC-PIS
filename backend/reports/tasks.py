@@ -9,7 +9,7 @@ from .services import ReportGenerationService
 
 logger = logging.getLogger(__name__)
 
-@shared_task(name="reports.tasks.generate_report_celery")
+@shared_task(name="reports.tasks.generate_report_celery", ignore_result=True)
 def generate_report_task_celery(report_id):
     """Celery task for generating reports asynchronously using Pandas and ReportLab"""
     try:

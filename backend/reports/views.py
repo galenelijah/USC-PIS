@@ -108,12 +108,29 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
             )
             
             # Start background task via Celery - pass only ID to avoid serialization issues
-            generate_report_task_celery.delay(report.id)
+            try:
+                generate_report_task_celery.delay(report.id)
+                msg = 'Report generation started via background worker'
+            except Exception as celery_err:
+                logger.warning(f"Celery .delay() failed, running synchronously: {str(celery_err)}")
+                # Synchronous fallback
+                try:
+                    generate_report_task_celery(report.id)
+                    msg = 'Report generated successfully (synchronous fallback)'
+                except Exception as sync_err:
+                    logger.error(f"Synchronous fallback also failed: {str(sync_err)}")
+                    report.status = 'FAILED'
+                    report.error_message = f"Generation failed: {str(sync_err)}"
+                    report.save()
+                    return Response(
+                        {'error': f'Report generation failed: {str(sync_err)}'},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
             
             return Response({
                 'report_id': report.id,
-                'status': 'PENDING',
-                'message': 'Report generation started via background worker'
+                'status': report.status,
+                'message': msg
             }, status=status.HTTP_202_ACCEPTED)
             
         except Exception as e:
@@ -425,7 +442,7 @@ class ReportScheduleViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def run_now(self, request, pk=None):
-        """Run scheduled report immediately using Celery"""
+        """Run scheduled report immediately using Celery with sync fallback"""
         schedule = self.get_object()
         
         # Create report record
@@ -441,11 +458,17 @@ class ReportScheduleViewSet(viewsets.ModelViewSet):
         )
         
         # Start background task via Celery
-        generate_report_task_celery.delay(report.id)
+        try:
+            generate_report_task_celery.delay(report.id)
+            msg = 'Report generation started via Celery'
+        except Exception as e:
+            logger.warning(f"Celery failed for run_now, falling back to sync: {str(e)}")
+            generate_report_task_celery(report.id)
+            msg = 'Report generated successfully (sync fallback)'
         
         return Response({
             'report_id': report.id,
-            'message': 'Report generation started via Celery'
+            'message': msg
         })
 
 class ReportBookmarkViewSet(viewsets.ModelViewSet):
@@ -468,7 +491,7 @@ class ReportBookmarkViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def use(self, request, pk=None):
-        """Use bookmark to generate report via Celery"""
+        """Use bookmark to generate report via Celery with sync fallback"""
         bookmark = self.get_object()
         bookmark.increment_use_count()
         
@@ -485,11 +508,17 @@ class ReportBookmarkViewSet(viewsets.ModelViewSet):
         )
         
         # Start background task via Celery
-        generate_report_task_celery.delay(report.id)
+        try:
+            generate_report_task_celery.delay(report.id)
+            msg = 'Report generation started from bookmark via Celery'
+        except Exception as e:
+            logger.warning(f"Celery failed for use_bookmark, falling back to sync: {str(e)}")
+            generate_report_task_celery(report.id)
+            msg = 'Report generated successfully (sync fallback)'
         
         return Response({
             'report_id': report.id,
-            'message': 'Report generation started from bookmark via Celery'
+            'message': msg
         })
 
 class ReportAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):

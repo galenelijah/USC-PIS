@@ -564,7 +564,8 @@ LOGGING = {
 
 # Celery Configuration
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+# Only use result backend if explicitly configured to avoid "Retry limit exceeded" errors
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -580,6 +581,8 @@ if DEBUG and not os.environ.get('CELERY_BROKER_URL'):
         s.close()
     except (socket.error, socket.timeout):
         CELERY_TASK_ALWAYS_EAGER = True
+        CELERY_RESULT_BACKEND = None
         print("Warning: Redis not found. Running Celery tasks synchronously (CELERY_TASK_ALWAYS_EAGER=True)")
+
 
 
