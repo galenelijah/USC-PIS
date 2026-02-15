@@ -424,89 +424,49 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                                             Patient Search & Selection
                                         </Typography>
                                         
-                                        {/* Search Input */}
-                                        <TextField
-                                            fullWidth
-                                            placeholder="Search by name, email, or USC ID..."
-                                            value={patientSearchTerm}
-                                            onChange={(e) => setPatientSearchTerm(e.target.value)}
-                                            InputProps={{
-                                                startAdornment: (
-                                                    <InputAdornment position="start">
-                                                        <SearchIcon color="action" />
-                                                    </InputAdornment>
-                                                ),
-                                                endAdornment: patientSearchTerm && (
-                                                    <InputAdornment position="end">
-                                                        <Button
-                                                            size="small"
-                                                            onClick={clearPatientSearch}
-                                                            sx={{ minWidth: 'auto', p: 0.5 }}
-                                                        >
-                                                            <ClearIcon fontSize="small" />
-                                                        </Button>
-                                                    </InputAdornment>
-                                                ),
-                                            }}
-                                            sx={{
-                                                mb: 2,
-                                                '& .MuiOutlinedInput-root': {
-                                                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                                                },
-                                            }}
-                                        />
-                                        
-                                        {/* Patient Selection */}
                                         <Autocomplete
-                                            options={filteredPatients}
-                                            getOptionLabel={option => `${option.last_name}, ${option.first_name}${option.usc_id ? ` (USC ID: ${option.usc_id})` : option.id_number ? ` (ID: ${option.id_number})` : ''}`}
-                                            value={selectedPatient}
-                                            onChange={handlePatientChange}
-                                            filterOptions={(options) => options} // Disable built-in filtering since we handle it ourselves
+                                            options={patients}
+                                            getOptionLabel={(option) => {
+                                                const name = `${option.first_name || ''} ${option.last_name || ''}`.trim();
+                                                const id = option.usc_id || option.id_number || option.student_id;
+                                                return `${name}${id ? ` (${id})` : ''}`;
+                                            }}
+                                            value={patients.find(p => p.id === watch('patient')) || null}
+                                            onChange={(event, newValue) => handlePatientChange(event, newValue)}
+                                            renderInput={(params) => (
+                                                <TextField
+                                                    {...params}
+                                                    label="Select Patient"
+                                                    required
+                                                    error={!!errors.patient}
+                                                    helperText={errors.patient?.message || "Search by name or USC ID"}
+                                                />
+                                            )}
                                             renderOption={(props, option) => (
-                                                <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1 }}>
-                                                    <Avatar sx={{ bgcolor: '#1976d2', width: 32, height: 32 }}>
-                                                        <PersonIcon fontSize="small" />
+                                                <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                    <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: '0.8rem' }}>
+                                                        {option.first_name?.[0]}{option.last_name?.[0]}
                                                     </Avatar>
-                                                    <Box sx={{ flexGrow: 1 }}>
+                                                    <Box>
                                                         <Typography variant="body2" fontWeight="medium">
                                                             {option.first_name} {option.last_name}
                                                         </Typography>
                                                         <Typography variant="caption" color="text.secondary">
-                                                            {option.email}
+                                                            {option.usc_id || option.id_number || option.student_id || 'No ID'}
                                                         </Typography>
-                                                        <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                                                            {option.usc_id && (
-                                                                <Chip 
-                                                                    label={`USC ID: ${option.usc_id}`} 
-                                                                    size="small" 
-                                                                    variant="outlined"
-                                                                    sx={{ fontSize: '0.7rem', height: 18 }}
-                                                                />
-                                                            )}
-                                                            {option.id_number && (
-                                                                <Chip 
-                                                                    label={`ID: ${option.id_number}`} 
-                                                                    size="small" 
-                                                                    variant="outlined"
-                                                                    sx={{ fontSize: '0.7rem', height: 18 }}
-                                                                />
-                                                            )}
-                                                        </Box>
                                                     </Box>
                                                 </Box>
                                             )}
-                                            renderInput={params => (
-                                                <TextField 
-                                                    {...params} 
-                                                    label="Select Patient" 
-                                                    required 
-                                                    error={!!errors.patient}
-                                                    helperText={errors.patient?.message || `${filteredPatients.length} patient${filteredPatients.length !== 1 ? 's' : ''} found`}
-                                                    placeholder="Choose a patient from the list..."
-                                                />
-                                            )}
-                                            noOptionsText={patientSearchTerm ? "No patients match your search" : "Start typing to search patients"}
+                                            isOptionEqualToValue={(option, value) => option.id === value?.id}
+                                            filterOptions={(options, { inputValue }) => {
+                                                return options.filter(option => {
+                                                    const name = `${option.first_name || ''} ${option.last_name || ''}`.toLowerCase();
+                                                    const email = (option.email || '').toLowerCase();
+                                                    const uscId = (option.usc_id || option.id_number || option.student_id || '').toLowerCase();
+                                                    const search = inputValue.toLowerCase();
+                                                    return name.includes(search) || email.includes(search) || uscId.includes(search);
+                                                });
+                                            }}
                                         />
                                     </Box>
                                 </Grid>
