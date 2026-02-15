@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Typography, Box, TextField, Grid, Paper, Button, CircularProgress, Alert, Autocomplete, Divider, InputAdornment, Avatar, Chip } from "@mui/material";
-import { Search as SearchIcon, Clear as ClearIcon, Person as PersonIcon } from "@mui/icons-material";
+import { Typography, Box, TextField, Grid, Paper, Button, CircularProgress, Alert, Autocomplete, Divider, InputAdornment, Avatar, Chip, Stack } from "@mui/material";
+import { 
+    Search as SearchIcon, 
+    Clear as ClearIcon, 
+    Person as PersonIcon,
+    Favorite as FavoriteIcon,
+    MedicalServices as MedicalServicesIcon,
+    Assignment as AssignmentIcon,
+} from "@mui/icons-material";
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { medicalRecordSchema } from '../utils/validationSchemas';
@@ -18,6 +25,7 @@ import ReadOnlyTextField from "./forms/ReadOnlyTextField";
 import { healthRecordsService, patientService } from '../services/api';
 import { useSelector } from 'react-redux';
 import { extractErrorMessage, extractFieldErrors } from '../utils/errorUtils';
+import { formatDateForInput } from '../utils/dateUtils';
 
 const defaultUserData = {
     height: "",
@@ -51,12 +59,15 @@ const defaultUserData = {
 
 // Schema imported from validationSchemas.js
 
-const MedicalRecord = ({ medicalRecordId }) => {
+const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) => {
     const [loading, setLoading] = useState(false);
     const [globalError, setGlobalError] = useState(null);
     const [success, setSuccess] = useState(false);
     const user = useSelector(state => state.auth.user);
     const isStaffOrMedical = user?.role && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
+    
+    // Can edit if they are staff/medical AND NOT in readOnly mode
+    const canEdit = isStaffOrMedical && !readOnly;
     
     const [patients, setPatients] = useState([]);
     const [selectedPatient, setSelectedPatient] = useState(null);
@@ -67,7 +78,7 @@ const MedicalRecord = ({ medicalRecordId }) => {
         resolver: yupResolver(medicalRecordSchema),
         defaultValues: {
             patient: '',
-            visit_date: new Date().toISOString().split('T')[0],
+            visit_date: formatDateForInput(new Date()),
             diagnosis: '',
             treatment: '',
             notes: '',
@@ -137,7 +148,7 @@ const MedicalRecord = ({ medicalRecordId }) => {
     const resetForm = () => {
         reset({
             patient: '',
-            visit_date: new Date().toISOString().split('T')[0],
+            visit_date: formatDateForInput(new Date()),
             diagnosis: '',
             treatment: '',
             notes: '',
@@ -170,6 +181,11 @@ const MedicalRecord = ({ medicalRecordId }) => {
         try {
             const response = await healthRecordsService.getById(medicalRecordId);
             const data = response.data;
+            
+            // Format visit_date for input field (YYYY-MM-DD)
+            if (data.visit_date) {
+                data.visit_date = formatDateForInput(data.visit_date);
+            }
             
             // Ensure vital_signs and physical_examination exist with defensive checks
             const safeData = {
@@ -206,6 +222,14 @@ const MedicalRecord = ({ medicalRecordId }) => {
                 } else if (patients.length > 0) {
                     const patient = patients.find(p => p.id === data.patient);
                     setSelectedPatient(patient);
+                } else {
+                    // Fetch patient specifically if not in list
+                    try {
+                        const patientRes = await patientService.getById(data.patient);
+                        setSelectedPatient(patientRes.data);
+                    } catch (e) {
+                        console.error("Could not fetch patient details", e);
+                    }
                 }
             }
         } catch (err) {
@@ -232,7 +256,7 @@ const MedicalRecord = ({ medicalRecordId }) => {
     // Validation is now handled by Yup schema
 
     const onSubmit = async (data) => {
-        if (!isStaffOrMedical) return;
+        if (!canEdit) return;
 
         setLoading(true);
         setGlobalError(null);
@@ -248,10 +272,17 @@ const MedicalRecord = ({ medicalRecordId }) => {
             if (medicalRecordId) {
                 await healthRecordsService.update(medicalRecordId, payload);
                 setSuccess('Medical record updated successfully!');
+                if (onSuccess) {
+                    setTimeout(() => onSuccess(), 1500);
+                }
             } else {
                 await healthRecordsService.create(payload);
                 setSuccess('Medical record created successfully!');
-                resetForm(); // Reset form after successful creation
+                if (onSuccess) {
+                    setTimeout(() => onSuccess(), 1500);
+                } else {
+                    resetForm(); // Reset form after successful creation
+                }
             }
         } catch (err) {
             console.error('Error saving record:', err);
@@ -297,6 +328,30 @@ const MedicalRecord = ({ medicalRecordId }) => {
 
     const currentPatientId = watch('patient');
 
+    // Helper to render field based on mode
+    const DisplayField = ({ label, value, multiline = false, rows = 1 }) => {
+        if (readOnly) {
+            return (
+                <Box sx={{ mb: 2 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
+                        {label}
+                    </Typography>
+                    <Typography variant="body1" sx={{ 
+                        whiteSpace: multiline ? 'pre-wrap' : 'normal',
+                        bgcolor: 'rgba(0,0,0,0.02)',
+                        p: 1.5,
+                        borderRadius: 1,
+                        border: '1px solid rgba(0,0,0,0.05)',
+                        minHeight: multiline ? (rows * 24) : 'auto'
+                    }}>
+                        {value || 'Not specified'}
+                    </Typography>
+                </Box>
+            );
+        }
+        return null;
+    };
+
     return (
         <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ maxWidth: 1200, mx: 'auto' }}>
             {globalError && <Alert severity="error" sx={{ mb: 2 }}>{globalError}</Alert>}
@@ -305,12 +360,18 @@ const MedicalRecord = ({ medicalRecordId }) => {
             <Grid container spacing={3}>
                 {/* Patient Selection Section */}
                 <Grid item xs={12}>
-                    <Paper sx={{ p: 3, mb: 2 }}>
-                        <Typography variant="h6" gutterBottom color="primary">
-                            Patient Information
+                    <Paper sx={{ 
+                        p: 3, 
+                        mb: 2, 
+                        borderLeft: `5px solid #1976d2`,
+                        boxShadow: 3
+                    }}>
+                        <Typography variant="h6" gutterBottom color="primary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <PersonIcon /> Patient Information
                         </Typography>
+                        <Divider sx={{ mb: 3 }} />
                         <Grid container spacing={2}>
-                            {isStaffOrMedical && !medicalRecordId && (
+                            {canEdit && !medicalRecordId && (
                                 <Grid item xs={12}>
                                     <Box sx={{ mb: 2 }}>
                                         <Typography variant="subtitle2" color="primary" gutterBottom>
@@ -401,65 +462,71 @@ const MedicalRecord = ({ medicalRecordId }) => {
                                             )}
                                             noOptionsText={patientSearchTerm ? "No patients match your search" : "Start typing to search patients"}
                                         />
-                                        
-                                        {/* Selected Patient Display */}
-                                        {selectedPatient && (
-                                            <Box sx={{ 
-                                                mt: 2, 
-                                                p: 2, 
-                                                backgroundColor: 'rgba(25, 118, 210, 0.08)', 
-                                                borderRadius: 1,
-                                                border: '1px solid rgba(25, 118, 210, 0.2)'
-                                            }}>
-                                                <Typography variant="subtitle2" color="primary" gutterBottom>
-                                                    Selected Patient:
-                                                </Typography>
-                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                    <Avatar sx={{ bgcolor: '#1976d2' }}>
-                                                        <PersonIcon />
-                                                    </Avatar>
-                                                    <Box>
-                                                        <Typography variant="body1" fontWeight="medium">
-                                                            {selectedPatient.first_name} {selectedPatient.last_name}
-                                                        </Typography>
-                                                        <Typography variant="body2" color="text.secondary">
-                                                            {selectedPatient.email}
-                                                        </Typography>
-                                                        <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                                                            {selectedPatient.usc_id && (
-                                                                <Chip 
-                                                                    label={`USC ID: ${selectedPatient.usc_id}`} 
-                                                                    size="small" 
-                                                                    color="primary"
-                                                                    variant="outlined"
-                                                                />
-                                                            )}
-                                                            {selectedPatient.id_number && (
-                                                                <Chip 
-                                                                    label={`ID: ${selectedPatient.id_number}`} 
-                                                                    size="small" 
-                                                                    color="primary"
-                                                                    variant="outlined"
-                                                                />
-                                                            )}
-                                                        </Box>
-                                                    </Box>
-                                                </Box>
-                                            </Box>
-                                        )}
                                     </Box>
                                 </Grid>
                             )}
-                            {medicalRecordId && (
-                                <Grid item xs={12} md={6}>
-                                    <TextField
-                                        label="Patient"
-                                        value={selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name}` : `Patient ID: ${currentPatientId}`}
-                                        InputProps={{ readOnly: true }}
-                                        fullWidth
-                                    />
+                            
+                            {/* Selected Patient Display (Both Modes) */}
+                            {selectedPatient && (
+                                <Grid item xs={12} md={readOnly ? 8 : 6}>
+                                    <Box sx={{ 
+                                        p: 2, 
+                                        backgroundColor: readOnly ? 'rgba(0,0,0,0.02)' : 'rgba(25, 118, 210, 0.08)', 
+                                        borderRadius: 2,
+                                        border: `1px solid ${readOnly ? 'rgba(0,0,0,0.1)' : 'rgba(25, 118, 210, 0.2)'}`,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 2
+                                    }}>
+                                        <Avatar sx={{ bgcolor: '#1976d2', width: 56, height: 56 }}>
+                                            <PersonIcon fontSize="large" />
+                                        </Avatar>
+                                        <Box>
+                                            <Typography variant="h6">
+                                                {selectedPatient.first_name} {selectedPatient.last_name}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary">
+                                                {selectedPatient.email}
+                                            </Typography>
+                                            <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                                                {selectedPatient.usc_id && (
+                                                    <Chip label={`USC ID: ${selectedPatient.usc_id}`} size="small" color="primary" />
+                                                )}
+                                                {selectedPatient.id_number && (
+                                                    <Chip label={`ID: ${selectedPatient.id_number}`} size="small" variant="outlined" />
+                                                )}
+                                            </Stack>
+                                        </Box>
+                                    </Box>
                                 </Grid>
                             )}
+
+                            <Grid item xs={12} md={readOnly && selectedPatient ? 4 : 6}>
+                                {readOnly ? (
+                                    <DisplayField label="Visit Date" value={watch('visit_date')} />
+                                ) : (
+                                    <Controller
+                                        name="visit_date"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <TextField
+                                                {...field}
+                                                fullWidth
+                                                label="Visit Date"
+                                                type="date"
+                                                InputLabelProps={{ shrink: true }}
+                                                disabled={!canEdit}
+                                                required
+                                                error={!!errors.visit_date}
+                                                helperText={errors.visit_date?.message}
+                                            />
+                                        )}
+                                    />
+                                )}
+                            </Grid>
+                        </Grid>
+                    </Paper>
+                </Grid>
                             <Grid item xs={12} md={6}>
                                 <Controller
                                     name="visit_date"
@@ -485,312 +552,151 @@ const MedicalRecord = ({ medicalRecordId }) => {
 
                 {/* Vital Signs Section */}
                 <Grid item xs={12}>
-                    <Paper sx={{ p: 3, mb: 2 }}>
-                        <Typography variant="h6" gutterBottom color="primary">
-                            Vital Signs
+                    <Paper sx={{ 
+                        p: 3, 
+                        mb: 2,
+                        borderLeft: `5px solid #2e7d32`,
+                        boxShadow: 3
+                    }}>
+                        <Typography variant="h6" gutterBottom color="secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#2e7d32' }}>
+                            <FavoriteIcon /> Vital Signs
                         </Typography>
-                        <Grid container spacing={2}>
-                            <Grid item xs={12} md={3}>
-                                <Controller
-                                    name="vital_signs.temperature"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <TextField
-                                            {...field}
-                                            fullWidth
-                                            label="Temperature (°C)"
-                                            disabled={!isStaffOrMedical}
-                                            placeholder="36.5"
-                                            error={!!errors.vital_signs?.temperature}
-                                            helperText={errors.vital_signs?.temperature?.message}
+                        <Divider sx={{ mb: 3 }} />
+                        <Grid container spacing={3}>
+                            {[
+                                { name: 'temperature', label: 'Temperature (°C)', placeholder: '36.5' },
+                                { name: 'blood_pressure', label: 'Blood Pressure (mmHg)', placeholder: '120/80' },
+                                { name: 'pulse_rate', label: 'Pulse Rate (bpm)', placeholder: '72' },
+                                { name: 'respiratory_rate', label: 'Respiratory Rate (/min)', placeholder: '16' },
+                                { name: 'height', label: 'Height (cm)', placeholder: '170' },
+                                { name: 'weight', label: 'Weight (kg)', placeholder: '70' },
+                                { name: 'bmi', label: 'BMI', placeholder: '24.2' }
+                            ].map((v) => (
+                                <Grid item xs={12} sm={6} md={3} key={v.name}>
+                                    {readOnly ? (
+                                        <DisplayField label={v.label} value={watch(`vital_signs.${v.name}`)} />
+                                    ) : (
+                                        <Controller
+                                            name={`vital_signs.${v.name}`}
+                                            control={control}
+                                            render={({ field }) => (
+                                                <TextField
+                                                    {...field}
+                                                    fullWidth
+                                                    label={v.label}
+                                                    disabled={!canEdit}
+                                                    placeholder={v.placeholder}
+                                                    error={!!errors.vital_signs?.[v.name]}
+                                                    helperText={errors.vital_signs?.[v.name]?.message}
+                                                />
+                                            )}
                                         />
                                     )}
-                                />
-                            </Grid>
-                            <Grid item xs={12} md={3}>
-                                <Controller
-                                    name="vital_signs.blood_pressure"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <TextField
-                                            {...field}
-                                            fullWidth
-                                            label="Blood Pressure (mmHg)"
-                                            disabled={!isStaffOrMedical}
-                                            placeholder="120/80"
-                                            error={!!errors.vital_signs?.blood_pressure}
-                                            helperText={errors.vital_signs?.blood_pressure?.message}
-                                        />
-                                    )}
-                                />
-                            </Grid>
-                            <Grid item xs={12} md={3}>
-                                <Controller
-                                    name="vital_signs.pulse_rate"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <TextField
-                                            {...field}
-                                            fullWidth
-                                            label="Pulse Rate (bpm)"
-                                            disabled={!isStaffOrMedical}
-                                            placeholder="72"
-                                            error={!!errors.vital_signs?.pulse_rate}
-                                            helperText={errors.vital_signs?.pulse_rate?.message}
-                                        />
-                                    )}
-                                />
-                            </Grid>
-                            <Grid item xs={12} md={3}>
-                                <Controller
-                                    name="vital_signs.respiratory_rate"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <TextField
-                                            {...field}
-                                            fullWidth
-                                            label="Respiratory Rate (/min)"
-                                            disabled={!isStaffOrMedical}
-                                            placeholder="16"
-                                            error={!!errors.vital_signs?.respiratory_rate}
-                                            helperText={errors.vital_signs?.respiratory_rate?.message}
-                                        />
-                                    )}
-                                />
-                            </Grid>
-                            <Grid item xs={12} md={4}>
-                                <Controller
-                                    name="vital_signs.height"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <TextField
-                                            {...field}
-                                            fullWidth
-                                            label="Height (cm)"
-                                            disabled={!isStaffOrMedical}
-                                            placeholder="170"
-                                            error={!!errors.vital_signs?.height}
-                                            helperText={errors.vital_signs?.height?.message}
-                                        />
-                                    )}
-                                />
-                            </Grid>
-                            <Grid item xs={12} md={4}>
-                                <Controller
-                                    name="vital_signs.weight"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <TextField
-                                            {...field}
-                                            fullWidth
-                                            label="Weight (kg)"
-                                            disabled={!isStaffOrMedical}
-                                            placeholder="70"
-                                            error={!!errors.vital_signs?.weight}
-                                            helperText={errors.vital_signs?.weight?.message}
-                                        />
-                                    )}
-                                />
-                            </Grid>
-                            <Grid item xs={12} md={4}>
-                                <Controller
-                                    name="vital_signs.bmi"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <TextField
-                                            {...field}
-                                            fullWidth
-                                            label="BMI"
-                                            disabled={!isStaffOrMedical}
-                                            placeholder="24.2"
-                                            error={!!errors.vital_signs?.bmi}
-                                            helperText={errors.vital_signs?.bmi?.message}
-                                        />
-                                    )}
-                                />
-                            </Grid>
+                                </Grid>
+                            ))}
                         </Grid>
                     </Paper>
                 </Grid>
 
                 {/* Physical Examination Section */}
                 <Grid item xs={12}>
-                    <Paper sx={{ p: 3, mb: 2 }}>
-                        <Typography variant="h6" gutterBottom color="primary">
-                            Physical Examination
+                    <Paper sx={{ 
+                        p: 3, 
+                        mb: 2,
+                        borderLeft: `5px solid #ed6c02`,
+                        boxShadow: 3
+                    }}>
+                        <Typography variant="h6" gutterBottom sx={{ color: '#ed6c02', display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <MedicalServicesIcon /> Physical Examination
                         </Typography>
-                        <Grid container spacing={2}>
-                            <Grid item xs={12}>
-                                <Controller
-                                    name="physical_examination.general_appearance"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <TextField
-                                            {...field}
-                                            fullWidth
-                                            multiline
-                                            rows={3}
-                                            label="General Appearance"
-                                            disabled={!isStaffOrMedical}
-                                            placeholder="Patient appears alert and oriented..."
-                                            error={!!errors.physical_examination?.general_appearance}
-                                            helperText={errors.physical_examination?.general_appearance?.message}
+                        <Divider sx={{ mb: 3 }} />
+                        <Grid container spacing={3}>
+                            {[
+                                { name: 'general_appearance', label: 'General Appearance', rows: 3 },
+                                { name: 'skin', label: 'Skin', rows: 2 },
+                                { name: 'heent', label: 'HEENT', rows: 2 },
+                                { name: 'heart', label: 'Heart', rows: 2 },
+                                { name: 'lungs', label: 'Lungs', rows: 2 },
+                                { name: 'abdomen', label: 'Abdomen', rows: 2 },
+                                { name: 'extremities', label: 'Extremities', rows: 2 },
+                                { name: 'neurological', label: 'Neurological', rows: 2 }
+                            ].map((p) => (
+                                <Grid item xs={12} md={p.name === 'general_appearance' ? 12 : 6} key={p.name}>
+                                    {readOnly ? (
+                                        <DisplayField label={p.label} value={watch(`physical_examination.${p.name}`)} multiline rows={p.rows} />
+                                    ) : (
+                                        <Controller
+                                            name={`physical_examination.${p.name}`}
+                                            control={control}
+                                            render={({ field }) => (
+                                                <TextField
+                                                    {...field}
+                                                    fullWidth
+                                                    multiline
+                                                    rows={p.rows}
+                                                    label={p.label}
+                                                    disabled={!canEdit}
+                                                    error={!!errors.physical_examination?.[p.name]}
+                                                    helperText={errors.physical_examination?.[p.name]?.message}
+                                                />
+                                            )}
                                         />
                                     )}
-                                />
-                            </Grid>
-                            <Grid item xs={12} md={6}>
-                                <Controller
-                                    name="physical_examination.heart"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <TextField
-                                            {...field}
-                                            fullWidth
-                                            multiline
-                                            rows={2}
-                                            label="Heart"
-                                            disabled={!isStaffOrMedical}
-                                            placeholder="Regular rate and rhythm..."
-                                            error={!!errors.physical_examination?.heart}
-                                            helperText={errors.physical_examination?.heart?.message}
-                                        />
-                                    )}
-                                />
-                            </Grid>
-                            <Grid item xs={12} md={6}>
-                                <Controller
-                                    name="physical_examination.lungs"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <TextField
-                                            {...field}
-                                            fullWidth
-                                            multiline
-                                            rows={2}
-                                            label="Lungs"
-                                            disabled={!isStaffOrMedical}
-                                            placeholder="Clear to auscultation..."
-                                            error={!!errors.physical_examination?.lungs}
-                                            helperText={errors.physical_examination?.lungs?.message}
-                                        />
-                                    )}
-                                />
-                            </Grid>
-                            <Grid item xs={12} md={6}>
-                                <Controller
-                                    name="physical_examination.abdomen"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <TextField
-                                            {...field}
-                                            fullWidth
-                                            multiline
-                                            rows={2}
-                                            label="Abdomen"
-                                            disabled={!isStaffOrMedical}
-                                            placeholder="Soft, non-tender..."
-                                            error={!!errors.physical_examination?.abdomen}
-                                            helperText={errors.physical_examination?.abdomen?.message}
-                                        />
-                                    )}
-                                />
-                            </Grid>
-                            <Grid item xs={12} md={6}>
-                                <Controller
-                                    name="physical_examination.extremities"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <TextField
-                                            {...field}
-                                            fullWidth
-                                            multiline
-                                            rows={2}
-                                            label="Extremities"
-                                            disabled={!isStaffOrMedical}
-                                            placeholder="No edema or deformities..."
-                                            error={!!errors.physical_examination?.extremities}
-                                            helperText={errors.physical_examination?.extremities?.message}
-                                        />
-                                    )}
-                                />
-                            </Grid>
+                                </Grid>
+                            ))}
                         </Grid>
                     </Paper>
                 </Grid>
 
                 {/* Diagnosis and Treatment Section */}
                 <Grid item xs={12}>
-                    <Paper sx={{ p: 3, mb: 2 }}>
-                        <Typography variant="h6" gutterBottom color="primary">
-                            Diagnosis and Treatment
+                    <Paper sx={{ 
+                        p: 3, 
+                        mb: 2,
+                        borderLeft: `5px solid #d32f2f`,
+                        boxShadow: 3
+                    }}>
+                        <Typography variant="h6" gutterBottom sx={{ color: '#d32f2f', display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <AssignmentIcon /> Assessment & Plan
                         </Typography>
-                        <Grid container spacing={2}>
-                            <Grid item xs={12}>
-                                <Controller
-                                    name="diagnosis"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <TextField
-                                            {...field}
-                                            fullWidth
-                                            multiline
-                                            rows={4}
-                                            label="Diagnosis"
-                                            disabled={!isStaffOrMedical}
-                                            required
-                                            placeholder="Primary diagnosis and any secondary conditions..."
-                                            error={!!errors.diagnosis}
-                                            helperText={errors.diagnosis?.message}
+                        <Divider sx={{ mb: 3 }} />
+                        <Grid container spacing={3}>
+                            {[
+                                { name: 'diagnosis', label: 'Diagnosis', rows: 4, required: true },
+                                { name: 'treatment', label: 'Treatment Plan', rows: 4, required: false },
+                                { name: 'notes', label: 'Additional Notes', rows: 3, required: false }
+                            ].map((f) => (
+                                <Grid item xs={12} key={f.name}>
+                                    {readOnly ? (
+                                        <DisplayField label={f.label} value={watch(f.name)} multiline rows={f.rows} />
+                                    ) : (
+                                        <Controller
+                                            name={f.name}
+                                            control={control}
+                                            render={({ field }) => (
+                                                <TextField
+                                                    {...field}
+                                                    fullWidth
+                                                    multiline
+                                                    rows={f.rows}
+                                                    label={`${f.label}${f.required ? ' *' : ''}`}
+                                                    disabled={!canEdit}
+                                                    required={f.required}
+                                                    error={!!errors[f.name]}
+                                                    helperText={errors[f.name]?.message}
+                                                />
+                                            )}
                                         />
                                     )}
-                                />
-                            </Grid>
-                            <Grid item xs={12}>
-                                <Controller
-                                    name="treatment"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <TextField
-                                            {...field}
-                                            fullWidth
-                                            multiline
-                                            rows={4}
-                                            label="Treatment Plan"
-                                            disabled={!isStaffOrMedical}
-                                            placeholder="Medications, procedures, follow-up instructions..."
-                                            error={!!errors.treatment}
-                                            helperText={errors.treatment?.message}
-                                        />
-                                    )}
-                                />
-                            </Grid>
-                            <Grid item xs={12}>
-                                <Controller
-                                    name="notes"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <TextField
-                                            {...field}
-                                            fullWidth
-                                            multiline
-                                            rows={3}
-                                            label="Additional Notes"
-                                            disabled={!isStaffOrMedical}
-                                            placeholder="Any additional observations or instructions..."
-                                            error={!!errors.notes}
-                                            helperText={errors.notes?.message}
-                                        />
-                                    )}
-                                />
-                            </Grid>
+                                </Grid>
+                            ))}
                         </Grid>
                     </Paper>
                 </Grid>
             </Grid>
 
-            {isStaffOrMedical && (
-                <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+            {canEdit && (
+                <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2, pb: 4 }}>
                     {!medicalRecordId && (
                         <Button
                             variant="outlined"
@@ -805,9 +711,9 @@ const MedicalRecord = ({ medicalRecordId }) => {
                         variant="contained"
                         color="primary"
                         disabled={loading || (!medicalRecordId && !selectedPatient)}
-                        sx={{ minWidth: 120 }}
+                        sx={{ minWidth: 150, py: 1.5, fontWeight: 'bold' }}
                     >
-                        {loading ? <CircularProgress size={20} /> : (medicalRecordId ? 'Update Record' : 'Create Record')}
+                        {loading ? <CircularProgress size={24} /> : (medicalRecordId ? 'Update Medical Record' : 'Create Medical Record')}
                     </Button>
                 </Box>
             )}

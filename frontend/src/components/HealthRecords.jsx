@@ -1046,217 +1046,41 @@ Treatment: ${r.treatment || 'N/A'}
       )}
 
       {/* Create/Edit Dialog */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {dialogMode === 'create' ? 'Create Clinical Record' : 'Edit Clinical Record'}
+      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="lg" fullWidth>
+        <DialogTitle sx={{ 
+          background: 'linear-gradient(45deg, #667eea 30%, #764ba2 90%)',
+          color: 'white'
+        }}>
+          {dialogMode === 'create' ? 'Create New Clinical Record' : 'Edit Clinical Record'}
         </DialogTitle>
-        <DialogContent dividers>
-          {currentRecord && (
-            <Grid container spacing={2}>
-              {dialogMode === 'create' && (
-                <Grid item xs={12}>
-                  <Autocomplete
-                    options={patients}
-                    getOptionLabel={(option) => {
-                      const name = `${option.first_name} ${option.last_name}`;
-                      const id = option.usc_id || option.id_number || option.student_id;
-                      return `${name}${id ? ` (${id})` : ''}`;
-                    }}
-                    value={patients.find(p => p.id === currentRecord.patient) || null}
-                    onChange={handlePatientChange}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Select Patient"
-                        required
-                        margin="normal"
-                        helperText="Search by name or USC ID"
-                      />
-                    )}
-                    renderOption={(props, option) => (
-                      <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: '0.8rem' }}>
-                          {option.first_name?.[0]}{option.last_name?.[0]}
-                        </Avatar>
-                        <Box>
-                          <Typography variant="body2" fontWeight="medium">
-                            {option.first_name} {option.last_name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            USC ID: {option.usc_id || option.id_number || option.student_id || 'Not Available'}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    )}
-                    filterOptions={(options, { inputValue }) => {
-                      return options.filter(option => {
-                        const name = `${option.first_name || ''} ${option.last_name || ''}`.toLowerCase();
-                        const email = (option.email || '').toLowerCase();
-                        const uscId = (option.usc_id || option.id_number || option.student_id || '').toLowerCase();
-                        const search = inputValue.toLowerCase();
-                        return name.includes(search) || email.includes(search) || uscId.includes(search);
-                      });
-                    }}
-                    isOptionEqualToValue={(option, value) => option.id === value?.id}
-                  />
-                </Grid>
-              )}
-              {dialogMode === 'edit' && currentRecord.patient && (
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Patient"
-                    value={`${currentRecord.patient.first_name || ''} ${currentRecord.patient.last_name || ''} ${(currentRecord.patient.usc_id || currentRecord.patient.id_number || currentRecord.patient.student_id) ? `(${currentRecord.patient.usc_id || currentRecord.patient.id_number || currentRecord.patient.student_id})` : ''}`}
-                    disabled
-                    margin="normal"
-                    helperText="Patient cannot be changed when editing records"
-                  />
-                </Grid>
-              )}
-              <Grid item xs={12} sm={6}>
-                <LocalizationProvider dateAdapter={AdapterDayjs}>
-                  <DatePicker
-                    label="Visit Date"
-                    value={dayjs(currentRecord.visit_date)}
-                    onChange={(date) => setCurrentRecord({
-                      ...currentRecord,
-                      visit_date: dayjs(date).format('YYYY-MM-DD')
-                    })}
-                    slotProps={{ textField: { fullWidth: true, margin: 'normal' } }}
-                  />
-                </LocalizationProvider>
-              </Grid>
-              
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Chief Complaint"
-                  name="chief_complaint"
-                  value={currentRecord.chief_complaint}
-                  onChange={handleInputChange}
-                  margin="normal"
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Diagnosis"
-                  name="diagnosis"
-                  value={currentRecord.diagnosis}
-                  onChange={handleInputChange}
-                  margin="normal"
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Treatment"
-                  name="treatment"
-                  value={currentRecord.treatment}
-                  onChange={handleInputChange}
-                  margin="normal"
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                  Vital Signs
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-              </Grid>
-
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label="Temperature (°C)"
-                  name="temperature"
-                  value={currentRecord.vital_signs?.temperature || ''}
-                  onChange={handleVitalSignChange}
-                  margin="normal"
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label="Blood Pressure (mmHg)"
-                  name="blood_pressure"
-                  value={currentRecord.vital_signs?.blood_pressure || ''}
-                  onChange={handleVitalSignChange}
-                  margin="normal"
-                  placeholder="e.g. 120/80"
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label="Heart Rate (bpm)"
-                  name="heart_rate"
-                  value={currentRecord.vital_signs?.heart_rate || ''}
-                  onChange={handleVitalSignChange}
-                  margin="normal"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Respiratory Rate (breaths/min)"
-                  name="respiratory_rate"
-                  value={currentRecord.vital_signs?.respiratory_rate || ''}
-                  onChange={handleVitalSignChange}
-                  margin="normal"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Oxygen Saturation (%)"
-                  name="oxygen_saturation"
-                  value={currentRecord.vital_signs?.oxygen_saturation || ''}
-                  onChange={handleVitalSignChange}
-                  margin="normal"
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Notes"
-                  name="notes"
-                  value={currentRecord.notes}
-                  onChange={handleInputChange}
-                  margin="normal"
-                  multiline
-                  rows={4}
-                />
-              </Grid>
-            </Grid>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button 
-            onClick={handleSaveRecord} 
-            variant="contained"
-            sx={{ 
-              background: 'linear-gradient(45deg, #667eea 30%, #764ba2 90%)',
-              '&:hover': {
-                background: 'linear-gradient(45deg, #5a6fd8 30%, #6a4190 90%)',
-              }
+        <DialogContent dividers sx={{ bgcolor: '#f8f9fa' }}>
+          <MedicalRecord 
+            medicalRecordId={currentRecord?.id} 
+            readOnly={false} 
+            onSuccess={() => {
+              fetchHealthRecords();
+              handleCloseDialog();
             }}
-          >
-            Save
-          </Button>
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2, bgcolor: '#f8f9fa' }}>
+          <Button onClick={handleCloseDialog} variant="outlined">Close</Button>
         </DialogActions>
       </Dialog>
 
       {/* Medical Record View Modal */}
       <Dialog open={openMedicalRecordModal} onClose={() => setOpenMedicalRecordModal(false)} maxWidth="lg" fullWidth>
-        <DialogTitle>Medical Record</DialogTitle>
-        <DialogContent dividers>
-          <MedicalRecord medicalRecordId={selectedMedicalRecordId} />
+        <DialogTitle sx={{ 
+          background: 'linear-gradient(45deg, #11998e 30%, #38ef7d 90%)',
+          color: 'white'
+        }}>
+          Medical Record Details
+        </DialogTitle>
+        <DialogContent dividers sx={{ bgcolor: '#f8f9fa' }}>
+          <MedicalRecord medicalRecordId={selectedMedicalRecordId} readOnly={true} />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenMedicalRecordModal(false)}>Close</Button>
+        <DialogActions sx={{ p: 2, bgcolor: '#f8f9fa' }}>
+          <Button onClick={() => setOpenMedicalRecordModal(false)} variant="contained" color="success">Close</Button>
         </DialogActions>
       </Dialog>
 
