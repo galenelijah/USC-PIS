@@ -166,7 +166,7 @@ const MedicalRecord = ({ medicalRecordId }) => {
 
     const fetchRecord = async () => {
         setLoading(true);
-        setError(null);
+        setGlobalError(null);
         try {
             const response = await healthRecordsService.getById(medicalRecordId);
             const data = response.data;
@@ -199,9 +199,14 @@ const MedicalRecord = ({ medicalRecordId }) => {
             reset(safeData);
             
             // Find and set the selected patient for display
-            if (data.patient && patients.length > 0) {
-                const patient = patients.find(p => p.id === data.patient);
-                setSelectedPatient(patient);
+            if (data.patient) {
+                // If patient object is nested in data (some APIs do this)
+                if (typeof data.patient === 'object') {
+                    setSelectedPatient(data.patient);
+                } else if (patients.length > 0) {
+                    const patient = patients.find(p => p.id === data.patient);
+                    setSelectedPatient(patient);
+                }
             }
         } catch (err) {
             setGlobalError('Failed to load medical record.');
@@ -289,6 +294,8 @@ const MedicalRecord = ({ medicalRecordId }) => {
             </Box>
         );
     }
+
+    const currentPatientId = watch('patient');
 
     return (
         <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ maxWidth: 1200, mx: 'auto' }}>
@@ -447,7 +454,7 @@ const MedicalRecord = ({ medicalRecordId }) => {
                                 <Grid item xs={12} md={6}>
                                     <TextField
                                         label="Patient"
-                                        value={formData.patient_name || `Patient ID: ${formData.patient}`}
+                                        value={selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name}` : `Patient ID: ${currentPatientId}`}
                                         InputProps={{ readOnly: true }}
                                         fullWidth
                                     />
