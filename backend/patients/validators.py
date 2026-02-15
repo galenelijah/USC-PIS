@@ -360,9 +360,18 @@ class MedicalRecordValidator:
         try:
             # Handle different date formats
             if isinstance(visit_date, str):
-                try:
-                    parsed_date = datetime.datetime.strptime(visit_date, '%Y-%m-%d').date()
-                except ValueError:
+                parsed_date = None
+                # Try common formats
+                for fmt in ['%Y-%m-%d', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%S.%fZ', '%Y-%m-%d %H:%M:%S']:
+                    try:
+                        # Strip time if present for .date()
+                        val = visit_date.split('T')[0] if 'T' in visit_date else visit_date.split()[0]
+                        parsed_date = datetime.datetime.strptime(val, '%Y-%m-%d').date()
+                        break
+                    except (ValueError, IndexError):
+                        continue
+                
+                if not parsed_date:
                     errors.append("Visit date must be in YYYY-MM-DD format")
                     return errors
                 visit_date = parsed_date

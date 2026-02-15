@@ -263,8 +263,17 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
         setSuccess(false);
 
         try {
+            // Ensure visit_date is in YYYY-MM-DD format for backend
+            let formattedDate = data.visit_date;
+            if (data.visit_date instanceof Date) {
+                formattedDate = formatDateForInput(data.visit_date);
+            } else if (typeof data.visit_date === 'string' && data.visit_date.includes('T')) {
+                formattedDate = data.visit_date.split('T')[0];
+            }
+
             const payload = { 
                 ...data,
+                visit_date: formattedDate,
                 vital_signs: data.vital_signs || {},
                 physical_examination: data.physical_examination || {}
             };
@@ -286,14 +295,39 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
             }
         } catch (err) {
             console.error('Error saving record:', err);
-            const message = extractErrorMessage(err);
-            setGlobalError(message);
             
-            // Map field errors to the form
-            const fieldErrors = extractFieldErrors(err);
-            Object.keys(fieldErrors).forEach(field => {
-                setFieldError(field, { type: 'server', message: fieldErrors[field] });
-            });
+            // Handle structured validation errors from backend
+            if (err.response?.data) {
+                const data = err.response.data;
+                
+                // If it's a list of errors (common in our custom validators)
+                if (Array.isArray(data)) {
+                    setGlobalError(data.join(', '));
+                } 
+                // If it's a detail object with field errors
+                else if (typeof data === 'object') {
+                    if (data.detail && typeof data.detail === 'string') {
+                        setGlobalError(data.detail);
+                    } else if (data.non_field_errors) {
+                        setGlobalError(Array.isArray(data.non_field_errors) ? data.non_field_errors.join(', ') : data.non_field_errors);
+                    } else {
+                        // Map field-specific errors
+                        const fieldErrors = extractFieldErrors(err);
+                        if (Object.keys(fieldErrors).length > 0) {
+                            Object.keys(fieldErrors).forEach(field => {
+                                setFieldError(field, { type: 'server', message: fieldErrors[field] });
+                            });
+                            setGlobalError('Validation failed. Please check the fields below.');
+                        } else {
+                            setGlobalError(extractErrorMessage(err));
+                        }
+                    }
+                } else {
+                    setGlobalError(extractErrorMessage(err));
+                }
+            } else {
+                setGlobalError(extractErrorMessage(err));
+            }
         } finally {
             setLoading(false);
         }
