@@ -42,7 +42,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'email', 'password', 'password2',
+            'email', 'password', 'password2', 'role',
             'first_name', 'last_name', 'middle_name', 'id_number',
             'course', 'year_level', 'school', 'sex', 'civil_status',
             'birthday', 'nationality', 'religion', 'address_permanent',
@@ -59,6 +59,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             'password': {'write_only': True},
             'department': {'required': False},
             'phone_number': {'required': False},
+            'role': {'required': False},
             # All other fields are not required
         }
     
@@ -74,11 +75,13 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         
         return value.lower().strip()
     
-    def _determine_role_from_email(self, email):
+    def _determine_role_from_email(self, email, role_preference=None):
         """
-        Determine user role based on email pattern:
-        - Students: emails with numbers (e.g., 21100727@usc.edu.ph)
+        Determine user role based on email pattern and optional preference:
+        - Students: emails with numbers (e.g., 21100727@usc.edu.ph) -> Always STUDENT
         - Staff/Teachers: emails with only letters (e.g., elfabian@usc.edu.ph)
+          - If role_preference is TEACHER, assign TEACHER
+          - Otherwise, default to STAFF
         """
         if not email:
             return User.Role.STUDENT  # Default fallback
@@ -88,12 +91,13 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         
         # Check if the username contains any digits
         if re.search(r'\d', email_username):
-            # Contains numbers - likely a student ID
+            # Contains numbers - strictly a student ID
             return User.Role.STUDENT
         else:
-            # Only letters - likely staff/faculty
+            # Only letters - staff or faculty/teacher
+            if role_preference == User.Role.TEACHER:
+                return User.Role.TEACHER
             # Default to STAFF role for non-student emails
-            # Admin can later change specific users to DOCTOR, NURSE, etc. if needed
             return User.Role.STAFF
     
     def validate_password(self, value):
@@ -121,11 +125,12 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         # Get email and determine role automatically based on email pattern
         email = validated_data.get('email')
         password = validated_data.get('password')
+        role_preference = validated_data.get('role')
         
-        # Auto-assign role based on email pattern
-        role = self._determine_role_from_email(email)
+        # Auto-assign role based on email pattern and optional preference
+        role = self._determine_role_from_email(email, role_preference)
         
-        # Remove role from validated_data if it exists (ignore frontend role selection)
+        # Remove role from validated_data if it exists (we use the determined role)
         validated_data.pop('role', None)
         
         try:

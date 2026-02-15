@@ -55,7 +55,7 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
         user = self.request.user
         queryset = super().get_queryset()
         # If student, only show their own certificates
-        if hasattr(user, 'role') and user.role == 'STUDENT':
+        if hasattr(user, 'role') and user.role in ['STUDENT', 'TEACHER']:
             # Find the patient profile linked to the student user
             try:
                 patient = user.patient_profile

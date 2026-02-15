@@ -76,7 +76,7 @@ const Dashboard = memo(({ user }) => {
   const isAdminOrStaffOrDoctor = user && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST'].includes(user.role);
   const isDoctor = user && (user.role === 'DOCTOR' || user.role === 'DENTIST');
   const isNurse = user && user.role === 'NURSE';
-  const isStudent = user && user.role === 'STUDENT';
+  const isStudent = user && ['STUDENT', 'TEACHER'].includes(user.role);
 
   const fetchDashboardData = useCallback(async () => {
     try {

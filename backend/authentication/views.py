@@ -648,7 +648,7 @@ class CompleteProfileSetupView(APIView):
             validation_errors = []
             required_fields = ['first_name', 'last_name', 'sex', 'phone']
             
-            if user.role == User.Role.STUDENT:
+            if user.role in [User.Role.STUDENT, User.Role.TEACHER]:
                 required_fields.extend(['birthday', 'course', 'year_level', 'school'])
                 # ID number is optional if we found user another way
                 if not authenticated:
@@ -720,8 +720,8 @@ class CompleteProfileSetupView(APIView):
                     
                     logger.info(f"User profile updated for {user.email}")
                     
-                    # Handle student patient profile creation (simplified)
-                    if user.role == User.Role.STUDENT:
+                    # Handle student/teacher patient profile creation (simplified)
+                    if user.role in [User.Role.STUDENT, User.Role.TEACHER]:
                         patient_data = _prepare_patient_data(user, user_serializer.validated_data, request.data)
                         
                         if patient_data:

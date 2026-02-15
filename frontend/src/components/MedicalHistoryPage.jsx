@@ -94,7 +94,7 @@ const MedicalHistoryPage = () => {
   
   const user = useSelector(state => state.auth.user);
   const isStaffOrMedical = user?.role && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
-  const isStudent = user?.role === 'STUDENT';
+  const isStudent = ['STUDENT', 'TEACHER'].includes(user?.role);
 
   useEffect(() => {
     fetchRecords();

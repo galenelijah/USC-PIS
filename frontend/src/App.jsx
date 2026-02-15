@@ -66,7 +66,9 @@ const App = () => {
     isAdminOrStaffOrDoctor: !!user && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST'].includes(user.role),
     isDoctor: !!user && (user.role === 'DOCTOR' || user.role === 'DENTIST'),
     isNurse: !!user && user.role === 'NURSE',
-    isStudent: !!user && user.role === 'STUDENT'
+    isStudent: !!user && user.role === 'STUDENT',
+    isTeacher: !!user && user.role === 'TEACHER',
+    isPatientRole: !!user && ['STUDENT', 'TEACHER'].includes(user.role)
   }), [user]);
 
   const loadPatients = useCallback(async () => {
@@ -315,7 +317,7 @@ const App = () => {
               <RequireProfileSetup>
                 <Layout>
                   <Suspense fallback={<PageLoader />}>
-                    {userRoles.isStudent ? (
+                    {userRoles.isPatientRole ? (
                       <StudentHealthRecords />
                     ) : (
                       <HealthRecords />
@@ -361,7 +363,7 @@ const App = () => {
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
-                {!userRoles.isStudent ? (
+                {!userRoles.isPatientRole ? (
                   <Layout>
                     <Medical />
                   </Layout>
@@ -378,7 +380,7 @@ const App = () => {
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
-                {!userRoles.isStudent ? (
+                {!userRoles.isPatientRole ? (
                   <Layout>
                     <Dental />
                   </Layout>
@@ -529,7 +531,7 @@ const App = () => {
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireProfileSetup>
-                {userRoles.isAdminOrStaff || userRoles.isDoctor || userRoles.isNurse || userRoles.isStudent ? (
+                {userRoles.isAdminOrStaff || userRoles.isDoctor || userRoles.isNurse || userRoles.isPatientRole ? (
                   <Layout>
                     <MedicalCertificatesPage />
                   </Layout>

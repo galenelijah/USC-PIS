@@ -35,6 +35,7 @@ class User(AbstractUser):
         NURSE = 'NURSE', 'Nurse'
         STAFF = 'STAFF', 'Staff'
         STUDENT = 'STUDENT', 'Student'
+        TEACHER = 'TEACHER', 'Teacher'
 
     # Authentication fields
     email = models.EmailField(max_length=200, unique=True)

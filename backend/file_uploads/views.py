@@ -116,7 +116,7 @@ class FileUploadViewSet(viewsets.ModelViewSet):
         
         # Apply role-based filtering
         if hasattr(user, 'role'):
-            if user.role == 'STUDENT':
+            if user.role in ['STUDENT', 'TEACHER']:
                 # Students see only their own uploads
                 queryset = queryset.filter(uploaded_by=user)
             # Staff, doctors, nurses, and admins see all files

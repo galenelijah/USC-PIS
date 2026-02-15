@@ -11,20 +11,27 @@ import {
   Divider,
   Button,
   Stack,
-  alpha
+  alpha,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormControl,
+  FormLabel
 } from '@mui/material'
 import {
   PersonAdd,
   Email,
   Lock,
   CheckCircle,
-  ArrowBack
+  ArrowBack,
+  School,
+  MedicalServices
 } from '@mui/icons-material'
 import MyTextField from './forms/MyTextField'
 import MyPassField from './forms/MyPassField'
 import MyButton from './forms/MyButton'
 import {Link, useNavigate} from 'react-router-dom'
-import {useForm} from 'react-hook-form'
+import {useForm, Controller} from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useDispatch, useSelector } from 'react-redux';
 import { registerUser, loginUser, selectAuthStatus, selectAuthError, resetAuthStatus } from '../features/authentication/authSlice';
@@ -39,7 +46,8 @@ const Register = () =>{
         defaultValues: {
             email: '',
             password: '',
-            password2: ''
+            password2: '',
+            role: ''
         }
     })
     const dispatch = useDispatch();
@@ -48,7 +56,12 @@ const Register = () =>{
     const [serverError, setServerError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
 
+    const email = watch('email');
     const password = watch('password');
+    const role = watch('role');
+
+    // Determine if email is a staff/teacher email (no numbers)
+    const isTextEmail = email && !/\d/.test(email.split('@')[0]);
 
     useEffect(() => {
         return () => {
@@ -254,6 +267,56 @@ const Register = () =>{
                                         />
                                     </Box>
 
+                                    {/* Conditional Role Selection for Text Emails */}
+                                    {isTextEmail && (
+                                        <Box sx={{ 
+                                            p: 2, 
+                                            borderRadius: 2, 
+                                            bgcolor: alpha('#667eea', 0.05),
+                                            border: `1px solid ${alpha('#667eea', 0.2)}`
+                                        }}>
+                                            <FormControl component="fieldset" error={!!errors?.role}>
+                                                <FormLabel component="legend" sx={{ mb: 1, fontWeight: 'bold', color: 'primary.main' }}>
+                                                    Choose Your Role
+                                                </FormLabel>
+                                                <Controller
+                                                    name="role"
+                                                    control={control}
+                                                    rules={{ required: isTextEmail }}
+                                                    render={({ field }) => (
+                                                        <RadioGroup {...field}>
+                                                            <FormControlLabel 
+                                                                value="TEACHER" 
+                                                                control={<Radio />} 
+                                                                label={
+                                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                                        <School fontSize="small" />
+                                                                        <Typography variant="body2">Teacher / Faculty</Typography>
+                                                                    </Box>
+                                                                } 
+                                                            />
+                                                            <FormControlLabel 
+                                                                value="STAFF" 
+                                                                control={<Radio />} 
+                                                                label={
+                                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                                        <MedicalServices fontSize="small" />
+                                                                        <Typography variant="body2">Clinic Staff / Medical Personnel</Typography>
+                                                                    </Box>
+                                                                } 
+                                                            />
+                                                        </RadioGroup>
+                                                    )}
+                                                />
+                                                {errors?.role && (
+                                                    <Typography variant="caption" color="error">
+                                                        Please select a role
+                                                    </Typography>
+                                                )}
+                                            </FormControl>
+                                        </Box>
+                                    )}
+
                                     {/* Automatic Role Assignment Info */}
                                     <Alert 
                                         severity="info" 
@@ -265,9 +328,9 @@ const Register = () =>{
                                         }}
                                     >
                                         <Typography variant="body2">
-                                            <strong>Automatic Role Assignment:</strong><br/>
-                                            • Student emails (with numbers): 21100727@usc.edu.ph<br/>
-                                            • Staff/Faculty emails (letters only): elfabian@usc.edu.ph
+                                            <strong>Role Assignment:</strong><br/>
+                                            • Emails with numbers (e.g. 21100727@usc.edu.ph) are automatically <strong>Students</strong>.<br/>
+                                            • Emails with only letters (e.g. name@usc.edu.ph) will be asked to choose between <strong>Teacher</strong> or <strong>Staff</strong>.
                                         </Typography>
                                     </Alert>
 
