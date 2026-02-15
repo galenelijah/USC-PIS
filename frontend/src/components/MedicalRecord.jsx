@@ -527,28 +527,6 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                         </Grid>
                     </Paper>
                 </Grid>
-                            <Grid item xs={12} md={6}>
-                                <Controller
-                                    name="visit_date"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <TextField
-                                            {...field}
-                                            fullWidth
-                                            label="Visit Date"
-                                            type="date"
-                                            InputLabelProps={{ shrink: true }}
-                                            disabled={!isStaffOrMedical}
-                                            required
-                                            error={!!errors.visit_date}
-                                            helperText={errors.visit_date?.message}
-                                        />
-                                    )}
-                                />
-                            </Grid>
-                        </Grid>
-                    </Paper>
-                </Grid>
 
                 {/* Vital Signs Section */}
                 <Grid item xs={12}>
