@@ -89,17 +89,19 @@ export const commonValidation = {
   // Number validation
   positiveNumber: (fieldName) => yup
     .number()
+    .typeError(`${fieldName} must be a number`)
     .positive(`${fieldName} must be a positive number`)
     .nullable()
-    .transform(value => isNaN(value) ? null : value),
+    .transform((value, originalValue) => originalValue === '' ? null : value),
 
   // Integer validation
   positiveInteger: (fieldName) => yup
     .number()
+    .typeError(`${fieldName} must be a number`)
     .positive(`${fieldName} must be a positive number`)
     .integer(`${fieldName} must be a whole number`)
     .nullable()
-    .transform(value => isNaN(value) ? null : value),
+    .transform((value, originalValue) => originalValue === '' ? null : value),
 
   // Rating validation
   rating: yup
@@ -145,28 +147,28 @@ export const registerSchema = yup.object().shape({
 // Medical Record schema
 export const medicalRecordSchema = yup.object().shape({
   patient: commonValidation.requiredText('Patient selection'),
-  visit_date: commonValidation.pastDate('Visit date'),
+  visit_date: yup.date().required('Visit date is required').nullable().typeError('Invalid date format'),
   diagnosis: commonValidation.requiredText('Diagnosis'),
-  treatment: commonValidation.optionalText,
-  notes: commonValidation.optionalText,
+  treatment: yup.string().nullable(),
+  notes: yup.string().nullable(),
   vital_signs: yup.object().shape({
-    temperature: commonValidation.positiveNumber('Temperature'),
-    blood_pressure: commonValidation.optionalText,
-    pulse_rate: commonValidation.positiveInteger('Pulse rate'),
-    respiratory_rate: commonValidation.positiveInteger('Respiratory rate'),
-    height: commonValidation.positiveNumber('Height'),
-    weight: commonValidation.positiveNumber('Weight'),
-    bmi: commonValidation.positiveNumber('BMI'),
+    temperature: yup.number().typeError('Temperature must be a number').nullable().transform((value, originalValue) => originalValue === '' ? null : value),
+    blood_pressure: yup.string().nullable(),
+    pulse_rate: yup.number().typeError('Pulse rate must be a number').nullable().transform((value, originalValue) => originalValue === '' ? null : value),
+    respiratory_rate: yup.number().typeError('Respiratory rate must be a number').nullable().transform((value, originalValue) => originalValue === '' ? null : value),
+    height: yup.number().typeError('Height must be a number').nullable().transform((value, originalValue) => originalValue === '' ? null : value),
+    weight: yup.number().typeError('Weight must be a number').nullable().transform((value, originalValue) => originalValue === '' ? null : value),
+    bmi: yup.number().typeError('BMI must be a number').nullable().transform((value, originalValue) => originalValue === '' ? null : value),
   }),
   physical_examination: yup.object().shape({
-    general_appearance: commonValidation.optionalText,
-    skin: commonValidation.optionalText,
-    heent: commonValidation.optionalText,
-    heart: commonValidation.optionalText,
-    lungs: commonValidation.optionalText,
-    abdomen: commonValidation.optionalText,
-    extremities: commonValidation.optionalText,
-    neurological: commonValidation.optionalText,
+    general_appearance: yup.string().nullable(),
+    skin: yup.string().nullable(),
+    heent: yup.string().nullable(),
+    heart: yup.string().nullable(),
+    lungs: yup.string().nullable(),
+    abdomen: yup.string().nullable(),
+    extremities: yup.string().nullable(),
+    neurological: yup.string().nullable(),
   }),
 });
 

@@ -355,6 +355,18 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
     return (
         <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ maxWidth: 1200, mx: 'auto' }}>
             {globalError && <Alert severity="error" sx={{ mb: 2 }}>{globalError}</Alert>}
+            {Object.keys(errors).length > 0 && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2">Please fix the following errors:</Typography>
+                    <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                        {Object.entries(errors).map(([key, error]) => (
+                            <li key={key}>
+                                {error.message || (typeof error === 'object' && Object.values(error).map(e => e.message).join(', '))}
+                            </li>
+                        ))}
+                    </ul>
+                </Alert>
+            )}
             {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
             <Grid container spacing={3}>
