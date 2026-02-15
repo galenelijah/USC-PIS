@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -21,6 +22,7 @@ import MedicalCertificateDetail from '../components/MedicalCertificates/MedicalC
 import InfoTooltip from '../components/utils/InfoTooltip';
 
 const MedicalCertificatesPage = () => {
+  const [searchParams] = useSearchParams();
   const [mode, setMode] = useState('list'); // list, create, edit, view
   const [selectedCertificate, setSelectedCertificate] = useState(null);
   const [error, setError] = useState(null);
@@ -31,6 +33,28 @@ const MedicalCertificatesPage = () => {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
   const user = useSelector(state => state.auth.user);
+
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'create') {
+      const patientId = searchParams.get('patientId');
+      const diagnosis = searchParams.get('diagnosis');
+      const recommendations = searchParams.get('recommendations');
+      
+      if (patientId || diagnosis || recommendations) {
+        setMode('create');
+        setSelectedCertificate({
+          patient: patientId ? parseInt(patientId) : '',
+          diagnosis: diagnosis || '',
+          recommendations: recommendations || '',
+          valid_from: new Date().toISOString(),
+          valid_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Default 7 days
+          template: '', // Will be handled by the form
+        });
+        setFormOpen(true);
+      }
+    }
+  }, [searchParams]);
 
   const handleCreate = () => {
     console.log('Create button clicked'); // Debug log

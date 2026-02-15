@@ -289,7 +289,14 @@ const HealthRecords = () => {
         setOpenDialog(true);
         break;
       case 'Generate Certificate':
-        window.open('/medical-certificates', '_blank');
+        const patientId = record.patient?.id || record.patient;
+        const queryParams = new URLSearchParams({
+          action: 'create',
+          patientId: patientId || '',
+          diagnosis: record.diagnosis || '',
+          recommendations: record.treatment || ''
+        }).toString();
+        window.open(`/medical-certificates?${queryParams}`, '_blank');
         break;
       case 'Order Lab Work':
         alert('Lab work ordering system integration would be implemented here.');

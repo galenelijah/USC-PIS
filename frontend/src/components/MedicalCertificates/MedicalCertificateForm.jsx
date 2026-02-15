@@ -81,18 +81,18 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
       
       reset({
         patient: certificate.patient,
-        template: certificate.template,
+        template: certificate.template || (templates.length > 0 ? templates[0].id : ''),
         diagnosis: certificate.diagnosis,
         recommendations: certificate.recommendations,
-        valid_from: new Date(certificate.valid_from),
-        valid_until: new Date(certificate.valid_until),
+        valid_from: certificate.valid_from ? new Date(certificate.valid_from) : null,
+        valid_until: certificate.valid_until ? new Date(certificate.valid_until) : null,
         additional_notes: certificate.additional_notes || '',
         fitness_status: certificate.fitness_status || 'fit',
         fitness_reason: certificate.fitness_reason || '',
         approval_status: certificate.approval_status || 'draft',
       });
     }
-  }, [certificate, patients, reset]);
+  }, [certificate, patients, templates, reset]);
 
   const fetchFormData = async () => {
     try {
@@ -102,8 +102,14 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
         medicalCertificateService.getAllTemplates(),
       ]);
       const patientsData = patientsRes.data || [];
+      const templatesData = templatesRes.data || [];
       setPatients(patientsData);
-      setTemplates(templatesRes.data || []);
+      setTemplates(templatesData);
+      
+      // Auto-select first template if creating and none selected
+      if (!certificate && templatesData.length > 0) {
+        setValue('template', templatesData[0].id);
+      }
     } catch (err) {
       setError('Failed to load form data');
       console.error('Error fetching form data:', err);

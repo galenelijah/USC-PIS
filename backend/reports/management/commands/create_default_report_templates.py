@@ -99,7 +99,7 @@ class Command(BaseCommand):
                 'name': 'User Activity Report',
                 'description': 'Tracking of system usage, logins, and staff actions',
                 'report_type': 'USER_ACTIVITY',
-                'template_content': self.get_generic_template("User Activity Report"),
+                'template_content': self.get_user_activity_template(),
                 'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
                 'allowed_roles': ['ADMIN']
             },
@@ -107,7 +107,7 @@ class Command(BaseCommand):
                 'name': 'Health Metrics Report',
                 'description': 'Population-level health indicators and trends',
                 'report_type': 'HEALTH_METRICS',
-                'template_content': self.get_generic_template("Health Metrics Report"),
+                'template_content': self.get_health_metrics_template(),
                 'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
                 'allowed_roles': ['DOCTOR', 'ADMIN']
             },
@@ -115,7 +115,7 @@ class Command(BaseCommand):
                 'name': 'Inventory Report',
                 'description': 'Overview of medical supplies and stock status',
                 'report_type': 'INVENTORY_REPORT',
-                'template_content': self.get_generic_template("Inventory Report"),
+                'template_content': self.get_inventory_report_template(),
                 'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
                 'allowed_roles': ['STAFF', 'ADMIN']
             },
@@ -123,7 +123,7 @@ class Command(BaseCommand):
                 'name': 'Financial Overview',
                 'description': 'Operational costs and billing summaries',
                 'report_type': 'FINANCIAL_REPORT',
-                'template_content': self.get_generic_template("Financial Overview"),
+                'template_content': self.get_financial_report_template(),
                 'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
                 'allowed_roles': ['ADMIN']
             },
@@ -131,7 +131,7 @@ class Command(BaseCommand):
                 'name': 'Compliance & Privacy Report',
                 'description': 'Data security, privacy audit, and compliance status',
                 'report_type': 'COMPLIANCE_REPORT',
-                'template_content': self.get_generic_template("Compliance & Privacy Report"),
+                'template_content': self.get_compliance_report_template(),
                 'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
                 'allowed_roles': ['ADMIN']
             },
@@ -139,7 +139,7 @@ class Command(BaseCommand):
                 'name': 'Custom Ad-hoc Report',
                 'description': 'Flexible report based on custom criteria',
                 'report_type': 'CUSTOM',
-                'template_content': self.get_generic_template("Custom Report"),
+                'template_content': self.get_custom_report_template(),
                 'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
                 'allowed_roles': ['STAFF', 'ADMIN']
             }
@@ -215,6 +215,214 @@ class Command(BaseCommand):
             ".usc-table th { background:#f5f7fa; font-weight:700; }\n"
             ".usc-badge { display:inline-block; background:#e8f4fd; color:#0B4F6C; padding:2px 8px; border-radius:10px; font-size:12px; }\n"
         )
+
+    def get_user_activity_template(self):
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head><title>User Activity Report</title></head>
+        <body>
+            <div class="usc-header">
+                <div class="usc-logo">University of San Carlos - Patient Information System</div>
+                <h2 class="usc-title">User Activity Report</h2>
+                <p>Period: {{ date_range_start|date:"M d, Y" }} - {{ date_range_end|date:"M d, Y" }}</p>
+            </div>
+            
+            <div class="section">
+                <h3>System Usage Summary</h3>
+                <p><strong>Total Registered Users:</strong> {{ total_users }}</p>
+                <p><strong>Active Users (This Period):</strong> {{ active_users_period }}</p>
+            </div>
+            
+            <div class="section">
+                <h3>Role Distribution</h3>
+                <table class="usc-table">
+                    <thead><tr><th>Role</th><th>Count</th></tr></thead>
+                    <tbody>
+                        {% for item in role_distribution %}
+                        <tr><td>{{ item.role }}</td><td>{{ item.count }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="section">
+                <h3>Recent Login Activity</h3>
+                <table class="usc-table">
+                    <thead><tr><th>User</th><th>Role</th><th>Last Login</th><th>Status</th></tr></thead>
+                    <tbody>
+                        {% for log in system_log %}
+                        <tr>
+                            <td>{{ log.User }}</td>
+                            <td><span class="usc-badge">{{ log.Role }}</span></td>
+                            <td>{{ log.Last_Login|date:"M d, H:i" }}</td>
+                            <td>{{ log.Status }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </body>
+        </html>
+        """
+
+    def get_health_metrics_template(self):
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head><title>Health Metrics Report</title></head>
+        <body>
+            <div class="usc-header">
+                <div class="usc-logo">University of San Carlos - Patient Information System</div>
+                <h2 class="usc-title">Health Metrics Dashboard</h2>
+                <p>Report Date: {{ report_date }}</p>
+            </div>
+            
+            <div class="section">
+                <h3>Population Health Overview</h3>
+                <p><strong>Total Population:</strong> {{ total_population }}</p>
+                <p><strong>Average Age:</strong> {{ age_average }} years</p>
+                <p><strong>Active Health Alerts:</strong> {{ health_alerts }}</p>
+            </div>
+            
+            <div class="section">
+                <h3>Detailed Patient Health Status</h3>
+                <table class="usc-table">
+                    <thead><tr><th>Patient</th><th>BMI</th><th>Blood Type</th><th>Conditions</th><th>Allergies</th></tr></thead>
+                    <tbody>
+                        {% for patient in patient_health_details %}
+                        <tr>
+                            <td>{{ patient.Patient }}</td>
+                            <td>{{ patient.BMI }}</td>
+                            <td>{{ patient.Blood_Type }}</td>
+                            <td>{{ patient.Conditions }}</td>
+                            <td>{{ patient.Allergies }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </body>
+        </html>
+        """
+
+    def get_inventory_report_template(self):
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head><title>Inventory Report</title></head>
+        <body>
+            <div class="usc-header">
+                <div class="usc-logo">University of San Carlos - Patient Information System</div>
+                <h2 class="usc-title">Medical Inventory Report</h2>
+                <p>Status: {{ module_status }}</p>
+            </div>
+            
+            <div class="section">
+                <h3>Stock Overview</h3>
+                <p><strong>Total Items Tracked:</strong> {{ total_items }}</p>
+                <p><strong>Low Stock Alerts:</strong> <span style="color:red; font-weight:bold;">{{ stock_alerts }}</span></p>
+            </div>
+            
+            <div class="section">
+                <h3>Inventory List</h3>
+                <table class="usc-table">
+                    <thead><tr><th>Item</th><th>Category</th><th>Stock Level</th><th>Status</th></tr></thead>
+                    <tbody>
+                        {% for item in inventory_list %}
+                        <tr>
+                            <td>{{ item.Item }}</td>
+                            <td>{{ item.Category }}</td>
+                            <td>{{ item.Stock }}</td>
+                            <td style="{% if item.Status == 'Critical' %}color:red{% elif item.Status == 'Low' %}color:orange{% endif %}">
+                                {{ item.Status }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </body>
+        </html>
+        """
+
+    def get_financial_report_template(self):
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head><title>Financial Overview</title></head>
+        <body>
+            <div class="usc-header">
+                <div class="usc-logo">University of San Carlos - Patient Information System</div>
+                <h2 class="usc-title">Financial Operational Report</h2>
+                <p>Type: {{ report_type }}</p>
+            </div>
+            
+            <div class="section">
+                <h3>Budget Summary</h3>
+                <p><strong>Total Expenses Recorded:</strong> ₱{{ total_expenses|floatformat:2 }}</p>
+                <p><strong>Budget Utilization:</strong> {{ budget_utilization }}</p>
+            </div>
+            
+            <div class="section">
+                <h3>Expense Log</h3>
+                <table class="usc-table">
+                    <thead><tr><th>Date</th><th>Category</th><th>Amount</th></tr></thead>
+                    <tbody>
+                        {% for expense in expense_log %}
+                        <tr>
+                            <td>{{ expense.Date }}</td>
+                            <td>{{ expense.Category }}</td>
+                            <td>₱{{ expense.Amount|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </body>
+        </html>
+        """
+
+    def get_compliance_report_template(self):
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head><title>Compliance Report</title></head>
+        <body>
+            <div class="usc-header">
+                <div class="usc-logo">University of San Carlos - Patient Information System</div>
+                <h2 class="usc-title">System Compliance Audit</h2>
+                <p>Audit Date: {{ report_date }}</p>
+            </div>
+            
+            <div class="section">
+                <h3>Compliance Status</h3>
+                <p><strong>Overall Score:</strong> {{ compliance_score }}</p>
+                <p><strong>Privacy Policy:</strong> {{ privacy_policy }}</p>
+                <p><strong>Audit Outcome:</strong> {{ audit_status }}</p>
+            </div>
+            
+            <div class="section">
+                <h3>Security & Data Checklist</h3>
+                <table class="usc-table">
+                    <thead><tr><th>Check Item</th><th>Status</th><th>Severity</th></tr></thead>
+                    <tbody>
+                        {% for check in compliance_checklist %}
+                        <tr>
+                            <td>{{ check.Check }}</td>
+                            <td>{{ check.Status }}</td>
+                            <td><span class="usc-badge">{{ check.Severity }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </body>
+        </html>
+        """
+
+    def get_custom_report_template(self):
+        return self.get_generic_template("Custom Ad-hoc Report")
 
     def get_patient_summary_template(self):
         return """
