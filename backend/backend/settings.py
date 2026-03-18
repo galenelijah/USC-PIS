@@ -21,10 +21,22 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Email Configuration - AWS SES
+# Email Configuration
+USE_GMAIL_API = os.environ.get('USE_GMAIL_API', 'False') == 'True'
 USE_AWS_SES = os.environ.get('USE_AWS_SES', 'False') == 'True'
 
-if USE_AWS_SES:
+if USE_GMAIL_API:
+    # Gmail API via Anymail (OAuth 2.0)
+    EMAIL_BACKEND = 'anymail.backends.google.EmailBackend'
+    ANYMAIL = {
+        "GOOGLE_CLIENT_ID": os.environ.get('GMAIL_CLIENT_ID'),
+        "GOOGLE_CLIENT_SECRET": os.environ.get('GMAIL_CLIENT_SECRET'),
+        "GOOGLE_REFRESH_TOKEN": os.environ.get('GMAIL_REFRESH_TOKEN'),
+    }
+    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@usc-pis.com')
+    SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+elif USE_AWS_SES:
     # AWS SES Configuration
     EMAIL_BACKEND = 'django_ses.SESBackend'
     AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
@@ -49,7 +61,7 @@ else:
     SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 # Development fallback
-if not USE_AWS_SES and not os.environ.get('EMAIL_HOST_PASSWORD'):
+if not USE_GMAIL_API and not USE_AWS_SES and not os.environ.get('EMAIL_HOST_PASSWORD'):
     # Fall back to console backend for development
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
@@ -115,6 +127,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',  # Add token authentication
     'corsheaders',
     'django_filters',  # Add django-filter for API filtering
+    'anymail',         # Add anymail for Gmail API support
     'patients',
     'authentication',  # New authentication app
     'health_info',     # Add the missing health_info app
@@ -470,21 +483,6 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'Lax'
 CSRF_USE_SESSIONS = True
-
-# Email Settings
-if DEBUG:
-    # Use console backend for development (prints emails to console)
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-else:
-    # Configure for production (e.g., SMTP)
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = os.environ.get('EMAIL_HOST')
-    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
-    EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
-    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
-    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
-
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'webmaster@localhost') # Change this
 
 # Password reset token expiry (seconds). Match email copy: 24 hours by default.
 PASSWORD_RESET_TIMEOUT = int(os.environ.get('PASSWORD_RESET_TIMEOUT', 60 * 60 * 24))
