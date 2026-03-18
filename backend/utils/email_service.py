@@ -41,18 +41,18 @@ class EmailService:
             # Create plain text version
             text_content = strip_tags(html_content)
             
-            # Create email message with USC branding
+            # Create email message
             msg = EmailMultiAlternatives(
                 subject=f"[USC-PIS] {subject}",
                 body=text_content,
-                from_email=usc_display_name,
+                from_email=from_email,
                 to=[recipient_email]
             )
             msg.attach_alternative(html_content, "text/html")
             
-            # Add USC reply-to and headers
+            # Add USC branding in headers
             msg.extra_headers = {
-                'Reply-To': 'noreply@usc.edu.ph',
+                'Reply-To': f"USC-PIS <{from_email}>",
                 'X-Mailer': 'USC Patient Information System',
                 'X-Priority': '3',
                 'Organization': 'University of Southern California'

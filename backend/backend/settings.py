@@ -26,13 +26,11 @@ USE_GMAIL_API = os.environ.get('USE_GMAIL_API', 'False') == 'True'
 USE_AWS_SES = os.environ.get('USE_AWS_SES', 'False') == 'True'
 
 if USE_GMAIL_API:
-    # Gmail API via Anymail (OAuth 2.0)
-    EMAIL_BACKEND = 'anymail.backends.google.EmailBackend'
-    ANYMAIL = {
-        "GOOGLE_CLIENT_ID": os.environ.get('GMAIL_CLIENT_ID'),
-        "GOOGLE_CLIENT_SECRET": os.environ.get('GMAIL_CLIENT_SECRET'),
-        "GOOGLE_REFRESH_TOKEN": os.environ.get('GMAIL_REFRESH_TOKEN'),
-    }
+    # Gmail API via django-gmailapi-backend (OAuth 2.0)
+    EMAIL_BACKEND = 'gmailapi_backend.mail.GmailBackend'
+    GMAIL_API_CLIENT_ID = os.environ.get('GMAIL_CLIENT_ID')
+    GMAIL_API_CLIENT_SECRET = os.environ.get('GMAIL_CLIENT_SECRET')
+    GMAIL_API_REFRESH_TOKEN = os.environ.get('GMAIL_REFRESH_TOKEN')
     DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@usc-pis.com')
     SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
@@ -127,7 +125,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',  # Add token authentication
     'corsheaders',
     'django_filters',  # Add django-filter for API filtering
-    'anymail',         # Add anymail for Gmail API support
+    'gmailapi_backend', # Add Gmail API backend
     'patients',
     'authentication',  # New authentication app
     'health_info',     # Add the missing health_info app
