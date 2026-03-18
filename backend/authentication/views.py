@@ -648,12 +648,16 @@ class CompleteProfileSetupView(APIView):
             validation_errors = []
             required_fields = ['first_name', 'last_name', 'sex', 'phone']
             
-            if user.role in [User.Role.STUDENT, User.Role.TEACHER]:
+            if user.role == User.Role.STUDENT:
                 required_fields.extend(['birthday', 'course', 'year_level', 'school'])
                 # ID number is optional if we found user another way
                 if not authenticated:
                     required_fields.append('id_number')
                 # Address is required (either permanent or present)
+                if not data.get('address_permanent') and not data.get('address_present'):
+                    validation_errors.append('Either permanent or present address is required')
+            elif user.role == User.Role.TEACHER:
+                required_fields.extend(['birthday', 'department'])
                 if not data.get('address_permanent') and not data.get('address_present'):
                     validation_errors.append('Either permanent or present address is required')
             

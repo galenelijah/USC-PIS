@@ -73,6 +73,11 @@ const Register = () =>{
         setServerError('');
         setSuccessMessage('');
         const userData = { ...data }; 
+        
+        // Remove role from userData if it's not a text email (i.e. it's a student)
+        if (!isTextEmail) {
+            delete userData.role;
+        }
 
         try {
             // First, register the user

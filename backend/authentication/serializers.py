@@ -59,7 +59,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             'password': {'write_only': True},
             'department': {'required': False},
             'phone_number': {'required': False},
-            'role': {'required': False},
+            'role': {'required': False, 'allow_blank': True},
             # All other fields are not required
         }
     

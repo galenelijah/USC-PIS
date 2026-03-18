@@ -135,6 +135,12 @@ const getStepsForRole = (role) => {
         { label: 'Academic Information', icon: School, color: '#f093fb' },
         { label: 'Medical Information', icon: LocalHospital, color: '#f5576c' }
       ];
+    case 'TEACHER':
+      return [
+        ...baseSteps,
+        { label: 'Department Information', icon: Badge, color: '#f093fb' },
+        { label: 'Medical Information', icon: LocalHospital, color: '#f5576c' }
+      ];
     case 'DOCTOR':
     case 'NURSE':
       return [
@@ -214,6 +220,15 @@ const createValidationSchema = (role) => {
         contact_mother_name: commonValidation.optionalText,
       });
 
+    case 'TEACHER':
+      return Yup.object().shape({
+        ...baseValidation,
+        nationality: commonValidation.requiredText('Nationality'),
+        religion: commonValidation.optionalText,
+        address_present: commonValidation.requiredText('Present address'),
+        department: commonValidation.requiredText('Department')
+      });
+
     case 'DOCTOR':
     case 'NURSE':
       return Yup.object().shape({
@@ -246,6 +261,13 @@ const getStepFieldsForRole = (role) => {
         ['first_name', 'last_name', 'middle_name', 'sex', 'civil_status', 'birthday', 'nationality', 'religion'],
         ['address_permanent', 'address_present', 'phone', 'email', 'contact_father_name', 'contact_mother_name', 'contact_emergency_name', 'contact_emergency_number'],
         ['id_number', 'course', 'year_level', 'school', 'weight', 'height'],
+        [] // Medical information step
+      ];
+    case 'TEACHER':
+      return [
+        ['first_name', 'last_name', 'middle_name', 'sex', 'civil_status', 'birthday', 'nationality', 'religion'],
+        ['address_permanent', 'address_present', 'phone', 'email', 'contact_emergency_name', 'contact_emergency_number'],
+        ['department'],
         [] // Medical information step
       ];
     case 'DOCTOR':
@@ -319,6 +341,14 @@ const ProfileSetup = () => {
           height: '',
           contact_father_name: '',
           contact_mother_name: '',
+        };
+      case 'TEACHER':
+        return {
+          ...baseDefaults,
+          nationality: '',
+          religion: '',
+          address_present: '',
+          department: '',
         };
       case 'DOCTOR':
       case 'NURSE':
@@ -915,18 +945,18 @@ const ProfileSetup = () => {
                     />
                   </Grid>
                   <Grid item xs={12}>
-              <MyTextField
-                key={`${stepKey}-address_present`}
-                label="Present Address"
-                name="address_present"
-                control={control}
-                required
-                multiline
-                rows={2}
-                error={!!errors?.address_present}
-                helperText={errors?.address_present?.message}
-                hint="If different from permanent address"
-              />
+                    <MyTextField
+                      key={`${stepKey}-address_present`}
+                      label="Present Address"
+                      name="address_present"
+                      control={control}
+                      required
+                      multiline
+                      rows={2}
+                      error={!!errors?.address_present}
+                      helperText={errors?.address_present?.message}
+                      hint="If different from permanent address"
+                    />
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <MyTextField
@@ -950,6 +980,54 @@ const ProfileSetup = () => {
                       helperText={errors?.email?.message}
                     />
                   </Grid>
+                  
+                  {userRole === 'STUDENT' && (
+                    <>
+                      <Grid item xs={12} sm={6}>
+                        <MyTextField
+                          key={`${stepKey}-contact_father_name`}
+                          label="Father's Name"
+                          name="contact_father_name"
+                          control={control}
+                          error={!!errors?.contact_father_name}
+                          helperText={errors?.contact_father_name?.message}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <MyTextField
+                          key={`${stepKey}-contact_mother_name`}
+                          label="Mother's Name"
+                          name="contact_mother_name"
+                          control={control}
+                          error={!!errors?.contact_mother_name}
+                          helperText={errors?.contact_mother_name?.message}
+                        />
+                      </Grid>
+                    </>
+                  )}
+                  
+                  <Grid item xs={12} sm={6}>
+                    <MyTextField
+                      key={`${stepKey}-contact_emergency_name`}
+                      label="Emergency Contact Name"
+                      name="contact_emergency_name"
+                      control={control}
+                      required
+                      error={!!errors?.contact_emergency_name}
+                      helperText={errors?.contact_emergency_name?.message}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <MyTextField
+                      key={`${stepKey}-contact_emergency_number`}
+                      label="Emergency Contact Number"
+                      name="contact_emergency_number"
+                      control={control}
+                      required
+                      error={!!errors?.contact_emergency_number}
+                      helperText={errors?.contact_emergency_number?.message}
+                    />
+                  </Grid>
                 </Grid>
               </CardContent>
             </Card>
@@ -957,97 +1035,102 @@ const ProfileSetup = () => {
         );
       
       case 2:
-        return (
-          <Box key={stepKey}>
-            <Card elevation={0} sx={{ border: '1px solid', borderColor: alpha('#f093fb', 0.2), borderRadius: 3 }}>
-              <CardContent sx={{ p: 4 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                  <School sx={{ color: '#f093fb', fontSize: 28 }} />
-                  <Typography variant="h5" fontWeight="bold" sx={{ color: '#f093fb' }}>
-                    Academic Information
-                  </Typography>
-                </Box>
-                
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
-              <MyTextField
-                key={`${stepKey}-id_number`}
-                label="Student ID Number"
-                name="id_number"
-                control={control}
-                required
-                error={!!errors?.id_number}
-                helperText={errors?.id_number?.message}
-                hint="Your USC ID (digits only)"
-              />
+        if (userRole === 'STUDENT') {
+          return (
+            <Box key={stepKey}>
+              <Card elevation={0} sx={{ border: '1px solid', borderColor: alpha('#f093fb', 0.2), borderRadius: 3 }}>
+                <CardContent sx={{ p: 4 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                    <School sx={{ color: '#f093fb', fontSize: 28 }} />
+                    <Typography variant="h5" fontWeight="bold" sx={{ color: '#f093fb' }}>
+                      Academic Information
+                    </Typography>
+                  </Box>
+                  
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} sm={6}>
+                      <MyTextField
+                        key={`${stepKey}-id_number`}
+                        label="Student ID Number"
+                        name="id_number"
+                        control={control}
+                        required
+                        error={!!errors?.id_number}
+                        helperText={errors?.id_number?.message}
+                        hint="Your USC ID (digits only)"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <MySelector
+                        key={`${stepKey}-course`}
+                        label="Course"
+                        name="course"
+                        control={control}
+                        options={safeProgramsChoices}
+                        required
+                        error={!!errors?.course}
+                        helperText={errors?.course?.message}
+                        hint="Choose your program"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <MySelector
+                        key={`${stepKey}-year_level`}
+                        label="Year Level"
+                        name="year_level"
+                        control={control}
+                        options={safeYearLevelChoices}
+                        required
+                        error={!!errors?.year_level}
+                        helperText={errors?.year_level?.message}
+                        hint="Current year level"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <MySelector
+                        key={`${stepKey}-school`}
+                        label="School/Campus"
+                        name="school"
+                        control={control}
+                        options={safeCampusChoices}
+                        error={!!errors?.school}
+                        helperText={errors?.school?.message}
+                        hint="Main or satellite campus"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <MyTextField
+                        key={`${stepKey}-weight`}
+                        label="Weight (kg)"
+                        name="weight"
+                        control={control}
+                        type="number"
+                        error={!!errors?.weight}
+                        helperText={errors?.weight?.message}
+                        hint="Optional; numeric"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <MyTextField
+                        key={`${stepKey}-height`}
+                        label="Height (cm)"
+                        name="height"
+                        control={control}
+                        type="number"
+                        error={!!errors?.height}
+                        helperText={errors?.height?.message}
+                        hint="Optional; numeric"
+                      />
+                    </Grid>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
-              <MySelector
-                key={`${stepKey}-course`}
-                label="Course"
-                name="course"
-                control={control}
-                options={safeProgramsChoices}
-                required
-                error={!!errors?.course}
-                helperText={errors?.course?.message}
-                hint="Choose your program"
-              />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-              <MySelector
-                key={`${stepKey}-year_level`}
-                label="Year Level"
-                name="year_level"
-                control={control}
-                options={safeYearLevelChoices}
-                required
-                error={!!errors?.year_level}
-                helperText={errors?.year_level?.message}
-                hint="Current year level"
-              />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-              <MySelector
-                key={`${stepKey}-school`}
-                label="School/Campus"
-                name="school"
-                control={control}
-                options={safeCampusChoices}
-                error={!!errors?.school}
-                helperText={errors?.school?.message}
-                hint="Main or satellite campus"
-              />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-              <MyTextField
-                key={`${stepKey}-weight`}
-                label="Weight (kg)"
-                name="weight"
-                control={control}
-                type="number"
-                error={!!errors?.weight}
-                helperText={errors?.weight?.message}
-                hint="Optional; numeric"
-              />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-              <MyTextField
-                key={`${stepKey}-height`}
-                label="Height (cm)"
-                name="height"
-                control={control}
-                type="number"
-                error={!!errors?.height}
-                helperText={errors?.height?.message}
-                hint="Optional; numeric"
-              />
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
-          </Box>
-        );
+                </CardContent>
+              </Card>
+            </Box>
+          );
+        } else if (userRole === 'TEACHER') {
+          return renderAdministrativeInfo(stepKey);
+        }
+        return null;
       
       case 3:
         return (
