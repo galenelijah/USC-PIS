@@ -250,7 +250,7 @@ const Register = () =>{
                                             placeholder="Create a strong password"
                                             error={!!errors?.password}
                                             helperText={errors?.password?.message}
-                                            hint="At least 8 chars with upper/lowercase, number, and special character"
+                                            hint="At least 8 chars with upper/lowercase, number, and special character (e.g., !@#$%^&*)"
                                         />
                                     </Box>
 

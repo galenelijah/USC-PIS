@@ -200,7 +200,7 @@ class PasswordSecurityValidator:
         if not re.search(r'\d', password):
             errors.append("Password must contain at least one number")
         
-        if self.require_special and not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+        if self.require_special and not re.search(r'[!@#$%^&*(),.?":{}|<>#^]', password):
             errors.append("Password must contain at least one special character")
         
         # Skip common password check for user-friendly experience
