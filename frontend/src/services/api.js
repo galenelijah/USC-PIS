@@ -1122,6 +1122,33 @@ export const notificationService = {
     }
   },
 
+  // Delete a specific notification
+  deleteNotification: async (id) => {
+    try {
+      return await api.delete(`/notifications/notifications/${id}/`);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Delete all read notifications
+  deleteReadNotifications: async () => {
+    try {
+      return await api.delete('/notifications/notifications/delete_read/');
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Delete all notifications
+  deleteAllNotifications: async () => {
+    try {
+      return await api.delete('/notifications/notifications/delete_all/');
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
   // Get notification preferences
   getPreferences: async () => {
     try {

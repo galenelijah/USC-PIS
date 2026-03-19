@@ -50,8 +50,8 @@ class NotificationViewSet(viewsets.ModelViewSet):
         """Filter notifications based on user permissions"""
         user = self.request.user
         
-        if user.role in ['medical_staff', 'admin']:
-            # Medical staff can see all notifications
+        if user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE, 'medical_staff']:
+            # Medical staff and admins can see all notifications
             return Notification.objects.select_related(
                 'recipient', 'patient', 'template', 'created_by'
             ).prefetch_related('logs')
@@ -73,12 +73,28 @@ class NotificationViewSet(viewsets.ModelViewSet):
         """Set permissions based on action"""
         if self.action in ['create', 'bulk_create', 'send_test']:
             permission_classes = [IsMedicalStaff]
-        elif self.action in ['update', 'partial_update', 'destroy']:
+        elif self.action in ['update', 'partial_update']:
             permission_classes = [IsMedicalStaff]
         else:
+            # destroy, list, retrieve, mark_as_read, etc. are handled by get_queryset or manual checks
             permission_classes = [permissions.IsAuthenticated]
         
         return [permission() for permission in permission_classes]
+
+    def destroy(self, request, *args, **kwargs):
+        """Allow users to delete their own notifications"""
+        instance = self.get_object()
+        # Medical staff/Admins can delete any notification
+        is_medical_staff = request.user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE, 'medical_staff']
+        
+        if not is_medical_staff and instance.recipient != request.user:
+            return Response(
+                {'detail': 'You do not have permission to delete this notification.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
     
     def perform_create(self, serializer):
         """Create notification with current user as creator"""
@@ -264,6 +280,31 @@ class NotificationViewSet(viewsets.ModelViewSet):
         return Response({
             'status': 'All notifications marked as read',
             'updated_count': updated_count
+        })
+
+    @action(detail=False, methods=['delete'])
+    def delete_read(self, request):
+        """Delete all read notifications for current user"""
+        deleted_count, _ = Notification.objects.filter(
+            recipient=request.user,
+            status='READ'
+        ).delete()
+        
+        return Response({
+            'status': 'Read notifications deleted',
+            'deleted_count': deleted_count
+        })
+
+    @action(detail=False, methods=['delete'])
+    def delete_all(self, request):
+        """Delete all notifications for current user"""
+        deleted_count, _ = Notification.objects.filter(
+            recipient=request.user
+        ).delete()
+        
+        return Response({
+            'status': 'All notifications deleted',
+            'deleted_count': deleted_count
         })
 
 

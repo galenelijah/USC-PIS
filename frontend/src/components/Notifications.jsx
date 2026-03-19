@@ -45,7 +45,9 @@ import {
     MarkEmailRead,
     Search,
     Campaign,
-    MoreVert
+    MoreVert,
+    Delete,
+    DeleteSweep
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import InfoTooltip from './utils/InfoTooltip';
@@ -223,6 +225,65 @@ const Notifications = () => {
         } catch (err) {
             console.error('Error marking all notifications as read:', err);
             setError('Failed to mark all notifications as read. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDelete = async (notificationId) => {
+        try {
+            setLoading(true);
+            await notificationService.deleteNotification(notificationId);
+            setSuccess('Notification deleted');
+            
+            // Optimistic update
+            setNotifications(prev => prev.filter(n => n.id !== notificationId));
+            setUnreadNotifications(prev => prev.filter(n => n.id !== notificationId));
+            
+            // Reload data
+            await Promise.all([loadNotifications(), loadUnreadNotifications(), loadStats()]);
+        } catch (err) {
+            console.error('Error deleting notification:', err);
+            setError('Failed to delete notification. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteRead = async () => {
+        try {
+            setLoading(true);
+            await notificationService.deleteReadNotifications();
+            setSuccess('Read notifications deleted');
+            
+            // Reload data
+            await Promise.all([loadNotifications(), loadUnreadNotifications(), loadStats()]);
+        } catch (err) {
+            console.error('Error deleting read notifications:', err);
+            setError('Failed to delete read notifications. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteAll = async () => {
+        if (!window.confirm('Are you sure you want to delete ALL notifications? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            setLoading(true);
+            await notificationService.deleteAllNotifications();
+            setSuccess('All notifications deleted');
+            
+            setNotifications([]);
+            setUnreadNotifications([]);
+            
+            // Reload data
+            await Promise.all([loadNotifications(), loadUnreadNotifications(), loadStats()]);
+        } catch (err) {
+            console.error('Error deleting all notifications:', err);
+            setError('Failed to delete all notifications. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -726,6 +787,16 @@ const Notifications = () => {
                             </Grid>
                         </DialogContent>
                         <DialogActions>
+                            <Button 
+                                color="error" 
+                                onClick={() => {
+                                    handleDelete(selectedNotification.id);
+                                    setDetailsOpen(false);
+                                }}
+                                startIcon={<Delete />}
+                            >
+                                Delete
+                            </Button>
                             <Button onClick={() => setDetailsOpen(false)}>
                                 Close
                             </Button>
@@ -765,6 +836,27 @@ const Notifications = () => {
                 }}>
                     <ListItemIcon><MarkEmailRead fontSize="small" /></ListItemIcon>
                     <ListItemText>Mark All Read</ListItemText>
+                </MenuItemComponent>
+                <Divider />
+                <MenuItemComponent 
+                    onClick={() => {
+                        setMenuAnchor(null);
+                        handleDeleteRead();
+                    }}
+                    sx={{ color: 'error.main' }}
+                >
+                    <ListItemIcon><DeleteSweep fontSize="small" color="error" /></ListItemIcon>
+                    <ListItemText>Delete Read</ListItemText>
+                </MenuItemComponent>
+                <MenuItemComponent 
+                    onClick={() => {
+                        setMenuAnchor(null);
+                        handleDeleteAll();
+                    }}
+                    sx={{ color: 'error.main' }}
+                >
+                    <ListItemIcon><Delete fontSize="small" color="error" /></ListItemIcon>
+                    <ListItemText>Delete All</ListItemText>
                 </MenuItemComponent>
             </Menu>
 
