@@ -102,7 +102,9 @@ class PatientSerializer(serializers.ModelSerializer):
 
     def get_course(self, obj):
         """Get Course/Department from the related user"""
-        return obj.user.course if obj.user and obj.user.course else None
+        if not obj.user:
+            return None
+        return obj.user.course or obj.user.department
     
     def validate_email(self, value):
         """Validate email with USC domain requirement."""

@@ -37,12 +37,18 @@ class PatientViewSet(viewsets.ModelViewSet):
         )
 
         # Filter based on user role
-        if user.role == User.Role.STUDENT:
-            # Students see only their own linked patient record
+        if user.role in [User.Role.STUDENT, User.Role.TEACHER]:
+            # Patients (Students/Teachers) see only their own linked patient record
             queryset = queryset.filter(user=user)
-        elif user.role in [User.Role.DOCTOR, User.Role.NURSE, User.Role.STAFF, User.Role.ADMIN]:
-            # Staff/Admin/Doctor/Nurse can see all patients
-            pass
+        elif user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE]:
+            # Staff/Admin/Doctor/Dentist/Nurse can see all patients
+            # Filter to only show people with patient roles (Student, Teacher) or no linked user
+            # This ensures that users whose role was changed from student to admin/staff 
+            # no longer appear in the "Patients" list.
+            queryset = queryset.filter(
+                Q(user__role__in=[User.Role.STUDENT, User.Role.TEACHER]) | 
+                Q(user__isnull=True)
+            )
         else:
             # If user role is undefined or unexpected, return empty queryset
             queryset = Patient.objects.none()
@@ -66,7 +72,7 @@ class PatientViewSet(viewsets.ModelViewSet):
             user = request.user
             
             # Check permissions - only admin/staff can create patients manually
-            if user.role not in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.NURSE]:
+            if user.role not in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.NURSE, User.Role.DENTIST]:
                 return Response({
                     'detail': 'Only medical staff can create patient records manually.',
                     'error_code': 'PERMISSION_DENIED'
@@ -298,21 +304,21 @@ class MedicalRecordViewSet(viewsets.ModelViewSet):
             user = self.request.user
             queryset = MedicalRecord.objects.select_related('patient', 'created_by').all()
 
-            if user.role == User.Role.STUDENT:
-                # Find the patient profile linked to the student user
+            if user.role in [User.Role.STUDENT, User.Role.TEACHER]:
+                # Find the patient profile linked to the patient user
                 try:
                     patient = Patient.objects.get(user=user)
                     queryset = queryset.filter(patient=patient)
                 except Patient.DoesNotExist:
-                    logger.warning(f"Student user {user.email} has no patient profile")
+                    logger.warning(f"Patient user {user.email} has no patient profile")
                     queryset = MedicalRecord.objects.none()
                 except Patient.MultipleObjectsReturned:
-                    logger.error(f"Student user {user.email} has multiple patient profiles")
+                    logger.error(f"Patient user {user.email} has multiple patient profiles")
                     # Return all records for this user's patients as fallback
                     patients = Patient.objects.filter(user=user)
                     queryset = queryset.filter(patient__in=patients)
                     
-            elif user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.NURSE]:
+            elif user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE]:
                 # Medical staff can see all records
                 pass
             else:
@@ -354,11 +360,15 @@ class MedicalRecordViewSet(viewsets.ModelViewSet):
                 }, status=status.HTTP_404_NOT_FOUND)
             
             # Check permissions
-            if user.role == User.Role.STUDENT:
+            if user.role in [User.Role.STUDENT, User.Role.TEACHER]:
                 if not hasattr(user, 'patient_profile') or user.patient_profile != patient:
                     return Response({
-                        'detail': 'Students cannot create medical records'
+                        'detail': 'Patients cannot create medical records for others'
                     }, status=status.HTTP_403_FORBIDDEN)
+            elif user.role not in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE]:
+                return Response({
+                    'detail': 'Insufficient permissions to create medical records'
+                }, status=status.HTTP_403_FORBIDDEN)
             
             # Check for duplicate records on same date
             visit_date = request.data.get('visit_date')
@@ -418,21 +428,21 @@ class DentalRecordViewSet(viewsets.ModelViewSet):
             user = self.request.user
             queryset = DentalRecord.objects.select_related('patient', 'created_by').all()
 
-            if user.role == User.Role.STUDENT:
-                # Find the patient profile linked to the student user
+            if user.role in [User.Role.STUDENT, User.Role.TEACHER]:
+                # Find the patient profile linked to the patient user
                 try:
                     patient = Patient.objects.get(user=user)
                     queryset = queryset.filter(patient=patient)
                 except Patient.DoesNotExist:
-                    logger.warning(f"Student user {user.email} has no patient profile")
+                    logger.warning(f"Patient user {user.email} has no patient profile")
                     queryset = DentalRecord.objects.none()
                 except Patient.MultipleObjectsReturned:
-                    logger.error(f"Student user {user.email} has multiple patient profiles")
+                    logger.error(f"Patient user {user.email} has multiple patient profiles")
                     # Return all records for this user's patients as fallback
                     patients = Patient.objects.filter(user=user)
                     queryset = queryset.filter(patient__in=patients)
                     
-            elif user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.NURSE]:
+            elif user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE]:
                 # Medical staff can see all records
                 pass
             else:
@@ -483,11 +493,11 @@ class DentalRecordViewSet(viewsets.ModelViewSet):
                 }, status=status.HTTP_404_NOT_FOUND)
             
             # Check permissions
-            if user.role == User.Role.STUDENT:
+            if user.role in [User.Role.STUDENT, User.Role.TEACHER]:
                 return Response({
-                    'detail': 'Students cannot create dental records'
+                    'detail': 'Patients cannot create dental records'
                 }, status=status.HTTP_403_FORBIDDEN)
-            elif user.role not in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.NURSE]:
+            elif user.role not in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE]:
                 return Response({
                     'detail': 'Insufficient permissions to create dental records'
                 }, status=status.HTTP_403_FORBIDDEN)
@@ -614,16 +624,16 @@ class ConsultationViewSet(viewsets.ModelViewSet):
         user = self.request.user
         queryset = Consultation.objects.select_related('patient', 'created_by').all()
 
-        if user.role == User.Role.STUDENT:
-            # Find the patient profile linked to the student user
+        if user.role in [User.Role.STUDENT, User.Role.TEACHER]:
+            # Find the patient profile linked to the patient user
             try:
                 patient = Patient.objects.get(user=user)
                 queryset = queryset.filter(patient=patient)
             except Patient.DoesNotExist:
-                # If student has no patient profile, return no consultations
+                # If patient has no patient profile, return no consultations
                 queryset = Consultation.objects.none()
-        elif user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.NURSE]:
-            # Admin/Staff/Doctor/Nurse can see all consultations
+        elif user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE]:
+            # Admin/Staff/Doctor/Dentist/Nurse can see all consultations
             pass
         else:
             # Unknown role, return no consultations
@@ -672,8 +682,8 @@ def dashboard_stats(request):
         pending_requests = 0  # Can be updated later if needed for other pending items
 
         # Role-based stats
-        if user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.NURSE]:
-            # Admin/Staff/Doctor/Nurse dashboard
+        if user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE]:
+            # Admin/Staff/Doctor/Dentist/Nurse dashboard
             return Response({
                 'total_patients': total_patients,
                 'total_records': total_records,
@@ -683,8 +693,8 @@ def dashboard_stats(request):
                 'dental_visits_by_month': list(dental_visits_by_month),
                 'pending_requests': pending_requests,
             })
-        elif user.role == User.Role.STUDENT:
-            # Student/Patient dashboard - optimized for single patient
+        elif user.role in [User.Role.STUDENT, User.Role.TEACHER]:
+            # Patient (Student/Teacher) dashboard - optimized for single patient
             patient = getattr(user, 'patient_profile', None)
             
             # Self-healing: if setup is complete but patient profile is missing, try to create it
