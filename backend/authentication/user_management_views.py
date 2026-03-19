@@ -77,6 +77,10 @@ def get_all_users(request):
                 'STAFF': User.objects.filter(role=User.Role.STAFF).count(),
                 'STUDENT': User.objects.filter(role=User.Role.STUDENT).count(),
                 'TEACHER': User.objects.filter(role=User.Role.TEACHER).count(),
+                'TOTAL_PATIENTS': User.objects.filter(role__in=[User.Role.STUDENT, User.Role.TEACHER]).count(),
+                'TOTAL_STAFF': User.objects.filter(role__in=[
+                    User.Role.ADMIN, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE, User.Role.STAFF
+                ]).count(),
             }
         })
         

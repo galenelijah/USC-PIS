@@ -654,12 +654,17 @@ def dashboard_stats(request):
         user = request.user
         
         # Optimized queries with select_related and prefetch_related
-        total_patients = Patient.objects.count()
+        # Synchronize patient counts with the filtered patients list
+        patient_base_queryset = Patient.objects.filter(
+            Q(user__role__in=[User.Role.STUDENT, User.Role.TEACHER]) | 
+            Q(user__isnull=True)
+        )
+        total_patients = patient_base_queryset.count()
         total_records = MedicalRecord.objects.count()
         total_dental_records = DentalRecord.objects.count()
         
         # Optimized recent patients query with related data
-        recent_patients = Patient.objects.select_related('user', 'created_by').prefetch_related(
+        recent_patients = patient_base_queryset.select_related('user', 'created_by').prefetch_related(
             'medical_records__created_by',
             'dental_records__created_by'
         ).order_by('-created_at')[:5]
