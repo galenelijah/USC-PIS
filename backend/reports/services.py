@@ -571,7 +571,6 @@ class ReportExportService:
                 'USCSection', parent=styles['Heading2'], fontSize=14, textColor=colors.white,
                 backColor=colors.hexColor('#0B4F6C'), leftIndent=0, borderPadding=5, spaceBefore=15, spaceAfter=10
             )
-            label_style = ParagraphStyle('USCLabel', parent=styles['Normal'], fontWeight='bold', fontName='Helvetica-Bold')
             
             story = []
             
@@ -586,67 +585,84 @@ class ReportExportService:
                 summary_data = []
                 list_sections = []
                 
+                # Helper to ensure string conversion is safe for ReportLab
+                def safe_str(val):
+                    if val is None: return "-"
+                    try:
+                        return str(val)
+                    except: return "Error"
+
                 for k, v in report_data.items():
                     if isinstance(v, (list, tuple)):
                         list_sections.append((k, v))
                     elif isinstance(v, dict):
-                        # Add nested dicts to summary as flattened rows
+                        # Simple flat dict handling for summary
                         for sk, sv in v.items():
                             if not isinstance(sv, (list, dict)):
-                                summary_data.append([str(k).replace('_', ' ').title() + " - " + str(sk).replace('_', ' ').title(), str(sv)])
+                                label = safe_str(k).replace('_', ' ').title() + " - " + safe_str(sk).replace('_', ' ').title()
+                                summary_data.append([
+                                    Paragraph(f"<b>{label}</b>", styles['Normal']), 
+                                    Paragraph(safe_str(sv), styles['Normal'])
+                                ])
                     else:
-                        summary_data.append([str(k).replace('_', ' ').title(), str(v)])
+                        label = safe_str(k).replace('_', ' ').title()
+                        summary_data.append([
+                            Paragraph(f"<b>{label}</b>", styles['Normal']), 
+                            Paragraph(safe_str(v), styles['Normal'])
+                        ])
 
                 # Render Summary Table
                 if summary_data:
                     story.append(Paragraph("Summary Overview", section_style))
-                    t = Table(summary_data, colWidths=[200, 300])
+                    # Adjust column widths for better fit
+                    t = Table(summary_data, colWidths=[220, 280])
                     t.setStyle(TableStyle([
                         ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
                         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                        ('TOPPADDING', (0, 0), (-1, -1), 6),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                        ('TOPPADDING', (0, 0), (-1, -1), 4),
                     ]))
                     story.append(t)
                     story.append(Spacer(1, 20))
 
                 # Render Detailed Lists
                 for name, data_list in list_sections:
-                    story.append(Paragraph(str(name).replace('_', ' ').title(), section_style))
+                    section_title = safe_str(name).replace('_', ' ').title()
+                    story.append(Paragraph(section_title, section_style))
                     
                     if not data_list:
                         story.append(Paragraph("<i>Nothing to report on. No records found for this section.</i>", styles['Italic']))
+                        story.append(Spacer(1, 10))
                         continue
 
                     if isinstance(data_list[0], dict):
                         # Create table from list of dicts
-                        headers = [str(h).replace('_', ' ').title() for h in data_list[0].keys()]
+                        raw_headers = list(data_list[0].keys())
+                        headers = [Paragraph(f"<b>{safe_str(h).replace('_', ' ').title()}</b>", styles['Normal']) for h in raw_headers]
                         table_data = [headers]
+                        
                         for item in data_list[:100]: # Limit rows for safety
-                            row = [str(item.get(h, '-')) for h in data_list[0].keys()]
+                            row = [Paragraph(safe_str(item.get(h, '-')), styles['Normal']) for h in raw_headers]
                             table_data.append(row)
                         
                         # Calculate column width dynamically
-                        col_count = len(headers)
-                        col_width = 500 / col_count if col_count > 0 else 500
+                        col_count = len(raw_headers)
+                        available_width = 500
+                        col_width = available_width / col_count if col_count > 0 else available_width
                         
                         t = Table(table_data, colWidths=[col_width] * col_count)
                         t.setStyle(TableStyle([
                             ('BACKGROUND', (0, 0), (-1, 0), colors.hexColor('#0B4F6C')),
                             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                            ('FONTSIZE', (0, 0), (-1, 0), 10),
-                            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                            ('FONTSIZE', (0, 1), (-1, -1), 8),
                         ]))
                         story.append(t)
                     else:
                         # Simple list
                         for item in data_list:
-                            story.append(Paragraph(f"• {item}", styles['Normal']))
+                            story.append(Paragraph(f"* {safe_str(item)}", styles['Normal']))
                     
                     story.append(Spacer(1, 15))
 
