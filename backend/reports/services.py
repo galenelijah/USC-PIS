@@ -534,6 +534,7 @@ class ReportExportService:
     @staticmethod
     def export_to_pdf(report_data, template_content, title="Report"):
         try:
+            # 1. PRIMARY: Try xhtml2pdf (Modern HTML/CSS)
             if template_content:
                 try:
                     from xhtml2pdf import pisa
@@ -544,22 +545,121 @@ class ReportExportService:
                     if not pisa.CreatePDF(html, dest=buffer).err:
                         return buffer.getvalue()
                 except Exception as e:
-                    logger.warning(f"xhtml2pdf failed: {e}")
+                    logger.warning(f"xhtml2pdf failed, falling back to ReportLab: {e}")
             
+            # 2. SECONDARY: Robust ReportLab Fallback (Professional Layout)
             from reportlab.lib.pagesizes import A4
-            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-            from reportlab.lib.styles import getSampleStyleSheet
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
             from reportlab.lib import colors
+            from reportlab.lib.enums import TA_CENTER
+            
             buffer = BytesIO()
-            doc = SimpleDocTemplate(buffer, pagesize=A4)
-            story = [Paragraph(title, getSampleStyleSheet()['Heading1']), Spacer(1, 12)]
+            doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=50, leftMargin=50, topMargin=50, bottomMargin=50)
+            styles = getSampleStyleSheet()
+            
+            # Custom Styles
+            title_style = ParagraphStyle(
+                'USCTitle', parent=styles['Heading1'], fontSize=24, textColor=colors.hexColor('#0B4F6C'),
+                alignment=TA_CENTER, spaceAfter=10
+            )
+            subtitle_style = ParagraphStyle(
+                'USCSubtitle', parent=styles['Normal'], fontSize=10, textColor=colors.grey,
+                alignment=TA_CENTER, spaceAfter=30
+            )
+            section_style = ParagraphStyle(
+                'USCSection', parent=styles['Heading2'], fontSize=14, textColor=colors.white,
+                backColor=colors.hexColor('#0B4F6C'), leftIndent=0, borderPadding=5, spaceBefore=15, spaceAfter=10
+            )
+            label_style = ParagraphStyle('USCLabel', parent=styles['Normal'], fontWeight='bold', fontName='Helvetica-Bold')
+            
+            story = []
+            
+            # Header
+            story.append(Paragraph(title.upper(), title_style))
+            story.append(Paragraph("University of San Carlos - Patient Information System", subtitle_style))
+            story.append(Paragraph(f"Generated on: {timezone.now().strftime('%B %d, %Y at %I:%M %p')}", styles['Normal']))
+            story.append(Spacer(1, 20))
+
             if isinstance(report_data, dict):
+                # Separate simple metrics from lists
+                summary_data = []
+                list_sections = []
+                
                 for k, v in report_data.items():
-                    story.append(Paragraph(f"<b>{k}:</b> {v}", getSampleStyleSheet()['Normal']))
+                    if isinstance(v, (list, tuple)):
+                        list_sections.append((k, v))
+                    elif isinstance(v, dict):
+                        # Add nested dicts to summary as flattened rows
+                        for sk, sv in v.items():
+                            if not isinstance(sv, (list, dict)):
+                                summary_data.append([str(k).replace('_', ' ').title() + " - " + str(sk).replace('_', ' ').title(), str(sv)])
+                    else:
+                        summary_data.append([str(k).replace('_', ' ').title(), str(v)])
+
+                # Render Summary Table
+                if summary_data:
+                    story.append(Paragraph("Summary Overview", section_style))
+                    t = Table(summary_data, colWidths=[200, 300])
+                    t.setStyle(TableStyle([
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                        ('TOPPADDING', (0, 0), (-1, -1), 6),
+                    ]))
+                    story.append(t)
+                    story.append(Spacer(1, 20))
+
+                # Render Detailed Lists
+                for name, data_list in list_sections:
+                    story.append(Paragraph(str(name).replace('_', ' ').title(), section_style))
+                    
+                    if not data_list:
+                        story.append(Paragraph("<i>Nothing to report on. No records found for this section.</i>", styles['Italic']))
+                        continue
+
+                    if isinstance(data_list[0], dict):
+                        # Create table from list of dicts
+                        headers = [str(h).replace('_', ' ').title() for h in data_list[0].keys()]
+                        table_data = [headers]
+                        for item in data_list[:100]: # Limit rows for safety
+                            row = [str(item.get(h, '-')) for h in data_list[0].keys()]
+                            table_data.append(row)
+                        
+                        # Calculate column width dynamically
+                        col_count = len(headers)
+                        col_width = 500 / col_count if col_count > 0 else 500
+                        
+                        t = Table(table_data, colWidths=[col_width] * col_count)
+                        t.setStyle(TableStyle([
+                            ('BACKGROUND', (0, 0), (-1, 0), colors.hexColor('#0B4F6C')),
+                            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                            ('FONTSIZE', (0, 0), (-1, 0), 10),
+                            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                            ('FONTSIZE', (0, 1), (-1, -1), 8),
+                        ]))
+                        story.append(t)
+                    else:
+                        # Simple list
+                        for item in data_list:
+                            story.append(Paragraph(f"• {item}", styles['Normal']))
+                    
+                    story.append(Spacer(1, 15))
+
+            # Footer
+            story.append(Spacer(1, 40))
+            story.append(Paragraph("--- End of Report ---", subtitle_style))
+            
             doc.build(story)
             return buffer.getvalue()
         except Exception as e:
             logger.error(f"PDF export failed: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return json.dumps(report_data).encode('utf-8')
 
     @staticmethod
