@@ -84,27 +84,47 @@ class PatientSerializer(serializers.ModelSerializer):
     medical_records = MedicalRecordSerializer(many=True, read_only=True)
     dental_records = DentalRecordSerializer(many=True, read_only=True)
     consultations = ConsultationSerializer(many=True, read_only=True)
-    usc_id = serializers.SerializerMethodField()
-    course = serializers.SerializerMethodField()
+    
+    # Fields from User model
+    usc_id = serializers.ReadOnlyField(source='user.id_number')
+    middle_name = serializers.ReadOnlyField(source='user.middle_name')
+    course = serializers.ReadOnlyField(source='user.course')
+    year_level = serializers.ReadOnlyField(source='user.year_level')
+    school = serializers.ReadOnlyField(source='user.school')
+    civil_status = serializers.ReadOnlyField(source='user.civil_status')
+    nationality = serializers.ReadOnlyField(source='user.nationality')
+    religion = serializers.ReadOnlyField(source='user.religion')
+    address_permanent = serializers.ReadOnlyField(source='user.address_permanent')
+    phone = serializers.ReadOnlyField(source='user.phone')
+    weight = serializers.ReadOnlyField(source='user.weight')
+    height = serializers.ReadOnlyField(source='user.height')
+    bmi = serializers.ReadOnlyField(source='user.bmi')
+    father_name = serializers.ReadOnlyField(source='user.father_name')
+    mother_name = serializers.ReadOnlyField(source='user.mother_name')
+    emergency_contact = serializers.ReadOnlyField(source='user.emergency_contact')
+    emergency_contact_number = serializers.ReadOnlyField(source='user.emergency_contact_number')
+    illness = serializers.ReadOnlyField(source='user.illness')
+    childhood_diseases = serializers.ReadOnlyField(source='user.childhood_diseases')
+    special_needs = serializers.ReadOnlyField(source='user.special_needs')
+    existing_medical_condition = serializers.ReadOnlyField(source='user.existing_medical_condition')
+    medications = serializers.ReadOnlyField(source='user.medications')
+    allergies = serializers.ReadOnlyField(source='user.allergies')
+    hospitalization_history = serializers.ReadOnlyField(source='user.hospitalization_history')
+    surgical_procedures = serializers.ReadOnlyField(source='user.surgical_procedures')
 
     class Meta:
         model = Patient
         fields = [
-            'id', 'usc_id', 'course', 'first_name', 'last_name', 'date_of_birth', 
-            'gender', 'email', 'phone_number', 'address',
+            'id', 'user', 'usc_id', 'first_name', 'middle_name', 'last_name', 
+            'date_of_birth', 'gender', 'email', 'phone_number', 'address',
+            'course', 'year_level', 'school', 'civil_status', 'nationality', 
+            'religion', 'address_permanent', 'phone', 'weight', 'height', 'bmi',
+            'father_name', 'mother_name', 'emergency_contact', 'emergency_contact_number',
+            'illness', 'childhood_diseases', 'special_needs', 'existing_medical_condition',
+            'medications', 'allergies', 'hospitalization_history', 'surgical_procedures',
             'created_at', 'updated_at', 'medical_records', 'dental_records', 'consultations'
         ]
-        read_only_fields = ['created_at', 'updated_at', 'usc_id', 'course']
-    
-    def get_usc_id(self, obj):
-        """Get USC ID number from the related user"""
-        return obj.user.id_number if obj.user and obj.user.id_number else None
-
-    def get_course(self, obj):
-        """Get Course/Department from the related user"""
-        if not obj.user:
-            return None
-        return obj.user.course or obj.user.department
+        read_only_fields = ['created_at', 'updated_at']
     
     def validate_email(self, value):
         """Validate email with USC domain requirement."""

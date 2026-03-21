@@ -243,7 +243,7 @@ const PatientProfile = ({ patient: partialPatient, onBack }) => {
               Patient Medical Profile
             </Typography>
             <Typography variant="subtitle2" sx={{ opacity: 0.9 }}>
-              {patient?.first_name} {patient?.last_name} | {patient?.usc_id || 'No ID'}
+              {patient?.first_name} {patient?.middle_name ? `${patient.middle_name} ` : ''}{patient?.last_name} | {patient?.usc_id || 'No ID'}
             </Typography>
           </Box>
         </Box>
@@ -265,8 +265,8 @@ const PatientProfile = ({ patient: partialPatient, onBack }) => {
                 >
                   <Person sx={{ fontSize: 80 }} />
                 </Avatar>
-                <Typography variant="h5" sx={{ mt: 2, fontWeight: 'bold' }}>
-                  {patient?.first_name} {patient?.last_name}
+                <Typography variant="h6" sx={{ mt: 2, fontWeight: 'bold' }}>
+                  {patient?.first_name} {patient?.middle_name ? `${patient.middle_name} ` : ''}{patient?.last_name}
                 </Typography>
                 <Typography variant="body2" color="textSecondary">
                    {patient?.usc_id || 'No ID Number'}
