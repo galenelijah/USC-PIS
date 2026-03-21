@@ -191,10 +191,15 @@ class Command(BaseCommand):
         )
 
     def _apply_shared_styles(self, content: str) -> str:
-        """Insert shared report CSS after the first <style> tag or inside <head>."""
-        css = self.shared_css()
+        """Insert shared report CSS and load custom tags."""
         if not isinstance(content, str):
             return content
+            
+        # Ensure report tags are loaded for custom filters
+        if '{% load report_tags %}' not in content:
+            content = '{% load report_tags %}\n' + content
+            
+        css = self.shared_css()
         if '<style>' in content:
             return content.replace('<style>', '<style>\n' + css + '\n', 1)
         if '<head>' in content:
