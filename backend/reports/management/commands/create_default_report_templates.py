@@ -730,6 +730,9 @@ class Command(BaseCommand):
     def get_compliance_report_template(self):
         return self.get_generic_template("Compliance & Audit Report")
 
+    def get_custom_report_template(self):
+        return self.get_generic_template("Custom Ad-hoc Report")
+
     def get_generic_template(self, title):
         return f"""
         <!DOCTYPE html>
