@@ -66,3 +66,52 @@ This entry documents enhancements to student onboarding, data integrity, and the
 - **Dashboard**: Log in as a student with an incomplete profile and verify the missing fields are listed on the dashboard.
 - **Admin**: Delete a test student and verify they are also removed from the Patients record list.
 - **Reports**: Generate any report and verify it exports as a professional PDF.
+
+---
+
+# Session Changes (2026-03-19)
+
+This entry documents password validation synchronization and notification management enhancements.
+
+## Modified Files
+- `frontend/src/utils/validationSchemas.js` & `backend/authentication/validators.py`
+  - Synchronized password regex to support `#` and `^` special characters.
+- `backend/patients/views.py`
+  - Refined role-based filtering to exclude staff/admin users from the active patient list.
+- `backend/notifications/views.py` & `frontend/src/services/api.js`
+  - Implemented backend and frontend logic for bulk notification deletion (`delete_read`, `delete_all`).
+- `frontend/src/components/Notifications.jsx`
+  - Added UI controls for bulk deletion and "Mark All Read" functionality.
+
+## Rationale
+- **Validation**: Fixed UX friction where suggested characters were rejected by the system.
+- **Data Integrity**: Ensured patient counts and lists only reflect actual clinical patients, not administrative staff.
+- **UX**: Provided users with tools to manage their notification history.
+
+---
+
+# Session Changes (2026-03-21)
+
+This entry documents administrative notification fixes and the implementation of interactive patient profiles.
+
+## Modified Files
+- `backend/notifications/views.py`
+  - Refined `get_queryset` to default to user-only notifications for admins (added `?all=true` override).
+  - Updated `mark_as_read` to allow administrative overrides, fixing 403 errors.
+- `frontend/src/components/Notifications.jsx`
+  - Implemented ownership checks and UI safeguards for marking notifications as read.
+- `backend/patients/serializers.py`
+  - Expanded `PatientSerializer` to include full profile data from the `User` model.
+- `frontend/src/components/Patients/PatientList.jsx`
+  - Made the patient list clickable with hover effects.
+- `frontend/src/components/Patients/PatientsPage.jsx`
+  - Added state management for selected patients and conditional profile rendering.
+- `frontend/src/components/Patients/PatientProfile.jsx` (New File)
+  - Created a comprehensive unified profile view with medical history and vital signs.
+
+## Rationale
+- **Notifications**: Fixed a critical permission bug that prevented admins from clearing system alerts.
+- **Clinical Visibility**: Provided medical staff with a "360-degree view" of patient data, fulfilling the core thesis requirement for comprehensive medical profiles.
+- **UX**: Replaced a static table with an interactive, drill-down interface for patient management.
+
+---

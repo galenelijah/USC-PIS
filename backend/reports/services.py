@@ -50,6 +50,9 @@ class ReportDataService:
                     dental_records = list(patient.dental_records.all().order_by('-visit_date').values(
                         'visit_date', 'procedure_performed', 'diagnosis', 'treatment_performed', 'notes'
                     )[:10])
+                    consultations = list(patient.consultations.all().order_by('-date_time').values(
+                        'date_time', 'chief_complaints', 'treatment_plan', 'remarks'
+                    )[:10])
                     
                     # Calculate age
                     today = timezone.now().date()
@@ -79,9 +82,10 @@ class ReportDataService:
                             'medical_conditions': getattr(patient.user, 'existing_medical_condition', 'None') if patient.user else 'None',
                             'current_medications': getattr(patient.user, 'medications', 'None') if patient.user else 'None',
                         },
-                        'recent_appointments_count': len(medical_records) + len(dental_records),
+                        'recent_appointments_count': len(medical_records) + len(dental_records) + len(consultations),
                         'medical_records': medical_records,
-                        'dental_records': dental_records
+                        'dental_records': dental_records,
+                        'consultations': consultations
                     }
                 except Patient.DoesNotExist:
                     logger.error(f"Patient {patient_id} not found for report")
@@ -722,58 +726,251 @@ class ReportGenerationService:
     def get_default_template(self, report_type, title):
         return f"""
         {{% load report_tags %}}
-        <!DOCTYPE html><html><head><title>{title}</title>
-        <style>
-            body {{ font-family: sans-serif; padding: 20px; }}
-            .usc-header {{ text-align: center; border-bottom: 2px solid #0B4F6C; margin-bottom: 20px; padding-bottom: 10px; }}
-            .section {{ margin-bottom: 30px; }}
-            .section-title {{ color: #0B4F6C; font-size: 16px; font-weight: bold; border-bottom: 1px solid #eee; margin-bottom: 10px; padding-bottom: 5px; }}
-            .summary-table {{ width: 100%; margin-bottom: 20px; }}
-            .summary-table td {{ padding: 5px; border-bottom: 1px solid #f0f0f0; }}
-            .data-table {{ width: 100%; border-collapse: collapse; font-size: 10px; }}
-            .data-table th {{ background: #f8f9fa; text-align: left; padding: 5px; border: 1px solid #ddd; }}
-            .data-table td {{ padding: 5px; border: 1px solid #ddd; }}
-        </style>
-        </head><body>
-        <div class="usc-header"><h1>{title}</h1><p>Generated: {{{{ generated_at|date:"Y-m-d H:i" }}}}</p></div>
-        
-        <div class="section">
-            <div class="section-title">Summary Overview</div>
-            <table class="summary-table">
-            {{% for k, v in report_data.items %}}
-                {{% if v|is_simple %}}
-                <tr><td><strong>{{{{ k|title_clean }}}}</strong></td><td>{{{{ v }}}}</td></tr>
-                {{% endif %}}
-            {{% endfor %}}
-            </table>
-        </div>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>{title}</title>
+            <style>
+                @page {{
+                    size: A4;
+                    margin: 1.5cm;
+                    @bottom-right {{
+                        content: "Page " counter(page) " of " counter(pages);
+                        font-size: 9pt;
+                        color: #666;
+                    }}
+                    @bottom-left {{
+                        content: "USC-PIS | Generated: {{{{ generated_at|date:'Y-m-d H:i' }}}}";
+                        font-size: 9pt;
+                        color: #666;
+                    }}
+                }}
+                body {{
+                    font-family: 'Helvetica', 'Arial', sans-serif;
+                    line-height: 1.4;
+                    color: #333;
+                    margin: 0;
+                    padding: 0;
+                }}
+                .header {{
+                    text-align: center;
+                    border-bottom: 3px solid #0B4F6C;
+                    margin-bottom: 25px;
+                    padding-bottom: 15px;
+                }}
+                .header h1 {{
+                    color: #0B4F6C;
+                    margin: 0;
+                    font-size: 24pt;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                }}
+                .header p {{
+                    margin: 5px 0 0 0;
+                    color: #666;
+                    font-size: 10pt;
+                }}
+                .section {{
+                    margin-bottom: 25px;
+                    page-break-inside: avoid;
+                }}
+                .section-title {{
+                    background-color: #f8f9fa;
+                    color: #0B4F6C;
+                    font-size: 14pt;
+                    font-weight: bold;
+                    padding: 8px 12px;
+                    border-left: 5px solid #0B4F6C;
+                    margin-bottom: 12px;
+                }}
+                .summary-grid {{
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 15px;
+                }}
+                .summary-grid td {{
+                    padding: 8px;
+                    border-bottom: 1px solid #eee;
+                    vertical-align: top;
+                }}
+                .label {{
+                    font-weight: bold;
+                    color: #555;
+                    width: 35%;
+                }}
+                .data-table {{
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 15px;
+                    font-size: 9pt;
+                }}
+                .data-table th {{
+                    background-color: #0B4F6C;
+                    color: white;
+                    text-align: left;
+                    padding: 10px 8px;
+                    font-weight: bold;
+                }}
+                .data-table td {{
+                    padding: 8px;
+                    border-bottom: 1px solid #dee2e6;
+                    vertical-align: top;
+                }}
+                .data-table tr:nth-child(even) {{
+                    background-color: #fcfcfc;
+                }}
+                .empty-message {{
+                    text-align: center;
+                    padding: 30px;
+                    background-color: #fdfdfe;
+                    border: 1px dashed #ccc;
+                    color: #888;
+                    font-style: italic;
+                    margin: 10px 0;
+                }}
+                .footer {{
+                    margin-top: 50px;
+                    text-align: center;
+                    font-size: 8pt;
+                    color: #999;
+                    border-top: 1px solid #eee;
+                    padding-top: 10px;
+                }}
+                .badge {{
+                    display: inline-block;
+                    padding: 2px 6px;
+                    background: #e9ecef;
+                    border-radius: 4px;
+                    font-size: 8pt;
+                    font-weight: bold;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>{title}</h1>
+                <p>University of San Carlos - Patient Information System</p>
+            </div>
 
-        {{% for k, v in report_data.items %}}
-            {{% if v|is_list and v.0|is_dict %}}
+            <!-- 1. PATIENT INFORMATION SECTION (If Patient Summary) -->
+            {{% if report_data.patient %}}
             <div class="section">
-                <div class="section-title">{{{{ k|title_clean }}}}</div>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                        {{% for header in v.0.keys %}}
-                            <th>{{{{ header|title_clean }}}}</th>
-                        {{% endfor %}}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {{% for row in v %}}
-                        <tr>
-                            {{% for val in row.values %}}
-                            <td>{{{{ val }}}}</td>
-                            {{% endfor %}}
-                        </tr>
-                        {{% endfor %}}
-                    </tbody>
+                <div class="section-title">Patient Profile</div>
+                <table class="summary-grid">
+                    <tr>
+                        <td class="label">Full Name</td>
+                        <td>{{{{ report_data.patient.first_name }}}} {{{{ report_data.patient.last_name }}}}</td>
+                        <td class="label">ID Number</td>
+                        <td>{{{{ report_data.patient.student_id }}}}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Gender / Age</td>
+                        <td>{{{{ report_data.patient.gender }}}} / {{{{ report_data.patient.age }}}} yrs</td>
+                        <td class="label">Contact</td>
+                        <td>{{{{ report_data.patient.contact_number }}}}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Address</td>
+                        <td colspan="3">{{{{ report_data.patient.address }}}}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Medical Background</div>
+                <table class="summary-grid">
+                    <tr>
+                        <td class="label">Allergies</td>
+                        <td style="color: #d32f2f;">{{{{ report_data.patient.allergies|default:"None recorded" }}}}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Existing Conditions</td>
+                        <td>{{{{ report_data.patient.medical_conditions|default:"None recorded" }}}}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Current Medications</td>
+                        <td>{{{{ report_data.patient.current_medications|default:"None recorded" }}}}</td>
+                    </tr>
                 </table>
             </div>
             {{% endif %}}
-        {{% endfor %}}
-        </body></html>"""
+
+            <!-- 2. SUMMARY OVERVIEW SECTION (General Metrics) -->
+            {{% if not report_data.patient %}}
+            <div class="section">
+                <div class="section-title">Summary Metrics</div>
+                <table class="summary-grid">
+                {{% for k, v in report_data.items %}}
+                    {{% if v|is_simple %}}
+                    <tr>
+                        <td class="label">{{{{ k|title_clean }}}}</td>
+                        <td>{{{{ v }}}}</td>
+                    </tr>
+                    {{% elif v|is_dict %}}
+                        {{% for sk, sv in v.items %}}
+                            {{% if sv|is_simple %}}
+                            <tr>
+                                <td class="label">{{{{ k|title_clean }}}} - {{{{ sk|title_clean }}}}</td>
+                                <td>{{{{ sv }}}}</td>
+                            </tr>
+                            {{% endif %}}
+                        {{% endfor %}}
+                    {{% endif %}}
+                {{% endfor %}}
+                </table>
+            </div>
+            {{% endif %}}
+
+            <!-- 3. DETAILED LISTS SECTION -->
+            {{% for k, v in report_data.items %}}
+                {{% if v|is_list %}}
+                <div class="section">
+                    <div class="section-title">{{{{ k|title_clean }}}}</div>
+                    
+                    {{% if v|has_data %}}
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                {{% if v.0|is_dict %}}
+                                    {{% for header in v.0.keys %}}
+                                        <th>{{{{ header|title_clean }}}}</th>
+                                    {{% endfor %}}
+                                {{% else %}}
+                                    <th>Value</th>
+                                {{% endif %}}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{% for row in v %}}
+                                <tr>
+                                    {{% if row|is_dict %}}
+                                        {{% with headers=v.0.keys %}}
+                                            {{% for header in headers %}}
+                                                <td>{{{{ row|get_item:header|default:"-" }}}}</td>
+                                            {{% endfor %}}
+                                        {{% endwith %}}
+                                    {{% else %}}
+                                        <td>{{{{ row }}}}</td>
+                                    {{% endif %}}
+                                </tr>
+                                {{% endfor %}}
+                            </tbody>
+                        </table>
+                    {{% else %}}
+                        <div class="empty-message">
+                            Nothing to report on for {{{{ k|title_clean }}}}. No records found within the selected criteria.
+                        </div>
+                    {{% endif %}}
+                </div>
+                {{% endif %}}
+            {{% endfor %}}
+
+            <div class="footer">
+                <p>This is an electronically generated report from the USC Patient Information System. Confidentiality should be maintained according to University policies.</p>
+                <p>&copy; {{{{ generated_at|date:"Y" }}}} University of San Carlos Health Services</p>
+            </div>
+        </body>
+        </html>"""
 
     def _generate_generic_report(self, report_type, title, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
         final_tpl = template_html or self.get_default_template(report_type, title)
