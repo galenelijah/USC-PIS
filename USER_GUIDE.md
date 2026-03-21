@@ -299,36 +299,44 @@ For complete API documentation, see **[API Documentation](docs/api/README.md#ema
   - Health Campaign Performance
 - **Confidentiality**: All generated reports include a "Confidential Medical Record" footer and are intended for authorized personnel only.
 
+### **In-App Notifications** 🔔
+
+The real-time notification center keeps you updated on your healthcare status without checking your email.
+
+*   **Real-time Alerts**: Get notified instantly for certificate approvals, new campaigns, or system updates.
+*   **Notification Center**: Access all your alerts by clicking the bell icon (🔔) in the navigation bar or visiting the Notifications page.
+*   **Management Actions**:
+    *   **Mark All Read**: Quickly clear your unread count.
+    *   **Delete Read**: Remove old notifications that you've already seen to keep your list clean.
+    *   **Delete All**: Completely clear your notification history for better focus.
+
+### **Automatic Patient List Management** 📋
+
+The system automatically manages who appears in the "Patients" list to ensure administrative clarity.
+
+*   **Role-Based Filtering**: Only users with **Student** or **Teacher** roles appear in the patient database.
+*   **Automatic Updates**: If an administrator changes a user's role from Student to Admin or Staff, that user is automatically removed from the Patients list and dashboard statistics.
+*   **Unified Counts**: Patient totals are synchronized across the Dashboard, Patient List, and User Management pages for accurate reporting.
+
 ## User Roles
 
-**Important Update (July 24, 2025):** Doctor roles now have full administrative access identical to Staff and Admin users, ensuring consistent experience across all medical professionals.
+**Important Update (July 24, 2025):** Doctor and Dentist roles now have full administrative access identical to Staff and Admin users, ensuring consistent experience across all medical professionals.
 
 ### Student
-- **Medical Records**: Access dedicated medical records page (`/health-records`) showing only medical visits
-- **Dental Records**: Access dedicated dental records page (`/dental-records`) for dental care history  
-- **Health Insights & History**: Comprehensive view of medical and dental records (`/health-insights`; legacy `/medical-records` redirects)
-- **Medical Certificates**: Request and track medical certificates for school/work
-- **Health Information & Campaigns**: Access health campaigns at `/campaigns`; click a card to see details and use “Open Full Preview” for a full-page view at `/campaigns/:id`.
-- **Profile Management**: Update personal information and account settings
+*   **Medical & Dental Records**: Access your personal health history at `/health-insights`.
+*   **Medical Certificates**: Request and track certificates for school/work.
+*   **Health Campaigns**: View interactive health information and clinic updates.
 
-### Doctor
-- **Full Administrative Access** (identical to Staff/Admin)
-- View and manage all patient records
-- Create and update medical records
-- Manage appointments and consultations
-- Issue prescriptions and medical certificates
-- Access admin dashboard with system statistics
-- View and manage feedback analytics
-- Create and manage health information campaigns
-- Access database monitoring tools
-- Complete administrative menu access
+### Teacher (Faculty)
+*   **Patient Status**: Teachers use the clinic's services as patients, similar to Students.
+*   **Profile Setup**: Profile completion requires "Department" information instead of "Course/Year".
+*   **Records Access**: View personal medical and dental records just like Students.
 
-### Dentist
-- Full administrative access similar to Doctor
-- View and manage all patient records (medical and dental)
-- Create and update dental records and medical records
-- Issue prescriptions and medical certificates
-- Access admin dashboard, reports, notifications, and email administration
+### Doctor / Dentist
+*   **Full Administrative Access**: Identical to Staff/Admin roles.
+*   **Patient Management**: Create and manage medical/dental records for all patients.
+*   **Clinical Tools**: Issue certificates, prescriptions, and manage consultations.
+*   **Analytics**: Access dashboard stats and feedback reports.
 
 ### Nurse
 - Register new patients

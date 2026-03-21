@@ -36,16 +36,24 @@ The challenge was differentiating Teachers from Staff, as both often use text-on
 ### 4. Profile Setup & Patient Profile
 Teachers need a `Patient` profile in the database to store medical records.
 *   **Backend:** `CompleteProfileSetupView` in `views.py` was updated to check `if user.role in [User.Role.STUDENT, User.Role.TEACHER]:`.
-*   **Frontend:** `ProfileSetup.jsx` treats `isStudent` as true if the role is `STUDENT` or `TEACHER`.
+    *   **Field Forking:** For `TEACHER` roles, the setup requires `department` information instead of `course/year`.
+*   **Frontend:** `ProfileSetup.jsx` treats `isStudent` as true if the role is `STUDENT` or `TEACHER`, but forks the UI labels to show "Department" for teachers.
 
-### 5. Access Control (Frontend)
-Global changes were made to `App.jsx` and various components to grant Teachers the same view access as Students.
+### 5. Access Control & Management (Refined March 2026)
+Global changes were made to ensure Teachers have the same view access as Students while maintaining administrative clarity.
 *   **Variable:** `userRoles.isPatientRole` (replaces direct `isStudent` checks in routing).
 *   **Routes Accessible:**
     *   `/health-records` (View own)
     *   `/medical-certificates` (Request/View own)
     *   `/medical-history` (View own)
     *   `/dental-records` (View own)
+*   **Patient List Filtering:** The `/patients` management list automatically filters for `STUDENT` and `TEACHER` roles. If a user's role is changed to an administrative one, they are automatically removed from the active patient list.
+*   **Data Mapping:** The `PatientSerializer` correctly maps a Teacher's `department` to the "Course/Department" column in the patients list for consistent reporting.
+
+## Recent Enhancements (March 2026)
+*   **Role Transition Logic:** Fixed a bug where users who were promoted from Student to Admin/Staff still appeared in the Patients list. The list now dynamically filters based on the user's *current* role.
+*   **Synchronized Statistics:** Dashboard patient counts, Patient list totals, and User Management role counts are now perfectly synchronized.
+*   **Unified Provider Support:** Ensured `DENTIST` and `DOCTOR` roles have identical access to both medical and dental records for comprehensive patient care.
 
 ## Key Files Modified
 *   `backend/authentication/models.py`: Added Role choice.

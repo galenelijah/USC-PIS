@@ -42,6 +42,16 @@ This document describes every automatic email/notification in USC‑PIS, what tr
   - Template: `emails/backup_alert.html` + `.txt`
   - Recipient: `BACKUP_ALERT_EMAIL` or first admin in `ADMINS`
 
+## In-App Notification Management
+- Users can manage their in-app notifications directly through the Notifications center.
+- **Mark as Read**: Transitions status to `READ` and sets `read_at` timestamp.
+- **Mark All Read**: Bulk updates all unread notifications for the current user.
+- **Delete Read**: Permanently removes notifications with `READ` status for the current user to optimize storage.
+- **Delete All**: Completely clears the notification history for the current user.
+- **Permissions**: 
+  - Regular users can only read/manage their own notifications.
+  - Medical staff and Admins can view and manage all notifications across the system.
+
 ## Scheduler Jobs (Recommended)
 Add these to Heroku Scheduler (or cron) so background emails run automatically:
 - Send due scheduled notifications

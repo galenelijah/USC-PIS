@@ -51,7 +51,7 @@ import {
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import InfoTooltip from './utils/InfoTooltip';
-import { notificationService } from '../services/api';
+import { notificationService, authService } from '../services/api';
 
 function TabPanel({ children, value, index, ...other }) {
     return (
@@ -86,12 +86,26 @@ const Notifications = () => {
     const [typeFilter, setTypeFilter] = useState('');
     const [priorityFilter, setPriorityFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
+    const [currentUser, setCurrentUser] = useState(null);
     
     // Ref to track component mount status
     const isMountedRef = useRef(true);
     
     // Cleanup on unmount
     useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const response = await authService.getCurrentUser();
+                if (isMountedRef.current) {
+                    setCurrentUser(response.data);
+                }
+            } catch (err) {
+                console.error('Error fetching current user:', err);
+            }
+        };
+
+        fetchUser();
+
         return () => {
             isMountedRef.current = false;
         };
@@ -292,7 +306,8 @@ const Notifications = () => {
     const handleViewDetails = (notification) => {
         setSelectedNotification(notification);
         setDetailsOpen(true);
-        if (!notification.is_read) {
+        // Only mark as read if it's not already read AND the current user is the recipient
+        if (!notification.is_read && currentUser && notification.recipient === currentUser.id) {
             handleMarkAsRead(notification.id);
         }
     };
@@ -800,7 +815,7 @@ const Notifications = () => {
                             <Button onClick={() => setDetailsOpen(false)}>
                                 Close
                             </Button>
-                            {!selectedNotification.is_read && (
+                            {!selectedNotification.is_read && currentUser && selectedNotification.recipient === currentUser.id && (
                                 <Button
                                     variant="contained"
                                     onClick={() => {

@@ -14,6 +14,14 @@ The system's password validation logic has been refined to ensure full consisten
 *   **Status:** ✅ Resolved
 *   **Details:** The password validation has been updated on both the frontend and backend to correctly identify `#` and `^` as valid special characters. This resolves a prior issue where users were unable to register with passwords containing these characters despite hint text.
 
+### 2. Dynamic Patient List Filtering
+*   **Status:** ✅ Resolved
+*   **Details:** Fixed a logic error where users whose roles were changed from Student to Admin/Staff still appeared in the Patients list. The `/patients` list now dynamically filters by role, ensuring only Student and Teacher roles are displayed as active patients. Patient totals are now synchronized and consistent across the Dashboard, Patient List, and User Management pages.
+
+### 3. Notification Management & Storage Efficiency
+*   **Status:** ✅ Enhanced
+*   **Details:** Added comprehensive management controls for in-app notifications. Users can now mark all read, delete read notifications, and delete their entire notification history. This improves system performance and storage efficiency by allowing users to clear legacy data.
+
 ## Current Priorities & Roadmap
 
 ### High Priority

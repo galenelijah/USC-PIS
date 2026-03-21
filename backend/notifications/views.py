@@ -50,13 +50,17 @@ class NotificationViewSet(viewsets.ModelViewSet):
         """Filter notifications based on user permissions"""
         user = self.request.user
         
-        if user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE, 'medical_staff']:
-            # Medical staff and admins can see all notifications
+        # Check if user wants to see all notifications (admin/staff only)
+        show_all = self.request.query_params.get('all', 'false').lower() == 'true'
+        is_medical_staff = user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE, 'medical_staff']
+        
+        if show_all and is_medical_staff:
+            # Medical staff and admins can see all notifications if requested
             return Notification.objects.select_related(
                 'recipient', 'patient', 'template', 'created_by'
             ).prefetch_related('logs')
         else:
-            # Regular users can only see their own notifications
+            # By default, users (including admins) only see their own notifications in their inbox
             return Notification.objects.filter(
                 recipient=user
             ).select_related(
@@ -120,8 +124,10 @@ class NotificationViewSet(viewsets.ModelViewSet):
         """Mark notification as read"""
         notification = self.get_object()
         
-        # Only recipient can mark as read
-        if notification.recipient != request.user:
+        # Check if user is the recipient or has administrative roles
+        is_medical_staff = request.user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE, 'medical_staff']
+        
+        if notification.recipient != request.user and not is_medical_staff:
             return Response(
                 {'error': 'You can only mark your own notifications as read.'},
                 status=status.HTTP_403_FORBIDDEN
