@@ -26,8 +26,13 @@ const getCourseLabel = (courseId) => {
   return course ? course.label : courseId; // Fallback to ID if not found (e.g. if it was saved as text)
 };
 
-const PatientRow = memo(({ patient }) => (
-  <TableRow key={patient.id}>
+const PatientRow = memo(({ patient, onClick }) => (
+  <TableRow 
+    key={patient.id} 
+    hover 
+    onClick={() => onClick(patient)}
+    sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+  >
     <TableCell>{patient.usc_id || 'N/A'}</TableCell>
     <TableCell>{`${patient.first_name} ${patient.last_name}`}</TableCell>
     <TableCell>{getCourseLabel(patient.course)}</TableCell>
@@ -41,8 +46,12 @@ const PatientRow = memo(({ patient }) => (
 PatientRow.displayName = 'PatientRow';
 
 // Mobile Patient Card Component
-const PatientCard = memo(({ patient }) => (
-  <Card className="mobile-table-card" sx={{ mb: 2 }}>
+const PatientCard = memo(({ patient, onClick }) => (
+  <Card 
+    className="mobile-table-card" 
+    sx={{ mb: 2, cursor: 'pointer', '&:hover': { boxShadow: 3 } }}
+    onClick={() => onClick(patient)}
+  >
     <CardContent>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
         <Avatar sx={{ mr: 2, bgcolor: 'primary.main' }}>
@@ -86,7 +95,7 @@ const PatientCard = memo(({ patient }) => (
 
 PatientCard.displayName = 'PatientCard';
 
-const PatientList = memo(({ patients }) => {
+const PatientList = memo(({ patients, onPatientClick }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -118,6 +127,7 @@ const PatientList = memo(({ patients }) => {
                   <PatientRow 
                     key={patient.id} 
                     patient={patient} 
+                    onClick={onPatientClick}
                   />
                 ))
               ) : (
@@ -134,12 +144,13 @@ const PatientList = memo(({ patients }) => {
         </TableContainer>
 
         {/* Mobile Card View */}
-        <Box className="mobile-table-card" sx={{ display: { xs: 'block', md: 'none' } }}>
+        <Box sx={{ display: { xs: 'block', md: 'none' } }}>
           {sortedPatients.length > 0 ? (
             sortedPatients.map((patient) => (
               <PatientCard 
                 key={patient.id} 
                 patient={patient} 
+                onClick={onPatientClick}
               />
             ))
           ) : (

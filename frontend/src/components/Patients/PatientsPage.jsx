@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Box, TextField, InputAdornment, IconButton, Typography, Stack } from '@mui/material';
 import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material';
 import PatientList from './PatientList';
+import PatientProfile from './PatientProfile';
 import { patientService } from '../../services/api';
 import InfoTooltip from '../utils/InfoTooltip';
 
@@ -10,6 +11,7 @@ const PatientsPage = ({ initialPatients = [] }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [results, setResults] = useState(initialPatients);
+  const [selectedPatient, setSelectedPatient] = useState(null);
 
   // Keep results in sync if initial list changes and no query is active
   useEffect(() => {
@@ -41,12 +43,28 @@ const PatientsPage = ({ initialPatients = [] }) => {
     return () => clearTimeout(t);
   }, [query, performSearch]);
 
+  const handlePatientClick = (patient) => {
+    setSelectedPatient(patient);
+  };
+
+  const handleBackToList = () => {
+    setSelectedPatient(null);
+  };
+
   const countLabel = useMemo(() => {
     const count = results?.length || 0;
     if (loading) return 'Searching...';
     if (query) return `${count} result${count === 1 ? '' : 's'}`;
     return `${count} patient${count === 1 ? '' : 's'}`;
   }, [results, loading, query]);
+
+  if (selectedPatient) {
+    return (
+      <Box sx={{ p: 2 }}>
+        <PatientProfile patient={selectedPatient} onBack={handleBackToList} />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 2 }}>
@@ -76,7 +94,7 @@ const PatientsPage = ({ initialPatients = [] }) => {
           {countLabel}
         </Typography>
       </Stack>
-      <PatientList patients={results || []} />
+      <PatientList patients={results || []} onPatientClick={handlePatientClick} />
       {error && (
         <Typography variant="body2" color="error" sx={{ mt: 1 }}>
           {error}
