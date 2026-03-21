@@ -11,6 +11,7 @@ import {
   Chip,
   Divider,
   LinearProgress,
+  CircularProgress,
   Alert,
   IconButton,
   Tooltip,
@@ -47,7 +48,7 @@ import {
   calculateAge,
   convertStringToArray 
 } from '../../utils/fieldMappers';
-import { healthRecordsService, consultationService, dentalRecordService } from '../../services/api';
+import { healthRecordsService, consultationService, dentalRecordService, patientService } from '../../services/api';
 
 // Visual assets (reusing from dashboard)
 // ... (imports remain the same)
@@ -63,32 +64,42 @@ import BMI_female_4 from "../../assets/images/BMI_Visual/BMI_female_4.png";
 import BMI_female_5 from "../../assets/images/BMI_Visual/BMI_female_5.png";
 import InfoTooltip from '../utils/InfoTooltip';
 
-const PatientProfile = ({ patient, onBack }) => {
-  const [loading, setLoading] = useState(false);
+const PatientProfile = ({ patient: partialPatient, onBack }) => {
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [patient, setPatient] = useState(partialPatient);
   const [history, setHistory] = useState([]);
   const [latestVitalSigns, setLatestVitalSigns] = useState({});
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
-    const fetchAllHistory = async () => {
-      if (!patient?.id) return;
+    const fetchPatientFullData = async () => {
+      if (!partialPatient?.id) return;
       
       try {
         setLoading(true);
+        setError(null);
+
+        // Fetch full patient details first
+        const patientResp = await patientService.getById(partialPatient.id);
+        if (patientResp?.data) {
+          setPatient(patientResp.data);
+        }
+
+        // Fetch all related history
         const [medicalResp, consultationResp, dentalResp] = await Promise.all([
-          healthRecordsService.getByPatient(patient.id),
-          consultationService.getAll(), // Needs filtering or by-patient endpoint
-          dentalRecordService.getAll({ patient: patient.id })
+          healthRecordsService.getByPatient(partialPatient.id).catch(() => ({ data: [] })),
+          consultationService.getAll().catch(() => ({ data: [] })),
+          dentalRecordService.getAll({ patient: partialPatient.id }).catch(() => ({ data: [] }))
         ]);
         
         // Merge and tag records
         const medical = (medicalResp?.data || []).map(r => ({ ...r, type: 'Medical', date: r.visit_date }));
         
-        // Filter consultations for this patient (if backend doesn't have by-patient endpoint)
+        // Filter consultations for this patient
         const consultations = (consultationResp?.data || [])
-          .filter(r => r.patient === patient.id)
+          .filter(r => r.patient === partialPatient.id)
           .map(r => ({ ...r, type: 'Consultation', date: r.date_time }));
           
         const dental = (dentalResp?.data || [])
@@ -101,23 +112,25 @@ const PatientProfile = ({ patient, onBack }) => {
         setHistory(allHistory);
         
         // Find latest vitals from medical records
-        const recordsWithVitalSigns = medical.sort((a, b) => 
-          new Date(b.visit_date) - new Date(a.visit_date)
-        ).filter(r => r.vital_signs && Object.keys(r.vital_signs).length > 0);
+        const recordsWithVitalSigns = medical
+          .filter(r => r.vital_signs && Object.keys(r.vital_signs).length > 0)
+          .sort((a, b) => new Date(b.visit_date) - new Date(a.visit_date));
         
         if (recordsWithVitalSigns.length > 0) {
           setLatestVitalSigns(recordsWithVitalSigns[0].vital_signs);
         }
       } catch (err) {
-        console.error('Error fetching patient history:', err);
-        setError('Failed to load full patient history');
+        console.error('Error fetching patient profile data:', err);
+        const errorMsg = err.response?.data?.detail || err.message || 'Failed to load full patient profile';
+        setError(`${errorMsg} (Status: ${err.response?.status || 'Unknown'})`);
+        // If we have partial data, don't block the UI entirely
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAllHistory();
-  }, [patient]);
+    fetchPatientFullData();
+  }, [partialPatient.id]);
 
   const handleViewRecord = (record) => {
     setSelectedRecord(record);
@@ -136,53 +149,33 @@ const PatientProfile = ({ patient, onBack }) => {
     return 'N/A';
   };
 
-  const formatVitalSign = (value, unit = '') => {
-    if (value === null || value === undefined || value === '') {
-      return 'Not recorded';
-    }
-    return `${value}${unit ? ' ' + unit : ''}`;
-  };
+  if (loading && !patient) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
-  const calculateBMI = (weight, height) => {
-    if (!weight || !height) return null;
-    const weightNum = parseFloat(weight);
-    const heightNum = parseFloat(height);
-    if (isNaN(weightNum) || isNaN(heightNum) || heightNum === 0) return null;
-    const heightInMeters = heightNum / 100;
-    return (weightNum / (heightInMeters * heightInMeters)).toFixed(1);
-  };
+  if (error && !patient) {
+    return (
+      <Box sx={{ p: 2 }}>
+        <Button startIcon={<ArrowBack />} onClick={onBack} sx={{ mb: 2 }}>Back to List</Button>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
 
-  const getBMIInfo = (bmi, sex) => {
-    if (!bmi || isNaN(bmi)) return { category: "Not Available", image: null, color: "#f0f0f0" };
+  const userAge = calculateAge(patient?.date_of_birth || patient?.birthday);
+  const userBMI = calculateBMI(patient?.weight, patient?.height);
+  const bmiInfo = getBMIInfo(userBMI, patient?.gender || patient?.sex);
 
-    const numericBMI = parseFloat(bmi);
-    const sexLabel = (getSexLabel(sex) || '').toLowerCase();
-    const isMale = sexLabel.startsWith('male');
-    
-    if (numericBMI < 18.5)
-      return { category: "Underweight", image: isMale ? BMI_male_1 : BMI_female_1, color: "#3ba1d9" };
-    if (numericBMI >= 18.5 && numericBMI <= 24.9)
-      return { category: "Healthy Weight", image: isMale ? BMI_male_2 : BMI_female_2, color: "#18a951" };
-    if (numericBMI >= 25 && numericBMI <= 29.9)
-      return { category: "Overweight", image: isMale ? BMI_male_3 : BMI_female_3, color: "#f8d64c" };
-    if (numericBMI >= 30 && numericBMI <= 34.9)
-      return { category: "Obesity", image: isMale ? BMI_male_4 : BMI_female_4, color: "#e69d68" };
-    if (numericBMI >= 35)
-      return { category: "Severe Obesity", image: isMale ? BMI_male_5 : BMI_female_5, color: "#f0432e" };
-
-    return { category: "Not Available", image: null, color: "#f0f0f0" };
-  };
-
-  const userAge = calculateAge(patient.date_of_birth || patient.birthday);
-  const userBMI = calculateBMI(patient.weight, patient.height);
-  const bmiInfo = getBMIInfo(userBMI, patient.gender || patient.sex);
-
-  const illnesses = convertStringToArray(patient.illness);
-  const allergies = convertStringToArray(patient.allergies);
-  const medications = convertStringToArray(patient.medications);
-  const childhoodDiseases = convertStringToArray(patient.childhood_diseases);
-  const specialNeeds = convertStringToArray(patient.special_needs);
-  const existingConditions = convertStringToArray(patient.existing_medical_condition);
+  const illnesses = convertStringToArray(patient?.illness);
+  const allergies = convertStringToArray(patient?.allergies);
+  const medications = convertStringToArray(patient?.medications);
+  const childhoodDiseases = convertStringToArray(patient?.childhood_diseases);
+  const specialNeeds = convertStringToArray(patient?.special_needs);
+  const existingConditions = convertStringToArray(patient?.existing_medical_condition);
 
   return (
     <Box sx={{ py: 2 }}>
