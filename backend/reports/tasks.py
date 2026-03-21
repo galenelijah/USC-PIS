@@ -69,7 +69,7 @@ def generate_report_task_celery(report_id, is_sync=False):
         method = report_methods.get(template.report_type, service.generate_comprehensive_analytics_report)
         report_data = method(**common_kwargs)
         
-        if report_data:
+        if report_data is not None:
             report.progress_percentage = 80
             report.save()
             
@@ -105,9 +105,9 @@ def generate_report_task_celery(report_id, is_sync=False):
             report.generation_time = timezone.now() - report.created_at
             
         else:
-            logger.error(f"No report data generated for report {report_id}")
+            logger.error(f"No report data generated (or generation failed) for report {report_id}")
             report.status = 'FAILED'
-            report.error_message = 'Service returned no data'
+            report.error_message = 'Service failed to generate valid file content (PDF/Excel generation error)'
         
         report.save()
         return True
