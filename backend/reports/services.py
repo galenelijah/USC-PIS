@@ -595,15 +595,25 @@ class ReportGenerationService:
             date_end = timezone.now()
 
         try:
-            if report_type == 'PATIENT_SUMMARY': data = self.data_service.get_patient_summary_data(date_start, date_end, filters)
-            elif report_type == 'VISIT_TRENDS': data = self.data_service.get_visit_trends_data(date_start, date_end, filters)
-            elif report_type == 'FEEDBACK_ANALYSIS': data = self.data_service.get_feedback_analysis_data(date_start, date_end, filters)
-            elif report_type == 'CAMPAIGN_PERFORMANCE': data = self.data_service.get_campaign_performance_data(date_start, date_end, filters)
-            elif report_type == 'MEDICAL_STATISTICS': data = self.data_service.get_medical_statistics_data(date_start, date_end, filters)
-            elif report_type == 'DENTAL_STATISTICS': data = self.data_service.get_dental_statistics_data(date_start, date_end, filters)
-            elif report_type == 'TREATMENT_OUTCOMES': data = self.data_service.get_treatment_outcomes_data(date_start, date_end, filters)
-            elif report_type == 'USER_ACTIVITY': data = self.data_service.get_user_activity_data(date_start, date_end, filters)
-            else: data = self.data_service.get_comprehensive_analytics_data(date_start, date_end, filters)
+            # Normalize report type for robust matching
+            rtype = str(report_type or '').strip().upper()
+            
+            if rtype == 'PATIENT_SUMMARY': data = self.data_service.get_patient_summary_data(date_start, date_end, filters)
+            elif rtype == 'VISIT_TRENDS': data = self.data_service.get_visit_trends_data(date_start, date_end, filters)
+            elif rtype in ['FEEDBACK_ANALYSIS', 'PATIENT_FEEDBACK']: data = self.data_service.get_feedback_analysis_data(date_start, date_end, filters)
+            elif rtype in ['CAMPAIGN_PERFORMANCE', 'HEALTH_CAMPAIGN']: data = self.data_service.get_campaign_performance_data(date_start, date_end, filters)
+            elif rtype in ['MEDICAL_STATISTICS', 'MEDICAL_STATS']: data = self.data_service.get_medical_statistics_data(date_start, date_end, filters)
+            elif rtype in ['DENTAL_STATISTICS', 'DENTAL_STATS']: data = self.data_service.get_dental_statistics_data(date_start, date_end, filters)
+            elif rtype in ['TREATMENT_OUTCOMES', 'TREATMENT_OUTCOME']: data = self.data_service.get_treatment_outcomes_data(date_start, date_end, filters)
+            elif rtype == 'USER_ACTIVITY': data = self.data_service.get_user_activity_data(date_start, date_end, filters)
+            elif rtype == 'HEALTH_METRICS': data = self.data_service.get_health_metrics_data(date_start, date_end, filters)
+            elif rtype == 'INVENTORY_REPORT': data = self.data_service.get_inventory_report_data(date_start, date_end, filters)
+            elif rtype == 'FINANCIAL_REPORT': data = self.data_service.get_financial_report_data(date_start, date_end, filters)
+            elif rtype == 'COMPLIANCE_REPORT': data = self.data_service.get_compliance_report_data(date_start, date_end, filters)
+            elif rtype == 'CUSTOM': data = self.data_service.get_custom_report_data(date_start, date_end, filters)
+            else: 
+                logger.warning(f"Unknown report type '{rtype}', falling back to comprehensive analytics")
+                data = self.data_service.get_comprehensive_analytics_data(date_start, date_end, filters)
             
             if not isinstance(data, dict): data = {'error': 'Invalid data format', 'report_type': report_type}
             

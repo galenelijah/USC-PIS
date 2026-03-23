@@ -48,16 +48,22 @@ def generate_report_task_celery(report_id, is_sync=False):
         report.progress_percentage = 50
         report.save()
 
-        # Mapping report types to service methods
+        # Mapping report types to service methods (with robust aliases)
         report_methods = {
             'PATIENT_SUMMARY': service.generate_patient_summary_report,
             'VISIT_TRENDS': service.generate_visit_trends_report,
+            'VISIT_TREND': service.generate_visit_trends_report,
             'TREATMENT_OUTCOMES': service.generate_treatment_outcomes_report,
+            'TREATMENT_OUTCOME': service.generate_treatment_outcomes_report,
             'FEEDBACK_ANALYSIS': service.generate_feedback_analysis_report,
+            'PATIENT_FEEDBACK': service.generate_feedback_analysis_report,
             'COMPREHENSIVE_ANALYTICS': service.generate_comprehensive_analytics_report,
             'MEDICAL_STATISTICS': service.generate_medical_statistics_report,
+            'MEDICAL_STATS': service.generate_medical_statistics_report,
             'DENTAL_STATISTICS': service.generate_dental_statistics_report,
+            'DENTAL_STATS': service.generate_dental_statistics_report,
             'CAMPAIGN_PERFORMANCE': service.generate_campaign_performance_report,
+            'HEALTH_CAMPAIGN': service.generate_campaign_performance_report,
             'USER_ACTIVITY': service.generate_user_activity_report,
             'HEALTH_METRICS': service.generate_health_metrics_report,
             'INVENTORY_REPORT': service.generate_inventory_report,
@@ -66,7 +72,11 @@ def generate_report_task_celery(report_id, is_sync=False):
             'CUSTOM': service.generate_custom_report,
         }
 
-        method = report_methods.get(template.report_type, service.generate_comprehensive_analytics_report)
+        # Normalize report type for robust lookup
+        report_type = str(template.report_type or '').strip().upper()
+        method = report_methods.get(report_type, service.generate_comprehensive_analytics_report)
+        
+        logger.info(f"Using method {method.__name__} for report type '{report_type}'")
         report_data = method(**common_kwargs)
         
         if report_data is not None:
