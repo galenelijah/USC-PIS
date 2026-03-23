@@ -634,45 +634,75 @@ class ReportGenerationService:
         </html>"""
 
     def _generate_generic_report(self, report_type, title, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
-        final_tpl = template_html or self.get_default_template(report_type, title)
+        # 1. Normalize and identify the correct clinical report type
+        rtype = str(report_type or '').strip().upper()
         
-        # Standardize default dates if not provided
-        if not date_start:
-            date_start = timezone.now() - timedelta(days=365)
-        if not date_end:
-            date_end = timezone.now()
+        # 2. Standardize dates early
+        if not date_start: date_start = timezone.now() - timedelta(days=365)
+        if not date_end: date_end = timezone.now()
 
+        # 3. Explicit Data Collection Mapping
         try:
-            # Normalize report type for robust matching
-            rtype = str(report_type or '').strip().upper()
-            
-            if rtype == 'PATIENT_SUMMARY': data = self.data_service.get_patient_summary_data(date_start, date_end, filters)
-            elif rtype == 'VISIT_TRENDS': data = self.data_service.get_visit_trends_data(date_start, date_end, filters)
-            elif rtype in ['FEEDBACK_ANALYSIS', 'PATIENT_FEEDBACK']: data = self.data_service.get_feedback_analysis_data(date_start, date_end, filters)
-            elif rtype in ['CAMPAIGN_PERFORMANCE', 'HEALTH_CAMPAIGN']: data = self.data_service.get_campaign_performance_data(date_start, date_end, filters)
-            elif rtype in ['MEDICAL_STATISTICS', 'MEDICAL_STATS']: data = self.data_service.get_medical_statistics_data(date_start, date_end, filters)
-            elif rtype in ['DENTAL_STATISTICS', 'DENTAL_STATS']: data = self.data_service.get_dental_statistics_data(date_start, date_end, filters)
-            elif rtype in ['TREATMENT_OUTCOMES', 'TREATMENT_OUTCOME']: data = self.data_service.get_treatment_outcomes_data(date_start, date_end, filters)
-            elif rtype == 'USER_ACTIVITY': data = self.data_service.get_user_activity_data(date_start, date_end, filters)
-            elif rtype == 'HEALTH_METRICS': data = self.data_service.get_health_metrics_data(date_start, date_end, filters)
-            elif rtype == 'INVENTORY_REPORT': data = self.data_service.get_inventory_report_data(date_start, date_end, filters)
-            elif rtype == 'FINANCIAL_REPORT': data = self.data_service.get_financial_report_data(date_start, date_end, filters)
-            elif rtype == 'COMPLIANCE_REPORT': data = self.data_service.get_compliance_report_data(date_start, date_end, filters)
-            elif rtype == 'CUSTOM': data = self.data_service.get_custom_report_data(date_start, date_end, filters)
+            if rtype == 'PATIENT_SUMMARY': 
+                data = self.data_service.get_patient_summary_data(date_start, date_end, filters)
+                report_title = title or "Patient Summary Report"
+            elif rtype == 'VISIT_TRENDS': 
+                data = self.data_service.get_visit_trends_data(date_start, date_end, filters)
+                report_title = title or "Monthly Visit Trends"
+            elif rtype in ['FEEDBACK_ANALYSIS', 'PATIENT_FEEDBACK']: 
+                data = self.data_service.get_feedback_analysis_data(date_start, date_end, filters)
+                report_title = title or "Patient Feedback Analysis"
+            elif rtype in ['CAMPAIGN_PERFORMANCE', 'HEALTH_CAMPAIGN']: 
+                data = self.data_service.get_campaign_performance_data(date_start, date_end, filters)
+                report_title = title or "Health Campaign Performance"
+            elif rtype in ['MEDICAL_STATISTICS', 'MEDICAL_STATS']: 
+                data = self.data_service.get_medical_statistics_data(date_start, date_end, filters)
+                report_title = title or "Medical Statistics Dashboard"
+            elif rtype in ['DENTAL_STATISTICS', 'DENTAL_STATS']: 
+                data = self.data_service.get_dental_statistics_data(date_start, date_end, filters)
+                report_title = title or "Dental Health Statistics"
+            elif rtype in ['TREATMENT_OUTCOMES', 'TREATMENT_OUTCOME']: 
+                data = self.data_service.get_treatment_outcomes_data(date_start, date_end, filters)
+                report_title = title or "Treatment Outcomes Analysis"
+            elif rtype == 'USER_ACTIVITY': 
+                data = self.data_service.get_user_activity_data(date_start, date_end, filters)
+                report_title = title or "System Activity Report"
             else: 
-                logger.warning(f"Unknown report type '{rtype}', falling back to comprehensive analytics")
+                logger.warning(f"Unknown report type '{rtype}', using comprehensive analytics fallback")
                 data = self.data_service.get_comprehensive_analytics_data(date_start, date_end, filters)
+                report_title = title or "Comprehensive Analytics"
             
-            if not isinstance(data, dict): data = {'error': 'Invalid data format', 'report_type': report_type}
+            if not isinstance(data, dict): data = {'error': 'Invalid data format', 'report_type': rtype}
             
-            # Ensure metadata is in the data dict for all export formats (especially Excel)
-            if 'date_range_start' not in data: data['date_range_start'] = date_start
-            if 'date_range_end' not in data: data['date_range_end'] = date_end
-            if 'generated_at' not in data: data['generated_at'] = timezone.now()
-            if 'report_title' not in data: data['report_title'] = title
+            # 4. Standardize Clinical Metadata for all formats
+            data.update({
+                'report_title': report_title,
+                'date_range_start': data.get('date_range_start', date_start),
+                'date_range_end': data.get('date_range_end', date_end),
+                'generated_at': data.get('generated_at', timezone.now()),
+                'system_name': "USC Patient Information System"
+            })
 
         except Exception as e:
-            logger.error(f"Critical failure: {str(e)}"); data = {'error': str(e)}
+            logger.error(f"Critical data collection failure: {str(e)}")
+            data = {'error': str(e), 'report_title': title or "Report Failure"}
+            report_title = title or "Report"
+
+        # 5. Smart Template Selection
+        # We use the provided HTML only if it's large enough to be a real template (>100 chars)
+        # and doesn't appear to be a dummy fallback.
+        is_dummy = template_html and "Comprehensive Analytics" in template_html and rtype != 'COMPREHENSIVE_ANALYTICS'
+        if not template_html or len(str(template_html)) < 150 or is_dummy:
+            final_tpl = self.get_default_template(rtype, report_title)
+        else:
+            final_tpl = template_html
+
+        # 6. Export Dispatch
+        if export_format == 'PDF': return self.export_service.export_to_pdf(data, final_tpl, report_title)
+        if export_format == 'HTML': return self.export_service.export_to_html(data, final_tpl, report_title)
+        if export_format == 'EXCEL': return self.export_service.export_to_excel(data, report_title)
+        if export_format == 'CSV': return self.export_service.export_to_csv(data, report_title)
+        return self.export_service.export_to_json(data, report_title)
 
         if export_format == 'PDF': return self.export_service.export_to_pdf(data, final_tpl, title)
         if export_format == 'HTML': return self.export_service.export_to_html(data, final_tpl, title)
