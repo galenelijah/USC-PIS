@@ -35,7 +35,7 @@ class IsStaffOrReadOnly(permissions.BasePermission):
             return request.user.is_authenticated
         return request.user.is_authenticated and (
             request.user.is_staff or 
-            request.user.role in ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE']
+            request.user.role in ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE', 'DENTIST']
         )
 
 class ReportPagination(PageNumberPagination):

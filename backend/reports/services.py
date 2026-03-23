@@ -42,7 +42,19 @@ class ReportDataService:
             if filters and filters.get('patient_id'):
                 patient_id = filters.get('patient_id')
                 try:
-                    patient = Patient.objects.select_related('user').get(id=patient_id)
+                    patient_qs = Patient.objects.select_related('user')
+                    pgp_key = getattr(settings, 'PGP_ENCRYPTION_KEY', None)
+                    if connection.vendor == 'postgresql' and pgp_key:
+                        from django.db.models.expressions import RawSQL
+                        # Decrypt sensitive columns directly at the database level for reporting
+                        patient_qs = patient_qs.annotate(
+                            decrypted_allergies=RawSQL("pgp_sym_decrypt(authentication_user.allergies_enc, %s)::text", [pgp_key]),
+                            decrypted_med_cond=RawSQL("pgp_sym_decrypt(authentication_user.existing_medical_condition_enc, %s)::text", [pgp_key]),
+                            decrypted_meds=RawSQL("pgp_sym_decrypt(authentication_user.medications_enc, %s)::text", [pgp_key]),
+                            decrypted_emerg_num=RawSQL("pgp_sym_decrypt(authentication_user.emergency_contact_number_enc, %s)::text", [pgp_key]),
+                        )
+                    patient = patient_qs.get(id=patient_id)
+                    
                     # Convert records to values for consistent export across all formats
                     medical_records = list(patient.medical_records.all().order_by('-visit_date').values(
                         'visit_date', 'diagnosis', 'treatment', 'notes'
@@ -74,13 +86,13 @@ class ReportDataService:
                             'blood_type': getattr(patient, 'blood_type', 'N/A'),
                             'address': getattr(patient, 'address', 'N/A'),
                             'emergency_contact': getattr(patient.user, 'emergency_contact', 'N/A') if patient.user else 'N/A',
-                            'emergency_contact_number': getattr(patient.user, 'emergency_contact_number', 'N/A') if patient.user else 'N/A',
+                            'emergency_contact_number': getattr(patient, 'decrypted_emerg_num', None) or (getattr(patient.user, 'emergency_contact_number', 'N/A') if patient.user else 'N/A'),
                             'height': getattr(patient.user, 'height', 'N/A') if patient.user else 'N/A',
                             'weight': getattr(patient.user, 'weight', 'N/A') if patient.user else 'N/A',
                             'bmi': getattr(patient.user, 'bmi', 'N/A') if patient.user else 'N/A',
-                            'allergies': getattr(patient.user, 'allergies', 'None') if patient.user else 'None',
-                            'medical_conditions': getattr(patient.user, 'existing_medical_condition', 'None') if patient.user else 'None',
-                            'current_medications': getattr(patient.user, 'medications', 'None') if patient.user else 'None',
+                            'allergies': getattr(patient, 'decrypted_allergies', None) or (getattr(patient.user, 'allergies', 'None') if patient.user else 'None'),
+                            'medical_conditions': getattr(patient, 'decrypted_med_cond', None) or (getattr(patient.user, 'existing_medical_condition', 'None') if patient.user else 'None'),
+                            'current_medications': getattr(patient, 'decrypted_meds', None) or (getattr(patient.user, 'medications', 'None') if patient.user else 'None'),
                         },
                         'recent_appointments_count': len(medical_records) + len(dental_records) + len(consultations),
                         'medical_records': medical_records,
@@ -360,12 +372,94 @@ class ReportDataService:
     @staticmethod
     def get_campaign_performance_data(date_start=None, date_end=None, filters=None):
         try:
-            queryset = HealthCampaign.objects.all()
+            date_start = date_start or (timezone.now() - timedelta(days=365))
+            date_end = date_end or timezone.now()
+            
+            queryset = HealthCampaign.objects.filter(created_at__range=(date_start, date_end))
+            total_campaigns = queryset.count()
+            
+            if total_campaigns == 0:
+                return {
+                    'total_participants': 0, 'avg_engagement_rate': 0, 
+                    'campaign_performance': [], 'asset_effectiveness': []
+                }
+                
             perf = []
-            for c in queryset[:10]:
-                perf.append({'title': c.title, 'participant_count': c.engagement_count, 'engagement_rate': 85.0, 'performance': 'High'})
-            return {'total_participants': queryset.aggregate(Sum('engagement_count'))['engagement_count__sum'] or 0, 'avg_engagement_rate': 78.5, 'campaign_performance': perf}
-        except Exception as e: return {'error': str(e)}
+            total_views = 0
+            total_engagements = 0
+            
+            # Asset tracking
+            with_pubmat = {'count': 0, 'views': 0, 'engagements': 0}
+            without_pubmat = {'count': 0, 'views': 0, 'engagements': 0}
+            with_banner = {'count': 0, 'views': 0, 'engagements': 0}
+            
+            for c in queryset:
+                views = c.view_count or 1  # prevent div zero
+                engagements = c.engagement_count or 0
+                rate = (engagements / views) * 100
+                
+                total_views += c.view_count
+                total_engagements += engagements
+                
+                perf.append({
+                    'title': c.title, 
+                    'views': c.view_count,
+                    'participant_count': engagements, 
+                    'engagement_rate': rate, 
+                    'performance': 'High' if rate > 50 else ('Medium' if rate > 20 else 'Low')
+                })
+                
+                # Effectiveness analysis
+                if c.pubmat_image:
+                    with_pubmat['count'] += 1
+                    with_pubmat['views'] += c.view_count
+                    with_pubmat['engagements'] += engagements
+                else:
+                    without_pubmat['count'] += 1
+                    without_pubmat['views'] += c.view_count
+                    without_pubmat['engagements'] += engagements
+                    
+                if c.banner_image:
+                    with_banner['count'] += 1
+                    with_banner['views'] += c.view_count
+                    with_banner['engagements'] += engagements
+
+            avg_engagement_rate = (total_engagements / max(total_views, 1)) * 100
+            
+            # Calculate asset effectiveness
+            asset_effectiveness = []
+            if with_pubmat['count'] > 0:
+                asset_effectiveness.append({
+                    'asset_type': 'With PubMat',
+                    'campaigns': with_pubmat['count'],
+                    'avg_engagement_rate': (with_pubmat['engagements'] / max(with_pubmat['views'], 1)) * 100
+                })
+            if without_pubmat['count'] > 0:
+                asset_effectiveness.append({
+                    'asset_type': 'Without PubMat',
+                    'campaigns': without_pubmat['count'],
+                    'avg_engagement_rate': (without_pubmat['engagements'] / max(without_pubmat['views'], 1)) * 100
+                })
+            if with_banner['count'] > 0:
+                asset_effectiveness.append({
+                    'asset_type': 'With Banner',
+                    'campaigns': with_banner['count'],
+                    'avg_engagement_rate': (with_banner['engagements'] / max(with_banner['views'], 1)) * 100
+                })
+                
+            # Sort performance by engagement rate
+            perf = sorted(perf, key=lambda x: x['engagement_rate'], reverse=True)[:10]
+
+            return {
+                'total_participants': total_engagements,
+                'total_views': total_views,
+                'avg_engagement_rate': avg_engagement_rate, 
+                'campaign_performance': perf,
+                'asset_effectiveness': asset_effectiveness
+            }
+        except Exception as e: 
+            logger.error(f"Error in get_campaign_performance_data: {str(e)}")
+            return {'error': str(e), 'total_participants': 0}
 
     @staticmethod
     def get_medical_statistics_data(date_start=None, date_end=None, filters=None):
@@ -437,51 +531,105 @@ class ReportExportService:
             from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
             from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
             from reportlab.lib import colors
-            from reportlab.lib.enums import TA_CENTER
+            from reportlab.lib.enums import TA_CENTER, TA_RIGHT
             
-            buffer = BytesIO(); doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
             styles = getSampleStyleSheet()
-            title_style = ParagraphStyle('USCTitle', parent=styles['Heading1'], fontSize=20, textColor=colors.hexColor('#0B4F6C'), alignment=TA_CENTER, spaceAfter=10)
-            subtitle_style = ParagraphStyle('USCSubtitle', parent=styles['Normal'], fontSize=9, textColor=colors.grey, alignment=TA_CENTER, spaceAfter=20)
-            section_style = ParagraphStyle('USCSection', parent=styles['Heading2'], fontSize=12, textColor=colors.hexColor('#0B4F6C'), spaceBefore=12, spaceAfter=8, borderPadding=3)
+            
+            title_style = ParagraphStyle('USCTitle', parent=styles['Heading1'], fontSize=20, textColor=colors.hexColor('#0B4F6C'), alignment=TA_CENTER, spaceAfter=5)
+            subtitle_style = ParagraphStyle('USCSubtitle', parent=styles['Normal'], fontSize=11, textColor=colors.hexColor('#246A73'), alignment=TA_CENTER, spaceAfter=20)
+            section_style = ParagraphStyle('USCSection', parent=styles['Heading2'], fontSize=14, textColor=colors.hexColor('#0B4F6C'), spaceBefore=15, spaceAfter=10, borderPadding=3)
+            normal_style = styles['Normal']
             
             story = []
-            story.append(Paragraph(title.upper(), title_style))
-            story.append(Paragraph("University of San Carlos - Patient Information System", subtitle_style))
-            story.append(Paragraph(f"Generated on: {timezone.now().strftime('%B %d, %Y')}", styles['Normal']))
-            story.append(Spacer(1, 15))
+            
+            # 1. University Branding
+            story.append(Paragraph("UNIVERSITY OF SAN CARLOS CLINIC", title_style))
+            story.append(Paragraph(title.upper(), subtitle_style))
+            story.append(Paragraph(f"Generated on: {timezone.now().strftime('%B %d, %Y')}", ParagraphStyle('Date', parent=normal_style, alignment=TA_CENTER, textColor=colors.grey)))
+            story.append(Spacer(1, 20))
 
             if isinstance(report_data, dict):
-                summary_data = []; list_sections = []
+                summary_data = []
+                list_sections = []
+                
                 for k, v in report_data.items():
-                    if isinstance(v, (list, tuple)): list_sections.append((k, v))
+                    # Skip metadata keys
+                    if k in ['report_title', 'date_range_start', 'date_range_end', 'generated_at', 'system_name']:
+                        continue
+                    if isinstance(v, (list, tuple)):
+                        list_sections.append((k, v))
                     elif isinstance(v, dict):
                         for sk, sv in v.items():
-                            if not isinstance(sv, (list, dict)): summary_data.append([str(k).replace('_', ' ').title() + " - " + str(sk).replace('_', ' ').title(), str(sv)])
-                    else: summary_data.append([str(k).replace('_', ' ').title(), str(v)])
+                            if not isinstance(sv, (list, dict)):
+                                summary_data.append([str(k).replace('_', ' ').title() + " - " + str(sk).replace('_', ' ').title(), str(sv)])
+                    else:
+                        summary_data.append([str(k).replace('_', ' ').title(), str(v)])
 
+                # 2. Executive Summary (KPIs)
                 if summary_data:
-                    story.append(Paragraph("SUMMARY OVERVIEW", section_style))
-                    t = Table(summary_data, colWidths=[180, 320])
-                    t.setStyle(TableStyle([('GRID', (0, 0), (-1, -1), 0.5, colors.grey), ('VALIGN', (0, 0), (-1, -1), 'TOP'), ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'), ('FONTSIZE', (0, 0), (-1, -1), 9)]))
+                    story.append(Paragraph("KEY PERFORMANCE INDICATORS", section_style))
+                    # Add alternating colors to KPI table
+                    t = Table(summary_data, colWidths=[200, 310])
+                    t_style = TableStyle([
+                        ('BACKGROUND', (0, 0), (0, -1), colors.hexColor('#f0f4f8')),
+                        ('TEXTCOLOR', (0, 0), (0, -1), colors.hexColor('#0B4F6C')),
+                        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
+                        ('PADDING', (0, 0), (-1, -1), 8),
+                    ])
+                    # Alternating row colors for values
+                    for i in range(len(summary_data)):
+                        bg_color = colors.whitesmoke if i % 2 == 0 else colors.white
+                        t_style.add('BACKGROUND', (1, i), (1, i), bg_color)
+                    t.setStyle(t_style)
                     story.append(t)
+                    story.append(Spacer(1, 15))
 
+                # 3. Styled Tables for Lists
                 for name, data_list in list_sections:
                     if not data_list: continue
                     story.append(Paragraph(str(name).replace('_', ' ').upper(), section_style))
                     if isinstance(data_list[0], dict):
                         headers = [str(h).replace('_', ' ').title() for h in data_list[0].keys()]
                         table_data = [headers]
-                        for item in data_list[:200]: table_data.append([str(item.get(h, '-')) for h in data_list[0].keys()])
-                        col_width = 500 / len(headers) if headers else 500
+                        for item in data_list[:200]: 
+                            table_data.append([str(item.get(h, '-')) for h in data_list[0].keys()])
+                        
+                        col_width = 510 / len(headers) if headers else 510
                         t = Table(table_data, colWidths=[col_width] * len(headers))
-                        t.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, 0), colors.hexColor('#0B4F6C')), ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke), ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'), ('GRID', (0, 0), (-1, -1), 0.5, colors.grey), ('FONTSIZE', (0, 0), (-1, -1), 8)]))
+                        
+                        # Bold Headers, Alternating row colors
+                        t_style = TableStyle([
+                            ('BACKGROUND', (0, 0), (-1, 0), colors.hexColor('#0B4F6C')),
+                            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                            ('PADDING', (0, 0), (-1, -1), 6),
+                            ('FONTSIZE', (0, 0), (-1, -1), 8)
+                        ])
+                        for i in range(1, len(table_data)):
+                            bg_color = colors.whitesmoke if i % 2 == 0 else colors.white
+                            t_style.add('BACKGROUND', (0, i), (-1, i), bg_color)
+                        t.setStyle(t_style)
                         story.append(t)
                     else:
-                        for item in data_list[:200]: story.append(Paragraph(f"• {item}", styles['Normal']))
-                    story.append(Spacer(1, 10))
+                        for item in data_list[:200]: 
+                            story.append(Paragraph(f"• {item}", styles['Normal']))
+                    story.append(Spacer(1, 15))
 
-            story.append(Spacer(1, 30)); story.append(Paragraph("--- End of Report ---", subtitle_style)); doc.build(story)
+            # 4. Signature Block
+            story.append(Spacer(1, 40))
+            signature_style = ParagraphStyle('Signature', parent=styles['Normal'], alignment=TA_RIGHT)
+            story.append(Paragraph("_______________________________________", signature_style))
+            story.append(Paragraph("Verified by: Authorized Clinic Personnel", signature_style))
+            story.append(Paragraph("University of San Carlos Clinic", signature_style))
+
+            doc.build(story)
             return buffer.getvalue()
         except Exception as e:
             logger.error(f"PDF export failed: {e}")
