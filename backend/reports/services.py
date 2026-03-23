@@ -641,18 +641,42 @@ class ReportExportService:
         try:
             buffer = BytesIO()
             with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+                # 1. Report Info Sheet (Align with PDF Header)
+                info_data = [
+                    ['Report Title', title.upper()],
+                    ['University', 'University of San Carlos Clinic'],
+                    ['Generated At', timezone.now().strftime('%Y-%m-%d %H:%M:%S')],
+                    ['Date Range Start', str(report_data.get('date_range_start', 'N/A'))],
+                    ['Date Range End', str(report_data.get('date_range_end', 'N/A'))],
+                    ['System', 'USC Patient Information System']
+                ]
+                pd.DataFrame(info_data, columns=['Report Metadata', 'Value']).to_excel(writer, sheet_name='Report Info', index=False)
+
+                # 2. Summary Metrics (Align with PDF Executive Summary)
                 summary_items = []; list_keys = []
+                skip_keys = ['report_title', 'date_range_start', 'date_range_end', 'generated_at', 'system_name', 'report_date']
+                
                 for k, v in report_data.items():
-                    if isinstance(v, (list, tuple)): list_keys.append(k)
+                    if k in skip_keys: continue
+                    if isinstance(v, (list, tuple)): 
+                        list_keys.append(k)
                     elif isinstance(v, dict):
-                        for sub_k, sub_v in v.items(): summary_items.append({'Metric': f"{k} - {sub_k}", 'Value': str(sub_v)})
-                    else: summary_items.append({'Metric': str(k).replace('_', ' ').title(), 'Value': str(v)})
-                pd.DataFrame(summary_items).to_excel(writer, sheet_name='Overview', index=False)
+                        for sub_k, sub_v in v.items(): 
+                            summary_items.append({'Metric': f"{k} - {sub_k}", 'Value': str(sub_v)})
+                    else: 
+                        summary_items.append({'Metric': str(k).replace('_', ' ').title(), 'Value': str(v)})
+                
+                if summary_items:
+                    pd.DataFrame(summary_items).to_excel(writer, sheet_name='Executive Summary', index=False)
+                
+                # 3. Detailed Sheets (Align with PDF Tables)
                 for key in list_keys:
                     data_list = report_data[key]
                     if data_list and isinstance(data_list[0], dict):
-                        df = pd.DataFrame(data_list); df.columns = [str(c).replace('_', ' ').title() for c in df.columns]
-                        for col in df.select_dtypes(include=['datetime64[ns, UTC]', 'datetimetz']).columns: df[col] = df[col].dt.tz_localize(None)
+                        df = pd.DataFrame(data_list)
+                        df.columns = [str(c).replace('_', ' ').title() for c in df.columns]
+                        for col in df.select_dtypes(include=['datetime64[ns, UTC]', 'datetimetz']).columns: 
+                            df[col] = df[col].dt.tz_localize(None)
                         df.to_excel(writer, sheet_name=str(key).replace('_', ' ').title()[:31], index=False)
             return buffer.getvalue()
         except Exception as e:

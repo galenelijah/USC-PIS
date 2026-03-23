@@ -240,6 +240,7 @@ class Command(BaseCommand):
                 <div class="subtitle">University of San Carlos - Patient Information System</div>
             </div>
             
+            {{% if patient %}}
             <div class="section">
                 <div class="section-title">Patient Profile</div>
                 <table style="width: 100%;">
@@ -266,10 +267,54 @@ class Command(BaseCommand):
                     <tr><td style="font-weight:bold;">Medications</td><td>{{{{ patient.current_medications }}}}</td></tr>
                 </table>
             </div>
+            {{% else %}}
+            <div class="section">
+                <div class="section-title">Population Overview</div>
+                <div style="display: table; width: 100%; margin-bottom: 20px;">
+                    <div style="display: table-cell; width: 33%; padding: 5px;">
+                        <div class="metric-box">
+                            <div class="metric-value">{{{{ total_patients }}}}</div>
+                            <div class="metric-label">Total Patients</div>
+                        </div>
+                    </div>
+                    <div style="display: table-cell; width: 33%; padding: 5px;">
+                        <div class="metric-box">
+                            <div class="metric-value">{{{{ active_patients }}}}</div>
+                            <div class="metric-label">Active (90 Days)</div>
+                        </div>
+                    </div>
+                    <div style="display: table-cell; width: 33%; padding: 5px;">
+                        <div class="metric-box">
+                            <div class="metric-value">{{{{ new_registrations }}}}</div>
+                            <div class="metric-label">New (30 Days)</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display: table; width: 100%;">
+                    <div style="display: table-cell; width: 50%; padding-right: 10px;">
+                        <div class="section-title">Gender Distribution</div>
+                        <table class="usc-table">
+                            {{% for item in gender_distribution %}}
+                            <tr><td>{{{{ item.gender }}}}</td><td>{{{{ item.count }}}}</td></tr>
+                            {{% endfor %}}
+                        </table>
+                    </div>
+                    <div style="display: table-cell; width: 50%;">
+                        <div class="section-title">Age Distribution</div>
+                        <table class="usc-table">
+                            {{% for group, count in age_distribution.items %}}
+                            <tr><td>{{{{ group }}}}</td><td>{{{{ count }}}}</td></tr>
+                            {{% endfor %}}
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {{% endif %}}
             
             {{% if medical_records %}}
             <div class="section">
-                <div class="section-title">Recent Medical History</div>
+                <div class="section-title">Medical Consultation History</div>
                 <table class="usc-table">
                     <thead>
                         <tr><th>Date</th><th>Diagnosis</th><th>Treatment</th></tr>
@@ -277,7 +322,7 @@ class Command(BaseCommand):
                     <tbody>
                         {{% for record in medical_records %}}
                         <tr>
-                            <td>{{{{ record.visit_date }}}}</td>
+                            <td>{{{{ record.visit_date|format_date }}}}</td>
                             <td>{{{{ record.diagnosis }}}}</td>
                             <td>{{{{ record.treatment }}}}</td>
                         </tr>
@@ -287,8 +332,49 @@ class Command(BaseCommand):
             </div>
             {{% endif %}}
 
+            {{% if dental_records %}}
+            <div class="section">
+                <div class="section-title">Dental Treatment History</div>
+                <table class="usc-table">
+                    <thead>
+                        <tr><th>Date</th><th>Procedure</th><th>Diagnosis</th><th>Notes</th></tr>
+                    </thead>
+                    <tbody>
+                        {{% for record in dental_records %}}
+                        <tr>
+                            <td>{{{{ record.visit_date|format_date }}}}</td>
+                            <td>{{{{ record.procedure_performed }}}}</td>
+                            <td>{{{{ record.diagnosis }}}}</td>
+                            <td>{{{{ record.notes }}}}</td>
+                        </tr>
+                        {{% endfor %}}
+                    </tbody>
+                </table>
+            </div>
+            {{% endif %}}
+
+            {{% if consultations %}}
+            <div class="section">
+                <div class="section-title">General Health Consultations</div>
+                <table class="usc-table">
+                    <thead>
+                        <tr><th>Date</th><th>Complaints</th><th>Treatment Plan</th></tr>
+                    </thead>
+                    <tbody>
+                        {{% for record in consultations %}}
+                        <tr>
+                            <td>{{{{ record.date_time|format_date }}}}</td>
+                            <td>{{{{ record.chief_complaints }}}}</td>
+                            <td>{{{{ record.treatment_plan }}}}</td>
+                        </tr>
+                        {{% endfor %}}
+                    </tbody>
+                </table>
+            </div>
+            {{% endif %}}
+
             <div class="footer">
-                <p>Confidential Medical Record | Generated on: {{{{ report_date }}}}</p>
+                <p>Confidential USC Medical Record | Generated on: {{{{ report_date }}}} | System: USC-PIS</p>
             </div>
         </body>
         </html>
@@ -354,6 +440,20 @@ class Command(BaseCommand):
                     </tbody>
                 </table>
             </div>
+
+            <div class="section">
+                <div class="section-title">Visit Distribution by Service Type</div>
+                <table class="usc-table" style="width: 50%;">
+                    <thead>
+                        <tr><th>Service Type</th><th>Visit Count</th></tr>
+                    </thead>
+                    <tbody>
+                        {{% for type, count in summary_by_type.items %}}
+                        <tr><td>{{{{ type }}}}</td><td>{{{{ count }}}}</td></tr>
+                        {{% endfor %}}
+                    </tbody>
+                </table>
+            </div>
             
             <div class="footer">
                 <p>Generated for Period: {{{{ date_range_start|date:"M d, Y" }}}} - {{{{ date_range_end|date:"M d, Y" }}}}</p>
@@ -376,9 +476,19 @@ class Command(BaseCommand):
                 <div class="subtitle">University of San Carlos - Patient Information System</div>
             </div>
             
-            <div class="metric-box" style="width: 50%; margin: 0 auto 20px auto;">
-                <div class="metric-label">Overall Success Rate</div>
-                <div class="metric-value">{{{{ overall_success_rate }}}}%</div>
+            <div style="display: table; width: 100%; margin-bottom: 20px;">
+                <div style="display: table-cell; width: 50%; padding: 5px;">
+                    <div class="metric-box">
+                        <div class="metric-label">Overall Success Rate</div>
+                        <div class="metric-value">{{{{ overall_success_rate }}}}%</div>
+                    </div>
+                </div>
+                <div style="display: table-cell; width: 50%; padding: 5px;">
+                    <div class="metric-box">
+                        <div class="metric-label">Total Cases Analyzed</div>
+                        <div class="metric-value">{{{{ total_treatments }}}}</div>
+                    </div>
+                </div>
             </div>
 
             <div class="section">

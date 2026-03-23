@@ -16,11 +16,15 @@ The USC-PIS reports system has been successfully stabilized and standardized. Cr
 
 ## Recent Updates
 
-### Reports System Stabilization
+### Reports System Stabilization & Refactoring
+*   **Security & Decryption**: Integrated PostgreSQL `pgcrypto` decryption logic directly into the reporting data service, ensuring sensitive clinical fields (allergies, medications) are readable for authorized PDF/Excel exports.
+*   **Asset Effectiveness Analysis**: Implemented high-fidelity campaign reporting that analyzes the engagement rates of visual assets like **PubMats** and **Banners**.
+*   **Professional PDF Layout**: Migrated the `ReportLab` fallback engine to a structured `<platypus>` template featuring University branding, Executive Summary KPIs, and alternating row-colored tables.
+*   **RBAC Validation**: Verified and expanded reporting access permissions to include the **DENTIST** role across all endpoints.
 *   **Metric Standardization**: Added **Response Rate** and **Total Visits** to the Patient Feedback Analysis report to match clinical requirements.
 *   **PDF/Excel Alignment**: Fixed bugs where PDF reports were using hardcoded 30-day defaults instead of the actual data period.
 *   **Smart Template Selection**: Implemented logic to bypass "dummy" database templates in favor of high-fidelity system defaults for clinical reports.
-*   **Exhaustive Mapping**: Normalized and mapped all 7 clinical report types (Patient Summary, Visit Trends, Treatment Outcomes, Medical Stats, Dental Stats, Feedback, and Campaigns).
+*   **Exhaustive Mapping**: Normalized and mapped all 14 clinical and operational report types.
 
 ### Documentation & Alignment
 *   **Updated Guides**: Refreshed `REPORTS_SYSTEM_GUIDE.md` and `README.md` to reflect the latest March 2026 optimizations.
