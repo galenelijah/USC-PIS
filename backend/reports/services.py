@@ -568,19 +568,67 @@ class ReportGenerationService:
                 .data-table {{ width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 9pt; }}
                 .data-table th {{ background-color: #0B4F6C; color: white; padding: 8px; text-align: left; }}
                 .data-table td {{ padding: 8px; border-bottom: 1px solid #dee2e6; }}
+                .metric-grid {{ display: flex; flex-wrap: wrap; margin-bottom: 20px; }}
+                .metric-item {{ flex: 1; min-width: 150px; padding: 10px; background: #f8f9fa; border: 1px solid #eee; margin: 5px; text-align: center; }}
+                .metric-val {{ font-size: 16pt; font-weight: bold; color: #0B4F6C; }}
+                .metric-lbl {{ font-size: 8pt; color: #666; text-transform: uppercase; }}
             </style>
         </head>
         <body>
             <div class="header"><h1>{title}</h1><p>University of San Carlos - Patient Information System</p></div>
+            
             <div class="section">
-                <div class="section-title">Summary Overview</div>
-                <table class="data-table">
+                <div class="section-title">Summary Metrics</div>
+                <div class="metric-grid">
                     {{% for k, v in report_data.items %}}
                         {{% if v|is_simple %}}
-                        <tr><td><strong>{{{{ k|title_clean }}}}</strong></td><td>{{{{ v }}}}</td></tr>
+                        <div class="metric-item">
+                            <div class="metric-val">{{{{ v }}}}</div>
+                            <div class="metric-lbl">{{{{ k|title_clean }}}}</div>
+                        </div>
                         {{% endif %}}
                     {{% endfor %}}
-                </table>
+                </div>
+            </div>
+
+            {{% for k, v in report_data.items %}}
+                {{% if v|is_list and v|has_data %}}
+                <div class="section">
+                    <div class="section-title">{{{{ k|title_clean }}}}</div>
+                    <table class="data-table">
+                        {{% with first_item=v|first %}}
+                            {{% if first_item|is_dict %}}
+                                <thead>
+                                    <tr>
+                                        {{% for key in first_item.keys %}}
+                                            <th>{{{{ key|title_clean }}}}</th>
+                                        {{% endfor %}}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {{% for item in v %}}
+                                        <tr>
+                                            {{% for val in item.values %}}
+                                                <td>{{{{ val }}}}</td>
+                                            {{% endfor %}}
+                                        </tr>
+                                    {{% endfor %}}
+                                </tbody>
+                            {{% else %}}
+                                <tbody>
+                                    {{% for item in v %}}
+                                        <tr><td>{{{{ item }}}}</td></tr>
+                                    {{% endfor %}}
+                                </tbody>
+                            {{% endif %}}
+                        {{% endwith %}}
+                    </table>
+                </div>
+                {{% endif %}}
+            {{% endfor %}}
+
+            <div style="text-align: center; color: #999; font-size: 8pt; margin-top: 50px;">
+                Generated on {{{{ generated_at|date:"F d, Y H:i" }}}} | USC-PIS Reporting System
             </div>
         </body>
         </html>"""
