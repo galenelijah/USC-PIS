@@ -279,13 +279,35 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
                 from .services import ReportGenerationService
                 service = ReportGenerationService()
                 
-                # Use common logic for re-generation
-                if report.template.report_type == 'PATIENT_SUMMARY':
-                    regenerated_data = service.generate_patient_summary_report(export_format=report.export_format, filters=report.filters)
-                elif report.template.report_type == 'VISIT_TRENDS':
-                    regenerated_data = service.generate_visit_trends_report(export_format=report.export_format, filters=report.filters)
-                else:
-                    regenerated_data = service.generate_comprehensive_analytics_report(export_format=report.export_format, filters=report.filters)
+                # Mapping report types to service methods (consistent with tasks.py)
+                report_methods = {
+                    'PATIENT_SUMMARY': service.generate_patient_summary_report,
+                    'VISIT_TRENDS': service.generate_visit_trends_report,
+                    'TREATMENT_OUTCOMES': service.generate_treatment_outcomes_report,
+                    'FEEDBACK_ANALYSIS': service.generate_feedback_analysis_report,
+                    'COMPREHENSIVE_ANALYTICS': service.generate_comprehensive_analytics_report,
+                    'MEDICAL_STATISTICS': service.generate_medical_statistics_report,
+                    'DENTAL_STATISTICS': service.generate_dental_statistics_report,
+                    'CAMPAIGN_PERFORMANCE': service.generate_campaign_performance_report,
+                    'USER_ACTIVITY': service.generate_user_activity_report,
+                    'HEALTH_METRICS': service.generate_health_metrics_report,
+                    'INVENTORY_REPORT': service.generate_inventory_report,
+                    'FINANCIAL_REPORT': service.generate_financial_report,
+                    'COMPLIANCE_REPORT': service.generate_compliance_report,
+                    'CUSTOM': service.generate_custom_report,
+                }
+                
+                rtype = str(report.template.report_type or '').strip().upper()
+                method = report_methods.get(rtype, service.generate_comprehensive_analytics_report)
+                
+                logger.info(f"Using method {method.__name__} for fallback re-generation of {rtype}")
+                regenerated_data = method(
+                    export_format=report.export_format, 
+                    filters=report.filters,
+                    date_start=report.date_range_start,
+                    date_end=report.date_range_end,
+                    template_html=report.template.template_content
+                )
                 
                 if regenerated_data:
                     response = HttpResponse(regenerated_data, content_type=content_type)

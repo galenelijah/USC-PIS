@@ -667,6 +667,21 @@ class ReportGenerationService:
             elif rtype == 'USER_ACTIVITY': 
                 data = self.data_service.get_user_activity_data(date_start, date_end, filters)
                 report_title = title or "System Activity Report"
+            elif rtype == 'HEALTH_METRICS':
+                data = self.data_service.get_health_metrics_data(date_start, date_end, filters)
+                report_title = title or "Health Metrics Report"
+            elif rtype == 'INVENTORY_REPORT':
+                data = self.data_service.get_inventory_report_data(date_start, date_end, filters)
+                report_title = title or "Inventory Status Report"
+            elif rtype == 'FINANCIAL_REPORT':
+                data = self.data_service.get_financial_report_data(date_start, date_end, filters)
+                report_title = title or "Financial Summary Report"
+            elif rtype == 'COMPLIANCE_REPORT':
+                data = self.data_service.get_compliance_report_data(date_start, date_end, filters)
+                report_title = title or "Compliance & Audit Report"
+            elif rtype == 'CUSTOM':
+                data = self.data_service.get_custom_report_data(date_start, date_end, filters)
+                report_title = title or "Custom Data Report"
             else: 
                 logger.warning(f"Unknown report type '{rtype}', using comprehensive analytics fallback")
                 data = self.data_service.get_comprehensive_analytics_data(date_start, date_end, filters)
@@ -698,17 +713,12 @@ class ReportGenerationService:
             final_tpl = template_html
 
         # 6. Export Dispatch
+        # Use report_title which is normalized based on rtype
         if export_format == 'PDF': return self.export_service.export_to_pdf(data, final_tpl, report_title)
         if export_format == 'HTML': return self.export_service.export_to_html(data, final_tpl, report_title)
         if export_format == 'EXCEL': return self.export_service.export_to_excel(data, report_title)
         if export_format == 'CSV': return self.export_service.export_to_csv(data, report_title)
         return self.export_service.export_to_json(data, report_title)
-
-        if export_format == 'PDF': return self.export_service.export_to_pdf(data, final_tpl, title)
-        if export_format == 'HTML': return self.export_service.export_to_html(data, final_tpl, title)
-        if export_format == 'EXCEL': return self.export_service.export_to_excel(data, title)
-        if export_format == 'CSV': return self.export_service.export_to_csv(data, title)
-        return self.export_service.export_to_json(data, title)
 
     def generate_patient_summary_report(self, **kwargs): return self._generate_generic_report('PATIENT_SUMMARY', "Patient Summary", **kwargs)
     def generate_visit_trends_report(self, **kwargs): return self._generate_generic_report('VISIT_TRENDS', "Visit Trends", **kwargs)

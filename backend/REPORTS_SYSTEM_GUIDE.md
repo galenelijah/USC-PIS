@@ -114,6 +114,6 @@ content = ReportExportService.export_to_pdf(data, template.template_content, tit
 
 ---
 
-**Last Updated**: March 21, 2026  
+**Last Updated**: March 23, 2026  
 **Status**: Celery + xhtml2pdf Integration Complete  
 **Version**: 4.0 (Enhanced Reliability & Formatting)
