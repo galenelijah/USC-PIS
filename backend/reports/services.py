@@ -295,22 +295,67 @@ class ReportDataService:
     @staticmethod
     def get_feedback_analysis_data(date_start=None, date_end=None, filters=None):
         try:
-            feedback_qs = Feedback.objects.filter(created_at__range=(date_start or timezone.now()-timedelta(days=365), date_end or timezone.now()))
+            date_start = date_start or (timezone.now() - timedelta(days=365))
+            date_end = date_end or timezone.now()
+            
+            feedback_qs = Feedback.objects.filter(created_at__range=(date_start, date_end))
             total = feedback_qs.count()
-            if total == 0: return {'total_responses': 0, 'avg_rating': 0, 'recent_comments': []}
+            
+            # Calculate response rate (total feedback / total visits)
+            medical_count = MedicalRecord.objects.filter(created_at__range=(date_start, date_end)).count()
+            dental_count = DentalRecord.objects.filter(created_at__range=(date_start, date_end)).count()
+            total_visits = medical_count + dental_count
+            response_rate = (total / total_visits * 100) if total_visits > 0 else 0
+
+            if total == 0:
+                return {
+                    'total_responses': 0, 'avg_rating': 0, 'satisfaction_score': 0,
+                    'response_rate': 0, 'total_visits': total_visits,
+                    'date_range_start': date_start, 'date_range_end': date_end,
+                    'recent_comments': [], 'rating_distribution': []
+                }
+                
             avg = feedback_qs.aggregate(Avg('rating'))['rating__avg'] or 0
             comments = []
-            for f in feedback_qs.order_by('-created_at')[:10]:
-                comments.append({'rating': f.rating, 'date': f.created_at, 'text': f.comments or "No comment"})
+            for f in feedback_qs.order_by('-created_at')[:20]:
+                comments.append({
+                    'rating': f.rating, 
+                    'date': f.created_at, 
+                    'text': f.comments or "No comment",
+                    'patient_id': f.patient.patient_id if hasattr(f, 'patient') and f.patient else "Anonymous"
+                })
+                
+            excellent_count = feedback_qs.filter(rating=5).count()
+            good_count = feedback_qs.filter(rating=4).count()
+            fair_count = feedback_qs.filter(rating=3).count()
+            poor_count = feedback_qs.filter(rating__lte=2).count()
+            
+            rating_distribution = [
+                {'category': 'Excellent (5★)', 'count': excellent_count, 'percentage': (excellent_count/total*100)},
+                {'category': 'Good (4★)', 'count': good_count, 'percentage': (good_count/total*100)},
+                {'category': 'Fair (3★)', 'count': fair_count, 'percentage': (fair_count/total*100)},
+                {'category': 'Poor (1-2★)', 'count': poor_count, 'percentage': (poor_count/total*100)},
+            ]
+            
             return {
-                'total_responses': total, 'avg_rating': round(float(avg), 1), 'satisfaction_score': round(float(avg/5*100), 1),
-                'excellent_count': feedback_qs.filter(rating=5).count(), 'excellent_percentage': (feedback_qs.filter(rating=5).count()/total*100),
-                'good_count': feedback_qs.filter(rating=4).count(), 'good_percentage': (feedback_qs.filter(rating=4).count()/total*100),
-                'fair_count': feedback_qs.filter(rating=3).count(), 'fair_percentage': (feedback_qs.filter(rating=3).count()/total*100),
-                'poor_count': feedback_qs.filter(rating__lte=2).count(), 'poor_percentage': (feedback_qs.filter(rating__lte=2).count()/total*100),
-                'recent_comments': comments
+                'total_responses': total, 
+                'total_visits': total_visits,
+                'response_rate': round(float(response_rate), 1),
+                'avg_rating': round(float(avg), 1), 
+                'satisfaction_score': round(float(avg/5*100), 1),
+                'excellent_count': excellent_count, 'excellent_percentage': (excellent_count/total*100),
+                'good_count': good_count, 'good_percentage': (good_count/total*100),
+                'fair_count': fair_count, 'fair_percentage': (fair_count/total*100),
+                'poor_count': poor_count, 'poor_percentage': (poor_count/total*100),
+                'rating_distribution': rating_distribution,
+                'recent_comments': comments,
+                'date_range_start': date_start,
+                'date_range_end': date_end,
+                'generated_at': timezone.now()
             }
-        except Exception as e: return {'error': str(e), 'total_responses': 0}
+        except Exception as e: 
+            logger.error(f"Error in get_feedback_analysis_data: {str(e)}")
+            return {'error': str(e), 'total_responses': 0}
 
     @staticmethod
     def get_campaign_performance_data(date_start=None, date_end=None, filters=None):
@@ -355,7 +400,8 @@ class ReportExportService:
             context = {
                 'title': title, 'generated_at': timezone.now(), 'report_data': report_data,
                 'report_date': timezone.now().strftime('%B %d, %Y'),
-                'date_range_start': timezone.now() - timedelta(days=30), 'date_range_end': timezone.now()
+                'date_range_start': report_data.get('date_range_start', timezone.now() - timedelta(days=365)) if isinstance(report_data, dict) else timezone.now() - timedelta(days=365),
+                'date_range_end': report_data.get('date_range_end', timezone.now()) if isinstance(report_data, dict) else timezone.now()
             }
             if extra_context: context.update(extra_context)
             if isinstance(report_data, dict): context.update(report_data)
@@ -374,7 +420,8 @@ class ReportExportService:
                     context = {
                         'title': title, 'generated_at': timezone.now(), 'report_data': report_data,
                         'report_date': timezone.now().strftime('%B %d, %Y'),
-                        'date_range_start': timezone.now() - timedelta(days=30), 'date_range_end': timezone.now()
+                        'date_range_start': report_data.get('date_range_start', timezone.now() - timedelta(days=365)) if isinstance(report_data, dict) else timezone.now() - timedelta(days=365),
+                        'date_range_end': report_data.get('date_range_end', timezone.now()) if isinstance(report_data, dict) else timezone.now()
                     }
                     if isinstance(report_data, dict): context.update(report_data)
                     html = Template(template_content).render(Context(context))
@@ -540,6 +587,13 @@ class ReportGenerationService:
 
     def _generate_generic_report(self, report_type, title, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
         final_tpl = template_html or self.get_default_template(report_type, title)
+        
+        # Standardize default dates if not provided
+        if not date_start:
+            date_start = timezone.now() - timedelta(days=365)
+        if not date_end:
+            date_end = timezone.now()
+
         try:
             if report_type == 'PATIENT_SUMMARY': data = self.data_service.get_patient_summary_data(date_start, date_end, filters)
             elif report_type == 'VISIT_TRENDS': data = self.data_service.get_visit_trends_data(date_start, date_end, filters)
@@ -552,6 +606,13 @@ class ReportGenerationService:
             else: data = self.data_service.get_comprehensive_analytics_data(date_start, date_end, filters)
             
             if not isinstance(data, dict): data = {'error': 'Invalid data format', 'report_type': report_type}
+            
+            # Ensure metadata is in the data dict for all export formats (especially Excel)
+            if 'date_range_start' not in data: data['date_range_start'] = date_start
+            if 'date_range_end' not in data: data['date_range_end'] = date_end
+            if 'generated_at' not in data: data['generated_at'] = timezone.now()
+            if 'report_title' not in data: data['report_title'] = title
+
         except Exception as e:
             logger.error(f"Critical failure: {str(e)}"); data = {'error': str(e)}
 

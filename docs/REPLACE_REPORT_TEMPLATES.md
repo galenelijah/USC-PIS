@@ -1,66 +1,53 @@
-# Replace Report Templates — How-To
+# Replace Report Templates — How-To (Updated March 2026)
 
-This guide shows how to replace old report templates with the latest default templates, with an optional backup, and verify everything is working.
+This guide shows how to replace old report templates with the latest default templates and verify the new dynamic PDF/HTML generation.
 
 ## Prerequisites
-- Backend set up and migrations applied
-- Admin/staff access (to trigger report generation from UI if needed)
+- Backend set up and migrations applied.
+- Admin/staff access to trigger report generation.
+- `xhtml2pdf` and `reportlab` installed in the environment.
 
 ## Command Overview
-We added a management command that:
-- Optionally backs up current templates to a JSON file
-- Replaces existing templates with the latest defaults
-- Ensures supported formats (e.g., adds HTML/JSON where needed)
+The primary command for refreshing templates is:
+- `python backend/manage.py create_default_report_templates --force`
 
-Command:
-- `python backend/manage.py replace_report_templates [--backup <path>] [--skip-fix] [--dry-run]`
-
-Flags:
-- `--backup <path>`: Save a JSON backup of the current templates before replacing (recommended)
-- `--skip-fix`: Skip running `fix_report_formats` after replacement
-- `--dry-run`: Show planned actions without making changes
+This command:
+- Overwrites existing templates with the latest high-compatibility USC versions.
+- Ensures all 13 standard report types are present in the database.
+- Automatically adds `{% load report_tags %}` to enable custom filters.
 
 ## Typical Usage
-1) Back up and replace (recommended):
-```
-python backend/manage.py replace_report_templates --backup backups/report_templates_backup.json
-```
+1. **Local Update**:
+   ```bash
+   python backend/manage.py create_default_report_templates --force
+   ```
 
-2) Replace without backup (fastest):
-```
-python backend/manage.py replace_report_templates
-```
+2. **Production Update (Heroku)**:
+   ```bash
+   heroku run "python backend/manage.py create_default_report_templates --force"
+   ```
 
-3) Preview only (no changes):
-```
-python backend/manage.py replace_report_templates --dry-run
-```
-
-## What It Does
-- Runs `create_default_report_templates --force` to (re)create the latest templates
-- Runs `fix_report_formats` to ensure templates include expected export formats (PDF, EXCEL, CSV, JSON, HTML as appropriate)
-- Prints a summary of template counts before/after
+## What's Changed in March 2026
+- **Dynamic PDF**: PDF exports now utilize the HTML templates from the database.
+- **Fail-Safe Generation**: If the HTML template fails to convert to PDF, the system uses a programmatic `ReportLab` fallback to ensure a valid file is always delivered.
+- **Improved Data Alignment**: The `ReportDataService` has been unified to provide identical data structures for all 5 export formats (PDF, Excel, CSV, JSON, HTML).
 
 ## Verifying Changes
-- Quick test script:
-```
-python backend/test_report_fixes.py
-```
-  - If templates are missing, it will suggest commands to create/fix them
-
-- UI/API test:
-  - Generate a report using a template you replaced
-  - Choose `HTML` export format to see the new template’s HTML output
-  - Download and open the `.html` file to confirm it’s the new content
+1. **Check Database**: Go to Django Admin (`/admin/reports/reporttemplate/`) and verify that `template_content` contains the new simplified HTML structure.
+2. **UI Test**:
+   - Generate a "Patient Summary" in **PDF** format.
+   - Verify it downloads and opens correctly.
+   - Generate the same report in **Excel** format.
+   - Verify it contains an "Overview" sheet and detailed sheets for history.
 
 ## Notes
-- PDF exports still use ReportLab (programmatic rendering) and won’t reflect the HTML template. Use the `HTML` format to validate your template content.
-- If you want PDF to follow the HTML template too, we can integrate an HTML→PDF engine (e.g., WeasyPrint).
+- **Styling**: If you customize templates in the Admin, stick to simple CSS and table-based layouts. `xhtml2pdf` does not support complex modern CSS (Flexbox/Grid).
+- **Format Consistency**: The `--force` flag is essential to apply the latest architectural fixes to existing template rows.
 
 ## Rollback
-- If you used `--backup`, you can manually restore templates by loading the JSON file and updating each `ReportTemplate` row (via Django shell or a small one-off script). If you want, we can add a `restore_report_templates` command later.
+There is no automated rollback for `--force`. It is recommended to export your `ReportTemplate` table via Django Admin or a JSON dump before running the command if you have significant custom modifications.
 
 ---
 
-This process replaces old report templates with the latest versions and ensures export formats are consistent.
-
+**Last Updated**: March 21, 2026  
+**Status**: Unified Template System Active

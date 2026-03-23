@@ -584,18 +584,28 @@ class Command(BaseCommand):
             </div>
 
             <div style="display: table; width: 100%; margin-bottom: 20px;">
-                <div style="display: table-cell; width: 50%; padding: 5px;">
+                <div style="display: table-cell; width: 33%; padding: 5px;">
                     <div class="metric-box">
                         <div class="metric-label">Avg Rating</div>
                         <div class="metric-value">{{{{ avg_rating }}}} / 5.0</div>
                     </div>
                 </div>
-                <div style="display: table-cell; width: 50%; padding: 5px;">
+                <div style="display: table-cell; width: 33%; padding: 5px;">
                     <div class="metric-box">
                         <div class="metric-label">Satisfaction Score</div>
                         <div class="metric-value">{{{{ satisfaction_score }}}}%</div>
                     </div>
                 </div>
+                <div style="display: table-cell; width: 33%; padding: 5px;">
+                    <div class="metric-box">
+                        <div class="metric-label">Response Rate</div>
+                        <div class="metric-value">{{{{ response_rate }}}}%</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px; font-size: 10pt; color: #666;">
+                <strong>Total Responses:</strong> {{{{ total_responses }}}} | <strong>Total Visits in Period:</strong> {{{{ total_visits }}}}
             </div>
 
             <div class="section">

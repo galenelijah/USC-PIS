@@ -1,62 +1,53 @@
-# Report Templates Rollout Guide
+# Report Templates Rollout Guide (Updated March 2026)
 
-This guide explains how to enable and verify the “report templates” (HTML-based) for the Reports module, in addition to the email templates already implemented.
+This guide explains how to enable and verify the dynamic HTML-based report templates for the Reports module.
 
-## What Changed
-- The Reports service can now render HTML reports using the template content stored in `ReportTemplate.template_content`.
-- When exporting with `export_format=HTML`, the system renders the selected report’s template and returns an `.html` file.
-- PDF/Excel/CSV/JSON continue to work. PDF still uses ReportLab programmatic rendering for portability, while HTML uses your saved templates.
+## What's New
+- **Unified Templates**: PDF exports now utilize the same database-stored HTML templates as HTML exports via the `xhtml2pdf` engine.
+- **Robust PDF Fallback**: If a template fails to render as a PDF, the system automatically falls back to a professional `ReportLab` programmatic layout.
+- **Simplified Layouts**: Templates have been optimized for high compatibility with PDF conversion engines while maintaining the USC-PIS branding.
 
 ## Where Templates Live
-- Model: `backend/reports/models.py` → `ReportTemplate.template_content` (HTML string)
-- Default templates: available via a management command
-  - `backend/reports/management/commands/create_default_report_templates.py`
-  - `backend/reports/management/commands/fix_report_formats.py` (ensures supported formats include JSON and provides basic HTML defaults if missing)
+- **Model**: `backend/reports/models.py` → `ReportTemplate.template_content` (HTML string).
+- **Default Management Command**:
+  - `python backend/manage.py create_default_report_templates --force`
+  - This command populates the database with the latest USC-standard templates.
 
-## How Rendering Works (HTML)
-- In `backend/reports/services.py`:
-  - `ReportGenerationService.generate_*_report(..., template_html=...)` accepts `template_html`.
-  - `ReportExportService.export_to_html(report_data, template_content, title, extra_context)` renders a Django template string with context that includes:
-    - `report_data` (the assembled data for the report)
-    - `title`, `generated_at`, `date_range_start`, `date_range_end`, `filters`
-- In `backend/reports/views.py`, when generating a report the system passes the selected `ReportTemplate.template_content` into the service.
+## How Rendering Works
+- **Context Injection**: The `ReportExportService` renders the template using a Context containing:
+  - `report_data`: Structured data from `ReportDataService`.
+  - `title`, `generated_at`, `report_date`, `date_range_start`, `date_range_end`.
+- **PDF Engine**: 
+  - Primary: `xhtml2pdf` (HTML-to-PDF).
+  - Fallback: `ReportLab` (Programmatic drawing).
+- **Excel Engine**: `Pandas` + `XlsxWriter` for multi-sheet workbooks.
 
-## Enabling Templates
-1) Ensure templates exist in your database:
-   - Option A: Create defaults
-     - `python backend/manage.py create_default_report_templates`
-   - Option B: If you already have rows but missing formats/templates
-     - `python backend/manage.py fix_report_formats`
-2) Confirm a template’s `supported_formats` contains `HTML` if you intend to export HTML.
-3) Generate a report with `export_format=HTML` through your UI/API.
+## Enabling & Updating Templates
+1. **Apply Latest Templates**:
+   ```bash
+   python backend/manage.py create_default_report_templates --force
+   ```
+2. **Verify on Heroku**:
+   ```bash
+   heroku run "python backend/manage.py create_default_report_templates --force"
+   ```
 
 ## How To Test
-- Quick script: `python backend/test_report_fixes.py`
-  - If no templates found, it will prompt you to run `fix_report_formats`.
-- API/UI: from the Reports screen, pick a template and choose `HTML` as the export format (if the UI supports format selection). Otherwise, hit the API endpoint used by the UI with `export_format: "HTML"`.
-- Validate output: download the resulting `.html` and open in a browser. It should match the template.
-
-## Notes
-- PDF still uses ReportLab; the `template_content` is ignored for PDF to avoid adding heavy HTML→PDF dependencies.
-- The HTML template uses Django templating syntax. You can reference data via `{{ report_data.<field> }}` and iterate using `{% for %}` blocks.
-- Common context keys available to the template:
-  - `title`, `generated_at`, `report_data`, `date_range_start`, `date_range_end`, `filters`
+1. **Generate Report**: In the UI, choose any report (e.g., Patient Summary) and select `PDF` format.
+2. **Open Result**: The PDF should open correctly in your browser and display the USC-PIS header, patient profile, and medical history in a clean, table-based layout.
+3. **Verify Data**: Confirm that all fields (Name, ID, Allergies, etc.) are correctly populated from the database.
 
 ## Troubleshooting
-- “Old templates” still appearing:
-  - Ensure deployment includes these changes.
-  - Confirm your generate call uses `export_format=HTML` when you want to see the stored template output.
-  - Check that the chosen `ReportTemplate` actually has your expected HTML in `template_content`.
-- HTML generation fails:
-  - The system falls back to JSON output. Check logs for template errors (undefined variables, syntax issues).
-- No templates in DB:
-  - Run `create_default_report_templates` first, or seed your own via admin.
-
-## Optional Enhancements
-- Add a simple admin preview endpoint to render and view `ReportTemplate.template_content` with sample data.
-- Provide a safe HTML sanitizer or standardized stylesheet for consistent brand styling.
+- **"Failed to load PDF document"**:
+  - **Cause**: This usually meant the server returned a JSON error inside a `.pdf` file.
+  - **Fix**: We now prevent this by returning `None` on failure. Ensure `xhtml2pdf` is installed in your environment.
+- **Missing Sections**:
+  - Check `backend/reports/services.py` to ensure `ReportDataService` is returning the expected keys (e.g., `patient`, `medical_records`).
+- **Styling Issues**:
+  - `xhtml2pdf` has limited CSS support. Use simple table-based layouts and inline styles where possible (the new default templates follow these rules).
 
 ---
 
-With this rollout, your previously authored report templates are now usable for HTML exports while existing PDF/Excel/CSV/JSON exports continue to work reliably.
-
+**Version**: 4.0  
+**Last Updated**: March 21, 2026  
+**Status**: Dynamic Templates Active for PDF/HTML
