@@ -533,6 +533,67 @@ class ReportDataService:
     def get_comprehensive_analytics_data(date_start=None, date_end=None, filters=None):
         return {'total_patients': Patient.objects.count(), 'total_visits': MedicalRecord.objects.count() + DentalRecord.objects.count()}
 
+    @staticmethod
+    def get_comprehensive_system_analytics(date_start=None, date_end=None, filters=None):
+        """Aggregate data for system-wide dashboard visualizations"""
+        try:
+            date_start = date_start or (timezone.now() - timedelta(days=365))
+            date_end = date_end or timezone.now()
+            
+            # 1. Demographics
+            demographics = ReportDataService.get_patient_summary_data(date_start, date_end, filters)
+            
+            # 2. Visit Trends
+            trends = ReportDataService.get_visit_trends_data(date_start, date_end, filters)
+            
+            # 3. Medical vs Dental (Record Types)
+            medical_count = MedicalRecord.objects.filter(created_at__range=(date_start, date_end)).count()
+            dental_count = DentalRecord.objects.filter(created_at__range=(date_start, date_end)).count()
+            
+            # 4. Top Diagnoses (from medical records)
+            medical_stats = ReportDataService.get_medical_statistics_data(date_start, date_end, filters)
+            
+            # 5. Patient Satisfaction
+            feedback = ReportDataService.get_feedback_analysis_data(date_start, date_end, filters)
+            
+            # 6. Monthly Admissions (New Patients)
+            monthly_admissions = []
+            patients = Patient.objects.filter(created_at__range=(date_start, date_end))
+            if patients.exists():
+                df_p = pd.DataFrame(list(patients.values('created_at')))
+                df_p['month'] = df_p['created_at'].dt.strftime('%Y-%m')
+                adm_counts = df_p.groupby('month').size().to_dict()
+                for month in sorted(adm_counts.keys()):
+                    monthly_admissions.append({'month': month, 'count': adm_counts[month]})
+
+            return {
+                'demographics': {
+                    'gender': demographics.get('gender_distribution', []),
+                    'age': demographics.get('age_distribution', {}),
+                    'total': demographics.get('total_patients', 0)
+                },
+                'visits': {
+                    'monthly': trends.get('monthly_summary', []),
+                    'types': {'medical': medical_count, 'dental': dental_count},
+                    'total': trends.get('total_visits', 0)
+                },
+                'clinical': {
+                    'top_diagnoses': medical_stats.get('top_diagnoses', [])[:5]
+                },
+                'satisfaction': {
+                    'distribution': feedback.get('rating_distribution', []),
+                    'average': feedback.get('avg_rating', 0)
+                },
+                'admissions': monthly_admissions,
+                'period': {
+                    'start': date_start.strftime('%Y-%m-%d'),
+                    'end': date_end.strftime('%Y-%m-%d')
+                }
+            }
+        except Exception as e:
+            logger.error(f"Error in get_comprehensive_system_analytics: {str(e)}")
+            return {'error': str(e)}
+
 class ReportExportService:
     """Service for exporting reports in different formats with robust error handling"""
 

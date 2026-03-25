@@ -319,8 +319,10 @@ class MedicalRecordViewSet(viewsets.ModelViewSet):
                     queryset = queryset.filter(patient__in=patients)
                     
             elif user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE]:
-                # Medical staff can see all records
-                pass
+                # Medical staff can see all records, but filter by patient if provided
+                patient_id = self.request.query_params.get('patient')
+                if patient_id:
+                    queryset = queryset.filter(patient_id=patient_id)
             else:
                 # Unknown role, return no records
                 logger.warning(f"User {user.email} has unknown role: {user.role}")
@@ -443,8 +445,10 @@ class DentalRecordViewSet(viewsets.ModelViewSet):
                     queryset = queryset.filter(patient__in=patients)
                     
             elif user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE]:
-                # Medical staff can see all records
-                pass
+                # Medical staff can see all records, but filter by patient if provided
+                patient_id = self.request.query_params.get('patient')
+                if patient_id:
+                    queryset = queryset.filter(patient_id=patient_id)
             else:
                 # Unknown role, return no records
                 logger.warning(f"User {user.email} has unknown role: {user.role}")
@@ -633,8 +637,10 @@ class ConsultationViewSet(viewsets.ModelViewSet):
                 # If patient has no patient profile, return no consultations
                 queryset = Consultation.objects.none()
         elif user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE]:
-            # Admin/Staff/Doctor/Dentist/Nurse can see all consultations
-            pass
+            # Admin/Staff/Doctor/Dentist/Nurse can see all consultations, but filter by patient if provided
+            patient_id = self.request.query_params.get('patient')
+            if patient_id:
+                queryset = queryset.filter(patient_id=patient_id)
         else:
             # Unknown role, return no consultations
             queryset = Consultation.objects.none()

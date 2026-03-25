@@ -23,9 +23,35 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  PointElement,
+  LineElement,
+  ArcElement,
+  Title,
+  Tooltip as ChartTooltip,
+  Legend,
+} from 'chart.js';
+import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2';
 import { reportService } from '../services/api';
 import InfoTooltip from './utils/InfoTooltip';
 import { formatDateTimePH, formatDatePH } from '../utils/dateUtils';
+
+// Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  PointElement,
+  LineElement,
+  ArcElement,
+  Title,
+  ChartTooltip,
+  Legend
+);
 
 const Reports = () => {
   const [templates, setTemplates] = useState([]);
@@ -47,18 +73,26 @@ const Reports = () => {
     filters: {}
   });
   const [dashboard, setDashboard] = useState(null);
-  const [analytics, setAnalytics] = useState(null);
+  const [templateAnalytics, setTemplateAnalytics] = useState(null);
+  const [systemAnalytics, setSystemAnalytics] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [realTimeUpdates, setRealTimeUpdates] = useState(true);
   const [filters, setFilters] = useState({
-    dateRange: 'last30days',
-    reportType: 'all',
-    status: 'all'
+    dateRange: 'lastYear',
+    gender: 'all',
+    role: 'all'
   });
   const intervalRef = useRef(null);
 
   useEffect(() => {
     fetchData();
   }, [selectedTab]);
+
+  useEffect(() => {
+    if (selectedTab === 2) {
+      fetchSystemAnalytics();
+    }
+  }, [selectedTab, filters.dateRange, filters.gender, filters.role]);
 
   useEffect(() => {
     if (realTimeUpdates) {
@@ -86,12 +120,49 @@ const Reports = () => {
       } else if (selectedTab === 1) {
         const reportsRes = await reportService.getReports();
         setReports(reportsRes.data.results || reportsRes.data);
+      } else if (selectedTab === 2) {
+        await fetchSystemAnalytics();
       }
     } catch (err) {
       setError('Failed to fetch data');
       console.error('Error fetching data:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSystemAnalytics = async () => {
+    try {
+      setAnalyticsLoading(true);
+      // Map dateRange to actual dates
+      let date_start = null;
+      const today = new Date();
+      if (filters.dateRange === 'last30days') {
+        date_start = new Date(today.setDate(today.getDate() - 30)).toISOString().split('T')[0];
+      } else if (filters.dateRange === 'last90days') {
+        date_start = new Date(today.setDate(today.getDate() - 90)).toISOString().split('T')[0];
+      } else if (filters.dateRange === 'lastYear') {
+        date_start = new Date(today.setFullYear(today.getFullYear() - 1)).toISOString().split('T')[0];
+      }
+
+      const params = {
+        date_start,
+        gender: filters.gender !== 'all' ? filters.gender : undefined,
+        role: filters.role !== 'all' ? filters.role : undefined
+      };
+
+      const [systemRes, templateRes] = await Promise.all([
+        reportService.getSystemAnalytics(params),
+        reportService.getReportAnalytics()
+      ]);
+      
+      setSystemAnalytics(systemRes.data);
+      setTemplateAnalytics(templateRes.data);
+    } catch (err) {
+      console.error('Error fetching system analytics:', err);
+      setError('Failed to load visualizations');
+    } finally {
+      setAnalyticsLoading(false);
     }
   };
 
@@ -388,6 +459,261 @@ const Reports = () => {
     }
   };
 
+  const renderAnalyticsTab = () => {
+    if (analyticsLoading && !systemAnalytics) {
+      return (
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+          <CircularProgress />
+        </Box>
+      );
+    }
+
+    if (!systemAnalytics) return null;
+
+    const visitData = {
+      labels: systemAnalytics.visits?.monthly?.map(m => m.month) || [],
+      datasets: [
+        {
+          label: 'Medical Visits',
+          data: systemAnalytics.visits?.monthly?.map(m => m.medical_visits) || [],
+          borderColor: '#1976d2',
+          backgroundColor: 'rgba(25, 118, 210, 0.5)',
+          tension: 0.3
+        },
+        {
+          label: 'Dental Visits',
+          data: systemAnalytics.visits?.monthly?.map(m => m.dental_visits) || [],
+          borderColor: '#7b1fa2',
+          backgroundColor: 'rgba(123, 31, 162, 0.5)',
+          tension: 0.3
+        }
+      ]
+    };
+
+    const genderData = {
+      labels: systemAnalytics.demographics?.gender?.map(g => g.gender) || [],
+      datasets: [{
+        data: systemAnalytics.demographics?.gender?.map(g => g.count) || [],
+        backgroundColor: ['#1976d2', '#dc004e', '#ff9800', '#4caf50'],
+      }]
+    };
+
+    const diagnosisData = {
+      labels: systemAnalytics.clinical?.top_diagnoses?.map(d => d.name) || [],
+      datasets: [{
+        label: 'Cases',
+        data: systemAnalytics.clinical?.top_diagnoses?.map(d => d.case_count) || [],
+        backgroundColor: 'rgba(25, 118, 210, 0.7)',
+      }]
+    };
+
+    const satisfactionData = {
+      labels: systemAnalytics.satisfaction?.distribution?.map(d => d.category) || [],
+      datasets: [{
+        data: systemAnalytics.satisfaction?.distribution?.map(d => d.count) || [],
+        backgroundColor: ['#4caf50', '#8bc34a', '#ffeb3b', '#f44336'],
+      }]
+    };
+
+    return (
+      <Box>
+        {/* Print Only Header */}
+        <Box className="print-header">
+          <Typography variant="h4" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
+            System Analytics & Visualizations Report
+          </Typography>
+          <Typography variant="subtitle1">
+            USC Clinic Patient Information System
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Generated on: {new Date().toLocaleString()} • Filter: {filters.dateRange} / {filters.gender} / {filters.role}
+          </Typography>
+        </Box>
+
+        {/* Analytics Filters */}
+        <Card sx={{ mb: 3, p: 2 }}>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Period</InputLabel>
+                <Select
+                  value={filters.dateRange}
+                  label="Period"
+                  onChange={(e) => setFilters(prev => ({ ...prev, dateRange: e.target.value }))}
+                >
+                  <MenuItem value="last30days">Last 30 Days</MenuItem>
+                  <MenuItem value="last90days">Last 90 Days</MenuItem>
+                  <MenuItem value="lastYear">Last Year</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Gender</InputLabel>
+                <Select
+                  value={filters.gender}
+                  label="Gender"
+                  onChange={(e) => setFilters(prev => ({ ...prev, gender: e.target.value }))}
+                >
+                  <MenuItem value="all">All Genders</MenuItem>
+                  <MenuItem value="MALE">Male</MenuItem>
+                  <MenuItem value="FEMALE">Female</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Role</InputLabel>
+                <Select
+                  value={filters.role}
+                  label="Role"
+                  onChange={(e) => setFilters(prev => ({ ...prev, role: e.target.value }))}
+                >
+                  <MenuItem value="all">All Roles</MenuItem>
+                  <MenuItem value="STUDENT">Student</MenuItem>
+                  <MenuItem value="TEACHER">Teacher</MenuItem>
+                  <MenuItem value="STAFF">Staff</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button 
+                  fullWidth 
+                  variant="outlined" 
+                  startIcon={<RefreshIcon />}
+                  onClick={fetchSystemAnalytics}
+                  disabled={analyticsLoading}
+                >
+                  Refresh
+                </Button>
+                <Button 
+                  fullWidth 
+                  variant="contained" 
+                  color="secondary"
+                  startIcon={<PdfIcon />}
+                  onClick={() => window.print()}
+                  disabled={analyticsLoading}
+                  sx={{ display: { xs: 'none', sm: 'flex' } }}
+                >
+                  Export PDF
+                </Button>
+              </Box>
+            </Grid>
+          </Grid>
+        </Card>
+
+        <Box className="print-container">
+          <Grid container spacing={3}>
+            {/* Main Trend Chart */}
+          <Grid item xs={12} lg={8}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>Visit Trends</Typography>
+                <Box sx={{ height: 300 }}>
+                  <Line 
+                    data={visitData} 
+                    options={{ 
+                      responsive: true, 
+                      maintainAspectRatio: false,
+                      plugins: { legend: { position: 'bottom' } }
+                    }} 
+                  />
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Demographics Pie */}
+          <Grid item xs={12} md={6} lg={4}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>Gender Distribution</Typography>
+                <Box sx={{ height: 300, display: 'flex', justifyContent: 'center' }}>
+                  <Pie 
+                    data={genderData} 
+                    options={{ 
+                      responsive: true, 
+                      maintainAspectRatio: false,
+                      plugins: { legend: { position: 'bottom' } }
+                    }} 
+                  />
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Top Diagnoses Bar */}
+          <Grid item xs={12} md={6} lg={6}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>Top 5 Diagnoses</Typography>
+                <Box sx={{ height: 300 }}>
+                  <Bar 
+                    data={diagnosisData} 
+                    options={{ 
+                      responsive: true, 
+                      maintainAspectRatio: false,
+                      indexAxis: 'y',
+                      plugins: { legend: { display: false } }
+                    }} 
+                  />
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Satisfaction Doughnut */}
+          <Grid item xs={12} md={6} lg={6}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>Patient Satisfaction</Typography>
+                <Box sx={{ height: 300, display: 'flex', justifyContent: 'center' }}>
+                  <Doughnut 
+                    data={satisfactionData} 
+                    options={{ 
+                      responsive: true, 
+                      maintainAspectRatio: false,
+                      plugins: { legend: { position: 'bottom' } }
+                    }} 
+                  />
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Report Template Analytics (existing feature preserved) */}
+          <Grid item xs={12}>
+            <Accordion>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography sx={{ fontWeight: 600 }}>Detailed Report Template Usage</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Grid container spacing={2}>
+                  {templateAnalytics?.map(stat => (
+                    <Grid item xs={12} sm={6} md={4} lg={3} key={stat.id}>
+                      <Paper variant="outlined" sx={{ p: 2 }}>
+                        <Typography variant="subtitle2" noWrap>{stat.template_name}</Typography>
+                        <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography variant="caption">Total:</Typography>
+                          <Typography variant="caption" sx={{ fontWeight: 'bold' }}>{stat.total_generations}</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography variant="caption">Last Used:</Typography>
+                          <Typography variant="caption">{formatDatePH(stat.last_calculated)}</Typography>
+                        </Box>
+                      </Paper>
+                    </Grid>
+                  ))}
+                </Grid>
+              </AccordionDetails>
+            </Accordion>
+          </Grid>
+        </Grid>
+      </Box>
+    );
+  };
+
   const resetForm = () => {
     setReportForm({
       title: '',
@@ -574,6 +900,7 @@ const Reports = () => {
         <Tabs value={selectedTab} onChange={(e, newValue) => setSelectedTab(newValue)} sx={{ mb: 3 }}>
           <Tab label="Report Templates" />
           <Tab label="My Reports" />
+          <Tab label="Analytics & Visualizations" />
         </Tabs>
 
         {selectedTab === 0 && (
@@ -958,162 +1285,7 @@ const Reports = () => {
           </Box>
         )}
 
-        {selectedTab === 2 && (
-          <Box>
-            {analytics ? (
-              <Grid container spacing={3}>
-                <Grid item xs={12}>
-                  <Card>
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom>
-                        System Analytics Overview
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" paragraph>
-                        Comprehensive insights into reporting system performance and usage patterns.
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                
-                {/* Usage Analytics */}
-                <Grid item xs={12} md={6}>
-                  <Card>
-                    <CardContent>
-                      <Box display="flex" alignItems="center" mb={2}>
-                        <AnalyticsIcon color="primary" sx={{ mr: 1 }} />
-                        <Typography variant="h6">Usage Statistics</Typography>
-                      </Box>
-                      <Box mb={2}>
-                        <Typography variant="body2" color="text.secondary">Total Generations</Typography>
-                        <Typography variant="h4" color="primary">{analytics.total_generations || 0}</Typography>
-                      </Box>
-                      <Box mb={2}>
-                        <Typography variant="body2" color="text.secondary">Total Downloads</Typography>
-                        <Typography variant="h4" color="success.main">{analytics.total_downloads || 0}</Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">Success Rate</Typography>
-                        <Typography variant="h4" color="info.main">{analytics.success_rate || 0}%</Typography>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
-
-                {/* Format Distribution */}
-                <Grid item xs={12} md={6}>
-                  <Card>
-                    <CardContent>
-                      <Box display="flex" alignItems="center" mb={2}>
-                        <TrendingUpIcon color="primary" sx={{ mr: 1 }} />
-                        <Typography variant="h6">Popular Formats</Typography>
-                      </Box>
-                      {dashboard && dashboard.format_distribution && Object.entries(dashboard.format_distribution).map(([format, count]) => (
-                        <Box key={format} display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                          <Box display="flex" alignItems="center">
-                            {getFormatIcon(format)}
-                            <Typography variant="body2" sx={{ ml: 1 }}>{format}</Typography>
-                          </Box>
-                          <Chip label={count} size="small" color="primary" variant="outlined" />
-                        </Box>
-                      ))}
-                    </CardContent>
-                  </Card>
-                </Grid>
-
-                {/* Generation Trends */}
-                <Grid item xs={12}>
-                  <Card>
-                    <CardContent>
-                      <Box display="flex" alignItems="center" mb={2}>
-                        <TimelineIcon color="primary" sx={{ mr: 1 }} />
-                        <Typography variant="h6">Generation Trends (Last 30 Days)</Typography>
-                      </Box>
-                      <Box sx={{ height: 200, display: 'flex', alignItems: 'end', justifyContent: 'space-around' }}>
-                        {dashboard && dashboard.generation_trends && dashboard.generation_trends.slice(0, 10).map((trend, index) => (
-                          <Box key={index} display="flex" flexDirection="column" alignItems="center">
-                            <Box 
-                              sx={{ 
-                                height: `${Math.max(10, (trend.reports / Math.max(...dashboard.generation_trends.map(t => t.reports))) * 150)}px`,
-                                width: 20,
-                                backgroundColor: 'primary.main',
-                                borderRadius: 1,
-                                mb: 1
-                              }}
-                            />
-                            <Typography variant="caption" color="text.secondary">
-                              {formatDatePH(trend.date, { month: 'short', day: 'numeric' })}
-                            </Typography>
-                            <Typography variant="caption" color="primary">
-                              {trend.reports}
-                            </Typography>
-                          </Box>
-                        ))}
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
-
-                {/* Storage Usage */}
-                {dashboard && dashboard.storage_usage && (
-                  <Grid item xs={12} md={6}>
-                    <Card>
-                      <CardContent>
-                        <Box display="flex" alignItems="center" mb={2}>
-                          <Box sx={{ color: 'info.main', mr: 1 }}>💾</Box>
-                          <Typography variant="h6">Storage Usage</Typography>
-                        </Box>
-                        <Box mb={2}>
-                          <Typography variant="body2" color="text.secondary">Total Size</Typography>
-                          <Typography variant="h4" color="info.main">
-                            {dashboard.storage_usage.total_size_formatted}
-                          </Typography>
-                        </Box>
-                        <Box>
-                          <Typography variant="body2" color="text.secondary">
-                            Across {dashboard.storage_usage.report_count} reports
-                          </Typography>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                )}
-
-                {/* Popular Templates */}
-                {dashboard && dashboard.popular_templates && (
-                  <Grid item xs={12} md={6}>
-                    <Card>
-                      <CardContent>
-                        <Box display="flex" alignItems="center" mb={2}>
-                          <BookmarkIcon color="primary" sx={{ mr: 1 }} />
-                          <Typography variant="h6">Popular Templates</Typography>
-                        </Box>
-                        {dashboard.popular_templates.slice(0, 5).map((template, index) => (
-                          <Box key={template.id} display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                            <Typography variant="body2">{template.name}</Typography>
-                            <Chip 
-                              label={`${template.generation_count || 0} uses`} 
-                              size="small" 
-                              color={index === 0 ? "primary" : "default"}
-                              variant={index === 0 ? "filled" : "outlined"}
-                            />
-                          </Box>
-                        ))}
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                )}
-              </Grid>
-            ) : (
-              <Box display="flex" flexDirection="column" alignItems="center" p={4}>
-                <CircularProgress sx={{ mb: 2 }} />
-                <Typography variant="body1">Loading analytics...</Typography>
-                <Button variant="outlined" onClick={fetchAnalytics} sx={{ mt: 2 }}>
-                  Load Analytics
-                </Button>
-              </Box>
-            )}
-          </Box>
-        )}
+        {selectedTab === 2 && renderAnalyticsTab()}
 
         {/* Generate Report Dialog */}
         <Dialog

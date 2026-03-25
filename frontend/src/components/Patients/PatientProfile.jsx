@@ -90,23 +90,17 @@ const PatientProfile = ({ patient: partialPatient, onBack }) => {
           setPatient(patientResp.data);
         }
 
-        // Fetch all related history
+        // Fetch all related history with patient filtering
         const [medicalResp, consultationResp, dentalResp] = await Promise.all([
-          healthRecordsService.getByPatient(partialPatient.id).catch(() => ({ data: [] })),
-          consultationService.getAll().catch(() => ({ data: [] })),
+          healthRecordsService.getAll({ patient: partialPatient.id }).catch(() => ({ data: [] })),
+          consultationService.getAll({ patient: partialPatient.id }).catch(() => ({ data: [] })),
           dentalRecordService.getAll({ patient: partialPatient.id }).catch(() => ({ data: [] }))
         ]);
         
         // Merge and tag records
         const medical = (medicalResp?.data || []).map(r => ({ ...r, type: 'Medical', date: r.visit_date }));
-        
-        // Filter consultations for this patient
-        const consultations = (consultationResp?.data || [])
-          .filter(r => r.patient === partialPatient.id)
-          .map(r => ({ ...r, type: 'Consultation', date: r.date_time }));
-          
-        const dental = (dentalResp?.data || [])
-          .map(r => ({ ...r, type: 'Dental', date: r.visit_date }));
+        const consultations = (consultationResp?.data || []).map(r => ({ ...r, type: 'Consultation', date: r.date_time }));
+        const dental = (dentalResp?.data || []).map(r => ({ ...r, type: 'Dental', date: r.visit_date }));
 
         const allHistory = [...medical, ...consultations, ...dental].sort((a, b) => 
           new Date(b.date) - new Date(a.date)

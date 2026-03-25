@@ -537,3 +537,30 @@ class ReportAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_fields = ['report_template__report_type']
     ordering_fields = ['last_calculated', 'total_generations']
     ordering = ['-last_calculated'] 
+
+    @action(detail=False, methods=['get'])
+    def system_analytics(self, request):
+        """Get system-wide analytics for visualizations"""
+        from reports.services import ReportDataService
+        
+        # Extract filters from query params
+        date_start = request.query_params.get('date_start')
+        date_end = request.query_params.get('date_end')
+        
+        if date_start:
+            date_start = datetime.strptime(date_start, '%Y-%m-%d')
+        if date_end:
+            date_end = datetime.strptime(date_end, '%Y-%m-%d')
+            
+        filters = {
+            'gender': request.query_params.get('gender'),
+            'role': request.query_params.get('role')
+        }
+        
+        analytics_data = ReportDataService.get_comprehensive_system_analytics(
+            date_start=date_start,
+            date_end=date_end,
+            filters={k: v for k, v in filters.items() if v}
+        )
+        
+        return Response(analytics_data)

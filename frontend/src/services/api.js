@@ -746,9 +746,9 @@ export const healthInfoService = {
 };
 
 export const healthRecordsService = {
-  getAll: async () => {
+  getAll: async (params = {}) => {
     try {
-      return await api.get('/patients/medical-records/');
+      return await api.get('/patients/medical-records/', { params });
     } catch (error) {
       handleApiError(error);
     }
@@ -910,9 +910,9 @@ export const fileUploadService = {
 };
 
 export const consultationService = {
-  getAll: async () => {
+  getAll: async (params = {}) => {
     try {
-      return await api.get('/patients/consultations/');
+      return await api.get('/patients/consultations/', { params });
     } catch (error) {
       handleApiError(error);
     }
@@ -1587,6 +1587,11 @@ export const reportService = {
   // Get report analytics
   getReportAnalytics: (params = {}) => {
     return api.get('/reports/analytics/', { params });
+  },
+
+  // Get system-wide analytics for visualizations
+  getSystemAnalytics: (params = {}) => {
+    return api.get('/reports/analytics/system_analytics/', { params });
   },
 
 };
