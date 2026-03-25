@@ -157,7 +157,7 @@ const Reports = () => {
       ]);
       
       setSystemAnalytics(systemRes.data);
-      setTemplateAnalytics(templateRes.data);
+      setTemplateAnalytics(templateRes.data.results || templateRes.data);
     } catch (err) {
       console.error('Error fetching system analytics:', err);
       setError('Failed to load visualizations');
