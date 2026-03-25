@@ -201,43 +201,86 @@ class ReportDataService:
         try:
             date_start = date_start or (timezone.now() - timedelta(days=365))
             date_end = date_end or timezone.now()
+            
             medical_records = MedicalRecord.objects.filter(created_at__range=(date_start, date_end))
             dental_records = DentalRecord.objects.filter(created_at__range=(date_start, date_end))
+            
+            # Apply filters if provided
+            if filters:
+                if filters.get('gender'):
+                    medical_records = medical_records.filter(patient__gender=filters['gender'])
+                    dental_records = dental_records.filter(patient__gender=filters['gender'])
+                if filters.get('role'):
+                    medical_records = medical_records.filter(patient__user__role=filters['role'])
+                    dental_records = dental_records.filter(patient__user__role=filters['role'])
+
             total_medical = medical_records.count()
             total_dental = dental_records.count()
             total_visits = total_medical + total_dental
+            
             medical_patients = set(medical_records.values_list('patient_id', flat=True))
             dental_patients = set(dental_records.values_list('patient_id', flat=True))
             unique_patients = len(medical_patients | dental_patients)
+            
             m_data = [{'date': r.created_at, 'type': 'medical'} for r in medical_records]
             d_data = [{'date': r.created_at, 'type': 'dental'} for r in dental_records]
+            
             monthly_summary = []
             if m_data or d_data:
                 df = pd.DataFrame(m_data + d_data)
                 df['month'] = df['date'].dt.strftime('%Y-%m')
                 monthly_counts = df.groupby(['month', 'type']).size().unstack(fill_value=0)
-                if 'medical' not in monthly_counts: monthly_counts['medical'] = 0
-                if 'dental' not in monthly_counts: monthly_counts['dental'] = 0
+                
+                # Ensure columns exist
+                for t in ['medical', 'dental']:
+                    if t not in monthly_counts.columns:
+                        monthly_counts[t] = 0
+                
                 monthly_counts['total'] = monthly_counts['medical'] + monthly_counts['dental']
                 monthly_counts = monthly_counts.sort_index()
-                monthly_counts['growth'] = monthly_counts['total'].pct_change() * 100
+                
+                # Calculate growth
+                if len(monthly_counts) > 1:
+                    monthly_counts['growth'] = monthly_counts['total'].pct_change() * 100
+                else:
+                    monthly_counts['growth'] = 0
+                    
                 monthly_counts = monthly_counts.fillna(0)
+                
                 for month, row in monthly_counts.iterrows():
                     monthly_summary.append({
-                        'month': month, 'total_visits': int(row['total']),
-                        'medical_visits': int(row['medical']), 'dental_visits': int(row['dental']),
-                        'growth_percentage': float(row['growth'])
+                        'month': month, 
+                        'total_visits': int(row['total']),
+                        'medical_visits': int(row.get('medical', 0)), 
+                        'dental_visits': int(row.get('dental', 0)),
+                        'growth_percentage': float(row.get('growth', 0))
                     })
+            else:
+                # Provide at least current month with zero data if empty
+                current_month = timezone.now().strftime('%Y-%m')
+                monthly_summary.append({
+                    'month': current_month,
+                    'total_visits': 0,
+                    'medical_visits': 0,
+                    'dental_visits': 0,
+                    'growth_percentage': 0
+                })
+                
             days_diff = (date_end - date_start).days or 1
             avg_daily = round(total_visits / days_diff, 1)
             peak_day_visits = 0
             if m_data or d_data:
-                df_day = pd.DataFrame(m_data + d_data); df_day['day'] = df_day['date'].dt.date
+                df_day = pd.DataFrame(m_data + d_data)
+                df_day['day'] = df_day['date'].dt.date
                 peak_day_visits = int(df_day.groupby('day').size().max())
+                
             return {
-                'total_visits': total_visits, 'unique_patients': unique_patients,
-                'avg_daily_visits': avg_daily, 'peak_day_visits': peak_day_visits,
-                'monthly_summary': monthly_summary, 'summary_by_type': {'Medical': total_medical, 'Dental': total_dental}
+                'total_visits': total_visits, 
+                'unique_patients': unique_patients,
+                'avg_daily_visits': avg_daily, 
+                'peak_day_visits': peak_day_visits,
+                'monthly_summary': monthly_summary, 
+                'summary_by_type': {'Medical': total_medical, 'Dental': total_dental}
             }
         except Exception as e:
             logger.error(f"Error in get_visit_trends_data: {str(e)}")
@@ -534,43 +577,101 @@ class ReportDataService:
         return {'total_patients': Patient.objects.count(), 'total_visits': MedicalRecord.objects.count() + DentalRecord.objects.count()}
 
     @staticmethod
+    def _get_peak_hours(queryset):
+        """Helper to calculate peak hours from a queryset of records with created_at"""
+        hours = {str(i).zfill(2): 0 for i in range(8, 18)}  # 8 AM to 5 PM
+        for record in queryset:
+            hour = record.created_at.astimezone().strftime('%H')
+            if hour in hours:
+                hours[hour] += 1
+        return [{'hour': f"{h}:00", 'count': c} for h, c in hours.items()]
+        
+    @staticmethod
+    def _get_college_participation(patients):
+        """Helper to aggregate patients by college/school"""
+        colleges = {}
+        for patient in patients:
+            if patient.user and patient.user.course:
+                # Extract college from course (assuming format like "BSCS (SOE)")
+                course = patient.user.course.upper()
+                # Simple heuristic: look for common USC acronyms in the string
+                college = "Other"
+                if "SOE" in course or "ENGINEERING" in course: college = "SOE"
+                elif "SAFAD" in course or "ARCHITECTURE" in course: college = "SAFAD"
+                elif "SBE" in course or "BUSINESS" in course: college = "SBE"
+                elif "SAS" in course or "ARTS" in course or "SCIENCE" in course: college = "SAS"
+                elif "SHCP" in course or "HEALTH" in course: college = "SHCP"
+                elif "SED" in course or "EDUCATION" in course: college = "SED"
+                elif "SLG" in course or "LAW" in course: college = "SLG"
+                
+                colleges[college] = colleges.get(college, 0) + 1
+            elif patient.user and patient.user.department:
+                 dept = patient.user.department
+                 colleges[dept] = colleges.get(dept, 0) + 1
+        
+        return sorted([{'name': k, 'count': v} for k, v in colleges.items() if k != "Other"], key=lambda x: x['count'], reverse=True)
+
+    @staticmethod
+    def _get_role_distribution(patients):
+        """Helper to aggregate patients by role"""
+        roles = {'STUDENT': 0, 'STAFF': 0, 'TEACHER': 0, 'OTHER': 0}
+        for patient in patients:
+            if patient.user:
+                role = patient.user.role
+                if role in roles:
+                    roles[role] += 1
+                else:
+                    roles['OTHER'] += 1
+        return [{'role': k, 'count': v} for k, v in roles.items() if v > 0]
+
+    @staticmethod
     def get_comprehensive_system_analytics(date_start=None, date_end=None, filters=None):
         """Aggregate data for system-wide dashboard visualizations"""
         try:
             date_start = date_start or (timezone.now() - timedelta(days=365))
             date_end = date_end or timezone.now()
             
-            # 1. Demographics
-            demographics = ReportDataService.get_patient_summary_data(date_start, date_end, filters)
+            medical_records = MedicalRecord.objects.filter(created_at__range=(date_start, date_end))
+            dental_records = DentalRecord.objects.filter(created_at__range=(date_start, date_end))
             
-            # 2. Visit Trends
+            # Apply filters
+            if filters:
+                if filters.get('college'):
+                    pass # Handled on frontend for MVP simplicity
+                if filters.get('clinic_type') == 'medical':
+                    dental_records = DentalRecord.objects.none()
+                elif filters.get('clinic_type') == 'dental':
+                    medical_records = MedicalRecord.objects.none()
+            
             trends = ReportDataService.get_visit_trends_data(date_start, date_end, filters)
             
-            # 3. Medical vs Dental (Record Types)
-            medical_count = MedicalRecord.objects.filter(created_at__range=(date_start, date_end)).count()
-            dental_count = DentalRecord.objects.filter(created_at__range=(date_start, date_end)).count()
+            medical_count = medical_records.count()
+            dental_count = dental_records.count()
             
-            # 4. Top Diagnoses (from medical records)
             medical_stats = ReportDataService.get_medical_statistics_data(date_start, date_end, filters)
+            dental_stats = ReportDataService.get_dental_statistics_data(date_start, date_end, filters)
             
-            # 5. Patient Satisfaction
             feedback = ReportDataService.get_feedback_analysis_data(date_start, date_end, filters)
             
-            # 6. Monthly Admissions (New Patients)
-            monthly_admissions = []
-            patients = Patient.objects.filter(created_at__range=(date_start, date_end))
-            if patients.exists():
-                df_p = pd.DataFrame(list(patients.values('created_at')))
-                df_p['month'] = df_p['created_at'].dt.strftime('%Y-%m')
-                adm_counts = df_p.groupby('month').size().to_dict()
-                for month in sorted(adm_counts.keys()):
-                    monthly_admissions.append({'month': month, 'count': adm_counts[month]})
+            # Get distinct patients for demographics
+            med_patients = Patient.objects.filter(id__in=medical_records.values('patient_id')).select_related('user')
+            den_patients = Patient.objects.filter(id__in=dental_records.values('patient_id')).select_related('user')
+            all_active_patients = list(set(list(med_patients) + list(den_patients)))
+
+            # Calculate Peak Hours
+            peak_hours = ReportDataService._get_peak_hours(list(medical_records) + list(dental_records))
+            
+            # Calculate College Participation
+            college_participation = ReportDataService._get_college_participation(all_active_patients)
+            
+            # Calculate Role Distribution (Student vs Staff)
+            role_distribution = ReportDataService._get_role_distribution(all_active_patients)
 
             return {
                 'demographics': {
-                    'gender': demographics.get('gender_distribution', []),
-                    'age': demographics.get('age_distribution', {}),
-                    'total': demographics.get('total_patients', 0)
+                    'colleges': college_participation,
+                    'roles': role_distribution,
+                    'total_active': len(all_active_patients)
                 },
                 'visits': {
                     'monthly': trends.get('monthly_summary', []),
@@ -578,13 +679,16 @@ class ReportDataService:
                     'total': trends.get('total_visits', 0)
                 },
                 'clinical': {
-                    'top_diagnoses': medical_stats.get('top_diagnoses', [])[:5]
+                    'top_diagnoses': medical_stats.get('top_diagnoses', [])[:5],
+                    'top_procedures': dental_stats.get('common_procedures', [])[:5]
                 },
                 'satisfaction': {
                     'distribution': feedback.get('rating_distribution', []),
                     'average': feedback.get('avg_rating', 0)
                 },
-                'admissions': monthly_admissions,
+                'operations': {
+                    'peak_hours': peak_hours
+                },
                 'period': {
                     'start': date_start.strftime('%Y-%m-%d'),
                     'end': date_end.strftime('%Y-%m-%d')

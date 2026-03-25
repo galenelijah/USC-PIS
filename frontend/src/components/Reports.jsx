@@ -79,8 +79,8 @@ const Reports = () => {
   const [realTimeUpdates, setRealTimeUpdates] = useState(true);
   const [filters, setFilters] = useState({
     dateRange: 'lastYear',
-    gender: 'all',
-    role: 'all'
+    clinic_type: 'all',
+    college: 'all'
   });
   const intervalRef = useRef(null);
 
@@ -92,7 +92,7 @@ const Reports = () => {
     if (selectedTab === 2) {
       fetchSystemAnalytics();
     }
-  }, [selectedTab, filters.dateRange, filters.gender, filters.role]);
+  }, [selectedTab, filters.dateRange, filters.clinic_type, filters.college]);
 
   useEffect(() => {
     if (realTimeUpdates) {
@@ -147,8 +147,8 @@ const Reports = () => {
 
       const params = {
         date_start,
-        gender: filters.gender !== 'all' ? filters.gender : undefined,
-        role: filters.role !== 'all' ? filters.role : undefined
+        clinic_type: filters.clinic_type !== 'all' ? filters.clinic_type : undefined,
+        college: filters.college !== 'all' ? filters.college : undefined
       };
 
       const [systemRes, templateRes] = await Promise.all([
@@ -490,27 +490,46 @@ const Reports = () => {
       ]
     };
 
-    const genderData = {
-      labels: systemAnalytics.demographics?.gender?.map(g => g.gender) || [],
-      datasets: [{
-        data: systemAnalytics.demographics?.gender?.map(g => g.count) || [],
-        backgroundColor: ['#1976d2', '#dc004e', '#ff9800', '#4caf50'],
-      }]
-    };
-
-    const diagnosisData = {
+    const topDiagnosesData = {
       labels: systemAnalytics.clinical?.top_diagnoses?.map(d => d.name) || [],
       datasets: [{
-        label: 'Cases',
+        label: 'Medical Cases',
         data: systemAnalytics.clinical?.top_diagnoses?.map(d => d.case_count) || [],
         backgroundColor: 'rgba(25, 118, 210, 0.7)',
       }]
     };
-
-    const satisfactionData = {
-      labels: systemAnalytics.satisfaction?.distribution?.map(d => d.category) || [],
+    
+    const topProceduresData = {
+      labels: systemAnalytics.clinical?.top_procedures?.map(d => d.name) || [],
       datasets: [{
-        data: systemAnalytics.satisfaction?.distribution?.map(d => d.count) || [],
+        label: 'Dental Procedures',
+        data: systemAnalytics.clinical?.top_procedures?.map(d => d.count) || [],
+        backgroundColor: 'rgba(123, 31, 162, 0.7)',
+      }]
+    };
+
+    const collegeData = {
+      labels: systemAnalytics.demographics?.colleges?.map(c => c.name) || [],
+      datasets: [{
+        label: 'Patients',
+        data: systemAnalytics.demographics?.colleges?.map(c => c.count) || [],
+        backgroundColor: ['#1976d2', '#2196f3', '#4dabf5', '#64b5f6', '#90caf9', '#bbdefb'],
+      }]
+    };
+
+    const peakHoursData = {
+      labels: systemAnalytics.operations?.peak_hours?.map(h => h.hour) || [],
+      datasets: [{
+        label: 'Total Visits',
+        data: systemAnalytics.operations?.peak_hours?.map(h => h.count) || [],
+        backgroundColor: 'rgba(255, 152, 0, 0.7)',
+      }]
+    };
+
+    const roleData = {
+      labels: systemAnalytics.demographics?.roles?.map(r => r.role) || [],
+      datasets: [{
+        data: systemAnalytics.demographics?.roles?.map(r => r.count) || [],
         backgroundColor: ['#4caf50', '#8bc34a', '#ffeb3b', '#f44336'],
       }]
     };
@@ -526,7 +545,7 @@ const Reports = () => {
             USC Clinic Patient Information System
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Generated on: {new Date().toLocaleString()} • Filter: {filters.dateRange} / {filters.gender} / {filters.role}
+            Generated on: {new Date().toLocaleString()} • Filter: {filters.dateRange} / {filters.clinic_type} / {filters.college}
           </Typography>
         </Box>
 
@@ -549,30 +568,34 @@ const Reports = () => {
             </Grid>
             <Grid item xs={12} md={3}>
               <FormControl fullWidth size="small">
-                <InputLabel>Gender</InputLabel>
+                <InputLabel>Clinic Type</InputLabel>
                 <Select
-                  value={filters.gender}
-                  label="Gender"
-                  onChange={(e) => setFilters(prev => ({ ...prev, gender: e.target.value }))}
+                  value={filters.clinic_type}
+                  label="Clinic Type"
+                  onChange={(e) => setFilters(prev => ({ ...prev, clinic_type: e.target.value }))}
                 >
-                  <MenuItem value="all">All Genders</MenuItem>
-                  <MenuItem value="MALE">Male</MenuItem>
-                  <MenuItem value="FEMALE">Female</MenuItem>
+                  <MenuItem value="all">All Clinics</MenuItem>
+                  <MenuItem value="medical">Medical Only</MenuItem>
+                  <MenuItem value="dental">Dental Only</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} md={3}>
               <FormControl fullWidth size="small">
-                <InputLabel>Role</InputLabel>
+                <InputLabel>College/Unit</InputLabel>
                 <Select
-                  value={filters.role}
-                  label="Role"
-                  onChange={(e) => setFilters(prev => ({ ...prev, role: e.target.value }))}
+                  value={filters.college}
+                  label="College/Unit"
+                  onChange={(e) => setFilters(prev => ({ ...prev, college: e.target.value }))}
                 >
-                  <MenuItem value="all">All Roles</MenuItem>
-                  <MenuItem value="STUDENT">Student</MenuItem>
-                  <MenuItem value="TEACHER">Teacher</MenuItem>
-                  <MenuItem value="STAFF">Staff</MenuItem>
+                  <MenuItem value="all">All Units</MenuItem>
+                  <MenuItem value="SOE">Engineering (SOE)</MenuItem>
+                  <MenuItem value="SAFAD">Architecture (SAFAD)</MenuItem>
+                  <MenuItem value="SBE">Business (SBE)</MenuItem>
+                  <MenuItem value="SAS">Arts & Sciences (SAS)</MenuItem>
+                  <MenuItem value="SHCP">Health Care (SHCP)</MenuItem>
+                  <MenuItem value="SED">Education (SED)</MenuItem>
+                  <MenuItem value="SLG">Law (SLG)</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -624,14 +647,13 @@ const Reports = () => {
             </Card>
           </Grid>
 
-          {/* Demographics Pie */}
           <Grid item xs={12} md={6} lg={4}>
             <Card sx={{ height: '100%' }}>
               <CardContent>
-                <Typography variant="h6" gutterBottom>Gender Distribution</Typography>
+                <Typography variant="h6" gutterBottom>Patient Roles</Typography>
                 <Box sx={{ height: 300, display: 'flex', justifyContent: 'center' }}>
-                  <Pie 
-                    data={genderData} 
+                  <Doughnut 
+                    data={roleData} 
                     options={{ 
                       responsive: true, 
                       maintainAspectRatio: false,
@@ -643,14 +665,13 @@ const Reports = () => {
             </Card>
           </Grid>
 
-          {/* Top Diagnoses Bar */}
           <Grid item xs={12} md={6} lg={6}>
             <Card sx={{ height: '100%' }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom>Top 5 Diagnoses</Typography>
                 <Box sx={{ height: 300 }}>
                   <Bar 
-                    data={diagnosisData} 
+                    data={topDiagnosesData} 
                     options={{ 
                       responsive: true, 
                       maintainAspectRatio: false,
@@ -663,18 +684,54 @@ const Reports = () => {
             </Card>
           </Grid>
 
-          {/* Satisfaction Doughnut */}
           <Grid item xs={12} md={6} lg={6}>
             <Card sx={{ height: '100%' }}>
               <CardContent>
-                <Typography variant="h6" gutterBottom>Patient Satisfaction</Typography>
-                <Box sx={{ height: 300, display: 'flex', justifyContent: 'center' }}>
-                  <Doughnut 
-                    data={satisfactionData} 
+                <Typography variant="h6" gutterBottom>Top 5 Dental Procedures</Typography>
+                <Box sx={{ height: 300 }}>
+                  <Bar 
+                    data={topProceduresData} 
                     options={{ 
                       responsive: true, 
                       maintainAspectRatio: false,
-                      plugins: { legend: { position: 'bottom' } }
+                      indexAxis: 'y',
+                      plugins: { legend: { display: false } }
+                    }} 
+                  />
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} md={6} lg={6}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>Peak Clinic Hours</Typography>
+                <Box sx={{ height: 300, display: 'flex', justifyContent: 'center' }}>
+                  <Bar 
+                    data={peakHoursData} 
+                    options={{ 
+                      responsive: true, 
+                      maintainAspectRatio: false,
+                      plugins: { legend: { display: false } }
+                    }} 
+                  />
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} md={6} lg={6}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>College Participation</Typography>
+                <Box sx={{ height: 300, display: 'flex', justifyContent: 'center' }}>
+                  <Bar 
+                    data={collegeData} 
+                    options={{ 
+                      responsive: true, 
+                      maintainAspectRatio: false,
+                      plugins: { legend: { display: false } }
                     }} 
                   />
                 </Box>
