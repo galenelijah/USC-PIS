@@ -554,7 +554,6 @@ const Reports = () => {
                   case 'PATIENT_SUMMARY': return '#1976d2';
                   case 'MEDICAL_RECORDS': return '#2e7d32';
                   case 'DENTAL_RECORDS': return '#7b1fa2';
-                  case 'FINANCIAL': return '#f57c00';
                   case 'ANALYTICS': return '#d32f2f';
                   case 'COMPREHENSIVE': return '#5d4037';
                   default: return '#616161';
@@ -566,7 +565,6 @@ const Reports = () => {
                   case 'PATIENT_SUMMARY': return '👤';
                   case 'MEDICAL_RECORDS': return '🏥';
                   case 'DENTAL_RECORDS': return '🦷';
-                  case 'FINANCIAL': return '💰';
                   case 'ANALYTICS': return '📊';
                   case 'COMPREHENSIVE': return '📋';
                   default: return '📄';

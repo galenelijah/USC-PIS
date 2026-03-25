@@ -289,20 +289,8 @@ class ReportDataService:
         return {'total_population': Patient.objects.count(), 'age_average': 22.1, 'health_alerts': 5}
 
     @staticmethod
-    def get_inventory_report_data(date_start=None, date_end=None, filters=None):
-        return {'total_items': 150, 'stock_alerts': 3, 'module_status': 'Operational'}
-
-    @staticmethod
-    def get_financial_report_data(date_start=None, date_end=None, filters=None):
-        return {'total_expenses': 45000.00, 'budget_utilization': '92%', 'report_type': 'Operational'}
-
-    @staticmethod
     def get_compliance_report_data(date_start=None, date_end=None, filters=None):
         return {'compliance_score': '98%', 'privacy_policy': 'Compliant', 'audit_status': 'Passed'}
-
-    @staticmethod
-    def get_custom_report_data(date_start=None, date_end=None, filters=None):
-        return {'custom_parameters': filters or {}, 'generated_at': timezone.now()}
 
     @staticmethod
     def get_feedback_analysis_data(date_start=None, date_end=None, filters=None):
@@ -902,18 +890,9 @@ class ReportGenerationService:
             elif rtype == 'HEALTH_METRICS':
                 data = self.data_service.get_health_metrics_data(date_start, date_end, filters)
                 report_title = title or "Health Metrics Report"
-            elif rtype == 'INVENTORY_REPORT':
-                data = self.data_service.get_inventory_report_data(date_start, date_end, filters)
-                report_title = title or "Inventory Status Report"
-            elif rtype == 'FINANCIAL_REPORT':
-                data = self.data_service.get_financial_report_data(date_start, date_end, filters)
-                report_title = title or "Financial Summary Report"
             elif rtype == 'COMPLIANCE_REPORT':
                 data = self.data_service.get_compliance_report_data(date_start, date_end, filters)
                 report_title = title or "Compliance & Audit Report"
-            elif rtype == 'CUSTOM':
-                data = self.data_service.get_custom_report_data(date_start, date_end, filters)
-                report_title = title or "Custom Data Report"
             else: 
                 logger.warning(f"Unknown report type '{rtype}', using comprehensive analytics fallback")
                 data = self.data_service.get_comprehensive_analytics_data(date_start, date_end, filters)
@@ -962,7 +941,4 @@ class ReportGenerationService:
     def generate_campaign_performance_report(self, **kwargs): return self._generate_generic_report('CAMPAIGN_PERFORMANCE', "Campaign Performance", **kwargs)
     def generate_user_activity_report(self, **kwargs): return self._generate_generic_report('USER_ACTIVITY', "User Activity", **kwargs)
     def generate_health_metrics_report(self, **kwargs): return self._generate_generic_report('HEALTH_METRICS', "Health Metrics", **kwargs)
-    def generate_inventory_report(self, **kwargs): return self._generate_generic_report('INVENTORY_REPORT', "Inventory Report", **kwargs)
-    def generate_financial_report(self, **kwargs): return self._generate_generic_report('FINANCIAL_REPORT', "Financial Report", **kwargs)
     def generate_compliance_report(self, **kwargs): return self._generate_generic_report('COMPLIANCE_REPORT', "Compliance Report", **kwargs)
-    def generate_custom_report(self, **kwargs): return self._generate_generic_report('CUSTOM', "Custom Report", **kwargs)

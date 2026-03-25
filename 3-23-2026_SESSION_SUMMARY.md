@@ -5,11 +5,15 @@ Stabilize and standardize the reports system, resolve PDF/Excel output discrepan
 
 ## Accomplishments
 
-### Reports System (Core Stabilization)
-- **PDF/Excel Alignment**: Resolved bugs where the PDF output showed a hardcoded 30-day period and a generic "Comprehensive Analytics" title, regardless of the data collected.
+### Reports System (Core Stabilization & Refactoring)
+- **PDF/Excel Alignment & Parity**: Achieved 100% content parity between PDF and Excel exports. Added a **"Report Info"** metadata sheet to Excel and synchronized all data tables (Medical/Dental History, Campaign Assets, Trends) into the PDF layout.
+- **Security & pgcrypto**: Integrated PostgreSQL `pgcrypto` decryption logic (`pgp_sym_decrypt`) directly into the reporting data service, allowing authorized personnel to view sensitive clinical fields (allergies, medications) in generated reports while keeping them encrypted at rest.
+- **Professional PDF Layout (ReportLab)**: Re-engineered the `ReportLab` fallback engine with a structured `<platypus>` layout, including USC branding, Executive Summary KPIs, and alternating row-colored tables.
+- **Campaign Asset Analysis**: Implemented high-fidelity campaign reporting that tracks the engagement effectiveness of visual assets like **PubMats** and **Banners**.
+- **RBAC Expansion**: Verified and expanded reporting permissions to include the **DENTIST** role across all secure endpoints.
 - **Metric Standardization**: Enhanced the Patient Feedback Analysis report with **Response Rate** and **Total Visits** to provide a complete clinical picture.
-- **Smart Template Selection**: Implemented a "Smart Fallback" system in the generation service to prioritize code-defined, high-fidelity templates over "dummy" or placeholder database content.
-- **Exhaustive Mapping**: Normalized the report dispatch logic to explicitly handle all 7 clinical types (Patient Summary, Visit Trends, Treatment Outcomes, Medical Stats, Dental Stats, Feedback, and Campaigns) plus administrative reports.
+- **Smart Template Selection**: Implemented a "Smart Fallback" system in the generation service to prioritize code-defined, high-fidelity templates over placeholder database content.
+- **Exhaustive Mapping**: Normalized and mapped all 14 clinical and operational report types (Patient Summary, Visit Trends, Treatment Outcomes, Stats, Inventory, Financial, etc.).
 
 ### Documentation & Alignment
 - **Date Standardization**: Updated primary documentation (`README.md`, `CURRENT_SYSTEM_STATUS.md`, `backend/REPORTS_SYSTEM_GUIDE.md`) to reflect today's date and the current system state.
@@ -18,10 +22,12 @@ Stabilize and standardize the reports system, resolve PDF/Excel output discrepan
 ## Technical Details
 
 ### Backend
-- **ReportGenerationService**: Enhanced with exhaustive mapping, normalized type lookups, and smart template selection.
-- **ReportDataService**: Updated `get_feedback_analysis_data` to calculate response rate and return a structured rating distribution.
-- **ReportExportService**: Improved HTML and PDF context to ensure metadata (titles, date ranges) is always respected.
+- **ReportGenerationService**: Enhanced with exhaustive mapping, normalized type lookups, and dynamic template injection.
+- **ReportDataService**: Updated `get_feedback_analysis_data` to fix `AttributeError` by using correct patient identifiers (`id_number` or `id`) and populating real clinical averages for stats reports.
+- **ReportExportService**: Improved HTML, PDF, and Excel context to ensure metadata (titles, date ranges) is always respected.
 - **Tasks**: Added aliases (e.g., `MEDICAL_STATS`) to the Celery task lookup to increase resilience.
+- **Security**: Utilized `RawSQL` in Django to handle database-level decryption for reporting payloads.
+
 
 ### Verification
 - Checked syntax of all modified files (`services.py`, `tasks.py`, `models.py`) using `py_compile`.

@@ -30,10 +30,7 @@ class ReportTemplate(models.Model):
         ('CAMPAIGN_PERFORMANCE', 'Campaign Performance Report'),
         ('USER_ACTIVITY', 'User Activity Report'),
         ('HEALTH_METRICS', 'Health Metrics Report'),
-        ('INVENTORY_REPORT', 'Inventory Report'),
-        ('FINANCIAL_REPORT', 'Financial Report'),
         ('COMPLIANCE_REPORT', 'Compliance Report'),
-        ('CUSTOM', 'Custom Report'),
     ]
     
     EXPORT_FORMATS = [

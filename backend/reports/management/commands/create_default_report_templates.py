@@ -113,36 +113,12 @@ class Command(BaseCommand):
                 'allowed_roles': ['DOCTOR', 'ADMIN']
             },
             {
-                'name': 'Inventory Report',
-                'description': 'Overview of medical supplies and stock status',
-                'report_type': 'INVENTORY_REPORT',
-                'template_content': self.get_inventory_report_template(),
-                'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
-                'allowed_roles': ['STAFF', 'ADMIN']
-            },
-            {
-                'name': 'Financial Overview',
-                'description': 'Operational costs and billing summaries',
-                'report_type': 'FINANCIAL_REPORT',
-                'template_content': self.get_financial_report_template(),
-                'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
-                'allowed_roles': ['ADMIN']
-            },
-            {
                 'name': 'Compliance & Privacy Report',
                 'description': 'Data security, privacy audit, and compliance status',
                 'report_type': 'COMPLIANCE_REPORT',
                 'template_content': self.get_compliance_report_template(),
                 'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
                 'allowed_roles': ['ADMIN']
-            },
-            {
-                'name': 'Custom Ad-hoc Report',
-                'description': 'Flexible report based on custom criteria',
-                'report_type': 'CUSTOM',
-                'template_content': self.get_custom_report_template(),
-                'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
-                'allowed_roles': ['STAFF', 'ADMIN']
             }
         ]
         
@@ -185,6 +161,12 @@ class Command(BaseCommand):
                     self.style.WARNING(f"Template already exists: {template.name}")
                 )
         
+        # Delete templates that are no longer in templates_data
+        active_report_types = [t['report_type'] for t in templates_data]
+        deleted_count, _ = ReportTemplate.objects.exclude(report_type__in=active_report_types).delete()
+        if deleted_count > 0:
+            self.stdout.write(self.style.SUCCESS(f"Deleted {deleted_count} obsolete templates"))
+
         self.stdout.write(
             self.style.SUCCESS(
                 f"\nSummary: {created_count} templates created, {updated_count} templates updated"
@@ -841,17 +823,8 @@ class Command(BaseCommand):
     def get_health_metrics_template(self):
         return self.get_generic_template("Health Metrics Report")
 
-    def get_inventory_report_template(self):
-        return self.get_generic_template("Inventory Status Report")
-
-    def get_financial_report_template(self):
-        return self.get_generic_template("Financial Operational Report")
-
     def get_compliance_report_template(self):
         return self.get_generic_template("Compliance & Audit Report")
-
-    def get_custom_report_template(self):
-        return self.get_generic_template("Custom Ad-hoc Report")
 
     def get_generic_template(self, title):
         return f"""
