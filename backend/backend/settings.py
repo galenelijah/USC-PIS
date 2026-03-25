@@ -73,7 +73,10 @@ if DATABASE_URL:
         'default': dj_database_url.config(
             conn_max_age=600,
             conn_health_checks=True,
-            ssl_require=os.environ.get('DATABASE_SSL_REQUIRE', 'True') == 'True' # Default to requiring SSL for Heroku PG
+            ssl_require=(
+                os.environ.get('DATABASE_SSL_REQUIRE', 'True') == 'True' and 
+                'postgres' in os.environ.get('DATABASE_URL', '')
+            ) # Only require SSL for Postgres (Heroku)
         )
     }
     # Apply PostgreSQL specific settings

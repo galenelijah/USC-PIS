@@ -327,6 +327,14 @@ const HealthInfo = () => {
                         color="primary"
                       />
                     )}
+                    {info.view_count !== undefined && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', ml: 'auto' }}>
+                        <VisibilityIcon sx={{ fontSize: 16, color: 'text.secondary', mr: 0.5 }} />
+                        <Typography variant="caption" color="text.secondary">
+                          {info.view_count}
+                        </Typography>
+                      </Box>
+                    )}
                   </Box>
                 </CardContent>
                 

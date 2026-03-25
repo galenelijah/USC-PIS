@@ -26,6 +26,14 @@ class HealthInformationSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ('created_at', 'updated_at', 'author')
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            if request.user.role == 'STUDENT':
+                representation.pop('view_count', None)
+        return representation
+
 class CampaignResourceSerializer(serializers.ModelSerializer):
     file_url = serializers.SerializerMethodField()
     file_size_formatted = serializers.SerializerMethodField()
@@ -167,6 +175,14 @@ class HealthCampaignListSerializer(serializers.ModelSerializer):
             return round(total_rating / len(feedback), 1)
         return 0
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            if request.user.role == 'STUDENT':
+                representation.pop('view_count', None)
+        return representation
+
 class HealthCampaignDetailSerializer(serializers.ModelSerializer):
     """Comprehensive serializer for campaign details"""
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
@@ -295,6 +311,14 @@ class HealthCampaignDetailSerializer(serializers.ModelSerializer):
         if obj.view_count > 0:
             return round((obj.engagement_count / obj.view_count) * 100, 1)
         return 0
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            if request.user.role == 'STUDENT':
+                representation.pop('view_count', None)
+        return representation
 
 class HealthCampaignCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer for creating and updating campaigns"""

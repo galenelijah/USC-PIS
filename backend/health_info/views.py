@@ -82,6 +82,12 @@ class HealthInformationViewSet(viewsets.ModelViewSet):
                     order=index
                 )
 
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.increment_view_count()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
 class HealthCampaignViewSet(viewsets.ModelViewSet):
     """Health campaigns viewset using the same approach as HealthInformationViewSet"""
     queryset = HealthCampaign.objects.all()

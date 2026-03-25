@@ -940,12 +940,14 @@ const CampaignsPage = () => {
                       }}
                     >
                       <Box display="flex" alignItems="center" gap={3}>
-                        <Box display="flex" alignItems="center">
-                          <VisibilityIcon sx={{ fontSize: 18, color: 'primary.main', mr: 1 }} />
-                          <Typography variant="body2" fontWeight="medium">
-                            {campaign.view_count || 0}
-                          </Typography>
-                        </Box>
+                        {campaign.view_count !== undefined && (
+                          <Box display="flex" alignItems="center">
+                            <VisibilityIcon sx={{ fontSize: 18, color: 'primary.main', mr: 1 }} />
+                            <Typography variant="body2" fontWeight="medium">
+                              {campaign.view_count}
+                            </Typography>
+                          </Box>
+                        )}
                         <Box display="flex" alignItems="center">
                           <TrendingIcon sx={{ fontSize: 18, color: 'success.main', mr: 1 }} />
                           <Typography variant="body2" fontWeight="medium">
@@ -1902,33 +1904,35 @@ const CampaignsPage = () => {
                   </Grid>
                 )}
 
-                {/* Engagement Stats */}
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                    Engagement Statistics
-                  </Typography>
-                  <Box display="flex" gap={4}>
-                    <Box display="flex" alignItems="center">
-                      <VisibilityIcon sx={{ fontSize: 20, color: 'text.secondary', mr: 1 }} />
-                      <Typography variant="body2">
-                        {selectedCampaign.view_count || 0} views
-                      </Typography>
-                    </Box>
-                    <Box display="flex" alignItems="center">
-                      <TrendingIcon sx={{ fontSize: 20, color: 'text.secondary', mr: 1 }} />
-                      <Typography variant="body2">
-                        {selectedCampaign.engagement_count || 0} engagements
-                      </Typography>
-                    </Box>
-                    {selectedCampaign.feedback_count > 0 && (
+                {/* Engagement Stats - Only for non-students */}
+                {selectedCampaign.view_count !== undefined && (
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                      Engagement Statistics
+                    </Typography>
+                    <Box display="flex" gap={4}>
                       <Box display="flex" alignItems="center">
+                        <VisibilityIcon sx={{ fontSize: 20, color: 'text.secondary', mr: 1 }} />
                         <Typography variant="body2">
-                          {selectedCampaign.feedback_count} feedback responses
+                          {selectedCampaign.view_count || 0} views
                         </Typography>
                       </Box>
-                    )}
-                  </Box>
-                </Grid>
+                      <Box display="flex" alignItems="center">
+                        <TrendingIcon sx={{ fontSize: 20, color: 'text.secondary', mr: 1 }} />
+                        <Typography variant="body2">
+                          {selectedCampaign.engagement_count || 0} engagements
+                        </Typography>
+                      </Box>
+                      {selectedCampaign.feedback_count > 0 && (
+                        <Box display="flex" alignItems="center">
+                          <Typography variant="body2">
+                            {selectedCampaign.feedback_count} feedback responses
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  </Grid>
+                )}
 
                 {selectedCampaign.tags && (
                   <Grid item xs={12}>

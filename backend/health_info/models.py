@@ -77,12 +77,18 @@ class HealthInformation(models.Model):
     title = models.CharField(max_length=200)
     content = models.TextField()
     category = models.CharField(max_length=200)
+    view_count = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
 
     def __str__(self):
         return self.title
+
+    def increment_view_count(self):
+        """Increment view count"""
+        self.view_count += 1
+        self.save(update_fields=['view_count'])
 
 class HealthInformationImage(models.Model):
     """Images associated with health information"""
