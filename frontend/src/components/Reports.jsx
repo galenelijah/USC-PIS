@@ -711,6 +711,7 @@ const Reports = () => {
           </Grid>
         </Grid>
       </Box>
+    </Box>
     );
   };
 
