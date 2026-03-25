@@ -1519,6 +1519,16 @@ export const reportService = {
     return api.get(`/reports/generated/${id}/status/`);
   },
 
+  // Delete individual report
+  deleteReport: (id) => {
+    return api.delete(`/reports/generated/${id}/`);
+  },
+
+  // Delete all reports
+  deleteAllReports: () => {
+    return api.delete('/reports/generated/bulk_delete/');
+  },
+
   // Get report dashboard
   getDashboard: () => {
     return api.get('/reports/generated/dashboard/');

@@ -165,6 +165,14 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
         
         return queryset
     
+    @action(detail=False, methods=['delete'])
+    def bulk_delete(self, request):
+        """Delete all reports for the current user or all reports if staff"""
+        queryset = self.get_queryset()
+        count = queryset.count()
+        queryset.delete()
+        return Response({'message': f'Successfully deleted {count} reports'}, status=status.HTTP_200_OK)
+
     @action(detail=True, methods=['get'])
     def download(self, request, pk=None):
         """Download generated report file"""

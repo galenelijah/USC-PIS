@@ -17,7 +17,8 @@ import {
   Bookmark as BookmarkIcon, Analytics as AnalyticsIcon,
   ExpandMore as ExpandMoreIcon, Refresh as RefreshIcon,
   TrendingUp as TrendingUpIcon, TrendingDown as TrendingDownIcon,
-  Filter as FilterIcon, Timeline as TimelineIcon
+  Filter as FilterIcon, Timeline as TimelineIcon,
+  Delete as DeleteIcon, DeleteSweep as DeleteSweepIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -34,6 +35,9 @@ const Reports = () => {
   const [success, setSuccess] = useState('');
   const [selectedTab, setSelectedTab] = useState(0);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
+  const [reportToDelete, setReportToDelete] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [reportForm, setReportForm] = useState({
     title: '',
@@ -355,6 +359,32 @@ const Reports = () => {
     } catch (err) {
       setError(`Failed to export report as ${format.toUpperCase()}`);
       console.error('Error exporting report:', err);
+    }
+  };
+
+  const handleDeleteReport = async () => {
+    if (!reportToDelete) return;
+    try {
+      await reportService.deleteReport(reportToDelete.id);
+      setSuccess('Report deleted successfully');
+      setDeleteDialogOpen(false);
+      setReportToDelete(null);
+      fetchData();
+    } catch (err) {
+      setError('Failed to delete report');
+      console.error('Error deleting report:', err);
+    }
+  };
+
+  const handleDeleteAllReports = async () => {
+    try {
+      await reportService.deleteAllReports();
+      setSuccess('All reports deleted successfully');
+      setDeleteAllDialogOpen(false);
+      fetchData();
+    } catch (err) {
+      setError('Failed to delete all reports');
+      console.error('Error deleting all reports:', err);
     }
   };
 
@@ -705,6 +735,16 @@ const Reports = () => {
                 <Button
                   variant="outlined"
                   size="small"
+                  color="error"
+                  startIcon={<DeleteSweepIcon />}
+                  onClick={() => setDeleteAllDialogOpen(true)}
+                  disabled={reports.length === 0}
+                >
+                  Delete All
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
                   startIcon={<FilterIcon />}
                   onClick={() => {/* Add filter functionality */}}
                 >
@@ -851,6 +891,22 @@ const Reports = () => {
                               </IconButton>
                             </Tooltip>
                           )}
+                          
+                          <Tooltip title="Delete Report">
+                            <IconButton
+                              onClick={() => {
+                                setReportToDelete(report);
+                                setDeleteDialogOpen(true);
+                              }}
+                              size="small"
+                              sx={{ 
+                                color: '#d32f2f',
+                                '&:hover': { backgroundColor: '#ffebee' }
+                              }}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Tooltip>
                           
                           {report.status === 'FAILED' && (
                             <Tooltip title="Retry Generation">
@@ -1128,6 +1184,46 @@ const Reports = () => {
             <Button onClick={() => setGenerateDialogOpen(false)}>Cancel</Button>
             <Button variant="contained" onClick={handleGenerateReport}>
               Generate Report
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Delete Single Report Confirmation */}
+        <Dialog
+          open={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+        >
+          <DialogTitle>Delete Report</DialogTitle>
+          <DialogContent>
+            <Typography>
+              Are you sure you want to delete the report <strong>"{reportToDelete?.title}"</strong>? 
+              This action cannot be undone and the file will be permanently removed.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleDeleteReport} color="error" variant="contained">
+              Delete
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Delete All Reports Confirmation */}
+        <Dialog
+          open={deleteAllDialogOpen}
+          onClose={() => setDeleteAllDialogOpen(false)}
+        >
+          <DialogTitle>Delete All Reports</DialogTitle>
+          <DialogContent>
+            <Typography>
+              Are you sure you want to delete <strong>ALL</strong> generated reports? 
+              This will remove all files for your account. This action cannot be undone.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteAllDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleDeleteAllReports} color="error" variant="contained">
+              Delete All
             </Button>
           </DialogActions>
         </Dialog>
