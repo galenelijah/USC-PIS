@@ -15,6 +15,18 @@ import json
 
 from .models import User, SafeEmail
 
+def admin_required(view_func):
+    """Decorator to require admin role"""
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        if request.user.role != User.Role.ADMIN:
+            return Response({'error': 'Admin privileges required'}, status=status.HTTP_403_FORBIDDEN)
+        
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 @admin_required
