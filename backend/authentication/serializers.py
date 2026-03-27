@@ -42,7 +42,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'email', 'password', 'password2', 'role',
+            'email', 'password', 'password2', 'role', 'is_verified',
             'first_name', 'last_name', 'middle_name', 'id_number',
             'course', 'year_level', 'school', 'sex', 'civil_status',
             'birthday', 'nationality', 'religion', 'address_permanent',
@@ -163,7 +163,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'id', 'email', 'role', 'completeSetup', 'is_active',
+            'id', 'email', 'role', 'completeSetup', 'is_active', 'is_verified',
             # Personal Information
             'first_name', 'last_name', 'middle_name', 'id_number',
             'course', 'year_level', 'school', 'sex', 'civil_status',
