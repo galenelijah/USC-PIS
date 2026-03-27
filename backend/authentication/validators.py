@@ -314,6 +314,8 @@ class RateLimiter:
             # Set lockout
             cache.set(lockout_key, current_time + self.lockout_seconds, 
                      timeout=self.lockout_seconds)
+            # Clear attempt history so the lockout isn't immediately re-triggered after it expires
+            cache.delete(cache_key)
             return True, self.lockout_seconds
         
         return False, 0
@@ -321,10 +323,12 @@ class RateLimiter:
     def record_attempt(self, identifier: str, action: str = 'login', success: bool = False):
         """Record an authentication attempt."""
         cache_key = f"rate_limit:{action}:{identifier}"
+        lockout_key = f"lockout:{action}:{identifier}"
         
         if success:
-            # Clear attempts on successful authentication
+            # Clear attempts and lockout on successful authentication
             cache.delete(cache_key)
+            cache.delete(lockout_key)
             return
         
         # Add failed attempt
