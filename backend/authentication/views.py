@@ -232,11 +232,16 @@ def login_user(request):
 
             # Verification Check (Retroactive)
             if not user.is_verified and not user.is_superuser:
+                logger.info(f"User {user.email} is not verified. Generating code.")
                 code = generate_verification_code(user)
                 try:
-                    EmailService.send_verification_email(user, code)
+                    sent = EmailService.send_verification_email(user, code)
+                    if sent:
+                        logger.info(f"Verification email sent to {user.email}")
+                    else:
+                        logger.error(f"EmailService returned False for {user.email}")
                 except Exception as e:
-                    logger.error(f"Failed to send verification email: {e}")
+                    logger.error(f"Failed to send verification email to {user.email}: {e}")
                 
                 token, _ = Token.objects.get_or_create(user=user)
                 return Response({
@@ -248,6 +253,7 @@ def login_user(request):
                 }, status=status.HTTP_200_OK)
 
             # Normal Login
+            logger.info(f"Successful login for verified user: {user.email}")
             SessionManager.handle_concurrent_logins(user, max_sessions=3)
             token, created = Token.objects.get_or_create(user=user)
             
@@ -278,9 +284,11 @@ def verify_email_code(request):
         return Response({'detail': 'Verification code is required.'}, status=status.HTTP_400_BAD_REQUEST)
     
     try:
+        logger.info(f"Attempting to verify code {code} for user {user.email}")
         vc = VerificationCode.objects.filter(user=user, code=code, is_used=False).latest('created_at')
         
         if vc.is_expired():
+            logger.warning(f"Verification code {code} expired for user {user.email}")
             return Response({'detail': 'Code has expired. Please request a new one.'}, status=status.HTTP_400_BAD_REQUEST)
         
         user.is_verified = True
@@ -298,6 +306,7 @@ def verify_email_code(request):
         })
         
     except VerificationCode.DoesNotExist:
+        logger.error(f"Invalid verification code {code} for user {user.email}")
         return Response({'detail': 'Invalid verification code.'}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
@@ -316,12 +325,18 @@ def resend_verification_code(request):
     
     code = generate_verification_code(user)
     try:
-        EmailService.send_verification_email(user, code)
-        rate_limiter.record_attempt(f"{user.id}:resend", 'resend_code', success=True)
-        return Response({'detail': 'Verification code sent to your USC email.'})
+        logger.info(f"Resending verification email to {user.email}")
+        sent = EmailService.send_verification_email(user, code)
+        if sent:
+            rate_limiter.record_attempt(f"{user.id}:resend", 'resend_code', success=True)
+            logger.info(f"Resend successful for {user.email}")
+            return Response({'detail': 'Verification code sent to your USC email.'})
+        else:
+            logger.error(f"Resend EmailService returned False for {user.email}")
+            return Response({'detail': 'Failed to send email. Please check your USC email account status.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     except Exception as e:
-        logger.error(f"Failed to resend code: {e}")
-        return Response({'detail': 'Failed to send email. Please try again later.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        logger.error(f"Failed to resend code for {user.email}: {e}")
+        return Response({'detail': f'Error sending email: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class ProfileViewSet(viewsets.ModelViewSet):

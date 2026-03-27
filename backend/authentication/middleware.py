@@ -9,15 +9,18 @@ class EmailVerificationMiddleware:
     """
     def __init__(self, get_response):
         self.get_response = get_response
-        # Paths that are always allowed
-        self.exempt_paths = [
-            reverse('login'),
-            reverse('register'),
-            reverse('verify_email'),
-            reverse('resend_code'),
-            reverse('logout'),
-            '/admin/',  # Allow Django Admin
+        # Paths that are always allowed (substring match)
+        self.exempt_prefixes = [
+            '/api/auth/login/',
+            '/api/auth/register/',
+            '/api/auth/verify-email/',
+            '/api/auth/resend-code/',
+            '/api/auth/logout/',
             '/api/auth/password-reset/',
+            '/admin/',
+            '/api/health/',
+            '/api/utils/email/',
+            '/api/utils/health/',
         ]
 
     def __call__(self, request):
@@ -30,7 +33,7 @@ class EmailVerificationMiddleware:
             if not request.user.is_verified:
                 # Allow access to exempt paths
                 path = request.path
-                if not any(path.startswith(exempt) for exempt in self.exempt_paths):
+                if not any(path.startswith(prefix) for prefix in self.exempt_prefixes):
                     return JsonResponse(
                         {
                             'detail': 'Email verification required.',
