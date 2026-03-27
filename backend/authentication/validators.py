@@ -388,7 +388,7 @@ class SessionManager:
 # Validation instances with USC domain requirement
 email_validator = EnhancedEmailValidator(require_usc_domain=True, allow_existing_users=True)
 password_validator = PasswordSecurityValidator(min_length=8, require_special=False, check_breaches=False)
-rate_limiter = RateLimiter(max_attempts=5, window_minutes=15, lockout_minutes=30)
+rate_limiter = RateLimiter(max_attempts=5, window_minutes=15, lockout_minutes=2)
 
 # Separate validator for strict USC-only validation (for new registrations)
 strict_email_validator = EnhancedEmailValidator(require_usc_domain=True, allow_existing_users=False) 
