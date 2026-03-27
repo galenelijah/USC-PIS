@@ -2,7 +2,7 @@
 Email service utilities for USC-PIS
 Handles email templates, sending, and notifications
 """
-from django.core.mail import send_mail, EmailMultiAlternatives
+from django.core.mail import send_mail, EmailMultiAlternatives, get_connection
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
@@ -32,9 +32,11 @@ class EmailService:
             if from_email is None:
                 from_email = settings.DEFAULT_FROM_EMAIL
             
-            # CRITICAL DEBUG: Confirm OAuth vs SMTP
-            backend_name = settings.EMAIL_BACKEND
-            logger.info(f"EMAIL_DEBUG: Sending via {backend_name}. (Expected: gmailapi_backend.mail.GmailBackend)")
+            # FORCE GMAIL API BACKEND IF ENABLED
+            email_connection = None
+            if getattr(settings, 'USE_GMAIL_API', False):
+                logger.info("EMAIL_FORCE: Using Gmail API OAuth connection")
+                email_connection = get_connection('gmailapi_backend.mail.GmailBackend')
             
             # Create professional USC-PIS display name
             usc_display_name = f"USC Patient Information System <{from_email}>"
@@ -50,7 +52,8 @@ class EmailService:
                 subject=f"[USC-PIS] {subject}",
                 body=text_content,
                 from_email=from_email,
-                to=[recipient_email]
+                to=[recipient_email],
+                connection=email_connection
             )
             msg.attach_alternative(html_content, "text/html")
             
