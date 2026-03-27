@@ -175,6 +175,18 @@ const authSlice = createSlice({
       saveToken(null);
       saveUser(null);
     },
+    setCredentials: (state, action) => {
+      const { user, token } = action.payload;
+      if (user) {
+        state.user = { ...state.user, ...user };
+        saveUser(state.user);
+      }
+      if (token) {
+        state.token = token;
+        state.isAuthenticated = true;
+        saveToken(token);
+      }
+    },
     updateUser: (state, action) => {
       state.user = { ...state.user, ...action.payload };
       saveUser(state.user);
@@ -287,7 +299,7 @@ const authSlice = createSlice({
 });
 
 // Export actions and selectors
-export const { resetAuthStatus, logout, updateUser: setCredentials, setProfileComplete } = authSlice.actions;
+export const { resetAuthStatus, logout, setCredentials, updateUser, setProfileComplete } = authSlice.actions;
 
 export const selectCurrentUser = (state) => state.auth.user;
 export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
