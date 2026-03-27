@@ -10,6 +10,8 @@ from .models import User
 from .serializers import UserRegistrationSerializer, UserProfileSerializer, ChangePasswordSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer
 import logging
 import traceback
+import random
+import string
 from django.http import JsonResponse
 from django.db import connection, transaction, IntegrityError
 from django.views.decorators.csrf import csrf_exempt
