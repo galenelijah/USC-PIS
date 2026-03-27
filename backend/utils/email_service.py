@@ -73,6 +73,23 @@ class EmailService:
             return False
     
     @staticmethod
+    def send_verification_email(user, code):
+        """Send 6-digit verification code to user's USC email"""
+        context = {
+            'user': user,
+            'code': code,
+            'expires_in': '15 minutes',
+            'site_url': 'https://usc-pis-5f030223f7a8.herokuapp.com'
+        }
+        
+        return EmailService.send_template_email(
+            template_name='verification_code',
+            context=context,
+            recipient_email=user.email,
+            subject='Your USC-PIS Verification Code'
+        )
+
+    @staticmethod
     def send_welcome_email(user):
         """Send welcome email to new users"""
         context = {

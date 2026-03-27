@@ -13,6 +13,66 @@ from .models import User
 from .serializers import UserProfileSerializer
 import json
 
+from .models import User, SafeEmail
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+@admin_required
+def manage_safe_emails(request):
+    """List or add to the SafeEmail list"""
+    if request.method == 'GET':
+        safe_emails = SafeEmail.objects.all().order_by('-created_at')
+        emails = [{
+            'id': se.id,
+            'email': se.email,
+            'is_active': se.is_active,
+            'created_at': se.created_at
+        } for se in safe_emails]
+        return Response({'safe_emails': emails})
+    
+    elif request.method == 'POST':
+        email = request.data.get('email', '').strip().lower()
+        if not email:
+            return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        safe_email, created = SafeEmail.objects.get_or_create(email=email)
+        if not created:
+            safe_email.is_active = True
+            safe_email.save()
+            
+        return Response({
+            'message': f'Email {email} added to safe list',
+            'safe_email': {
+                'id': safe_email.id,
+                'email': safe_email.email,
+                'is_active': safe_email.is_active
+            }
+        })
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+@admin_required
+def remove_safe_email(request, email_id):
+    """Remove an email from the safe list"""
+    safe_email = get_object_or_404(SafeEmail, id=email_id)
+    email = safe_email.email
+    safe_email.delete()
+    return Response({'message': f'Email {email} removed from safe list'})
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+@admin_required
+def toggle_user_verification(request, user_id):
+    """Manually toggle a user's verification status"""
+    user = get_object_or_404(User, id=user_id)
+    user.is_verified = not user.is_verified
+    user.save(update_fields=['is_verified'])
+    
+    return Response({
+        'message': f'User {user.email} is now {"verified" if user.is_verified else "unverified"}',
+        'is_verified': user.is_verified
+    })
+
 def admin_required(view_func):
     """Decorator to require admin role"""
     def wrapper(request, *args, **kwargs):

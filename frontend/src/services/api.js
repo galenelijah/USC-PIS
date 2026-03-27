@@ -259,6 +259,22 @@ export const authService = {
       throw error;
     }
   },
+  verifyEmail: async (code) => {
+    try {
+      return await api.post('/auth/verify-email/', { code });
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+  resendVerificationCode: async () => {
+    try {
+      return await api.post('/auth/resend-code/');
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
   getDatabaseHealth: async () => {
     try {
       console.log('Fetching database health...');
@@ -1646,6 +1662,46 @@ export const userManagementService = {
   deleteUser: async (userId) => {
     try {
       const response = await api.delete(`/auth/admin/users/${userId}/delete/`);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+  
+  getSafeEmails: async () => {
+    try {
+      const response = await api.get('/auth/admin/safe-emails/');
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+  
+  addSafeEmail: async (email) => {
+    try {
+      const response = await api.post('/auth/admin/safe-emails/', { email });
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+  
+  removeSafeEmail: async (emailId) => {
+    try {
+      const response = await api.delete(`/auth/admin/safe-emails/${emailId}/`);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+  
+  toggleUserVerification: async (userId) => {
+    try {
+      const response = await api.put(`/auth/admin/users/${userId}/toggle-verification/`);
       return response.data;
     } catch (error) {
       handleApiError(error);

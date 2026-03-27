@@ -10,10 +10,13 @@ import { CircularProgress, Box } from '@mui/material';
 import Layout from './components/Layout/Layout';
 import RequireAuth from './components/RequireAuth';
 import RequireNoAuth from './components/RequireNoAuth';
+import RequireVerification from './components/RequireVerification';
 import RequireProfileSetup from './components/RequireProfileSetup';
 import ErrorBoundary from './components/ErrorBoundary';
 import Login from './components/Login';
 import Register from './components/Register';
+import VerifyEmail from './components/VerifyEmail';
+import RoleSelection from './components/RoleSelection';
 
 // Lazy loading for non-critical components
 const PatientsPage = lazy(() => import('./components/Patients/PatientsPage'));
@@ -147,14 +150,38 @@ const App = () => {
             } 
           />
 
+          {/* Email Verification Route */}
+          <Route 
+            path="/verify-email" 
+            element={
+              <RequireAuth isAuthenticated={isAuthenticated}>
+                <VerifyEmail />
+              </RequireAuth>
+            } 
+          />
+
+          {/* Role Selection Route - For Faculty/Staff after verification */}
+          <Route 
+            path="/role-selection" 
+            element={
+              <RequireAuth isAuthenticated={isAuthenticated}>
+                <RequireVerification>
+                  <RoleSelection />
+                </RequireVerification>
+              </RequireAuth>
+            } 
+          />
+
           {/* Profile Setup Route - Only for users who need to complete profile */}
           <Route 
             path="/profile-setup" 
             element={
               <RequireAuth isAuthenticated={isAuthenticated}>
-                <Suspense fallback={<PageLoader />}>
-                  <ProfileSetup />
-                </Suspense>
+                <RequireVerification>
+                  <Suspense fallback={<PageLoader />}>
+                    <ProfileSetup />
+                  </Suspense>
+                </RequireVerification>
               </RequireAuth>
             } 
           />
@@ -164,11 +191,13 @@ const App = () => {
             path="/home"
             element={
               <RequireAuth isAuthenticated={isAuthenticated}>
-                <Layout>
-                  <Suspense fallback={<PageLoader />}>
-                    <Dashboard user={user} />
-                  </Suspense>
-                </Layout>
+                <RequireVerification>
+                  <Layout>
+                    <Suspense fallback={<PageLoader />}>
+                      <Dashboard user={user} />
+                    </Suspense>
+                  </Layout>
+                </RequireVerification>
               </RequireAuth>
             }
           />
@@ -178,15 +207,17 @@ const App = () => {
             path="/database-monitor"
             element={
               <RequireAuth isAuthenticated={isAuthenticated}>
-                {userRoles.isAdminOrStaffOrDoctor ? (
-                  <Layout>
-                    <Suspense fallback={<PageLoader />}>
-                      <DatabaseMonitor />
-                    </Suspense>
-                  </Layout>
-                ) : (
-                  <Navigate to="/home" replace />
-                )}
+                <RequireVerification>
+                  {userRoles.isAdminOrStaffOrDoctor ? (
+                    <Layout>
+                      <Suspense fallback={<PageLoader />}>
+                        <DatabaseMonitor />
+                      </Suspense>
+                    </Layout>
+                  ) : (
+                    <Navigate to="/home" replace />
+                  )}
+                </RequireVerification>
               </RequireAuth>
             }
           />
@@ -195,15 +226,17 @@ const App = () => {
             path="/email-administration"
             element={
               <RequireAuth isAuthenticated={isAuthenticated}>
-                {userRoles.isAdminOrStaffOrDoctor ? (
-                  <Layout>
-                    <Suspense fallback={<PageLoader />}>
-                      <EmailAdministration />
-                    </Suspense>
-                  </Layout>
-                ) : (
-                  <Navigate to="/home" replace />
-                )}
+                <RequireVerification>
+                  {userRoles.isAdminOrStaffOrDoctor ? (
+                    <Layout>
+                      <Suspense fallback={<PageLoader />}>
+                        <EmailAdministration />
+                      </Suspense>
+                    </Layout>
+                  ) : (
+                    <Navigate to="/home" replace />
+                  )}
+                </RequireVerification>
               </RequireAuth>
             }
           />
@@ -212,15 +245,17 @@ const App = () => {
             path="/user-management"
             element={
               <RequireAuth isAuthenticated={isAuthenticated}>
-                {user?.role === 'ADMIN' ? (
-                  <Layout>
-                    <Suspense fallback={<PageLoader />}>
-                      <UserManagement />
-                    </Suspense>
-                  </Layout>
-                ) : (
-                  <Navigate to="/home" replace />
-                )}
+                <RequireVerification>
+                  {user?.role === 'ADMIN' ? (
+                    <Layout>
+                      <Suspense fallback={<PageLoader />}>
+                        <UserManagement />
+                      </Suspense>
+                    </Layout>
+                  ) : (
+                    <Navigate to="/home" replace />
+                  )}
+                </RequireVerification>
               </RequireAuth>
             }
           />
@@ -230,7 +265,8 @@ const App = () => {
             path="/patients"
             element={
               <RequireAuth isAuthenticated={isAuthenticated}>
-                <RequireProfileSetup>
+                <RequireVerification>
+                  <RequireProfileSetup>
                   {userRoles.isAdminOrStaff || userRoles.isDoctor || userRoles.isNurse ? (
                     <Layout>
                       <Suspense fallback={<PageLoader />}>
@@ -240,7 +276,8 @@ const App = () => {
                   ) : (
                     <Navigate to="/home" replace />
                   )}
-                </RequireProfileSetup>
+                  </RequireProfileSetup>
+                </RequireVerification>
               </RequireAuth>
             }
           />
@@ -249,13 +286,15 @@ const App = () => {
             path="/health-info"
             element={
               <RequireAuth isAuthenticated={isAuthenticated}>
-                <RequireProfileSetup>
+                <RequireVerification>
+                  <RequireProfileSetup>
                   <Layout>
                     <Suspense fallback={<PageLoader />}>
                       <HealthInfo />
                     </Suspense>
                   </Layout>
-                </RequireProfileSetup>
+                  </RequireProfileSetup>
+                </RequireVerification>
               </RequireAuth>
             }
           />
@@ -264,13 +303,15 @@ const App = () => {
             path="/campaigns"
             element={
               <RequireAuth isAuthenticated={isAuthenticated}>
-                <RequireProfileSetup>
+                <RequireVerification>
+                  <RequireProfileSetup>
                   <Layout>
                     <Suspense fallback={<PageLoader />}>
                       <Campaigns />
                     </Suspense>
                   </Layout>
-                </RequireProfileSetup>
+                  </RequireProfileSetup>
+                </RequireVerification>
               </RequireAuth>
             }
           />
@@ -279,13 +320,15 @@ const App = () => {
             path="/campaigns/:id"
             element={
               <RequireAuth isAuthenticated={isAuthenticated}>
-                <RequireProfileSetup>
+                <RequireVerification>
+                  <RequireProfileSetup>
                   <Layout>
                     <Suspense fallback={<PageLoader />}>
                       <PublicCampaignPreview />
                     </Suspense>
                   </Layout>
-                </RequireProfileSetup>
+                  </RequireProfileSetup>
+                </RequireVerification>
               </RequireAuth>
             }
           />
@@ -294,7 +337,8 @@ const App = () => {
             path="/students"
             element={
               <RequireAuth isAuthenticated={isAuthenticated}>
-                <RequireProfileSetup>
+                <RequireVerification>
+                  <RequireProfileSetup>
                   {userRoles.isAdminOrStaff || userRoles.isDoctor || userRoles.isNurse ? (
                     <Layout>
                       <Suspense fallback={<PageLoader />}>
@@ -304,7 +348,8 @@ const App = () => {
                   ) : (
                     <Navigate to="/home" replace />
                   )}
-                </RequireProfileSetup>
+                  </RequireProfileSetup>
+                </RequireVerification>
               </RequireAuth>
             }
           />
@@ -314,7 +359,8 @@ const App = () => {
           path="/health-records"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <RequireProfileSetup>
+              <RequireVerification>
+                <RequireProfileSetup>
                 <Layout>
                   <Suspense fallback={<PageLoader />}>
                     {userRoles.isPatientRole ? (
@@ -324,7 +370,8 @@ const App = () => {
                     )}
                   </Suspense>
                 </Layout>
-              </RequireProfileSetup>
+                </RequireProfileSetup>
+              </RequireVerification>
             </RequireAuth>
           }
         />
@@ -334,11 +381,13 @@ const App = () => {
           path="/dental-records"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <RequireProfileSetup>
+              <RequireVerification>
+                <RequireProfileSetup>
                 <Layout>
                   <Dental />
                 </Layout>
-              </RequireProfileSetup>
+                </RequireProfileSetup>
+              </RequireVerification>
             </RequireAuth>
           }
         />
@@ -348,11 +397,13 @@ const App = () => {
           path="/consultations"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <RequireProfileSetup>
+              <RequireVerification>
+                <RequireProfileSetup>
                 <Layout>
                   <ConsultationHistory />
                 </Layout>
-              </RequireProfileSetup>
+                </RequireProfileSetup>
+              </RequireVerification>
             </RequireAuth>
           }
         />
@@ -362,7 +413,8 @@ const App = () => {
           path="/medical/:id"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <RequireProfileSetup>
+              <RequireVerification>
+                <RequireProfileSetup>
                 {!userRoles.isPatientRole ? (
                   <Layout>
                     <Medical />
@@ -370,7 +422,8 @@ const App = () => {
                 ) : (
                   <Navigate to="/home" replace />
                 )}
-              </RequireProfileSetup>
+                </RequireProfileSetup>
+              </RequireVerification>
             </RequireAuth>
           }
         />
@@ -379,7 +432,8 @@ const App = () => {
           path="/dental/:id"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <RequireProfileSetup>
+              <RequireVerification>
+                <RequireProfileSetup>
                 {!userRoles.isPatientRole ? (
                   <Layout>
                     <Dental />
@@ -387,7 +441,8 @@ const App = () => {
                 ) : (
                   <Navigate to="/home" replace />
                 )}
-              </RequireProfileSetup>
+                </RequireProfileSetup>
+              </RequireVerification>
             </RequireAuth>
           }
         />
@@ -397,11 +452,13 @@ const App = () => {
           path="/profile"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <RequireProfileSetup>
+              <RequireVerification>
+                <RequireProfileSetup>
                 <Layout>
                   <Profile />
                 </Layout>
-              </RequireProfileSetup>
+                </RequireProfileSetup>
+              </RequireVerification>
             </RequireAuth>
           }
         />
@@ -411,11 +468,13 @@ const App = () => {
           path="/edit-profile"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <RequireProfileSetup>
+              <RequireVerification>
+                <RequireProfileSetup>
                 <Suspense fallback={<PageLoader />}>
                   <EditProfile />
                 </Suspense>
-              </RequireProfileSetup>
+                </RequireProfileSetup>
+              </RequireVerification>
             </RequireAuth>
           }
         />
@@ -425,13 +484,15 @@ const App = () => {
           path="/notifications"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <RequireProfileSetup>
+              <RequireVerification>
+                <RequireProfileSetup>
                 <ErrorBoundary>
                   <Layout>
                     <Notifications />
                   </Layout>
                 </ErrorBoundary>
-              </RequireProfileSetup>
+                </RequireProfileSetup>
+              </RequireVerification>
             </RequireAuth>
           }
         />
@@ -441,11 +502,13 @@ const App = () => {
           path="/feedback"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <RequireProfileSetup>
+              <RequireVerification>
+                <RequireProfileSetup>
                 <Layout>
                   <FeedbackSelector />
                 </Layout>
-              </RequireProfileSetup>
+                </RequireProfileSetup>
+              </RequireVerification>
             </RequireAuth>
           }
         />
@@ -454,11 +517,13 @@ const App = () => {
           path="/feedback/general"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <RequireProfileSetup>
+              <RequireVerification>
+                <RequireProfileSetup>
                 <Layout>
                   <FeedbackForm medicalRecordId="general" />
                 </Layout>
-              </RequireProfileSetup>
+                </RequireProfileSetup>
+              </RequireVerification>
             </RequireAuth>
           }
         />
@@ -468,13 +533,15 @@ const App = () => {
           path="/feedback/:medicalRecordId"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <RequireProfileSetup>
+              <RequireVerification>
+                <RequireProfileSetup>
                 <Layout>
                   <Suspense fallback={<PageLoader />}>
                     <FeedbackFormWrapper />
                   </Suspense>
                 </Layout>
-              </RequireProfileSetup>
+                </RequireProfileSetup>
+              </RequireVerification>
             </RequireAuth>
           }
         />
@@ -484,7 +551,8 @@ const App = () => {
           path="/admin-feedback"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <RequireProfileSetup>
+              <RequireVerification>
+                <RequireProfileSetup>
                 {userRoles.isAdminOrStaffOrDoctor ? (
                   <Layout>
                     <AdminFeedbackList />
@@ -492,7 +560,8 @@ const App = () => {
                 ) : (
                   <Navigate to="/home" replace />
                 )}
-              </RequireProfileSetup>
+                </RequireProfileSetup>
+              </RequireVerification>
             </RequireAuth>
           }
         />
@@ -502,11 +571,13 @@ const App = () => {
           path="/uploads"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <RequireProfileSetup>
+              <RequireVerification>
+                <RequireProfileSetup>
                 <Layout>
                   <FileUploadPage />
                 </Layout>
-              </RequireProfileSetup>
+                </RequireProfileSetup>
+              </RequireVerification>
             </RequireAuth>
           }
         />
@@ -516,11 +587,13 @@ const App = () => {
           path="/downloads"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <RequireProfileSetup>
+              <RequireVerification>
+                <RequireProfileSetup>
                 <Layout>
                   <FileDownloadPage />
                 </Layout>
-              </RequireProfileSetup>
+                </RequireProfileSetup>
+              </RequireVerification>
             </RequireAuth>
           }
         />
@@ -530,7 +603,8 @@ const App = () => {
           path="/medical-certificates"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <RequireProfileSetup>
+              <RequireVerification>
+                <RequireProfileSetup>
                 {userRoles.isAdminOrStaff || userRoles.isDoctor || userRoles.isNurse || userRoles.isPatientRole ? (
                   <Layout>
                     <MedicalCertificatesPage />
@@ -538,7 +612,8 @@ const App = () => {
                 ) : (
                   <Navigate to="/home" replace />
                 )}
-              </RequireProfileSetup>
+                </RequireProfileSetup>
+              </RequireVerification>
             </RequireAuth>
           }
         />
@@ -548,13 +623,15 @@ const App = () => {
           path="/health-insights"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <RequireProfileSetup>
+              <RequireVerification>
+                <RequireProfileSetup>
                 <Layout>
                   <Suspense fallback={<PageLoader />}>
                     <MedicalHistoryPage />
                   </Suspense>
                 </Layout>
-              </RequireProfileSetup>
+                </RequireProfileSetup>
+              </RequireVerification>
             </RequireAuth>
           }
         />
@@ -567,13 +644,15 @@ const App = () => {
           path="/medical-history"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <RequireProfileSetup>
+              <RequireVerification>
+                <RequireProfileSetup>
                 <Layout>
                   <Suspense fallback={<PageLoader />}>
                     <MedicalHistoryPage />
                   </Suspense>
                 </Layout>
-              </RequireProfileSetup>
+                </RequireProfileSetup>
+              </RequireVerification>
             </RequireAuth>
           }
         />
@@ -583,13 +662,15 @@ const App = () => {
           path="/patient-dashboard"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <RequireProfileSetup>
+              <RequireVerification>
+                <RequireProfileSetup>
                 <Layout>
                   <Suspense fallback={<PageLoader />}>
                     <PatientMedicalDashboard />
                   </Suspense>
                 </Layout>
-              </RequireProfileSetup>
+                </RequireProfileSetup>
+              </RequireVerification>
             </RequireAuth>
           }
         />
@@ -599,7 +680,8 @@ const App = () => {
           path="/reports"
           element={
             <RequireAuth isAuthenticated={isAuthenticated}>
-              <RequireProfileSetup>
+              <RequireVerification>
+                <RequireProfileSetup>
                 {userRoles.isAdminOrStaff || userRoles.isDoctor || userRoles.isNurse ? (
                   <Layout>
                     <Reports />
@@ -607,7 +689,8 @@ const App = () => {
                 ) : (
                   <Navigate to="/home" replace />
                 )}
-              </RequireProfileSetup>
+                </RequireProfileSetup>
+              </RequireVerification>
             </RequireAuth>
           }
         />

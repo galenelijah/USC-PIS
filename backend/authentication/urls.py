@@ -6,11 +6,20 @@ from . import user_management_views
 router = DefaultRouter()
 router.register(r'profile', views.ProfileViewSet, basename='profile')
 
+from . import user_management_views
+
 urlpatterns = [
+    # Safe List Management (Admin)
+    path('admin/safe-emails/', user_management_views.manage_safe_emails, name='manage_safe_emails'),
+    path('admin/safe-emails/<int:email_id>/', user_management_views.remove_safe_email, name='remove_safe_email'),
+    path('admin/users/<int:user_id>/toggle-verification/', user_management_views.toggle_user_verification, name='toggle_verification'),
+    
     path('register/', views.register_user, name='register'),
     path('debug-register/', views.debug_register, name='debug-register'),
     path('debug-current-user/', views.debug_current_user, name='debug-current-user'),
     path('login/', views.login_user, name='login'),
+    path('verify-email/', views.verify_email_code, name='verify_email'),
+    path('resend-code/', views.resend_verification_code, name='resend_code'),
     path('logout/', views.logout_user, name='logout'),
     path('check-email/', views.check_email, name='check-email'),
     path('change-password/', views.change_password, name='change-password'),

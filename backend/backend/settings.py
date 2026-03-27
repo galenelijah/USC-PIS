@@ -170,6 +170,7 @@ MIDDLEWARE = [
     'backend.middleware.RequestLoggingMiddleware',  # Add request logging
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'authentication.middleware.EmailVerificationMiddleware',  # Mandatory Verification Enforcer
     'backend.middleware.APIResponseMiddleware',  # Existing API response middleware
     'backend.middleware.HealthCheckMiddleware',  # Existing health check middleware
 ]

@@ -80,13 +80,31 @@ def check_email(request):
             'error': 'An error occurred while checking email'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+import random
+import string
+from .models import User, SafeEmail, VerificationCode
+
+def generate_verification_code(user):
+    """Generate a 6-digit verification code and save it."""
+    # Deactivate old codes
+    VerificationCode.objects.filter(user=user, is_used=False).update(is_used=True)
+    
+    code = ''.join(random.choices(string.digits, k=6))
+    expires_at = timezone.now() + datetime.timedelta(minutes=15)
+    
+    vc = VerificationCode.objects.create(
+        user=user,
+        code=code,
+        expires_at=expires_at
+    )
+    return code
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register_user(request):
-    """Enhanced user registration with comprehensive validation."""
+    """Enhanced user registration with USC domain check, SafeList bypass, and verification."""
     if request.method == 'POST':
         try:
-            # Get client IP for rate limiting
             client_ip = get_client_ip(request)
             
             # Check rate limiting
@@ -97,48 +115,60 @@ def register_user(request):
                     'retry_after': time_remaining
                 }, status=status.HTTP_429_TOO_MANY_REQUESTS)
             
-            # Use the serializer for validation and creation
             serializer = UserRegistrationSerializer(data=request.data)
             
             if serializer.is_valid():
                 try:
-                    # Create user using serializer
+                    # Check for SafeList (Fast Pass)
+                    email = serializer.validated_data.get('email').lower()
+                    is_safe = SafeEmail.objects.filter(email=email, is_active=True).exists()
+                    
+                    # Create user
                     user = serializer.save()
+                    user.is_verified = is_safe
+                    user.save(update_fields=['is_verified'])
                     
                     # Create initial token
                     token, created = Token.objects.get_or_create(user=user)
                     
-                    # Log successful registration
-                    logger.info(f"User registered successfully: {user.email} with role {user.role}")
+                    logger.info(f"User registered: {user.email}, is_verified: {user.is_verified}")
                     
-                    # Send welcome email
-                    try:
-                        EmailService.send_welcome_email(user)
-                        logger.info(f"Welcome email sent to {user.email}")
-                    except Exception as email_error:
-                        logger.error(f"Failed to send welcome email to {user.email}: {str(email_error)}")
-                        # Don't fail registration if email fails
-                    
-                    # Record successful attempt
-                    rate_limiter.record_attempt(client_ip, 'register', success=True)
-                    
-                    return Response({
+                    response_data = {
                         'detail': 'User created successfully',
                         'user_id': user.id,
                         'token': token.key,
+                        'is_verified': user.is_verified,
                         'user': {
                             'id': user.id,
                             'email': user.email,
                             'role': user.role,
-                            'completeSetup': user.completeSetup
+                            'completeSetup': user.completeSetup,
+                            'is_verified': user.is_verified
                         }
-                    }, status=status.HTTP_201_CREATED)
+                    }
+
+                    if not user.is_verified:
+                        # Generate and send code
+                        code = generate_verification_code(user)
+                        try:
+                            EmailService.send_verification_email(user, code)
+                            logger.info(f"Verification code sent to {user.email}")
+                        except Exception as e:
+                            logger.error(f"Failed to send verification email: {e}")
+                        response_data['message'] = 'Verification code sent to your USC email.'
+                    else:
+                        # Send welcome email for verified users
+                        try:
+                            EmailService.send_welcome_email(user)
+                        except Exception: pass
+                    
+                    rate_limiter.record_attempt(client_ip, 'register', success=True)
+                    return Response(response_data, status=status.HTTP_201_CREATED)
                     
                 except IntegrityError as e:
                     logger.error(f"Database integrity error during registration: {str(e)}")
                     rate_limiter.record_attempt(client_ip, 'register', success=False)
                     
-                    # Check if it's likely a duplicate email error
                     if 'unique constraint' in str(e).lower() and 'email' in str(e).lower():
                         return Response({
                             'email': ['This email address is already registered. Please log in instead.']
@@ -149,44 +179,22 @@ def register_user(request):
                         'field': 'email'
                     }, status=status.HTTP_400_BAD_REQUEST)
             else:
-                # Record failed attempt
                 rate_limiter.record_attempt(client_ip, 'register', success=False)
-                
-                # Return serializer validation errors
-                return Response({
-                    'detail': 'Validation failed',
-                    'errors': serializer.errors
-                }, status=status.HTTP_400_BAD_REQUEST)
-                
+                return Response({'detail': 'Validation failed', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            error_msg = f"Registration error: {str(e)}"
-            logger.error(f"{error_msg}\n{traceback.format_exc()}")
-            
-            # Record failed attempt
-            try:
-                client_ip = get_client_ip(request)
-                rate_limiter.record_attempt(client_ip, 'register', success=False)
-            except Exception as e:
-                logger.warning(f"Failed to record rate limit attempt: {e}")
-                pass
-            
-            return Response({
-                'detail': 'Registration failed due to server error. Please try again.',
-                'error_code': 'INTERNAL_ERROR'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error(f"Registration error: {str(e)}\n{traceback.format_exc()}")
+            return Response({'detail': 'Server error during registration.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_user(request):
-    """Enhanced login with rate limiting and security checks."""
+    """Enhanced login with verification check and retroactive triggering."""
     if request.method == 'POST':
         try:
-            # Get client IP for rate limiting
             client_ip = get_client_ip(request)
             email = request.data.get('email', '').strip().lower()
             password = request.data.get('password', '')
             
-            # Input validation
             if not email or not password:
                 rate_limiter.record_attempt(client_ip, 'login', success=False)
                 return Response({
@@ -194,7 +202,7 @@ def login_user(request):
                     'fields': ['email', 'password']
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            # Check rate limiting (by IP and email)
+            # Check rate limiting
             ip_limited, ip_time = rate_limiter.is_rate_limited(client_ip, 'login')
             email_limited, email_time = rate_limiter.is_rate_limited(email, 'login')
             
@@ -206,96 +214,113 @@ def login_user(request):
                     'locked_out': True
                 }, status=status.HTTP_429_TOO_MANY_REQUESTS)
             
-            # Lenient email validation for login (allows existing users)
-            email_error = email_validator(email, check_existing=True)
-            if email_error:
-                rate_limiter.record_attempt(client_ip, 'login', success=False)
-                rate_limiter.record_attempt(email, 'login', success=False)
-                return Response({
-                    'detail': 'Invalid email format',
-                    'field': 'email'
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Authenticate user
             user = authenticate(request, username=email, password=password)
             
             if user is None:
-                # Record failed attempt
                 rate_limiter.record_attempt(client_ip, 'login', success=False)
                 rate_limiter.record_attempt(email, 'login', success=False)
-                
-                # Check if user exists to provide appropriate message
                 user_exists = User.objects.filter(email=email).exists()
-                if user_exists:
-                    detail = 'Invalid password'
-                    field = 'password'
-                else:
-                    detail = 'No account found with this email'
-                    field = 'email'
-                
                 return Response({
-                    'detail': detail,
-                    'field': field
+                    'detail': 'Invalid password' if user_exists else 'No account found with this email',
+                    'field': 'password' if user_exists else 'email'
                 }, status=status.HTTP_401_UNAUTHORIZED)
             
             if not user.is_active:
-                rate_limiter.record_attempt(client_ip, 'login', success=False)
-                rate_limiter.record_attempt(email, 'login', success=False)
+                return Response({'detail': 'Account is disabled. Please contact support.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+            # Verification Check (Retroactive)
+            if not user.is_verified and not user.is_superuser:
+                code = generate_verification_code(user)
+                try:
+                    EmailService.send_verification_email(user, code)
+                except Exception as e:
+                    logger.error(f"Failed to send verification email: {e}")
+                
+                token, _ = Token.objects.get_or_create(user=user)
                 return Response({
-                    'detail': 'Account is disabled. Please contact support.',
-                    'account_status': 'disabled'
-                }, status=status.HTTP_401_UNAUTHORIZED)
-            
-            # Handle concurrent sessions
+                    'token': token.key,
+                    'is_verified': False,
+                    'user_id': user.id,
+                    'email': user.email,
+                    'detail': 'Please verify your USC email address.'
+                }, status=status.HTTP_200_OK)
+
+            # Normal Login
             SessionManager.handle_concurrent_logins(user, max_sessions=3)
-            
-            # Create or get token
             token, created = Token.objects.get_or_create(user=user)
             
-            # Check if token is expired
-            if not created and SessionManager.is_token_expired(token):
-                token.delete()
-                token = Token.objects.create(user=user)
-                logger.info(f"Refreshed expired token for user {user.email}")
-            
-            # Record successful attempt
             rate_limiter.record_attempt(client_ip, 'login', success=True)
             rate_limiter.record_attempt(email, 'login', success=True)
             
-            # Update last login
             user.last_login = timezone.now()
             user.save(update_fields=['last_login'])
-            
-            logger.info(f"Successful login for user {user.email}")
             
             return Response({
                 'token': token.key,
                 'user': UserProfileSerializer(user).data,
-                'login_time': timezone.now().isoformat(),
-                'session_info': {
-                    'token_created': created,
-                    'expires_in_hours': 24
-                }
+                'is_verified': True
             })
             
         except Exception as e:
             logger.error(f"Login error: {str(e)}\n{traceback.format_exc()}")
-            
-            # Record failed attempt on exception
-            try:
-                client_ip = get_client_ip(request)
-                email = request.data.get('email', '').strip().lower()
-                rate_limiter.record_attempt(client_ip, 'login', success=False)
-                if email:
-                    rate_limiter.record_attempt(email, 'login', success=False)
-            except Exception as e:
-                logger.warning(f"Failed to record rate limit attempt: {e}")
-                pass
-            
-            return Response({
-                'detail': 'An error occurred during login. Please try again.',
-                'error_code': 'LOGIN_ERROR'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'detail': 'An error occurred during login. Please try again.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def verify_email_code(request):
+    """Verify the 6-digit code."""
+    user = request.user
+    code = request.data.get('code', '').strip()
+    
+    if not code:
+        return Response({'detail': 'Verification code is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        vc = VerificationCode.objects.filter(user=user, code=code, is_used=False).latest('created_at')
+        
+        if vc.is_expired():
+            return Response({'detail': 'Code has expired. Please request a new one.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user.is_verified = True
+        user.save(update_fields=['is_verified'])
+        
+        vc.is_used = True
+        vc.save(update_fields=['is_used'])
+        
+        logger.info(f"User {user.email} successfully verified.")
+        
+        return Response({
+            'detail': 'Email verified successfully.',
+            'is_verified': True,
+            'user': UserProfileSerializer(user).data
+        })
+        
+    except VerificationCode.DoesNotExist:
+        return Response({'detail': 'Invalid verification code.'}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def resend_verification_code(request):
+    """Resend a new 6-digit code."""
+    user = request.user
+    
+    if user.is_verified:
+        return Response({'detail': 'Email is already verified.'})
+    
+    # Rate limit resending
+    is_limited, time_remaining = rate_limiter.is_rate_limited(f"{user.id}:resend", 'resend_code')
+    if is_limited:
+        return Response({'detail': f'Please wait {time_remaining} seconds before requesting a new code.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+    
+    code = generate_verification_code(user)
+    try:
+        EmailService.send_verification_email(user, code)
+        rate_limiter.record_attempt(f"{user.id}:resend", 'resend_code', success=True)
+        return Response({'detail': 'Verification code sent to your USC email.'})
+    except Exception as e:
+        logger.error(f"Failed to resend code: {e}")
+        return Response({'detail': 'Failed to send email. Please try again later.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class ProfileViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]

@@ -29,7 +29,13 @@ import {
   Grid,
   Stack,
   Divider,
-  CircularProgress
+  CircularProgress,
+  Tabs,
+  Tab,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction
 } from '@mui/material';
 import {
   Edit,
@@ -44,7 +50,14 @@ import {
   School,
   ToggleOff,
   ToggleOn,
-  Refresh
+  Refresh,
+  VerifiedUser,
+  Security,
+  Email,
+  AddCircle,
+  RemoveCircle,
+  CheckCircle,
+  Cancel
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../features/authentication/authSlice';
@@ -67,6 +80,14 @@ const UserManagement = () => {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [roleCounts, setRoleCounts] = useState({});
+  
+  // Tab state
+  const [activeTab, setActiveTab] = useState(0);
+  
+  // Safe List Management state
+  const [safeEmails, setSafeEmails] = useState([]);
+  const [newSafeEmail, setNewSafeEmail] = useState('');
+  const [safeListLoading, setSafeListLoading] = useState(false);
   
   // Dialog states
   const [roleDialog, setRoleDialog] = useState({ open: false, user: null, newRole: '' });
@@ -105,6 +126,18 @@ const UserManagement = () => {
     }
   };
 
+  const fetchSafeEmails = async () => {
+    try {
+      setSafeListLoading(true);
+      const data = await userManagementService.getSafeEmails();
+      setSafeEmails(data || []);
+    } catch (err) {
+      setError('Failed to load safe emails');
+    } finally {
+      setSafeListLoading(false);
+    }
+  };
+
   useEffect(() => {
     // Check if current user is admin
     if (currentUser?.role !== 'ADMIN') {
@@ -112,8 +145,12 @@ const UserManagement = () => {
       return;
     }
     
-    fetchUsers();
-  }, [page, rowsPerPage, search, roleFilter, currentUser]);
+    if (activeTab === 0) {
+      fetchUsers();
+    } else {
+      fetchSafeEmails();
+    }
+  }, [page, rowsPerPage, search, roleFilter, currentUser, activeTab]);
 
   const handleSearch = () => {
     setPage(0);
@@ -141,6 +178,16 @@ const UserManagement = () => {
     }
   };
 
+  const handleToggleVerification = async (user) => {
+    try {
+      await userManagementService.toggleUserVerification(user.id);
+      setSuccess(`User ${user.is_verified ? 'unverified' : 'verified'} successfully`);
+      fetchUsers();
+    } catch (err) {
+      setError('Failed to toggle user verification');
+    }
+  };
+
   const handleDeleteUser = async () => {
     try {
       await userManagementService.deleteUser(deleteDialog.user.id);
@@ -152,7 +199,33 @@ const UserManagement = () => {
     }
   };
 
+  const handleAddSafeEmail = async () => {
+    if (!newSafeEmail || !newSafeEmail.includes('@')) {
+      setError('Please enter a valid email');
+      return;
+    }
+    try {
+      await userManagementService.addSafeEmail(newSafeEmail);
+      setSuccess('Email added to safe list');
+      setNewSafeEmail('');
+      fetchSafeEmails();
+    } catch (err) {
+      setError('Failed to add safe email');
+    }
+  };
+
+  const handleRemoveSafeEmail = async (id) => {
+    try {
+      await userManagementService.removeSafeEmail(id);
+      setSuccess('Email removed from safe list');
+      fetchSafeEmails();
+    } catch (err) {
+      setError('Failed to remove safe email');
+    }
+  };
+
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -185,8 +258,18 @@ const UserManagement = () => {
         </Typography>
       </Box>
 
-      {/* Role Statistics Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      {/* Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs value={activeTab} onChange={(e, v) => setActiveTab(v)}>
+          <Tab icon={<PersonAdd sx={{ fontSize: '1.2rem' }} />} iconPosition="start" label="User Management" />
+          <Tab icon={<Security sx={{ fontSize: '1.2rem' }} />} iconPosition="start" label="Safe List Management" />
+        </Tabs>
+      </Box>
+
+      {activeTab === 0 ? (
+        <>
+          {/* Role Statistics Cards */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
         {roles.map((role) => {
           const count = roleCounts[role.value] || 0;
           const IconComponent = role.icon;
@@ -291,6 +374,7 @@ const UserManagement = () => {
               <TableCell><strong>User</strong></TableCell>
               <TableCell><strong>Role</strong></TableCell>
               <TableCell><strong>Status</strong></TableCell>
+              <TableCell><strong>Verification</strong></TableCell>
               <TableCell><strong>Join Date</strong></TableCell>
               <TableCell><strong>Actions</strong></TableCell>
             </TableRow>
@@ -298,13 +382,13 @@ const UserManagement = () => {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} sx={{ textAlign: 'center', py: 4 }}>
+                <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4 }}>
                   <CircularProgress />
                 </TableCell>
               </TableRow>
             ) : users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} sx={{ textAlign: 'center', py: 4 }}>
+                <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4 }}>
                   <Typography color="text.secondary">No users found</Typography>
                 </TableCell>
               </TableRow>
@@ -347,6 +431,16 @@ const UserManagement = () => {
                         size="small"
                       />
                     </TableCell>
+
+                    <TableCell>
+                      <Chip
+                        icon={user.is_verified ? <VerifiedUser sx={{ fontSize: '0.9rem !important' }} /> : <Security sx={{ fontSize: '0.9rem !important' }} />}
+                        label={user.is_verified ? 'Verified' : 'Unverified'}
+                        color={user.is_verified ? 'info' : 'warning'}
+                        variant={user.is_verified ? 'filled' : 'outlined'}
+                        size="small"
+                      />
+                    </TableCell>
                     
                     <TableCell>
                       <Typography variant="body2">
@@ -377,6 +471,17 @@ const UserManagement = () => {
                             disabled={user.id === currentUser?.id}
                           >
                             {user.is_active ? <ToggleOn /> : <ToggleOff />}
+                          </IconButton>
+                        </Tooltip>
+
+                        <Tooltip title={user.is_verified ? 'Unverify' : 'Verify'}>
+                          <IconButton
+                            size="small"
+                            color={user.is_verified ? 'info' : 'default'}
+                            onClick={() => handleToggleVerification(user)}
+                            disabled={user.id === currentUser?.id}
+                          >
+                            {user.is_verified ? <CheckCircle /> : <Cancel />}
                           </IconButton>
                         </Tooltip>
                         
@@ -412,6 +517,90 @@ const UserManagement = () => {
           rowsPerPageOptions={[5, 10, 25, 50]}
         />
       </TableContainer>
+        </>
+      ) : (
+        /* Safe List Management Tab Content */
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={4}>
+            <Paper sx={{ p: 3, height: '100%' }}>
+              <Typography variant="h6" fontWeight="bold" gutterBottom>
+                Add to Safe List
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Emails on the safe list are automatically verified when users register.
+              </Typography>
+              <Stack spacing={2}>
+                <TextField
+                  fullWidth
+                  label="Email Address"
+                  placeholder="e.g. user@usc.edu.ph"
+                  value={newSafeEmail}
+                  onChange={(e) => setNewSafeEmail(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddSafeEmail()}
+                  InputProps={{
+                    startAdornment: <Email sx={{ mr: 1, color: 'text.secondary' }} />
+                  }}
+                />
+                <Button
+                  variant="contained"
+                  fullWidth
+                  startIcon={<AddCircle />}
+                  onClick={handleAddSafeEmail}
+                  disabled={!newSafeEmail}
+                >
+                  Add Email
+                </Button>
+              </Stack>
+            </Paper>
+          </Grid>
+          
+          <Grid item xs={12} md={8}>
+            <Paper sx={{ p: 0, overflow: 'hidden' }}>
+              <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="h6" fontWeight="bold">
+                  Safe Email List
+                </Typography>
+                <Chip label={`${safeEmails.length} Emails`} size="small" color="primary" variant="outlined" />
+              </Box>
+              
+              {safeListLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                  <CircularProgress />
+                </Box>
+              ) : safeEmails.length === 0 ? (
+                <Box sx={{ p: 4, textAlign: 'center' }}>
+                  <Typography color="text.secondary">No emails in the safe list.</Typography>
+                </Box>
+              ) : (
+                <List sx={{ maxHeight: 500, overflow: 'auto' }}>
+                  {safeEmails.map((item, index) => (
+                    <React.Fragment key={item.id}>
+                      <ListItem>
+                        <ListItemText 
+                          primary={item.email} 
+                          secondary={`Added on ${formatDate(item.created_at)}`}
+                        />
+                        <ListItemSecondaryAction>
+                          <Tooltip title="Remove from safe list">
+                            <IconButton 
+                              edge="end" 
+                              color="error" 
+                              onClick={() => handleRemoveSafeEmail(item.id)}
+                            >
+                              <RemoveCircle />
+                            </IconButton>
+                          </Tooltip>
+                        </ListItemSecondaryAction>
+                      </ListItem>
+                      {index < safeEmails.length - 1 && <Divider />}
+                    </React.Fragment>
+                  ))}
+                </List>
+              )}
+            </Paper>
+          </Grid>
+        </Grid>
+      )}
 
       {/* Role Update Dialog */}
       <Dialog open={roleDialog.open} onClose={() => setRoleDialog({ open: false, user: null, newRole: '' })}>

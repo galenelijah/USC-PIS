@@ -46,8 +46,7 @@ const Register = () =>{
         defaultValues: {
             email: '',
             password: '',
-            password2: '',
-            role: ''
+            password2: ''
         }
     })
     const dispatch = useDispatch();
@@ -58,10 +57,6 @@ const Register = () =>{
 
     const email = watch('email');
     const password = watch('password');
-    const role = watch('role');
-
-    // Determine if email is a staff/teacher email (no numbers)
-    const isTextEmail = email && !/\d/.test(email.split('@')[0]);
 
     useEffect(() => {
         return () => {
@@ -74,11 +69,6 @@ const Register = () =>{
         setSuccessMessage('');
         const userData = { ...data }; 
         
-        // Remove role from userData if it's not a text email (i.e. it's a student)
-        if (!isTextEmail) {
-            delete userData.role;
-        }
-
         try {
             // First, register the user
             const registerAction = await dispatch(registerUser(userData));
@@ -93,14 +83,22 @@ const Register = () =>{
                 }));
                 
                 if (loginUser.fulfilled.match(loginAction)) {
-                    const user = loginAction.payload.user;
-                    // Check if profile setup is needed
-                    if (user && user.completeSetup === false) {
+                    const user = loginAction.payload.user || loginAction.payload;
+                    const isVerified = loginAction.payload.is_verified ?? user?.is_verified;
+                    const isTextEmail = user?.email && !/\d/.test(user.email.split('@')[0]);
+
+                    if (!isVerified) {
+                        navigate('/verify-email');
+                    } else if (isTextEmail && user.role === 'STUDENT') {
+                        // Text emails default to STUDENT but need role selection
+                        navigate('/role-selection');
+                    } else if (user && user.completeSetup === false) {
                         navigate('/profile-setup');
                     } else {
                         navigate('/home');
                     }
-                } else {
+                }
+ else {
                     // If login fails after registration
                     setServerError('Registration successful but login failed. Please try logging in manually.');
                     setTimeout(() => navigate('/'), 2000);
@@ -272,56 +270,6 @@ const Register = () =>{
                                         />
                                     </Box>
 
-                                    {/* Conditional Role Selection for Text Emails */}
-                                    {isTextEmail && (
-                                        <Box sx={{ 
-                                            p: 2, 
-                                            borderRadius: 2, 
-                                            bgcolor: alpha('#667eea', 0.05),
-                                            border: `1px solid ${alpha('#667eea', 0.2)}`
-                                        }}>
-                                            <FormControl component="fieldset" error={!!errors?.role}>
-                                                <FormLabel component="legend" sx={{ mb: 1, fontWeight: 'bold', color: 'primary.main' }}>
-                                                    Choose Your Role
-                                                </FormLabel>
-                                                <Controller
-                                                    name="role"
-                                                    control={control}
-                                                    rules={{ required: isTextEmail }}
-                                                    render={({ field }) => (
-                                                        <RadioGroup {...field}>
-                                                            <FormControlLabel 
-                                                                value="TEACHER" 
-                                                                control={<Radio />} 
-                                                                label={
-                                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                                        <School fontSize="small" />
-                                                                        <Typography variant="body2">Teacher / Faculty</Typography>
-                                                                    </Box>
-                                                                } 
-                                                            />
-                                                            <FormControlLabel 
-                                                                value="STAFF" 
-                                                                control={<Radio />} 
-                                                                label={
-                                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                                        <MedicalServices fontSize="small" />
-                                                                        <Typography variant="body2">Clinic Staff / Medical Personnel</Typography>
-                                                                    </Box>
-                                                                } 
-                                                            />
-                                                        </RadioGroup>
-                                                    )}
-                                                />
-                                                {errors?.role && (
-                                                    <Typography variant="caption" color="error">
-                                                        Please select a role
-                                                    </Typography>
-                                                )}
-                                            </FormControl>
-                                        </Box>
-                                    )}
-
                                     {/* Automatic Role Assignment Info */}
                                     <Alert 
                                         severity="info" 
@@ -333,9 +281,10 @@ const Register = () =>{
                                         }}
                                     >
                                         <Typography variant="body2">
-                                            <strong>Role Assignment:</strong><br/>
-                                            • Emails with numbers (e.g. 21100727@usc.edu.ph) are automatically <strong>Students</strong>.<br/>
-                                            • Emails with only letters (e.g. name@usc.edu.ph) will be asked to choose between <strong>Teacher</strong> or <strong>Staff</strong>.
+                                            <strong>Verification Required:</strong><br/>
+                                            • All new accounts must verify their @usc.edu.ph email.<br/>
+                                            • Students are automatically assigned their role based on email.<br/>
+                                            • Faculty/Staff will select their role after email verification.
                                         </Typography>
                                     </Alert>
 

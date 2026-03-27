@@ -3,15 +3,15 @@
 **Last Updated:** March 25, 2026
 
 ## System Overview
-The USC-PIS is currently in a **Production-Ready** phase. The reports system has been expanded with a new interactive "Analytics & Visualizations" module (March 25, 2026) and clinical patient profiles now feature 100% accurate historical data filtering.
+The USC-PIS is currently in a **Production-Ready** phase. The reports system has been expanded with a new interactive "Analytics & Visualizations" module (March 25, 2026), clinical patient profiles now feature 100% accurate historical data filtering, and automated engagement tracking for health communications is live.
 
 ## Core Modules Status
 
 ### 1. Reports & Analytics (Enhanced March 2026)
 *   **Status:** Stable / Standardized / Enhanced
 *   **Features:** Multi-format export, custom branding, and a new interactive **Analytics Dashboard** using `Chart.js`.
-*   **Visualizations:** Visit Trends, Demographics, Clinical Insights, and Patient Satisfaction.
-*   **Reliability:** Dual-engine PDF generation with fallback protection.
+*   **Engagement Tracking:** Automated `view_count` and interaction metrics for `/health-info` and `/campaigns`.
+*   **Privacy:** Role-based visibility for clinical engagement metrics.
 
 ### 2. Authentication & Roles
 *   **Status:** Stable
@@ -39,6 +39,7 @@ The USC-PIS is currently in a **Production-Ready** phase. The reports system has
 *   **Status:** Operational
 *   **Platform:** Heroku
 *   **Build:** Passing (React/Vite build errors resolved).
+*   **Local Dev:** Fixed SSL configuration compatibility for SQLite/PostgreSQL.
 
 ## Known Issues
 *   None critical.

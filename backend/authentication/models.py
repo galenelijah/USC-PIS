@@ -1,6 +1,8 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.contrib.auth.base_user import BaseUserManager
+from django.utils import timezone
+import datetime
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -24,6 +26,7 @@ class CustomUserManager(BaseUserManager):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('role', 'ADMIN')
+        extra_fields.setdefault('is_verified', True)  # Superusers are verified by default
         extra_fields.setdefault('username', email)  # Ensure username is set for superuser
         return self.create_user(email, password, **extra_fields)
 
@@ -42,6 +45,7 @@ class User(AbstractUser):
     username = models.CharField(max_length=200, unique=True)  # Make explicit
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.STUDENT)
     completeSetup = models.BooleanField(default=False)
+    is_verified = models.BooleanField(default=False)
 
     # Personal Information
     middle_name = models.CharField(max_length=50, null=True, blank=True)
@@ -108,8 +112,31 @@ class User(AbstractUser):
             self.username = self.email
         super().save(*args, **kwargs)
 
+class SafeEmail(models.Model):
+    email = models.EmailField(unique=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.email
+
+class VerificationCode(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='verification_codes')
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+    def __str__(self):
+        return f"{self.user.email} - {self.code}"
+
 # Register signal handlers (encryption on save)
 try:
     from . import signals  # noqa: F401
 except Exception:
     pass
+
