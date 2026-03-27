@@ -32,11 +32,8 @@ class EmailService:
             if from_email is None:
                 from_email = settings.DEFAULT_FROM_EMAIL
             
-            # FORCE GMAIL API BACKEND IF ENABLED
-            email_connection = None
-            if getattr(settings, 'USE_GMAIL_API', False):
-                logger.info("EMAIL_FORCE: Using Gmail API OAuth connection")
-                email_connection = get_connection('gmailapi_backend.mail.GmailBackend')
+            # FORCE GMAIL API BACKEND (Now handled globally in settings, but keeping for clarity)
+            logger.info(f"EMAIL_DEBUG: Sending via {settings.EMAIL_BACKEND}")
             
             # Create professional USC-PIS display name
             usc_display_name = f"USC Patient Information System <{from_email}>"
@@ -52,8 +49,7 @@ class EmailService:
                 subject=f"[USC-PIS] {subject}",
                 body=text_content,
                 from_email=from_email,
-                to=[recipient_email],
-                connection=email_connection
+                to=[recipient_email]
             )
             msg.attach_alternative(html_content, "text/html")
             
