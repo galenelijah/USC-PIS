@@ -46,14 +46,27 @@ def email_system_status(request):
         
         # Check if it's using console backend (development)
         is_development = 'console' in email_backend.lower()
+        use_gmail_api = getattr(settings, 'USE_GMAIL_API', False)
         
         # Get recent email activity (approximate from recent visits)
         recent_visits = MedicalRecord.objects.filter(
             visit_date__gte=timezone.now().date() - timedelta(days=7)
         ).count()
         
+        # Determine human-readable backend name
+        if 'gmailapi_backend' in email_backend.lower():
+            backend_display = 'GMAIL_API (OAuth 2.0)'
+        elif 'smtp' in email_backend.lower():
+            backend_display = f"SMTP ({getattr(settings, 'EMAIL_HOST', 'Unknown')})"
+        elif is_development:
+            backend_display = 'Development (Console)'
+        else:
+            backend_display = email_backend.split('.')[-1]
+            
         status = {
             'email_backend': email_backend,
+            'backend_display': backend_display,
+            'use_gmail_api': use_gmail_api,
             'is_development_mode': is_development,
             'smtp_host': getattr(settings, 'EMAIL_HOST', 'Not set'),
             'from_email': getattr(settings, 'DEFAULT_FROM_EMAIL', 'Not set'),

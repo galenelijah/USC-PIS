@@ -130,7 +130,8 @@ const UserManagement = () => {
     try {
       setSafeListLoading(true);
       const data = await userManagementService.getSafeEmails();
-      setSafeEmails(data || []);
+      // Handle the nested structure { safe_emails: [...] } or default to []
+      setSafeEmails(data?.safe_emails || []);
     } catch (err) {
       setError('Failed to load safe emails');
     } finally {
