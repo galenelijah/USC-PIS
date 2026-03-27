@@ -759,6 +759,14 @@ export const healthInfoService = {
       handleApiError(error);
     }
   },
+  trackView: async (id) => {
+    try {
+      return await api.post(`/health-info/health-information/${id}/view/`);
+    } catch (error) {
+      console.error('Error tracking health info view:', error);
+      // Fail silently for user
+    }
+  },
 };
 
 export const healthRecordsService = {
@@ -1446,6 +1454,11 @@ export const campaignService = {
   // Track engagement
   trackEngagement: (id) => {
     return api.post(`/health-info/campaigns/${id}/engage/`);
+  },
+
+  // Track view explicitly
+  trackView: (id) => {
+    return api.post(`/health-info/campaigns/${id}/view/`);
   },
 
   // Get campaign resources

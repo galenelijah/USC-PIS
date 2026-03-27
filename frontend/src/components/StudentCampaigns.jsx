@@ -213,6 +213,10 @@ const UniversalCampaigns = () => {
     // Open quickly with available data then hydrate with full details
     setSelectedCampaign(campaign);
     setDialogOpen(true);
+    
+    // Track the view explicitly
+    campaignService.trackView(campaign.id);
+    
     try {
       const resp = await campaignService.getCampaign(campaign.id);
       if (resp?.data) setSelectedCampaign(resp.data);
@@ -610,11 +614,19 @@ const UniversalCampaigns = () => {
                 </Box>
 
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  {campaign.target_audience && (
-                    <Typography variant="caption" color="primary" sx={{ fontWeight: 'medium' }}>
-                      👥 {campaign.target_audience}
-                    </Typography>
-                  )}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    {campaign.target_audience && (
+                      <Typography variant="caption" color="primary" sx={{ fontWeight: 'medium' }}>
+                        👥 {campaign.target_audience}
+                      </Typography>
+                    )}
+                    <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+                      <VisibilityIcon sx={{ fontSize: 16, color: 'text.secondary', mr: 0.5 }} />
+                      <Typography variant="caption" color="text.secondary">
+                        {campaign.view_count || 0}
+                      </Typography>
+                    </Box>
+                  </Box>
                   {campaign.images && campaign.images.length > 0 && (
                     <Chip 
                       icon={<ImageIcon />} 

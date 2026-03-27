@@ -88,6 +88,13 @@ class HealthInformationViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['post'])
+    def view(self, request, pk=None):
+        """Explicitly track a view"""
+        instance = self.get_object()
+        instance.increment_view_count()
+        return Response({'status': 'view tracked', 'view_count': instance.view_count})
+
 class HealthCampaignViewSet(viewsets.ModelViewSet):
     """Health campaigns viewset using the same approach as HealthInformationViewSet"""
     queryset = HealthCampaign.objects.all()
@@ -176,6 +183,15 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
             instance.increment_view_count()
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def view(self, request, pk=None):
+        """Explicitly track a view"""
+        instance = self.get_object()
+        if instance.status == 'ACTIVE':
+            instance.increment_view_count()
+            return Response({'status': 'view tracked', 'view_count': instance.view_count})
+        return Response({'status': 'ignored', 'reason': 'Campaign not active'}, status=status.HTTP_200_OK)
     
     @action(detail=True, methods=['post'])
     def engage(self, request, pk=None):

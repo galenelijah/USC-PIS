@@ -37,6 +37,7 @@ import { healthInfoSchema } from '../../utils/validationSchemas';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchHealthInfo, addHealthInfo, updateHealthInfo, deleteHealthInfo, setEditing, clearEditing } from '../../features/healthInfoSlice';
 import { selectCurrentUser } from '../../features/authentication/authSlice';
+import { healthInfoService } from '../../services/api';
 
 const HealthInfo = () => {
   const theme = useTheme();
@@ -115,6 +116,10 @@ const HealthInfo = () => {
   const handleViewContent = (item) => {
     setSelectedItem(item);
     setContentViewerOpen(true);
+    // Track the view explicitly
+    if (item && item.id) {
+      healthInfoService.trackView(item.id);
+    }
   };
 
   const handleViewImages = (images, index = 0) => {
