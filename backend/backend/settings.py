@@ -21,18 +21,13 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Default to SMTP (SendGrid or other)
-EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.sendgrid.net')
-EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
-EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'apikey')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@usc-pis.herokuapp.com')
-SERVER_EMAIL = DEFAULT_FROM_EMAIL
-
-# Gmail API Configuration (Overrides SMTP if enabled)
+# Email Configuration
 USE_GMAIL_API = os.environ.get('USE_GMAIL_API', 'False') == 'True'
 USE_AWS_SES = os.environ.get('USE_AWS_SES', 'False') == 'True'
+
+# Global Default (Matches your USC account)
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', '21100727@usc.edu.ph')
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 if USE_GMAIL_API:
     # Gmail API via django-gmailapi-backend (OAuth 2.0)
@@ -40,7 +35,7 @@ if USE_GMAIL_API:
     GMAIL_API_CLIENT_ID = os.environ.get('GMAIL_CLIENT_ID')
     GMAIL_API_CLIENT_SECRET = os.environ.get('GMAIL_CLIENT_SECRET')
     GMAIL_API_REFRESH_TOKEN = os.environ.get('GMAIL_REFRESH_TOKEN')
-    print(f"DEBUG: Using GMAIL API Backend. Client ID present: {bool(GMAIL_API_CLIENT_ID)}")
+    # print(f"DEBUG: Using GMAIL API Backend. Client ID present: {bool(GMAIL_API_CLIENT_ID)}")
 
 elif USE_AWS_SES:
     # AWS SES Configuration
@@ -51,10 +46,17 @@ elif USE_AWS_SES:
     AWS_SES_REGION_ENDPOINT = f'email.{AWS_SES_REGION_NAME}.amazonaws.com'
     
 else:
+    # Fallback to SMTP (SendGrid or other)
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.sendgrid.net')
+    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+    EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'apikey')
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 
-# Development fallback (If no production backend is configured)
+# Development fallback
 if not USE_GMAIL_API and not USE_AWS_SES and not os.environ.get('EMAIL_HOST_PASSWORD') and DEBUG:
+    # Fall back to console backend for development
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # --- Start Database Configuration ---
