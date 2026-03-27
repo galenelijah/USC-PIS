@@ -32,6 +32,9 @@ class EmailService:
             if from_email is None:
                 from_email = settings.DEFAULT_FROM_EMAIL
             
+            # Log backend for debugging
+            logger.info(f"Attempting to send email via {settings.EMAIL_BACKEND}. USE_GMAIL_API={getattr(settings, 'USE_GMAIL_API', False)}")
+            
             # Create professional USC-PIS display name
             usc_display_name = f"USC Patient Information System <{from_email}>"
             

@@ -21,7 +21,16 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Email Configuration
+# Default to SMTP (SendGrid or other)
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.sendgrid.net')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'apikey')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@usc-pis.herokuapp.com')
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+# Gmail API Configuration (Overrides SMTP if enabled)
 USE_GMAIL_API = os.environ.get('USE_GMAIL_API', 'False') == 'True'
 USE_AWS_SES = os.environ.get('USE_AWS_SES', 'False') == 'True'
 
@@ -31,8 +40,7 @@ if USE_GMAIL_API:
     GMAIL_API_CLIENT_ID = os.environ.get('GMAIL_CLIENT_ID')
     GMAIL_API_CLIENT_SECRET = os.environ.get('GMAIL_CLIENT_SECRET')
     GMAIL_API_REFRESH_TOKEN = os.environ.get('GMAIL_REFRESH_TOKEN')
-    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@usc-pis.com')
-    SERVER_EMAIL = DEFAULT_FROM_EMAIL
+    print(f"DEBUG: Using GMAIL API Backend. Client ID present: {bool(GMAIL_API_CLIENT_ID)}")
 
 elif USE_AWS_SES:
     # AWS SES Configuration
@@ -41,26 +49,12 @@ elif USE_AWS_SES:
     AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
     AWS_SES_REGION_NAME = os.environ.get('AWS_SES_REGION_NAME', 'us-east-1')
     AWS_SES_REGION_ENDPOINT = f'email.{AWS_SES_REGION_NAME}.amazonaws.com'
-    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@usc-pis.com')
-    SERVER_EMAIL = DEFAULT_FROM_EMAIL
-    
-    # Optional: Configuration for bounce and complaint handling
-    AWS_SES_AUTO_THROTTLE = 0.5  # Throttle sending rate
     
 else:
-    # Fallback to SMTP (SendGrid or other)
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.sendgrid.net')
-    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
-    EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
-    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'apikey')
-    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
-    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@usc-pis.herokuapp.com')
-    SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
-# Development fallback
-if not USE_GMAIL_API and not USE_AWS_SES and not os.environ.get('EMAIL_HOST_PASSWORD'):
-    # Fall back to console backend for development
+# Development fallback (If no production backend is configured)
+if not USE_GMAIL_API and not USE_AWS_SES and not os.environ.get('EMAIL_HOST_PASSWORD') and DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # --- Start Database Configuration ---
@@ -563,9 +557,17 @@ LOGGING = {
 }
 
 # Celery Configuration
-CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
-# Only use result backend if explicitly configured to avoid "Retry limit exceeded" errors
-CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND')
+# Prioritize REDIS_URL (Heroku) over the local default
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', os.environ.get('REDIS_URL', 'redis://localhost:6379/0'))
+# Fix for Heroku Redis SSL (common issue with rediss://)
+if CELERY_BROKER_URL.startswith('rediss://'):
+    CELERY_BROKER_URL += "?ssl_cert_reqs=none"
+
+# Only use result backend if explicitly configured
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', os.environ.get('REDIS_URL'))
+if CELERY_RESULT_BACKEND and CELERY_RESULT_BACKEND.startswith('rediss://'):
+    CELERY_RESULT_BACKEND += "?ssl_cert_reqs=none"
+
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'

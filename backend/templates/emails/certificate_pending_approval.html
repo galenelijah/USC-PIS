@@ -1,0 +1,21 @@
+{% extends 'emails/base.html' %}
+
+{% block content %}
+<div style="padding: 20px; font-family: Arial, sans-serif;">
+    <h2 style="color: #800000;">Medical Certificate Approval Required</h2>
+    <p>Hello Dr. <strong>{{ doctor.last_name }}</strong>,</p>
+    <p>A new medical certificate request has been submitted by <strong>{{ patient.user.get_full_name }}</strong> and requires your review.</p>
+    
+    <div style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #800000; margin: 20px 0;">
+        <p><strong>Patient:</strong> {{ patient.user.get_full_name }}</p>
+        <p><strong>Date:</strong> {{ certificate.created_at|date:"F d, Y" }}</p>
+        <p><strong>Purpose:</strong> {{ certificate.purpose }}</p>
+    </div>
+    
+    <p>Please log in to the USC-PIS dashboard to approve or reject this request.</p>
+    
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="{{ site_url }}/medical-certificates" style="background-color: #800000; color: white; padding: 12px 25px; text-decoration: none; borderRadius: 5px; font-weight: bold;">Review Request</a>
+    </div>
+</div>
+{% endblock %}
