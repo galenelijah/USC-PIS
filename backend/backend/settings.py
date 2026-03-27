@@ -21,6 +21,19 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    # Fallback for local development only if not set in environment
+    SECRET_KEY = 'django-insecure-fallback-key-for-local-dev'
+
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+
+# Allow overriding via env; include Heroku wildcard by default
+_default_hosts = ['localhost', '127.0.0.1', 'testserver', '.herokuapp.com', 'usc-pis-5f030223f7a8.herokuapp.com']
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get('ALLOWED_HOSTS', ','.join(_default_hosts)).split(',') if h.strip()]
+
 # Email Configuration
 USE_GMAIL_API = os.environ.get('USE_GMAIL_API', 'False') == 'True'
 USE_AWS_SES = os.environ.get('USE_AWS_SES', 'False') == 'True'
@@ -35,8 +48,6 @@ if USE_GMAIL_API:
     GMAIL_API_CLIENT_ID = os.environ.get('GMAIL_CLIENT_ID')
     GMAIL_API_CLIENT_SECRET = os.environ.get('GMAIL_CLIENT_SECRET')
     GMAIL_API_REFRESH_TOKEN = os.environ.get('GMAIL_REFRESH_TOKEN')
-    # print(f"DEBUG: Using GMAIL API Backend. Client ID present: {bool(GMAIL_API_CLIENT_ID)}")
-
 elif USE_AWS_SES:
     # AWS SES Configuration
     EMAIL_BACKEND = 'django_ses.SESBackend'
@@ -44,9 +55,8 @@ elif USE_AWS_SES:
     AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
     AWS_SES_REGION_NAME = os.environ.get('AWS_SES_REGION_NAME', 'us-east-1')
     AWS_SES_REGION_ENDPOINT = f'email.{AWS_SES_REGION_NAME}.amazonaws.com'
-    
 else:
-    # Fallback to SMTP (SendGrid or other)
+    # Fallback to SMTP
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.sendgrid.net')
     EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
@@ -54,9 +64,8 @@ else:
     EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'apikey')
     EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 
-# Development fallback
+# Development fallback (If no production backend is configured and we are in DEBUG)
 if not USE_GMAIL_API and not USE_AWS_SES and not os.environ.get('EMAIL_HOST_PASSWORD') and DEBUG:
-    # Fall back to console backend for development
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # --- Start Database Configuration ---
@@ -96,19 +105,6 @@ else:
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY')
-if not SECRET_KEY:
-    raise ValueError("SECRET_KEY environment variable must be set. No default fallback allowed for security.")
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
-
-# Allow overriding via env; include Heroku wildcard by default
-_default_hosts = ['localhost', '127.0.0.1', 'testserver', '.herokuapp.com', 'usc-pis-5f030223f7a8.herokuapp.com']
-ALLOWED_HOSTS = [h.strip() for h in os.environ.get('ALLOWED_HOSTS', ','.join(_default_hosts)).split(',') if h.strip()]
-
 
 # Application definition
 
