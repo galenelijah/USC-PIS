@@ -37,6 +37,7 @@ import {
   ListItemText,
   ListItemSecondaryAction
 } from '@mui/material';
+import { useTheme, alpha } from '@mui/material/styles';
 import {
   Edit,
   Delete,
@@ -48,6 +49,8 @@ import {
   HealthAndSafety,
   Work,
   School,
+  MedicalServices,
+  HistoryEdu,
   ToggleOff,
   ToggleOn,
   Refresh,
@@ -65,6 +68,7 @@ import { userManagementService } from '../services/api';
 import InfoTooltip from './utils/InfoTooltip';
 
 const UserManagement = () => {
+  const theme = useTheme();
   const currentUser = useSelector(selectCurrentUser);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -96,12 +100,14 @@ const UserManagement = () => {
   const roles = [
     { value: 'ADMIN', label: 'Admin', icon: AdminPanelSettings, color: 'error' },
     { value: 'DOCTOR', label: 'Doctor', icon: LocalHospital, color: 'primary' },
+    { value: 'DENTIST', label: 'Dentist', icon: MedicalServices, color: 'warning' },
     { value: 'NURSE', label: 'Nurse', icon: HealthAndSafety, color: 'secondary' },
     { value: 'STAFF', label: 'Staff', icon: Work, color: 'info' },
+    { value: 'TEACHER', label: 'Teacher', icon: HistoryEdu, color: 'primary' },
     { value: 'STUDENT', label: 'Student', icon: School, color: 'success' }
   ];
 
-  const getRoleConfig = (role) => roles.find(r => r.value === role) || roles[4];
+  const getRoleConfig = (role) => roles.find(r => r.value === role) || roles[roles.length - 1];
 
   const fetchUsers = async () => {
     try {
@@ -270,32 +276,35 @@ const UserManagement = () => {
       {activeTab === 0 ? (
         <>
           {/* Role Statistics Cards */}
-          <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid container spacing={2} sx={{ mb: 4 }}>
         {roles.map((role) => {
           const count = roleCounts[role.value] || 0;
           const IconComponent = role.icon;
           return (
-            <Grid item xs={12} sm={6} md={2.4} key={role.value}>
+            <Grid item xs={6} sm={4} md={1.7} key={role.value}>
               <Card 
                 sx={{ 
                   cursor: 'pointer',
                   transition: 'all 0.2s',
-                  '&:hover': { transform: 'translateY(-2px)', boxShadow: 4 }
+                  '&:hover': { transform: 'translateY(-2px)', boxShadow: 4 },
+                  bgcolor: roleFilter === role.value ? alpha(theme.palette[role.color]?.main || '#ccc', 0.1) : 'background.paper',
+                  border: roleFilter === role.value ? 2 : 0,
+                  borderColor: `${role.color}.main`
                 }}
                 onClick={() => setRoleFilter(roleFilter === role.value ? '' : role.value)}
               >
-                <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
                   <IconComponent 
                     sx={{ 
-                      fontSize: 32, 
+                      fontSize: 28, 
                       color: `${role.color}.main`,
-                      mb: 1
+                      mb: 0.5
                     }} 
                   />
-                  <Typography variant="h5" fontWeight="bold">
+                  <Typography variant="h6" fontWeight="bold">
                     {count}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.2 }}>
                     {role.label}s
                   </Typography>
                 </CardContent>

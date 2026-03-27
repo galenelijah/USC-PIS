@@ -16,7 +16,10 @@ import {
 } from '@mui/material';
 import {
   School as SchoolIcon,
-  MedicalServices as StaffIcon,
+  MedicalServices as DentistIcon,
+  LocalHospital as DoctorIcon,
+  HealthAndSafety as NurseIcon,
+  Badge as StaffIcon,
   CheckCircle as CheckIcon,
   AccountCircle as UserIcon
 } from '@mui/icons-material';
@@ -97,8 +100,9 @@ const RoleSelection = () => {
                 <RadioGroup 
                   value={role} 
                   onChange={(e) => setRole(e.target.value)}
-                  sx={{ gap: 2 }}
+                  sx={{ gap: 1.5 }}
                 >
+                  {/* Teacher Role */}
                   <Paper
                     variant="outlined"
                     sx={{
@@ -106,7 +110,8 @@ const RoleSelection = () => {
                       borderRadius: 2,
                       borderColor: role === 'TEACHER' ? 'primary.main' : 'divider',
                       bgcolor: role === 'TEACHER' ? alpha('#667eea', 0.05) : 'transparent',
-                      '&:hover': { borderColor: 'primary.main' }
+                      transition: 'all 0.2s',
+                      '&:hover': { borderColor: 'primary.main', transform: 'translateY(-1px)' }
                     }}
                   >
                     <FormControlLabel 
@@ -117,14 +122,99 @@ const RoleSelection = () => {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 1 }}>
                           <SchoolIcon color={role === 'TEACHER' ? 'primary' : 'action'} />
                           <Box sx={{ textAlign: 'left' }}>
-                            <Typography variant="subtitle1" fontWeight="bold">Teacher / Faculty</Typography>
-                            <Typography variant="caption" color="text.secondary">For academic personnel</Typography>
+                            <Typography variant="subtitle2" fontWeight="bold">Teacher / Faculty</Typography>
+                            <Typography variant="caption" color="text.secondary">Academic and teaching personnel</Typography>
                           </Box>
                         </Box>
                       } 
                     />
                   </Paper>
 
+                  {/* Doctor Role */}
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 1,
+                      borderRadius: 2,
+                      borderColor: role === 'DOCTOR' ? 'primary.main' : 'divider',
+                      bgcolor: role === 'DOCTOR' ? alpha('#667eea', 0.05) : 'transparent',
+                      transition: 'all 0.2s',
+                      '&:hover': { borderColor: 'primary.main', transform: 'translateY(-1px)' }
+                    }}
+                  >
+                    <FormControlLabel 
+                      value="DOCTOR" 
+                      control={<Radio />} 
+                      sx={{ width: '100%', m: 0, px: 1 }}
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 1 }}>
+                          <DoctorIcon color={role === 'DOCTOR' ? 'primary' : 'action'} />
+                          <Box sx={{ textAlign: 'left' }}>
+                            <Typography variant="subtitle2" fontWeight="bold">Doctor</Typography>
+                            <Typography variant="caption" color="text.secondary">Medical physicians and specialists</Typography>
+                          </Box>
+                        </Box>
+                      } 
+                    />
+                  </Paper>
+
+                  {/* Dentist Role */}
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 1,
+                      borderRadius: 2,
+                      borderColor: role === 'DENTIST' ? 'primary.main' : 'divider',
+                      bgcolor: role === 'DENTIST' ? alpha('#667eea', 0.05) : 'transparent',
+                      transition: 'all 0.2s',
+                      '&:hover': { borderColor: 'primary.main', transform: 'translateY(-1px)' }
+                    }}
+                  >
+                    <FormControlLabel 
+                      value="DENTIST" 
+                      control={<Radio />} 
+                      sx={{ width: '100%', m: 0, px: 1 }}
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 1 }}>
+                          <DentistIcon color={role === 'DENTIST' ? 'primary' : 'action'} />
+                          <Box sx={{ textAlign: 'left' }}>
+                            <Typography variant="subtitle2" fontWeight="bold">Dentist</Typography>
+                            <Typography variant="caption" color="text.secondary">Dental health professionals</Typography>
+                          </Box>
+                        </Box>
+                      } 
+                    />
+                  </Paper>
+
+                  {/* Nurse Role */}
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 1,
+                      borderRadius: 2,
+                      borderColor: role === 'NURSE' ? 'primary.main' : 'divider',
+                      bgcolor: role === 'NURSE' ? alpha('#667eea', 0.05) : 'transparent',
+                      transition: 'all 0.2s',
+                      '&:hover': { borderColor: 'primary.main', transform: 'translateY(-1px)' }
+                    }}
+                  >
+                    <FormControlLabel 
+                      value="NURSE" 
+                      control={<Radio />} 
+                      sx={{ width: '100%', m: 0, px: 1 }}
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 1 }}>
+                          <NurseIcon color={role === 'NURSE' ? 'primary' : 'action'} />
+                          <Box sx={{ textAlign: 'left' }}>
+                            <Typography variant="subtitle2" fontWeight="bold">Nurse</Typography>
+                            <Typography variant="caption" color="text.secondary">Clinical nursing staff</Typography>
+                          </Box>
+                        </Box>
+                      } 
+                    />
+                  </Paper>
+
+                  {/* Staff Role */}
                   <Paper
                     variant="outlined"
                     sx={{
@@ -132,7 +222,8 @@ const RoleSelection = () => {
                       borderRadius: 2,
                       borderColor: role === 'STAFF' ? 'primary.main' : 'divider',
                       bgcolor: role === 'STAFF' ? alpha('#667eea', 0.05) : 'transparent',
-                      '&:hover': { borderColor: 'primary.main' }
+                      transition: 'all 0.2s',
+                      '&:hover': { borderColor: 'primary.main', transform: 'translateY(-1px)' }
                     }}
                   >
                     <FormControlLabel 
@@ -143,8 +234,8 @@ const RoleSelection = () => {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 1 }}>
                           <StaffIcon color={role === 'STAFF' ? 'primary' : 'action'} />
                           <Box sx={{ textAlign: 'left' }}>
-                            <Typography variant="subtitle1" fontWeight="bold">Clinic Staff / Medical</Typography>
-                            <Typography variant="caption" color="text.secondary">For administrative and medical personnel</Typography>
+                            <Typography variant="subtitle2" fontWeight="bold">Administrative Staff</Typography>
+                            <Typography variant="caption" color="text.secondary">Non-medical office and support staff</Typography>
                           </Box>
                         </Box>
                       } 

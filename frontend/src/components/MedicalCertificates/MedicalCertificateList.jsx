@@ -124,7 +124,8 @@ const CertificateCard = ({ certificate, onView, onEdit, onDelete, userRole }) =>
             Edit
           </Button>
         )}
-        {certificate.approval_status === 'draft' && (
+        {(certificate.approval_status === 'draft' || 
+          (userRole === 'DOCTOR' || userRole === 'ADMIN' || userRole === 'STAFF' || userRole === 'NURSE')) && (
           <Button
             variant="outlined"
             color="error"
@@ -328,9 +329,17 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole, refreshTri
                         <EditIcon />
                       </IconButton>
                     )}
-                    {/* Only allow delete for draft certificates */}
-                    {certificate.approval_status === 'draft' && (
-                      <IconButton onClick={() => onDelete(certificate)}>
+                    {/* Allow delete for:
+                        1. Draft certificates (for everyone)
+                        2. Any certificate (for medical professionals/admins)
+                    */}
+                    {(certificate.approval_status === 'draft' || 
+                      (userRole === 'DOCTOR' || userRole === 'ADMIN' || userRole === 'STAFF' || userRole === 'NURSE')) && (
+                      <IconButton 
+                        onClick={() => onDelete(certificate)}
+                        title="Delete Certificate"
+                        color="error"
+                      >
                         <DeleteIcon />
                       </IconButton>
                     )}

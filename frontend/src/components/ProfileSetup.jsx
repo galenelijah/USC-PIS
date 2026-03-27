@@ -142,6 +142,7 @@ const getStepsForRole = (role) => {
         { label: 'Medical Information', icon: LocalHospital, color: '#f5576c' }
       ];
     case 'DOCTOR':
+    case 'DENTIST':
     case 'NURSE':
       return [
         ...baseSteps,
@@ -230,6 +231,7 @@ const createValidationSchema = (role) => {
       });
 
     case 'DOCTOR':
+    case 'DENTIST':
     case 'NURSE':
       return Yup.object().shape({
         ...baseValidation,
@@ -271,6 +273,7 @@ const getStepFieldsForRole = (role) => {
         [] // Medical information step
       ];
     case 'DOCTOR':
+    case 'DENTIST':
     case 'NURSE':
       return [
         ...baseFields,
@@ -351,6 +354,7 @@ const ProfileSetup = () => {
           department: '',
         };
       case 'DOCTOR':
+      case 'DENTIST':
       case 'NURSE':
         return {
           ...baseDefaults,
@@ -790,7 +794,7 @@ const ProfileSetup = () => {
         case 1:
           return renderContactInfoSimplified(stepKey);
         case 2:
-          if (userRole === 'DOCTOR' || userRole === 'NURSE') {
+          if (userRole === 'DOCTOR' || userRole === 'DENTIST' || userRole === 'NURSE') {
             return renderProfessionalInfo(stepKey);
           } else if (userRole === 'ADMIN' || userRole === 'STAFF') {
             return renderAdministrativeInfo(stepKey);

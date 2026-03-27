@@ -326,6 +326,20 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
         else:
             return HttpResponse('Error generating PDF', status=500)
 
+    def destroy(self, request, *args, **kwargs):
+        """
+        Only allow Staff, Doctors, or Admins to delete medical certificates.
+        Students and Teachers cannot delete medical certificates.
+        """
+        user = request.user
+        if hasattr(user, 'role') and user.role in ['STUDENT', 'TEACHER']:
+            return Response(
+                {'detail': 'You do not have permission to delete medical certificates.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        return super().destroy(request, *args, **kwargs)
+
 # Helper function to calculate age from date_of_birth
 
 def calculate_age(born):

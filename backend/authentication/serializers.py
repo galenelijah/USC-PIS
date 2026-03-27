@@ -94,10 +94,18 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             # Contains numbers - strictly a student ID
             return User.Role.STUDENT
         else:
-            # Only letters - staff or faculty/teacher
-            if role_preference == User.Role.TEACHER:
-                return User.Role.TEACHER
-            # Default to STAFF role for non-student emails
+            # Only letters - staff, faculty, or medical professional
+            allowed_professional_roles = [
+                User.Role.TEACHER, 
+                User.Role.DOCTOR, 
+                User.Role.DENTIST, 
+                User.Role.NURSE,
+                User.Role.STAFF
+            ]
+            if role_preference in allowed_professional_roles:
+                return role_preference
+            
+            # Default to STAFF role for non-student emails if no valid preference
             return User.Role.STAFF
     
     def validate_password(self, value):
