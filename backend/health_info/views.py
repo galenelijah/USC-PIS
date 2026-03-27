@@ -88,7 +88,7 @@ class HealthInformationViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def view(self, request, pk=None):
         """Explicitly track a view"""
         instance = self.get_object()
@@ -184,7 +184,7 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
     
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def view(self, request, pk=None):
         """Explicitly track a view"""
         instance = self.get_object()

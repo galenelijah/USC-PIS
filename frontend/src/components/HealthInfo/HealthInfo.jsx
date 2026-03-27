@@ -116,9 +116,11 @@ const HealthInfo = () => {
   const handleViewContent = (item) => {
     setSelectedItem(item);
     setContentViewerOpen(true);
-    // Track the view explicitly
+    // Track the view explicitly and refresh local list to show update
     if (item && item.id) {
-      healthInfoService.trackView(item.id);
+      healthInfoService.trackView(item.id).then(() => {
+        dispatch(fetchHealthInfo());
+      });
     }
   };
 
