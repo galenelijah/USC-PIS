@@ -289,7 +289,10 @@ For complete API documentation, see **[API Documentation](docs/api/README.md#ema
 
 ### Reporting (Staff & Admin)
 - **Standardized Exports**: All system reports are exported in a professional, USC-branded layout.
-- **Supported Formats**: **Only PDF format is currently supported.** While other options may appear in the menu, they are considered non-functional in the current version.
+- **Supported Formats**: 
+  - **PDF**: Professional, USC-branded layout best for printing. *Note: PDF reports are formatted summaries and are limited to the first 200 items per section for document stability.*
+  - **Excel/CSV**: Standard spreadsheet formats best for data analysis. These include the full dataset without item limits.
+  - **JSON/HTML**: Technical formats for data interoperability and web viewing.
 - **Available Reports**:
   - Patient Summary (Individual or Aggregate)
   - Visit Trends & Frequency
@@ -817,16 +820,16 @@ This validation system ensures data quality while providing clear guidance to he
 ## Support
 
 ### Contact Information
-- Email: support@usc-pis.com
-- Phone: (123) 456-7890
-- Hours: Monday-Friday, 8:00 AM - 5:00 PM
+- Email: 21100727@usc.edu.ph
+- Phone: (032) 230-0100
+- Hours: Monday-Friday, 8:00 AM - 5:00 PM (Clinic Hours)
 
 ### Reporting Issues
 1. Document the problem
 2. Include error messages
 3. List steps to reproduce
 4. Provide screenshots if possible
-5. Submit via email or support portal
+5. Submit via email to the address above.
 
 ### Feature Requests
 - Submit via email

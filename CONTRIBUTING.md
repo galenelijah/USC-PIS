@@ -134,7 +134,7 @@ USC-PIS/
 
 - Check existing issues
 - Join our Discord server
-- Email: dev-support@usc-pis.com
+- Email: 21100727@usc.edu.ph
 
 ## License
 

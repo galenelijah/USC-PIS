@@ -299,7 +299,6 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
                     'CAMPAIGN_PERFORMANCE': service.generate_campaign_performance_report,
                     'USER_ACTIVITY': service.generate_user_activity_report,
                     'HEALTH_METRICS': service.generate_health_metrics_report,
-                    'COMPLIANCE_REPORT': service.generate_compliance_report,
                 }
                 
                 rtype = str(report.template.report_type or '').strip().upper()

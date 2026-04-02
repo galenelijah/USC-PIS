@@ -111,14 +111,6 @@ class Command(BaseCommand):
                 'template_content': self.get_health_metrics_template(),
                 'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
                 'allowed_roles': ['DOCTOR', 'ADMIN']
-            },
-            {
-                'name': 'Compliance & Privacy Report',
-                'description': 'Data security, privacy audit, and compliance status',
-                'report_type': 'COMPLIANCE_REPORT',
-                'template_content': self.get_compliance_report_template(),
-                'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
-                'allowed_roles': ['ADMIN']
             }
         ]
         
@@ -822,9 +814,6 @@ class Command(BaseCommand):
 
     def get_health_metrics_template(self):
         return self.get_generic_template("Health Metrics Report")
-
-    def get_compliance_report_template(self):
-        return self.get_generic_template("Compliance & Audit Report")
 
     def get_generic_template(self, title):
         return f"""

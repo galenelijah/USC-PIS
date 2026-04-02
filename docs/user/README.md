@@ -147,14 +147,8 @@ The dashboard provides quick access to:
    - Check access permissions
    - Contact support if needed
 
-3. Appointment Issues
-   - Confirm schedule availability
-   - Check for conflicts
-   - Contact admin for assistance
-
 ## Support
 
 For technical support:
-1. Email: support@usc-pis.com
-2. Phone: 1-800-USC-HELP
-3. In-app: Help → Submit Ticket 
+1. Email: 21100727@usc.edu.ph
+2. Phone: (032) 230-0100

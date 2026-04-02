@@ -39,6 +39,20 @@ This session focused on **Contact Information Standardization** and **Email Temp
 - **`backend/health_info/management/commands/`**: Updated crisis hotline `(555) 123-4567` to USC Health Center: **(032) 230-0100**.
 - **`CURRENT_SYSTEM_STATUS.md`**: Updated to reflect the stabilized communication system and removal of appointment references.
 
+### 6. Report Format Transparency
+- **`frontend/src/components/Reports.jsx`**:
+    - Added an `InfoOutlinedIcon` and `Tooltip` to the report generation dialog.
+    - Explains that PDF reports are limited to 200 items for stability, while Excel/CSV provide full data access.
+- **`USER_GUIDE.md`**:
+    - Explicitly documented that Excel/CSV are now functional and provide full datasets.
+    - Added the 200-item limitation note for PDF exports.
+
+### 7. Report Template Cleanup
+- **`backend/reports/models.py`**: Removed `COMPLIANCE_REPORT` from `REPORT_TYPES`.
+- **`backend/reports/services.py`**: Removed all logic, methods, and data generation for the Compliance & Privacy Report.
+- **`backend/reports/views.py` & `tasks.py`**: Removed service method mappings for compliance reports.
+- **`backend/reports/management/commands/create_default_report_templates.py`**: Removed the compliance report from the default seeding process.
+
 ## Rationale
 - **Maintainability**: Moving URLs and emails to `settings.py` allows for easier configuration across different environments (local, staging, production).
 - **Consistency**: Users now see the same contact information across all communication channels (emails, notifications, campaigns).

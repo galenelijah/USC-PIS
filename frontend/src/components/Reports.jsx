@@ -18,7 +18,8 @@ import {
   ExpandMore as ExpandMoreIcon, Refresh as RefreshIcon,
   TrendingUp as TrendingUpIcon, TrendingDown as TrendingDownIcon,
   Filter as FilterIcon, Timeline as TimelineIcon,
-  Delete as DeleteIcon, DeleteSweep as DeleteSweepIcon
+  Delete as DeleteIcon, DeleteSweep as DeleteSweepIcon,
+  InfoOutlined as InfoOutlinedIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -1393,9 +1394,18 @@ const Reports = () => {
                   
                   <Grid item xs={12}>
                     <FormControl fullWidth>
-                      <InputLabel>Export Format</InputLabel>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                        <InputLabel id="export-format-label">Export Format</InputLabel>
+                        <Tooltip title="PDF reports are formatted summaries (limited to 200 items per section). Excel/CSV formats provide the full dataset for advanced analysis.">
+                          <IconButton size="small" sx={{ ml: 4, mt: -1 }}>
+                            <InfoOutlinedIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
                       <Select
+                        labelId="export-format-label"
                         value={reportForm.export_format}
+                        label="Export Format"
                         onChange={(e) => setReportForm(prev => ({ ...prev, export_format: e.target.value }))}
                       >
                         <MenuItem value="PDF">PDF Document</MenuItem>

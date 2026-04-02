@@ -332,10 +332,6 @@ class ReportDataService:
         return {'total_population': Patient.objects.count(), 'age_average': 22.1, 'health_alerts': 5}
 
     @staticmethod
-    def get_compliance_report_data(date_start=None, date_end=None, filters=None):
-        return {'compliance_score': '98%', 'privacy_policy': 'Compliant', 'audit_status': 'Passed'}
-
-    @staticmethod
     def get_feedback_analysis_data(date_start=None, date_end=None, filters=None):
         try:
             date_start = date_start or (timezone.now() - timedelta(days=365))
@@ -1055,9 +1051,6 @@ class ReportGenerationService:
             elif rtype == 'HEALTH_METRICS':
                 data = self.data_service.get_health_metrics_data(date_start, date_end, filters)
                 report_title = title or "Health Metrics Report"
-            elif rtype == 'COMPLIANCE_REPORT':
-                data = self.data_service.get_compliance_report_data(date_start, date_end, filters)
-                report_title = title or "Compliance & Audit Report"
             else: 
                 logger.warning(f"Unknown report type '{rtype}', using comprehensive analytics fallback")
                 data = self.data_service.get_comprehensive_analytics_data(date_start, date_end, filters)
@@ -1106,4 +1099,3 @@ class ReportGenerationService:
     def generate_campaign_performance_report(self, **kwargs): return self._generate_generic_report('CAMPAIGN_PERFORMANCE', "Campaign Performance", **kwargs)
     def generate_user_activity_report(self, **kwargs): return self._generate_generic_report('USER_ACTIVITY', "User Activity", **kwargs)
     def generate_health_metrics_report(self, **kwargs): return self._generate_generic_report('HEALTH_METRICS', "Health Metrics", **kwargs)
-    def generate_compliance_report(self, **kwargs): return self._generate_generic_report('COMPLIANCE_REPORT', "Compliance Report", **kwargs)
