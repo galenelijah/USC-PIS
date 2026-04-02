@@ -12,7 +12,7 @@ USC-PIS now has a comprehensive automated email notification system that sends e
 
 ```
 Email Service: Gmail SMTP with App Password
-From Address: sgalenelijah@gmail.com
+From Address: 21100727@usc.edu.ph
 SMTP Host: smtp.gmail.com
 Port: 587 (TLS)
 Status: ✅ OPERATIONAL
@@ -53,7 +53,7 @@ Status: ✅ OPERATIONAL
 
 ### 5. **System Health Alerts** ✅ NOW ACTIVE
 - **Trigger**: Automated via management command (run regularly)
-- **Recipients**: System administrators (sgalenelijah@gmail.com)
+- **Recipients**: System administrators (21100727@usc.edu.ph)
 - **Conditions**: System errors, backup failures, security issues
 - **Subject**: "[USC-PIS] System Alert - Status: UNHEALTHY"
 
@@ -125,11 +125,11 @@ For automated daily execution on Heroku:
 ## 📱 **Email Templates & Links**
 
 All email templates include:
-- **Website Link**: https://usc-pis-5f030223f7a8.herokuapp.com
-- **Login Link**: https://usc-pis-5f030223f7a8.herokuapp.com/login
-- **Feedback Link**: https://usc-pis-5f030223f7a8.herokuapp.com/feedback?visit_id={visit_id}
+- **Website Link**: {{ site_url }}
+- **Login Link**: {{ site_url }}/login
+- **Feedback Link**: {{ site_url }}/feedback?visit_id={visit_id}
 - **USC-PIS Branding**: Professional templates with USC branding
-- **Support Contact**: sgalenelijah@gmail.com
+- **Support Contact**: 21100727@usc.edu.ph
 
 ## 🔧 **Technical Implementation**
 

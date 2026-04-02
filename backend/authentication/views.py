@@ -645,7 +645,7 @@ class CompleteProfileSetupView(APIView):
                         return Response({
                             'detail': 'Your account has been deactivated. Please contact support.',
                             'error_code': 'ACCOUNT_DEACTIVATED',
-                            'support_email': 'support@usc-pis.com'
+                            'support_email': settings.SUPPORT_EMAIL
                         }, status=status.HTTP_401_UNAUTHORIZED)
                     except User.DoesNotExist:
                         pass

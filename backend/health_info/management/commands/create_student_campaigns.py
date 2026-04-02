@@ -66,7 +66,7 @@ class Command(BaseCommand):
                             <li><strong>USC Health Center:</strong> Professional counseling services</li>
                             <li><strong>Student Support Services:</strong> Academic stress counseling</li>
                             <li><strong>Peer Counseling:</strong> Talk to trained student counselors</li>
-                            <li><strong>Crisis Hotline:</strong> 24/7 support - Call (555) 123-4567</li>
+                            <li><strong>Crisis Hotline:</strong> 24/7 support - Call (032) 230-0100</li>
                             <li><strong>Wellness Workshops:</strong> Free stress management sessions</li>
                         </ul>
                     </div>

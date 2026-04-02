@@ -43,6 +43,8 @@ GMAIL_API_REFRESH_TOKEN = os.environ.get('GMAIL_REFRESH_TOKEN')
 
 # Global Default (Matches your authenticated USC account)
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', '21100727@usc.edu.ph')
+SUPPORT_EMAIL = os.environ.get('SUPPORT_EMAIL', '21100727@usc.edu.ph')
+SITE_URL = os.environ.get('SITE_URL', 'https://usc-pis-5f030223f7a8.herokuapp.com')
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 # Development fallback (Console only if GMAIL credentials missing AND in DEBUG)

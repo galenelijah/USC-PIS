@@ -1064,15 +1064,6 @@ const Dental = () => {
                       />
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <DatePicker
-                        label="Next Appointment (Recommended)"
-                        value={formData.next_appointment_recommended ? dayjs(formData.next_appointment_recommended) : null}
-                        onChange={(date) => handleInputChange('next_appointment_recommended', 
-                          date ? dayjs(date).format('YYYY-MM-DD') : null)}
-                        slotProps={{ textField: { fullWidth: true } }}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
                         label="Cost"
@@ -1252,16 +1243,6 @@ const Dental = () => {
                         {selectedRecord.insurance_covered && (
                           <Chip label="Insured" size="small" sx={{ ml: 1 }} />
                         )}
-                      </Typography>
-                    </Grid>
-                  )}
-                  {selectedRecord.next_appointment_recommended && (
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Next Appointment Recommended
-                      </Typography>
-                      <Typography variant="body1" gutterBottom>
-                        {formatDate(selectedRecord.next_appointment_recommended)}
                       </Typography>
                     </Grid>
                   )}

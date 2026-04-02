@@ -32,6 +32,12 @@ class EmailService:
             if from_email is None:
                 from_email = settings.DEFAULT_FROM_EMAIL
             
+            # Ensure support_email and site_url are in context
+            if 'support_email' not in context:
+                context['support_email'] = settings.SUPPORT_EMAIL
+            if 'site_url' not in context:
+                context['site_url'] = settings.SITE_URL
+            
             # FORCE GMAIL API BACKEND (Now handled globally in settings, but keeping for clarity)
             logger.info(f"EMAIL_DEBUG: Sending via {settings.EMAIL_BACKEND}")
             
@@ -82,7 +88,7 @@ class EmailService:
             'user': user,
             'code': code,
             'expires_in': '15 minutes',
-            'site_url': 'https://usc-pis-5f030223f7a8.herokuapp.com'
+            'site_url': settings.SITE_URL
         }
         
         return EmailService.send_template_email(
@@ -97,8 +103,8 @@ class EmailService:
         """Send welcome email to new users"""
         context = {
             'user': user,
-            'site_url': 'https://usc-pis-5f030223f7a8.herokuapp.com',
-            'support_email': 'sgalenelijah@gmail.com'
+            'site_url': settings.SITE_URL,
+            'support_email': settings.SUPPORT_EMAIL
         }
         
         return EmailService.send_template_email(
@@ -114,7 +120,7 @@ class EmailService:
         context = {
             'user': user,
             'reset_url': reset_url,
-            'site_url': 'https://usc-pis-5f030223f7a8.herokuapp.com'
+            'site_url': settings.SITE_URL
         }
         
         return EmailService.send_template_email(
@@ -138,7 +144,7 @@ class EmailService:
             context = {
                 'certificate': certificate,
                 'patient': certificate.patient,
-                'site_url': 'https://usc-pis-5f030223f7a8.herokuapp.com'
+                'site_url': settings.SITE_URL
             }
             
             EmailService.send_template_email(
@@ -164,7 +170,7 @@ class EmailService:
             context = {
                 'certificate': certificate,
                 'patient': certificate.patient,
-                'site_url': 'https://usc-pis-5f030223f7a8.herokuapp.com'
+                'site_url': settings.SITE_URL
             }
             
             EmailService.send_template_email(
@@ -178,7 +184,7 @@ class EmailService:
             context = {
                 'certificate': certificate,
                 'patient': certificate.patient,
-                'site_url': 'https://usc-pis-5f030223f7a8.herokuapp.com'
+                'site_url': settings.SITE_URL
             }
             
             EmailService.send_template_email(
@@ -194,9 +200,9 @@ class EmailService:
         context = {
             'patient': medical_record.patient,
             'medical_record': medical_record,
-            'feedback_url': f'https://usc-pis-5f030223f7a8.herokuapp.com/feedback?visit_id={medical_record.id}',
-            'site_url': 'https://usc-pis-5f030223f7a8.herokuapp.com',
-            'login_url': f'https://usc-pis-5f030223f7a8.herokuapp.com/login'
+            'feedback_url': f'{settings.SITE_URL}/feedback?visit_id={medical_record.id}',
+            'site_url': settings.SITE_URL,
+            'login_url': f'{settings.SITE_URL}/login'
         }
         
         return EmailService.send_template_email(
@@ -220,9 +226,9 @@ class EmailService:
             context = {
                 'patient': patient,
                 'medical_record': visit,  # reusing template variable
-                'feedback_url': 'https://usc-pis-5f030223f7a8.herokuapp.com/feedback',
-                'site_url': 'https://usc-pis-5f030223f7a8.herokuapp.com',
-                'login_url': 'https://usc-pis-5f030223f7a8.herokuapp.com/login'
+                'feedback_url': f'{settings.SITE_URL}/feedback',
+                'site_url': settings.SITE_URL,
+                'login_url': f'{settings.SITE_URL}/login'
             }
 
             return EmailService.send_template_email(
@@ -241,7 +247,7 @@ class EmailService:
         context = {
             'appointment': appointment,
             'patient': appointment.patient,
-            'site_url': 'https://usc-pis-5f030223f7a8.herokuapp.com'
+            'site_url': settings.SITE_URL
         }
         
         return EmailService.send_template_email(

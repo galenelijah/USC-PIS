@@ -30,7 +30,6 @@
 ### **🚀 Next Development Phase - Healthcare Systems**
 
 #### **🏥 CORE HEALTHCARE SYSTEMS (Current Priority)**
-- **Appointment/Scheduling System**: **HIGH PRIORITY** - Complete patient booking, provider calendars, appointment management *(Dashboard currently shows "appointments today" but no appointment system exists)*
 - **Inventory Management System**: Medical supplies tracking, medication management, stock alerts
 - **Enhanced Billing System**: Comprehensive financial management beyond basic cost tracking
 
@@ -40,7 +39,7 @@
 
 #### **⚡ USER EXPERIENCE ENHANCEMENTS (Week 7+ - After Core Systems Stable)**
 - **Role-Based ID System**: Students will use numeric IDs, staff will use alphanumeric IDs *(moved to Phase 2)*
-- **In-App Notifications**: Real-time notification center with appointment reminders and updates *(moved to Phase 2)*
+- **In-App Notifications**: Real-time notification center *(moved to Phase 2)*
 - **Enhanced Feedback Automation**: Multi-channel feedback prompts *(moved to Phase 2)*
 
 **📊 Reference**: See **[CURRENT_PRIORITIES_ROADMAP.md](CURRENT_PRIORITIES_ROADMAP.md)** for complete implementation details.
@@ -60,7 +59,7 @@
 
 ## Introduction
 
-Welcome to the USC Patient Information System (USC-PIS). This comprehensive guide will help you navigate and effectively use the system. USC-PIS is designed to streamline patient information management, medical record keeping, and appointment scheduling within the university clinic.
+Welcome to the USC Patient Information System (USC-PIS). This comprehensive guide will help you navigate and effectively use the system. USC-PIS is designed to streamline patient information management and medical record keeping within the university clinic.
 
 ## Getting Started
 
@@ -341,7 +340,6 @@ The system automatically manages who appears in the "Patients" list to ensure ad
 ### Nurse
 - Register new patients
 - Update patient information
-- Manage appointments
 - Record vital signs
 - Assist with medical records
 - Monitor inventory
@@ -357,14 +355,13 @@ The system automatically manages who appears in the "Patients" list to ensure ad
 
 ### Dashboard (Updated August 3, 2025)
 - **Enhanced Layout**: New 8-4 column responsive layout for better space utilization
-- **Quick Overview**: Statistics cards showing important metrics (patients, records, appointments)
+- **Quick Overview**: Statistics cards showing important metrics (patients and records)
 - **Recent Activities**: Display of recent medical activities and updates
 - **Campaigns & Announcements Side Section**: 
   - **Featured Campaigns**: Up to 3 featured health campaigns with icons, titles, categories, and descriptions
   - **Recent Announcements**: Up to 2 recent announcements with timestamps and content previews
   - **Visual Design**: Blue icons for campaigns, orange icons for announcements
 - **Quick Access**: "View All" buttons for detailed campaign/announcement views
-- **Upcoming Appointments**: Next appointment details with date, time, and doctor information
 - **Quick Actions**: Role-based action buttons for common tasks
 - **Real-time Updates**: Refresh functionality to get latest dashboard data
 
@@ -377,13 +374,6 @@ The system automatically manages who appears in the "Patients" list to ensure ad
 - Advanced search across diagnosis, treatment, medications, and clinical notes
 - Export medical history to PDF format with professional formatting
 - Date range filtering with Material-UI date pickers
-
-### Appointments
-- Schedule new appointments
-- View upcoming appointments
-- Cancel or reschedule
-- Set reminders
-- View appointment history
 
 ### Profile Management
 - Update personal information
@@ -401,14 +391,6 @@ The system automatically manages who appears in the "Patients" list to ensure ad
 - View and manage your uploaded files.
 
 ## Common Tasks
-
-### Scheduling an Appointment
-1. Click "Appointments" in the navigation menu
-2. Select "New Appointment"
-3. Choose preferred date and time
-4. Select appointment type
-5. Add any notes or special requirements
-6. Click "Schedule" to confirm
 
 ### Updating Personal Information
 1. Click your profile picture in the top right
@@ -740,7 +722,7 @@ USC-PIS features comprehensive form validation to ensure data accuracy and provi
 - **"Date of birth cannot be in the future"**: Birthday validation for profile setup
 - **"Must be at least 10 years old"**: Minimum age requirement for birthdate validation
 - **"Please enter a valid date of birth"**: Age must be within reasonable limits (10-120 years)
-- **"Cannot be more than 1 year in the future"**: For consultation appointments and certificate validity
+- **"Cannot be more than 1 year in the future"**: For certificate validity
 
 ### Tips for Successful Form Completion
 
@@ -802,8 +784,6 @@ This validation system ensures data quality while providing clear guidance to he
 ### System Usage
 - Keep your profile updated
 - Check notifications regularly
-- Schedule appointments in advance
-- Cancel appointments if needed
 - Keep contact information current
 
 ## Troubleshooting

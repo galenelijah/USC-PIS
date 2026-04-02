@@ -696,7 +696,7 @@ Your feedback helps us:
 ✅ Enhance patient experience  
 ✅ Maintain high-quality healthcare
 
-Questions? Reply to this email or contact us at health@usc.edu.ph
+Questions? Reply to this email or contact us at 21100727@usc.edu.ph
 
 Best regards,
 USC-PIS Healthcare Team

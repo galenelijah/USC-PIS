@@ -99,7 +99,7 @@ class Command(BaseCommand):
         
         message_lines.extend([
             f"",
-            f"System Dashboard: https://usc-pis-5f030223f7a8.herokuapp.com/database-monitor",
+            f"System Dashboard: {settings.SITE_URL}/database-monitor",
             f"",
             f"This is an automated alert from USC-PIS Health Monitoring System.",
             f"If this is a critical issue, please check the system immediately."
@@ -108,7 +108,7 @@ class Command(BaseCommand):
         message = "\n".join(message_lines)
         
         # Determine recipients
-        admin_emails = ['sgalenelijah@gmail.com']  # Primary admin
+        admin_emails = [settings.SUPPORT_EMAIL]  # Primary admin
         
         # Add any additional admin emails from settings
         if hasattr(settings, 'ADMINS'):

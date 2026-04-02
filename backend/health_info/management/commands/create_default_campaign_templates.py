@@ -98,7 +98,7 @@ class Command(BaseCommand):
                 </ul>
                 
                 <h3>Crisis Resources</h3>
-                <p><strong>USC Crisis Hotline:</strong> (555) 123-4567</p>
+                <p><strong>USC Crisis Hotline:</strong> (032) 230-0100</p>
                 <p><strong>National Suicide Prevention Lifeline:</strong> 988</p>
                 ''',
                 'summary_template': 'Take care of your mental health. Learn about resources, warning signs, and how to support yourself and others.',

@@ -56,7 +56,6 @@ Your patient profile has been successfully created. Here are your details:
 
 Through our patient portal, you can:
 - View your medical records
-- Schedule appointments
 - Access dental records
 - Receive important health notifications
 - Update your contact information

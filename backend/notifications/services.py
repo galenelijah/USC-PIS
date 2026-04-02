@@ -1,5 +1,6 @@
 from django.core.mail import send_mail, EmailMessage
 from django.template import Template, Context
+from django.template.loader import render_to_string, get_template
 from django.conf import settings
 from django.utils import timezone
 from django.db import transaction
@@ -61,8 +62,8 @@ class NotificationTemplateService:
             'user_last_name': user.last_name,
             'user_email': user.email,
             'clinic_name': 'USC Health Services',
-            'clinic_phone': '(032) 123-4567',
-            'clinic_email': 'health@usc.edu.ph',
+            'clinic_phone': '(032) 230-0100',
+            'clinic_email': '21100727@usc.edu.ph',
             'current_date': timezone.now().strftime('%B %d, %Y'),
             'current_time': timezone.now().strftime('%I:%M %p'),
         }
@@ -103,10 +104,36 @@ class EmailService:
                     'skipped': True
                 }
             
+            # Choose template based on notification name/type
+            # For now, special case for Patient Welcome
+            template_name = None
+            if notification.template and notification.template.name == 'Patient Welcome Message':
+                template_name = 'emails/patient_welcome.html'
+            
+            # Context for template
+            context = {
+                'notification': notification,
+                'user': notification.recipient,
+                'site_url': settings.SITE_URL,
+                'support_email': settings.SUPPORT_EMAIL,
+                'clinic_phone': '(032) 230-0100'
+            }
+            
+            # Render body
+            if template_name:
+                try:
+                    # Try rendering via specific template
+                    body_html = render_to_string(template_name, context)
+                except Exception as e:
+                    logger.warning(f"Template rendering failed for {template_name}, falling back: {str(e)}")
+                    body_html = EmailService._create_email_body(notification)
+            else:
+                body_html = EmailService._create_email_body(notification)
+            
             # Create email message
             email = EmailMessage(
                 subject=notification.title,
-                body=EmailService._create_email_body(notification),
+                body=body_html,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 to=[notification.recipient.email],
             )
@@ -193,7 +220,7 @@ class EmailService:
                 </div>
                 <div class="footer">
                     <p>This is an automated message from USC Health Services.</p>
-                    <p>If you have questions, please contact us at health@usc.edu.ph or (032) 123-4567.</p>
+                    <p>If you have questions, please contact us at 21100727@usc.edu.ph or (032) 230-0100.</p>
                     <p>To manage your notification preferences, log in to the USC Patient Information System.</p>
                 </div>
             </div>

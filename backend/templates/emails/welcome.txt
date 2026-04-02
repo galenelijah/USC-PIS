@@ -14,7 +14,6 @@ Get started: {{ site_url }}
 
 Need help?
 - Email support: {{ support_email }}
-- Help center: {{ site_url }}/help
 
 USC-PIS Healthcare Team
 University of San Carlos

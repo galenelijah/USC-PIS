@@ -236,8 +236,8 @@ const HealthRecords = () => {
     )) {
       suggestions.push({
         type: 'follow-up',
-        message: 'Consider scheduling a follow-up appointment in 2-4 weeks',
-        action: 'Schedule Follow-up'
+        message: 'Consider a follow-up visit in 2-4 weeks',
+        action: 'Recommend Follow-up'
       });
     }
     
@@ -266,7 +266,7 @@ const HealthRecords = () => {
 
   const handleAutomationAction = (action, record) => {
     switch (action) {
-      case 'Schedule Follow-up':
+      case 'Recommend Follow-up':
         // Auto-create a follow-up record template
         setDialogMode('create');
         setCurrentRecord({
@@ -276,7 +276,7 @@ const HealthRecords = () => {
           chief_complaint: `Follow-up for: ${record.diagnosis}`,
           diagnosis: '',
           treatment: '',
-          notes: `Follow-up appointment for previous diagnosis: ${record.diagnosis}`,
+          notes: `Follow-up visit for previous diagnosis: ${record.diagnosis}`,
           vital_signs: {
             temperature: '',
             blood_pressure: '',

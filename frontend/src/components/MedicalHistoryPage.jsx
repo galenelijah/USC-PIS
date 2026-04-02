@@ -374,7 +374,7 @@ const MedicalHistoryPage = () => {
                     <ListItemIcon><CalendarIcon color="primary" /></ListItemIcon>
                     <ListItemText 
                       primary="Total Visits" 
-                      secondary={`${insights.totalVisits} medical appointments`}
+                      secondary={`${insights.totalVisits} medical records`}
                     />
                   </ListItem>
                   <ListItem>
