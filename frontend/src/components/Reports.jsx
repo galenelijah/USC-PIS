@@ -54,6 +54,45 @@ ChartJS.register(
   Legend
 );
 
+// Helper functions for report types
+const getReportTypeColor = (type) => {
+  switch (type) {
+    case 'PATIENT_SUMMARY': return '#1976d2'; // Blue
+    case 'VISIT_TRENDS': return '#0288d1'; // Light Blue
+    case 'TREATMENT_OUTCOMES': return '#2e7d32'; // Green
+    case 'MEDICAL_STATISTICS': return '#e64a19'; // Deep Orange
+    case 'DENTAL_STATISTICS': return '#7b1fa2'; // Purple
+    case 'FEEDBACK_ANALYSIS': return '#00796b'; // Teal
+    case 'CAMPAIGN_PERFORMANCE': return '#303f9f'; // Indigo
+    case 'USER_ACTIVITY': return '#455a64'; // Blue Grey
+    case 'HEALTH_METRICS': return '#d32f2f'; // Red
+    case 'MEDICAL_RECORDS': return '#2e7d32'; // Legacy Support
+    case 'DENTAL_RECORDS': return '#7b1fa2'; // Legacy Support
+    case 'ANALYTICS': return '#d32f2f'; // Legacy Support
+    case 'COMPREHENSIVE': return '#5d4037'; // Legacy Support
+    default: return '#616161';
+  }
+};
+
+const getReportTypeIcon = (type) => {
+  switch (type) {
+    case 'PATIENT_SUMMARY': return '👤';
+    case 'VISIT_TRENDS': return '📈';
+    case 'TREATMENT_OUTCOMES': return '✅';
+    case 'MEDICAL_STATISTICS': return '🩺';
+    case 'DENTAL_STATISTICS': return '🦷';
+    case 'FEEDBACK_ANALYSIS': return '💬';
+    case 'CAMPAIGN_PERFORMANCE': return '📢';
+    case 'USER_ACTIVITY': return '👥';
+    case 'HEALTH_METRICS': return '🏥';
+    case 'MEDICAL_RECORDS': return '🏥'; // Legacy Support
+    case 'DENTAL_RECORDS': return '🦷'; // Legacy Support
+    case 'ANALYTICS': return '📊'; // Legacy Support
+    case 'COMPREHENSIVE': return '📋'; // Legacy Support
+    default: return '📄';
+  }
+};
+
 const Reports = () => {
   const [templates, setTemplates] = useState([]);
   const [reports, setReports] = useState([]);
@@ -80,8 +119,7 @@ const Reports = () => {
   const [realTimeUpdates, setRealTimeUpdates] = useState(true);
   const [filters, setFilters] = useState({
     dateRange: 'lastYear',
-    clinic_type: 'all',
-    college: 'all'
+    clinic_type: 'all'
   });
   const intervalRef = useRef(null);
 
@@ -93,7 +131,7 @@ const Reports = () => {
     if (selectedTab === 2) {
       fetchSystemAnalytics();
     }
-  }, [selectedTab, filters.dateRange, filters.clinic_type, filters.college]);
+  }, [selectedTab, filters.dateRange, filters.clinic_type]);
 
   useEffect(() => {
     if (realTimeUpdates) {
@@ -148,8 +186,7 @@ const Reports = () => {
 
       const params = {
         date_start,
-        clinic_type: filters.clinic_type !== 'all' ? filters.clinic_type : undefined,
-        college: filters.college !== 'all' ? filters.college : undefined
+        clinic_type: filters.clinic_type !== 'all' ? filters.clinic_type : undefined
       };
 
       const [systemRes, templateRes] = await Promise.all([
@@ -471,32 +508,13 @@ const Reports = () => {
 
     if (!systemAnalytics) return null;
 
-    const visitData = {
-      labels: systemAnalytics.visits?.monthly?.map(m => m.month) || [],
-      datasets: [
-        {
-          label: 'Medical Visits',
-          data: systemAnalytics.visits?.monthly?.map(m => m.medical_visits) || [],
-          borderColor: '#1976d2',
-          backgroundColor: 'rgba(25, 118, 210, 0.5)',
-          tension: 0.3
-        },
-        {
-          label: 'Dental Visits',
-          data: systemAnalytics.visits?.monthly?.map(m => m.dental_visits) || [],
-          borderColor: '#7b1fa2',
-          backgroundColor: 'rgba(123, 31, 162, 0.5)',
-          tension: 0.3
-        }
-      ]
-    };
-
     const topDiagnosesData = {
       labels: systemAnalytics.clinical?.top_diagnoses?.map(d => d.name) || [],
       datasets: [{
         label: 'Medical Cases',
         data: systemAnalytics.clinical?.top_diagnoses?.map(d => d.case_count) || [],
         backgroundColor: 'rgba(25, 118, 210, 0.7)',
+        borderRadius: 4,
       }]
     };
     
@@ -506,32 +524,18 @@ const Reports = () => {
         label: 'Dental Procedures',
         data: systemAnalytics.clinical?.top_procedures?.map(d => d.count) || [],
         backgroundColor: 'rgba(123, 31, 162, 0.7)',
-      }]
-    };
-
-    const collegeData = {
-      labels: systemAnalytics.demographics?.colleges?.map(c => c.name) || [],
-      datasets: [{
-        label: 'Patients',
-        data: systemAnalytics.demographics?.colleges?.map(c => c.count) || [],
-        backgroundColor: ['#1976d2', '#2196f3', '#4dabf5', '#64b5f6', '#90caf9', '#bbdefb'],
+        borderRadius: 4,
       }]
     };
 
     const peakHoursData = {
-      labels: systemAnalytics.operations?.peak_hours?.map(h => h.hour) || [],
+      labels: systemAnalytics.operations?.peak_hours?.map(h => `${h.hour}:00`) || [],
       datasets: [{
         label: 'Total Visits',
         data: systemAnalytics.operations?.peak_hours?.map(h => h.count) || [],
         backgroundColor: 'rgba(255, 152, 0, 0.7)',
-      }]
-    };
-
-    const roleData = {
-      labels: systemAnalytics.demographics?.roles?.map(r => r.role) || [],
-      datasets: [{
-        data: systemAnalytics.demographics?.roles?.map(r => r.count) || [],
-        backgroundColor: ['#4caf50', '#8bc34a', '#ffeb3b', '#f44336'],
+        borderColor: 'rgba(255, 152, 0, 1)',
+        borderWidth: 1,
       }]
     };
 
@@ -546,230 +550,239 @@ const Reports = () => {
             USC Clinic Patient Information System
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Generated on: {new Date().toLocaleString()} • Filter: {filters.dateRange} / {filters.clinic_type} / {filters.college}
+            Generated on: {new Date().toLocaleString()} • Filter: {filters.dateRange} / {filters.clinic_type}
           </Typography>
         </Box>
 
-        {/* Analytics Filters */}
-        <Card sx={{ mb: 3, p: 2 }}>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Period</InputLabel>
-                <Select
-                  value={filters.dateRange}
-                  label="Period"
-                  onChange={(e) => setFilters(prev => ({ ...prev, dateRange: e.target.value }))}
-                >
-                  <MenuItem value="last30days">Last 30 Days</MenuItem>
-                  <MenuItem value="last90days">Last 90 Days</MenuItem>
-                  <MenuItem value="lastYear">Last Year</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Clinic Type</InputLabel>
-                <Select
-                  value={filters.clinic_type}
-                  label="Clinic Type"
-                  onChange={(e) => setFilters(prev => ({ ...prev, clinic_type: e.target.value }))}
-                >
-                  <MenuItem value="all">All Clinics</MenuItem>
-                  <MenuItem value="medical">Medical Only</MenuItem>
-                  <MenuItem value="dental">Dental Only</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>College/Unit</InputLabel>
-                <Select
-                  value={filters.college}
-                  label="College/Unit"
-                  onChange={(e) => setFilters(prev => ({ ...prev, college: e.target.value }))}
-                >
-                  <MenuItem value="all">All Units</MenuItem>
-                  <MenuItem value="SOE">Engineering (SOE)</MenuItem>
-                  <MenuItem value="SAFAD">Architecture (SAFAD)</MenuItem>
-                  <MenuItem value="SBE">Business (SBE)</MenuItem>
-                  <MenuItem value="SAS">Arts & Sciences (SAS)</MenuItem>
-                  <MenuItem value="SHCP">Health Care (SHCP)</MenuItem>
-                  <MenuItem value="SED">Education (SED)</MenuItem>
-                  <MenuItem value="SLG">Law (SLG)</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button 
-                  fullWidth 
-                  variant="outlined" 
-                  startIcon={<RefreshIcon />}
-                  onClick={fetchSystemAnalytics}
-                  disabled={analyticsLoading}
-                >
-                  Refresh
-                </Button>
-                <Button 
-                  fullWidth 
-                  variant="contained" 
-                  color="secondary"
-                  startIcon={<PdfIcon />}
-                  onClick={() => window.print()}
-                  disabled={analyticsLoading}
-                  sx={{ display: { xs: 'none', sm: 'flex' } }}
-                >
-                  Export PDF
-                </Button>
-              </Box>
-            </Grid>
+        {/* Analytics Filters & Summary Cards */}
+        <Grid container spacing={3} sx={{ mb: 3 }}>
+          <Grid item xs={12} lg={6}>
+            <Card sx={{ p: 2, height: '100%' }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>Filters</Typography>
+              <Grid container spacing={2} alignItems="center">
+                <Grid item xs={12} sm={4}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Period</InputLabel>
+                    <Select
+                      value={filters.dateRange}
+                      label="Period"
+                      onChange={(e) => setFilters(prev => ({ ...prev, dateRange: e.target.value }))}
+                    >
+                      <MenuItem value="last30days">Last 30 Days</MenuItem>
+                      <MenuItem value="last90days">Last 90 Days</MenuItem>
+                      <MenuItem value="lastYear">Last Year</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Clinic Type</InputLabel>
+                    <Select
+                      value={filters.clinic_type}
+                      label="Clinic Type"
+                      onChange={(e) => setFilters(prev => ({ ...prev, clinic_type: e.target.value }))}
+                    >
+                      <MenuItem value="all">All Clinics</MenuItem>
+                      <MenuItem value="medical">Medical Only</MenuItem>
+                      <MenuItem value="dental">Dental Only</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button 
+                      fullWidth 
+                      variant="outlined" 
+                      startIcon={<RefreshIcon />}
+                      onClick={fetchSystemAnalytics}
+                      disabled={analyticsLoading}
+                    >
+                      Refresh
+                    </Button>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Card>
           </Grid>
-        </Card>
+
+          <Grid item xs={6} lg={3}>
+            <Card sx={{ p: 2, height: '100%', textAlign: 'center', borderLeft: '4px solid #1976d2' }}>
+              <Typography variant="subtitle2" color="text.secondary">Medical Visits</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#1976d2', my: 1 }}>
+                {systemAnalytics.visits?.types?.medical || 0}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">Total for Period</Typography>
+            </Card>
+          </Grid>
+
+          <Grid item xs={6} lg={3}>
+            <Card sx={{ p: 2, height: '100%', textAlign: 'center', borderLeft: '4px solid #7b1fa2' }}>
+              <Typography variant="subtitle2" color="text.secondary">Dental Visits</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#7b1fa2', my: 1 }}>
+                {systemAnalytics.visits?.types?.dental || 0}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">Total for Period</Typography>
+            </Card>
+          </Grid>
+        </Grid>
 
         <Box className="print-container">
           <Grid container spacing={3}>
-            {/* Main Trend Chart */}
-          <Grid item xs={12} lg={8}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Visit Trends</Typography>
-                <Box sx={{ height: 300 }}>
-                  <Line 
-                    data={visitData} 
-                    options={{ 
-                      responsive: true, 
-                      maintainAspectRatio: false,
-                      plugins: { legend: { position: 'bottom' } }
-                    }} 
-                  />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
+            {/* Top Diagnoses */}
+            <Grid item xs={12} md={6}>
+              <Card sx={{ height: '100%' }}>
+                <CardContent>
+                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                    <Typography variant="h6">Top 5 Diagnoses (Medical)</Typography>
+                    <ReportIcon color="primary" />
+                  </Box>
+                  <Box sx={{ height: 350 }}>
+                    {topDiagnosesData.labels.length > 0 ? (
+                      <Bar 
+                        data={topDiagnosesData} 
+                        options={{ 
+                          responsive: true, 
+                          maintainAspectRatio: false,
+                          indexAxis: 'y',
+                          plugins: { 
+                            legend: { display: false },
+                            tooltip: { backgroundColor: 'rgba(0,0,0,0.8)' }
+                          },
+                          scales: {
+                            x: { beginAtZero: true, grid: { display: false } },
+                            y: { grid: { display: false } }
+                          }
+                        }} 
+                      />
+                    ) : (
+                      <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                        <Typography color="text.secondary">No clinical data for this period</Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
 
-          <Grid item xs={12} md={6} lg={4}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Patient Roles</Typography>
-                <Box sx={{ height: 300, display: 'flex', justifyContent: 'center' }}>
-                  <Doughnut 
-                    data={roleData} 
-                    options={{ 
-                      responsive: true, 
-                      maintainAspectRatio: false,
-                      plugins: { legend: { position: 'bottom' } }
-                    }} 
-                  />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
+            {/* Top Procedures */}
+            <Grid item xs={12} md={6}>
+              <Card sx={{ height: '100%' }}>
+                <CardContent>
+                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                    <Typography variant="h6">Top 5 Procedures (Dental)</Typography>
+                    <ReportIcon sx={{ color: '#7b1fa2' }} />
+                  </Box>
+                  <Box sx={{ height: 350 }}>
+                    {topProceduresData.labels.length > 0 ? (
+                      <Bar 
+                        data={topProceduresData} 
+                        options={{ 
+                          responsive: true, 
+                          maintainAspectRatio: false,
+                          indexAxis: 'y',
+                          plugins: { 
+                            legend: { display: false },
+                            tooltip: { backgroundColor: 'rgba(0,0,0,0.8)' }
+                          },
+                          scales: {
+                            x: { beginAtZero: true, grid: { display: false } },
+                            y: { grid: { display: false } }
+                          }
+                        }} 
+                      />
+                    ) : (
+                      <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                        <Typography color="text.secondary">No clinical data for this period</Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
 
-          <Grid item xs={12} md={6} lg={6}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Top 5 Diagnoses</Typography>
-                <Box sx={{ height: 300 }}>
-                  <Bar 
-                    data={topDiagnosesData} 
-                    options={{ 
-                      responsive: true, 
-                      maintainAspectRatio: false,
-                      indexAxis: 'y',
-                      plugins: { legend: { display: false } }
-                    }} 
-                  />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
+            {/* Peak Hours */}
+            <Grid item xs={12}>
+              <Card>
+                <CardContent>
+                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                    <Typography variant="h6">Peak Clinic Hours Distribution</Typography>
+                    <ScheduleIcon sx={{ color: '#ff9800' }} />
+                  </Box>
+                  <Box sx={{ height: 300 }}>
+                    {peakHoursData.labels.length > 0 ? (
+                      <Bar 
+                        data={peakHoursData} 
+                        options={{ 
+                          responsive: true, 
+                          maintainAspectRatio: false,
+                          plugins: { 
+                            legend: { display: false },
+                          },
+                          scales: {
+                            y: { beginAtZero: true, title: { display: true, text: 'Number of Visits' } },
+                            x: { title: { display: true, text: 'Hour of Day' } }
+                          }
+                        }} 
+                      />
+                    ) : (
+                      <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                        <Typography color="text.secondary">No operational data available</Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
 
-          <Grid item xs={12} md={6} lg={6}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Top 5 Dental Procedures</Typography>
-                <Box sx={{ height: 300 }}>
-                  <Bar 
-                    data={topProceduresData} 
-                    options={{ 
-                      responsive: true, 
-                      maintainAspectRatio: false,
-                      indexAxis: 'y',
-                      plugins: { legend: { display: false } }
-                    }} 
-                  />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={6} lg={6}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Peak Clinic Hours</Typography>
-                <Box sx={{ height: 300, display: 'flex', justifyContent: 'center' }}>
-                  <Bar 
-                    data={peakHoursData} 
-                    options={{ 
-                      responsive: true, 
-                      maintainAspectRatio: false,
-                      plugins: { legend: { display: false } }
-                    }} 
-                  />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={6} lg={6}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>College Participation</Typography>
-                <Box sx={{ height: 300, display: 'flex', justifyContent: 'center' }}>
-                  <Bar 
-                    data={collegeData} 
-                    options={{ 
-                      responsive: true, 
-                      maintainAspectRatio: false,
-                      plugins: { legend: { display: false } }
-                    }} 
-                  />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Report Template Analytics (existing feature preserved) */}
-          <Grid item xs={12}>
-            <Accordion>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography sx={{ fontWeight: 600 }}>Detailed Report Template Usage</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Grid container spacing={2}>
-                  {templateAnalytics?.map(stat => (
-                    <Grid item xs={12} sm={6} md={4} lg={3} key={stat.id}>
-                      <Paper variant="outlined" sx={{ p: 2 }}>
-                        <Typography variant="subtitle2" noWrap>{stat.template_name}</Typography>
-                        <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between' }}>
-                          <Typography variant="caption">Total:</Typography>
-                          <Typography variant="caption" sx={{ fontWeight: 'bold' }}>{stat.total_generations}</Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Typography variant="caption">Last Used:</Typography>
-                          <Typography variant="caption">{formatDatePH(stat.last_calculated)}</Typography>
-                        </Box>
-                      </Paper>
+            {/* Report Template Analytics */}
+            <Grid item xs={12}>
+              <Accordion defaultExpanded>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Box display="flex" alignItems="center">
+                    <AnalyticsIcon sx={{ mr: 1, color: '#1976d2' }} />
+                    <Typography sx={{ fontWeight: 600 }}>Detailed Report Template Usage</Typography>
+                  </Box>
+                </AccordionSummary>
+                <AccordionDetails>
+                  {templateAnalytics && templateAnalytics.length > 0 ? (
+                    <Grid container spacing={2}>
+                      {templateAnalytics.map(stat => (
+                        <Grid item xs={12} sm={6} md={4} lg={3} key={stat.id}>
+                          <Paper variant="outlined" sx={{ p: 2, borderTop: '4px solid #1976d2' }}>
+                            <Typography variant="subtitle2" noWrap sx={{ fontWeight: 'bold' }}>{stat.template_name}</Typography>
+                            <Divider sx={{ my: 1 }} />
+                            <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between' }}>
+                              <Typography variant="caption">Total Generated:</Typography>
+                              <Typography variant="caption" sx={{ fontWeight: 'bold' }}>{stat.total_generations}</Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <Typography variant="caption">Total Downloads:</Typography>
+                              <Typography variant="caption" sx={{ fontWeight: 'bold' }}>{stat.total_downloads}</Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                              <Typography variant="caption">Last Used:</Typography>
+                              <Typography variant="caption" color="primary">{formatDatePH(stat.last_calculated)}</Typography>
+                            </Box>
+                          </Paper>
+                        </Grid>
+                      ))}
                     </Grid>
-                  ))}
-                </Grid>
-              </AccordionDetails>
-            </Accordion>
+                  ) : (
+                    <Box sx={{ py: 4, textAlign: 'center' }}>
+                      <Typography color="text.secondary">
+                        No usage statistics recorded for this period yet.
+                      </Typography>
+                      <Typography variant="caption" display="block">
+                        Analytics are updated automatically as reports are generated and downloaded.
+                      </Typography>
+                    </Box>
+                  )}
+                </AccordionDetails>
+              </Accordion>
+            </Grid>
           </Grid>
-        </Grid>
+        </Box>
       </Box>
-    </Box>
     );
   };
 
@@ -964,30 +977,7 @@ const Reports = () => {
 
         {selectedTab === 0 && (
           <Grid container spacing={3}>
-            {templates.map((template) => {
-              const getReportTypeColor = (type) => {
-                switch (type) {
-                  case 'PATIENT_SUMMARY': return '#1976d2';
-                  case 'MEDICAL_RECORDS': return '#2e7d32';
-                  case 'DENTAL_RECORDS': return '#7b1fa2';
-                  case 'ANALYTICS': return '#d32f2f';
-                  case 'COMPREHENSIVE': return '#5d4037';
-                  default: return '#616161';
-                }
-              };
-
-              const getReportTypeIcon = (type) => {
-                switch (type) {
-                  case 'PATIENT_SUMMARY': return '👤';
-                  case 'MEDICAL_RECORDS': return '🏥';
-                  case 'DENTAL_RECORDS': return '🦷';
-                  case 'ANALYTICS': return '📊';
-                  case 'COMPREHENSIVE': return '📋';
-                  default: return '📄';
-                }
-              };
-
-              return (
+            {templates.map((template) => (
                 <Grid item xs={12} sm={6} md={4} key={template.id}>
                   <Card sx={{ 
                     height: '100%', 
@@ -1105,8 +1095,7 @@ const Reports = () => {
                     </Box>
                   </Card>
                 </Grid>
-              );
-            })}
+            ))}
           </Grid>
         )}
 
@@ -1127,14 +1116,6 @@ const Reports = () => {
                   disabled={reports.length === 0}
                 >
                   Delete All
-                </Button>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<FilterIcon />}
-                  onClick={() => {/* Add filter functionality */}}
-                >
-                  Filter
                 </Button>
                 <Button
                   variant="outlined"
@@ -1183,9 +1164,17 @@ const Reports = () => {
                       
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Typography variant="body2" sx={{ mr: 1 }}>
-                            {report.template_name}
+                          <Typography variant="h6" sx={{ mr: 1, fontSize: '1.2rem' }}>
+                            {getReportTypeIcon(report.report_type)}
                           </Typography>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {report.template_name}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: getReportTypeColor(report.report_type) }}>
+                              {report.report_type?.replace('_', ' ')}
+                            </Typography>
+                          </Box>
                         </Box>
                       </TableCell>
                       
