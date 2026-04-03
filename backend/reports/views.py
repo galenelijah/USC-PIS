@@ -4,7 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Q, Count, Avg, Sum
+from django.db.models import Q, Count, Avg, Sum, Max
 from django.utils import timezone
 from django.http import HttpResponse, Http404, StreamingHttpResponse, FileResponse
 from django.core.files.base import ContentFile
@@ -535,7 +535,36 @@ class ReportAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['report_template__report_type']
     ordering_fields = ['last_calculated', 'total_generations']
-    ordering = ['-last_calculated'] 
+    ordering = ['-last_calculated']
+
+    def list(self, request, *args, **kwargs):
+        """Override list to provide real-time stats if historical analytics are empty"""
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        if not queryset.exists():
+            # If no historical analytics, generate real-time stats from templates and reports
+            templates = ReportTemplate.objects.filter(is_active=True).annotate(
+                count=Count('generated_reports'),
+                downloads=Sum('generated_reports__download_count'),
+                last_gen=Max('generated_reports__created_at')
+            ).filter(count__gt=0).order_by('-last_gen')
+            
+            real_time_stats = []
+            for template in templates:
+                real_time_stats.append({
+                    'id': f"rt_{template.id}",
+                    'report_template': template.id,
+                    'template_name': template.name,
+                    'template_type': template.report_type,
+                    'total_generations': template.count,
+                    'total_downloads': template.downloads or 0,
+                    'last_calculated': template.last_gen,
+                    'average_generation_time_formatted': "N/A",
+                    'average_file_size_formatted': "N/A"
+                })
+            return Response(real_time_stats)
+            
+        return super().list(request, *args, **kwargs)
 
     @action(detail=False, methods=['get'])
     def system_analytics(self, request):
