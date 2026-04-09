@@ -41,10 +41,10 @@
             margin: 5px 0 0 0;
             font-weight: bold;
         }
-        .form-meta {
+        .meta-table {
             width: 100%;
             font-size: 9pt;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
         .title-block {
             text-align: center;
@@ -75,21 +75,12 @@
             float: right;
             text-align: center;
             width: 300px;
-            margin-top: 50px;
+            margin-top: 60px;
         }
         .signature-line {
-            border-top: 1px solid #000;
+            border-top: 1.5pt solid #000;
             width: 100%;
             margin-bottom: 5px;
-        }
-        .footer-note {
-            position: absolute;
-            bottom: 0;
-            font-size: 8pt;
-            color: #555;
-            width: 100%;
-            border-top: 0.5pt solid #ccc;
-            padding-top: 5px;
         }
         .fit-status {
             font-weight: bold;
@@ -102,25 +93,26 @@
     </style>
 </head>
 <body>
-    <table class="form-meta">
+    <table class="meta-table">
         <tr>
-            <td align="left">Form Code: <strong>ACA-HSD-04F</strong></td>
-            <td align="right">Effective: <strong>10 JUL 2017</strong></td>
+            <td width="50">
+                <img src="https://upload.wikimedia.org/wikipedia/en/thumb/3/3a/University_of_San_Carlos_logo.svg/1200px-University_of_San_Carlos_logo.svg.png" width="40">
+            </td>
+            <td align="left" style="vertical-align: middle;">
+                Form Code: <strong>ACA-HSD-04F</strong>
+            </td>
+            <td align="right" style="vertical-align: middle;">
+                Effective: <strong>10 JUL 2017</strong>
+            </td>
         </tr>
     </table>
 
     <table class="header-table">
         <tr>
-            <td class="header-logo">
-                <img src="https://upload.wikimedia.org/wikipedia/en/thumb/3/3a/University_of_San_Carlos_logo.svg/1200px-University_of_San_Carlos_logo.svg.png" width="70">
-            </td>
             <td class="header-text">
                 <h1>UNIVERSITY of SAN CARLOS</h1>
                 <p class="motto">SCIENTIA VIRTUS DEVOTIO</p>
                 <p class="office">HEALTH SERVICES OFFICE</p>
-            </td>
-            <td class="header-logo" width="70">
-                <!-- Empty for balance -->
             </td>
         </tr>
     </table>
@@ -157,12 +149,10 @@
     </div>
 
     <div class="signature-block">
+        <div style="height: 40px;"></div> <!-- Space for actual signature -->
         <div class="signature-line"></div>
-        <strong>School Physician</strong>
-    </div>
-
-    <div class="footer-note">
-        <em>Please ensure that you are using the latest version. Refer to section 4.0 of level 2 documentation USC QMS for Student Support and Services.</em>
+        <strong>{{ doctor_name|default:"School Physician" }}</strong><br>
+        <span>School Physician</span>
     </div>
 </body>
 </html>

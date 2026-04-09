@@ -403,7 +403,7 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
             />
           </Grid>
 
-          {/* Diagnosis */}
+          {/* Purpose/Requirement */}
           <Grid item xs={12}>
             <Controller
               name="diagnosis"
@@ -414,8 +414,8 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
                   fullWidth
                   multiline
                   rows={4}
-                  label="Diagnosis *"
-                  placeholder="Enter the primary diagnosis and any relevant medical conditions..."
+                  label="Purpose/Requirement *"
+                  placeholder="Enter the purpose or requirement for this medical certificate (e.g., Tour, Off-Campus Activity)..."
                   error={!!errors.diagnosis}
                   helperText={errors.diagnosis?.message}
                 />
