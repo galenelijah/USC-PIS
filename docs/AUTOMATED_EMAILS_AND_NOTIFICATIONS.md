@@ -19,10 +19,15 @@ This document describes every automatic email/notification in USC‑PIS, what tr
   - Template: `emails/password_reset.html`
   - Recipient: requesting user
 - Medical Certificates
-  - Trigger: create/approve/reject in certificate views
-  - Code: `medical_certificates/views` → `EmailService.send_medical_certificate_notification`
-  - Templates: `emails/certificate_created.html`, `emails/certificate_approved.html`, `emails/certificate_rejected.html`
-  - Recipient: student (and doctors for “pending approval”)
+  - Trigger: Create/approve/reject status change (Django signal)
+  - Code: `medical_certificates.models.medical_certificate_notification`
+  - Templates: `certificate_created`, `certificate_approved`, `certificate_rejected`, `certificate_pending`
+  - Recipient: Patient (for status updates) and **DOCTOR/ADMIN** (for pending approvals)
+- Health Campaigns
+  - Trigger: New campaign created or status changed to ACTIVE (Django signal)
+  - Code: `health_info.models.health_campaign_notification`
+  - Template: `HEALTH_CAMPAIGN`
+  - Recipient: **ADMIN/STAFF** (for review of new campaigns) and Patients (when activated)
 - Feedback Requests (Medical)
   - Trigger: MedicalRecord created (Django signal)
   - Code: `patients/signals.schedule_feedback_email_medical`
@@ -41,6 +46,21 @@ This document describes every automatic email/notification in USC‑PIS, what tr
   - Trigger: backup error/issue detected in `utils.services.BackupService`
   - Template: `emails/backup_alert.html` + `.txt`
   - Recipient: `BACKUP_ALERT_EMAIL` or first admin in `ADMINS`
+
+## Notification Template Management
+The system uses reusable templates stored in the `NotificationTemplate` model for both In-App and Email alerts.
+
+### Core Templates
+1. **Appointment Reminder - 24 Hours**: Automated 24h lead time alerts.
+2. **Medication Reminder**: Prescribed medication timing alerts.
+3. **Health Campaign**: Announcements for clinic-wide health initiatives.
+4. **Clinic Update**: Important operational changes or news.
+5. **Follow-up / Vaccination / Dental Reminders**: Clinical maintenance alerts.
+
+### Management Interface
+- **Django Admin (`/admin`)**: Primary interface for creating and editing templates. Admins can modify the `Subject` and `Body` using dynamic placeholders.
+- **Placeholder Support**: Templates support a wide range of variables including `{{user_name}}`, `{{patient_first_name}}`, `{{appointment_date}}`, and clinic metadata.
+- **Testing**: Templates can be tested via the `test_template` action in the `NotificationTemplateViewSet` (API) which renders sample data into the templates.
 
 ## In-App Notification Management
 - Users can manage their in-app notifications directly through the Notifications center.
