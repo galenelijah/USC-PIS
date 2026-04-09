@@ -71,6 +71,15 @@
             padding: 0 5px;
             font-weight: bold;
         }
+        .reason-box {
+            border-bottom: 1px solid #000;
+            min-height: 25px;
+            padding: 5px 0;
+            width: 100%;
+            text-align: center;
+            font-weight: bold;
+            font-size: 14pt;
+        }
         .signature-block {
             float: right;
             text-align: center;
@@ -142,8 +151,8 @@
         <p>
             This is issued upon his/her request as part of his/her requirement for: 
             <br><br>
-            <div style="border-bottom: 1px solid #000; min-height: 25px; padding: 5px 0; width: 100%;">
-                <strong>{{ requirement_reason }}</strong>
+            <div class="reason-box">
+                {{ requirement_reason }}
             </div>
         </p>
     </div>
@@ -151,8 +160,7 @@
     <div class="signature-block">
         <div style="height: 40px;"></div> <!-- Space for actual signature -->
         <div class="signature-line"></div>
-        <strong>{{ doctor_name|default:"School Physician" }}</strong><br>
-        <span>School Physician</span>
+        <strong>School Physician</strong>
     </div>
 </body>
 </html>

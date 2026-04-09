@@ -299,16 +299,22 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
         if hasattr(patient, 'date_of_birth') and patient.date_of_birth:
             age = calculate_age(patient.date_of_birth)
         # Prepare context
+        from utils.usc_mappings import get_program_name, get_year_level_name
+        
         course_and_year = "N/A"
         if hasattr(patient, 'user'):
-            course = getattr(patient.user, 'course', '')
-            year = getattr(patient.user, 'year_level', '')
-            if course and year:
-                course_and_year = f"{course} - {year}"
-            elif course:
-                course_and_year = course
-            elif year:
-                course_and_year = year
+            course_id = getattr(patient.user, 'course', '')
+            year_id = getattr(patient.user, 'year_level', '')
+            
+            course_name = get_program_name(course_id)
+            year_name = get_year_level_name(year_id)
+            
+            if course_name and year_name:
+                course_and_year = f"{course_name} - {year_name}"
+            elif course_name:
+                course_and_year = course_name
+            elif year_name:
+                course_and_year = year_name
 
         context = {
             'patient_name': f"{patient.first_name} {patient.last_name}",
