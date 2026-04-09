@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Medical Certificate - Tours & Off-Campus</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+        body {
+            font-family: "Helvetica", "Arial", sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        .container {
+            width: 210mm;
+            height: 297mm;
+            padding: 10mm;
+            box-sizing: border-box;
+        }
+        .certificate {
+            height: 138mm;
+            border-bottom: 1px dashed #ccc;
+            padding: 10mm;
+            position: relative;
+            box-sizing: border-box;
+        }
+        .certificate:last-child {
+            border-bottom: none;
+            margin-top: 5mm;
+        }
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .logo-cell {
+            width: 80px;
+            vertical-align: top;
+        }
+        .logo {
+            width: 70px;
+        }
+        .usc-text {
+            vertical-align: top;
+            padding-top: 5px;
+        }
+        .usc-title {
+            font-size: 22pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0;
+            line-height: 1;
+        }
+        .usc-motto {
+            font-size: 8pt;
+            font-style: italic;
+            margin: 0;
+            color: #555;
+        }
+        .doc-info {
+            text-align: right;
+            font-size: 9pt;
+            vertical-align: top;
+        }
+        .doc-code {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .hso-header {
+            text-align: left;
+            margin-top: 15px;
+            margin-left: 80px;
+            font-weight: bold;
+            font-size: 14pt;
+        }
+        .cert-title {
+            text-align: center;
+            font-size: 16pt;
+            font-weight: bold;
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+        .date-line {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+        .to-whom {
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .main-content {
+            line-height: 1.8;
+            text-align: justify;
+        }
+        .fill-line {
+            display: inline-block;
+            border-bottom: 1px solid black;
+            padding: 0 5px;
+            min-width: 50px;
+            text-align: center;
+        }
+        .requirement-section {
+            margin-top: 20px;
+        }
+        .requirement-lines {
+            margin-top: 10px;
+        }
+        .req-line {
+            border-bottom: 2px solid black;
+            height: 25px;
+            margin-bottom: 5px;
+        }
+        .signature-section {
+            margin-top: 40px;
+            text-align: right;
+        }
+        .signature-line {
+            display: inline-block;
+            width: 250px;
+            border-top: 1px solid black;
+            text-align: center;
+            padding-top: 5px;
+        }
+        .physician-label {
+            font-style: italic;
+            font-size: 10pt;
+        }
+        .effective-date {
+            position: absolute;
+            top: 30mm;
+            right: 20mm;
+            text-align: right;
+            font-size: 8pt;
+        }
+        .fit-unfit {
+            font-weight: bold;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- FIRST COPY -->
+        <div class="certificate">
+            <table class="header-table">
+                <tr>
+                    <td class="logo-cell">
+                        <img src="https://upload.wikimedia.org/wikipedia/en/thumb/3/3a/University_of_San_Carlos_logo.svg/1200px-University_of_San_Carlos_logo.svg.png" class="logo">
+                    </td>
+                    <td class="usc-text">
+                        <div class="usc-title">UNIVERSITY <span style="font-size: 16pt; font-weight: normal;">of</span></div>
+                        <div class="usc-title">SAN CARLOS</div>
+                        <div class="usc-motto">SCIENTIA • VIRTUS • DEVOTIO</div>
+                    </td>
+                    <td class="doc-info">
+                        <div class="doc-code">ACA-HSD-04F</div>
+                        <div style="font-weight: bold;">DOCUMENTED INFO EFFECTIVE</div>
+                        <div style="margin-top: 5px;">10 JUL 2017</div>
+                        <div style="font-size: 7pt; margin-top: 10px; line-height: 1.2;">
+                            please ensure that you are using the latest version<br>
+                            refer to section 4.0 of level 2 documentation<br>
+                            USC QMS for Student Support and Services
+                        </div>
+                    </td>
+                </tr>
+            </table>
+
+            <div class="hso-header">HEALTH SERVICES OFFICE</div>
+            <div class="cert-title">Medical Certificate</div>
+
+            <div class="date-line">Date: <span class="fill-line" style="min-width: 150px;">{{ visit_date }}</span></div>
+
+            <div class="to-whom">To Whom It May Concern:</div>
+
+            <div class="main-content">
+                This is to certify that Miss /Mrs. /Mr. <span class="fill-line" style="min-width: 350px;">{{ patient_name }}</span> of
+                <div style="margin-top: 10px;">
+                    <span class="fill-line" style="min-width: 250px;">
+                        {% if patient.user.course %}{{ patient.user.course }}{% else %}N/A{% endif %} 
+                        {% if patient.user.year_level %}- {{ patient.user.year_level }}{% endif %}
+                    </span> 
+                    had undergone a complete physical examination and was
+                </div>
+                <div style="font-size: 9pt; margin-left: 50px; margin-bottom: 10px;">Course & Year</div>
+                found to be physically <span class="fit-unfit">{% if is_fit %}fit{% else %}unfit{% endif %}</span> on the date of examination.
+            </div>
+
+            <div class="requirement-section">
+                This is issued upon his/her request as part of his/her requirement for:
+                <div class="requirement-lines">
+                    <div class="req-line">{{ recommendations|truncatechars:100 }}</div>
+                    <div class="req-line"></div>
+                </div>
+            </div>
+
+            <div class="signature-section">
+                <div class="signature-line">
+                    <div style="font-weight: bold;">{{ doctor_name }}</div>
+                    <div class="physician-label">School Physician</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECOND COPY -->
+        <div class="certificate">
+            <table class="header-table">
+                <tr>
+                    <td class="logo-cell">
+                        <img src="https://upload.wikimedia.org/wikipedia/en/thumb/3/3a/University_of_San_Carlos_logo.svg/1200px-University_of_San_Carlos_logo.svg.png" class="logo">
+                    </td>
+                    <td class="usc-text">
+                        <div class="usc-title">UNIVERSITY <span style="font-size: 16pt; font-weight: normal;">of</span></div>
+                        <div class="usc-title">SAN CARLOS</div>
+                        <div class="usc-motto">SCIENTIA • VIRTUS • DEVOTIO</div>
+                    </td>
+                    <td class="doc-info">
+                        <div class="doc-code">ACA-HSD-04F</div>
+                        <div style="font-weight: bold;">DOCUMENTED INFO EFFECTIVE</div>
+                        <div style="margin-top: 5px;">10 JUL 2017</div>
+                        <div style="font-size: 7pt; margin-top: 10px; line-height: 1.2;">
+                            please ensure that you are using the latest version<br>
+                            refer to section 4.0 of level 2 documentation<br>
+                            USC QMS for Student Support and Services
+                        </div>
+                    </td>
+                </tr>
+            </table>
+
+            <div class="hso-header">HEALTH SERVICES OFFICE</div>
+            <div class="cert-title">Medical Certificate</div>
+
+            <div class="date-line">Date: <span class="fill-line" style="min-width: 150px;">{{ visit_date }}</span></div>
+
+            <div class="to-whom">To Whom It May Concern:</div>
+
+            <div class="main-content">
+                This is to certify that Miss /Mrs. /Mr. <span class="fill-line" style="min-width: 350px;">{{ patient_name }}</span> of
+                <div style="margin-top: 10px;">
+                    <span class="fill-line" style="min-width: 250px;">
+                        {% if patient.user.course %}{{ patient.user.course }}{% else %}N/A{% endif %} 
+                        {% if patient.user.year_level %}- {{ patient.user.year_level }}{% endif %}
+                    </span> 
+                    had undergone a complete physical examination and was
+                </div>
+                <div style="font-size: 9pt; margin-left: 50px; margin-bottom: 10px;">Course & Year</div>
+                found to be physically <span class="fit-unfit">{% if is_fit %}fit{% else %}unfit{% endif %}</span> on the date of examination.
+            </div>
+
+            <div class="requirement-section">
+                This is issued upon his/her request as part of his/her requirement for:
+                <div class="requirement-lines">
+                    <div class="req-line">{{ recommendations|truncatechars:100 }}</div>
+                    <div class="req-line"></div>
+                </div>
+            </div>
+
+            <div class="signature-section">
+                <div class="signature-line">
+                    <div style="font-weight: bold;">{{ doctor_name }}</div>
+                    <div class="physician-label">School Physician</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

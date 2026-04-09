@@ -309,6 +309,8 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
             'valid_from': certificate.valid_from.strftime('%B %d, %Y'),
             'valid_until': certificate.valid_until.strftime('%B %d, %Y'),
             'additional_notes': certificate.additional_notes,
+            'is_fit': getattr(certificate, 'fitness_status', 'fit') == 'fit',
+            'is_not_fit': getattr(certificate, 'fitness_status', 'fit') == 'not_fit',
             'doctor_name': f"Dr. {certificate.issued_by.get_full_name()}",
             'doctor_title': getattr(certificate.issued_by, 'title', 'University Physician'),
             'doctor_license': getattr(certificate.issued_by, 'license_number', 'N/A'),
