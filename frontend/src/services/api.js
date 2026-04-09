@@ -664,9 +664,9 @@ export const authService = {
 };
 
 export const patientService = {
-  getAll: async () => {
+  getAll: async (params = {}) => {
     try {
-      return await api.get('/patients/patients/');
+      return await api.get('/patients/patients/', { params });
     } catch (error) {
       handleApiError(error);
     }
@@ -699,9 +699,11 @@ export const patientService = {
       handleApiError(error);
     }
   },
-  search: async (query) => {
+  search: async (query, filters = {}) => {
     try {
-      return await api.get(`/patients/patients/?search=${query}`);
+      return await api.get('/patients/patients/', { 
+        params: { search: query, ...filters } 
+      });
     } catch (error) {
       handleApiError(error);
     }

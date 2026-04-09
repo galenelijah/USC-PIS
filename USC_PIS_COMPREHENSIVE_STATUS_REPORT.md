@@ -1,10 +1,10 @@
 # USC-PIS Comprehensive Status Report
 ## Healthcare Management System Analysis & Improvement Roadmap
 
-**Generated**: August 1, 2025  
-**System Version**: Production-Ready v164  
+**Generated**: April 9, 2026  
+**System Version**: Production-Ready v168  
 **Overall Grade**: A+ (Excellent)  
-**Status**: 100% Feature Complete + Ready for Enhancement
+**Status**: 100% Feature Complete + Advanced Administrative Filtering
 
 ---
 
@@ -112,11 +112,13 @@ graph TD
 
 #### **How It Works**
 1. **Patient Search**: Advanced multi-field search (name, email, USC ID)
-2. **Profile Management**: Complete medical and personal information
-3. **Medical Dashboard**: Human-readable field mapping
-4. **Consultation Tracking**: Appointment history and management
+2. **Advanced Filtering**: Collapsible filter bar for role, course, year level, and registration period (Academic Year/Semester).
+3. **Profile Management**: Complete medical and personal information
+4. **Medical Dashboard**: Human-readable field mapping
+5. **Consultation Tracking**: Appointment history and management
 
 #### **Key Features**
+- **Registration Filtering**: Filter by Academic Year (e.g., 2025-2026) and Semester (1st, 2nd, Short Term).
 - **Advanced Search**: Multi-field search across all patient identifiers
 - **Professional UI**: Autocomplete with patient avatars and ID badges
 - **Data Integrity**: Comprehensive validation and error handling
@@ -126,6 +128,7 @@ graph TD
 - `PatientList.jsx` - Patient management interface
 - `PatientMedicalDashboard.jsx` - Medical overview dashboard
 - `Profile.jsx` - Personal profile management
+- `PatientsPage.jsx` - Enhanced search and filter interface
 
 ---
 
@@ -156,15 +159,17 @@ graph TD
 
 #### **How It Works**
 1. **Smart Patient Search**: Revolutionary single-step search interface
-2. **Role-based Creation**: Doctors can approve immediately, others submit for approval
-3. **Fitness Assessment**: Comprehensive fitness determination
-4. **Notification System**: Real-time status updates
+2. **Polished USC Template**: USC Form ACA-HSD-04F (Tours & Off-Campus) in single-page landscape layout.
+3. **Role-based Creation**: Doctors can approve immediately, others submit for approval
+4. **Fitness Assessment**: Comprehensive fitness determination
+5. **Notification System**: Real-time status updates
 
 #### **Key Features**
+- **Automated Course Mapping**: Converts internal IDs to full USC program names (e.g., "40" to "Bachelor of Science in Computer Engineering").
 - **Enhanced Patient Search**: Eliminated clunky two-step process
 - **Visual Patient Cards**: Avatars, names, emails, and ID badges
 - **Doctor Authority**: Only doctors can approve/reject certificates
-- **Template System**: Customizable certificate templates
+- **Template System**: Customizable certificate templates (including polished USC Clinic Template)
 
 #### **Components**
 - `MedicalCertificatesPage.jsx` - Main certificate management
@@ -459,9 +464,15 @@ class MedicalCertificate:
 
 ---
 
-## 🚀 Recent Major Enhancements (July-August 2025)
+## 🚀 Recent Major Enhancements (2025-2026)
 
-### **Medical Records Revolution**
+### **April 2026: Administrative & Reporting Polishing**
+- ✅ **Advanced Patient Filtering**: Added role, program, and registration period (AY/Semester) filters to the `/patients` page.
+- ✅ **USC Clinic Template (ACA-HSD-04F)**: Polished, single-page landscape PDF layout for student tour requirements.
+- ✅ **Automated Record Context**: Backend now automatically maps student IDs to full course names for official documents.
+- ✅ **Terminology Shift**: Updated all Medical Certificate interfaces to use **"Purpose/Requirement"** instead of "Diagnosis" for administrative clarity.
+
+### **Medical Records Revolution (August 2025)**
 - ✅ **Tabbed Interface**: Medical Records, Dental Records, Health Insights
 - ✅ **Advanced Search**: Multi-field search across all record types
 - ✅ **Health Analytics**: Personalized insights with trend analysis

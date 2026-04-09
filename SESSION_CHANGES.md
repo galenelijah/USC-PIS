@@ -95,23 +95,38 @@ This entry documents password validation synchronization and notification manage
 This entry documents administrative notification fixes and the implementation of interactive patient profiles.
 
 ## Modified Files
-- `backend/notifications/views.py`
-  - Refined `get_queryset` to default to user-only notifications for admins (added `?all=true` override).
-  - Updated `mark_as_read` to allow administrative overrides, fixing 403 errors.
-- `frontend/src/components/Notifications.jsx`
-  - Implemented ownership checks and UI safeguards for marking notifications as read.
-- `backend/patients/serializers.py`
-  - Expanded `PatientSerializer` to include full profile data from the `User` model.
-- `frontend/src/components/Patients/PatientList.jsx`
-  - Made the patient list clickable with hover effects.
-- `frontend/src/components/Patients/PatientsPage.jsx`
-  - Added state management for selected patients and conditional profile rendering.
-- `frontend/src/components/Patients/PatientProfile.jsx` (New File)
-  - Created a comprehensive unified profile view with medical history and vital signs.
-
-## Rationale
-- **Notifications**: Fixed a critical permission bug that prevented admins from clearing system alerts.
-- **Clinical Visibility**: Provided medical staff with a "360-degree view" of patient data, fulfilling the core thesis requirement for comprehensive medical profiles.
+...
 - **UX**: Replaced a static table with an interactive, drill-down interface for patient management.
 
+---
+
+# Session Changes (2026-04-09)
+
+This entry documents enhancements to the Medical Certificate system and Advanced Patient Filtering.
+
+## Modified Files
+- `backend/medical_certificates/templates/tours_off_campus.html` (Finalized)
+  - Implemented a polished, single-page landscape layout for USC Form ACA-HSD-04F.
+  - Added USC logo, robust signature line for the School Physician, and removed footer disclaimers.
+- `backend/medical_certificates/views.py`
+  - Added dynamic context for student **Course Name** and **Year Level** mapping.
+  - Aligned PDF rendering with "Purpose/Requirement" terminology.
+- `frontend/src/components/MedicalCertificates/` (Multiple Files)
+  - Changed **"Diagnosis"** to **"Purpose/Requirement"** across Form, List, and Detail views.
+- `backend/patients/views.py`
+  - Implemented advanced filtering in `PatientViewSet.get_queryset` for role, course, academic year, and semester.
+- `frontend/src/components/Patients/PatientsPage.jsx`
+  - Added a collapsible **Filter Bar** with dropdowns for role, course, year level, and registration period.
+- `frontend/src/services/api.js`
+  - Updated `patientService` to support passing optional filter parameters to the backend.
+- `backend/utils/usc_mappings.py` (New File)
+  - Created a centralized mapping of USC course IDs to full names and year level labels.
+
+## Rationale
+- **Medical Certificates**: The clinic requested a more professional and administrative-focused medical certificate for students. Moving from "Diagnosis" to "Purpose/Requirement" and automating the course name retrieval reduces manual effort for medical staff.
+- **Patient Filtering**: Staff needed a way to separate students from teachers and filter them by their academic registration window (AY and Semester), fulfilling a key requirement for student data management.
+
+## Verify Quickly
+- **Medical Certificates**: Generate a certificate using the "USC Clinic Template" and verify it renders as a single-page landscape PDF with the student's full course name.
+- **Filtering**: On the Patients page, use the Filter button to select "AY 2025-2026" and "1st Semester" to see only students registered in that period.
 ---

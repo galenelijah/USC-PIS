@@ -63,6 +63,54 @@ class PatientViewSet(viewsets.ModelViewSet):
                 Q(user__email__icontains=search) |
                 Q(user__id_number__icontains=search)  # Search by USC ID number
             )
+
+        # Advanced Filters
+        role_filter = self.request.query_params.get('role', None)
+        if role_filter:
+            queryset = queryset.filter(user__role=role_filter)
+
+        course_filter = self.request.query_params.get('course', None)
+        if course_filter:
+            queryset = queryset.filter(user__course=course_filter)
+
+        year_level_filter = self.request.query_params.get('year_level', None)
+        if year_level_filter:
+            queryset = queryset.filter(user__year_level=year_level_filter)
+
+        # Academic Year and Semester Filters
+        ay = self.request.query_params.get('academic_year', None)
+        sem = self.request.query_params.get('semester', None)
+
+        if ay:
+            try:
+                # AY format: "2025-2026"
+                start_year = int(ay.split('-')[0])
+                
+                if sem == '1': # 1st Semester: Aug - Dec
+                    queryset = queryset.filter(
+                        created_at__year=start_year,
+                        created_at__month__gte=8,
+                        created_at__month__lte=12
+                    )
+                elif sem == '2': # 2nd Semester: Jan - May of next year
+                    queryset = queryset.filter(
+                        created_at__year=start_year + 1,
+                        created_at__month__gte=1,
+                        created_at__month__lte=5
+                    )
+                elif sem == 'Short Term': # Short Term: Jun - Jul of next year
+                    queryset = queryset.filter(
+                        created_at__year=start_year + 1,
+                        created_at__month__gte=6,
+                        created_at__month__lte=7
+                    )
+                else: # Whole Academic Year: Aug (start) to July (end)
+                    queryset = queryset.filter(
+                        Q(created_at__year=start_year, created_at__month__gte=8) |
+                        Q(created_at__year=start_year + 1, created_at__month__lte=7)
+                    )
+            except (ValueError, IndexError):
+                pass
             
         return queryset
 

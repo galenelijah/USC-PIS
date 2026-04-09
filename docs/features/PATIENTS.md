@@ -27,3 +27,13 @@ Notes
 - Staff roles can create/update records; validation enforces clinical fields.
 - Indexes added for query performance on common filters.
 
+## April 2026 Enhancements
+- **Advanced Filtering**: Added a collapsible Filter Bar to the patients page, allowing staff to filter by:
+  - **Role** (Student, Teacher, or All Patients).
+  - **Program/Course** and **Year Level**.
+  - **Registration Period**: Supports **Academic Year** (e.g., 2025-2026) and **Semester** (1st Sem, 2nd Sem, Short Term).
+- **Date-Based Logic**: The system automatically filters registration dates based on USC semester boundaries:
+  - 1st Sem: August 1 – December 31
+  - 2nd Sem: January 1 – May 31
+  - Short Term: June 1 – July 31
+- **API Support**: `patientService` and `PatientViewSet` now handle these complex filtering combinations in real-time.
