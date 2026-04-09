@@ -201,10 +201,10 @@ const MedicalCertificateDetail = ({
 
           <Grid item xs={12} md={6}>
             <Typography variant="subtitle2" color="text.secondary">
-              Template
+              Purpose/Requirement
             </Typography>
             <Typography variant="body1">
-              {certificate.template_name}
+              {certificate.diagnosis}
             </Typography>
           </Grid>
 

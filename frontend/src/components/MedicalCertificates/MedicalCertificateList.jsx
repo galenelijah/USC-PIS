@@ -275,7 +275,7 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole, refreshTri
           <TableHead>
             <TableRow>
               <TableCell>Patient Name</TableCell>
-              <TableCell>Diagnosis</TableCell>
+              <TableCell>Purpose/Requirement</TableCell>
               <TableCell>Valid From</TableCell>
               <TableCell>Valid Until</TableCell>
               <TableCell>Fitness Status</TableCell>

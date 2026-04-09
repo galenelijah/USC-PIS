@@ -80,16 +80,15 @@
             font-weight: bold;
             font-size: 14pt;
         }
-        .signature-block {
-            float: right;
-            text-align: center;
-            width: 300px;
+        .signature-table {
+            width: 100%;
             margin-top: 60px;
         }
         .signature-line {
             border-top: 1.5pt solid #000;
-            width: 100%;
-            margin-bottom: 5px;
+            width: 250px;
+            height: 1px;
+            margin: 0 auto 5px auto;
         }
         .fit-status {
             font-weight: bold;
@@ -157,10 +156,15 @@
         </p>
     </div>
 
-    <div class="signature-block">
-        <div style="height: 40px;"></div> <!-- Space for actual signature -->
-        <div class="signature-line"></div>
-        <strong>School Physician</strong>
-    </div>
+    <table class="signature-table">
+        <tr>
+            <td width="60%"></td>
+            <td align="center">
+                <div style="height: 40px;"></div>
+                <div class="signature-line"></div>
+                <strong>School Physician</strong>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>
