@@ -299,15 +299,29 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
         if hasattr(patient, 'date_of_birth') and patient.date_of_birth:
             age = calculate_age(patient.date_of_birth)
         # Prepare context
+        course_and_year = "N/A"
+        if hasattr(patient, 'user'):
+            course = getattr(patient.user, 'course', '')
+            year = getattr(patient.user, 'year_level', '')
+            if course and year:
+                course_and_year = f"{course} - {year}"
+            elif course:
+                course_and_year = course
+            elif year:
+                course_and_year = year
+
         context = {
             'patient_name': f"{patient.first_name} {patient.last_name}",
             'patient_age': age,
             'patient': patient,
+            'course_and_year': course_and_year,
+            'date': certificate.created_at.strftime('%B %d, %Y'),
             'visit_date': certificate.created_at.strftime('%B %d, %Y'),
             'diagnosis': certificate.diagnosis,
             'recommendations': certificate.recommendations,
-            'valid_from': certificate.valid_from.strftime('%B %d, %Y'),
-            'valid_until': certificate.valid_until.strftime('%B %d, %Y'),
+            'requirement_reason': certificate.diagnosis or certificate.additional_notes, # Fallback to diagnosis if reason not explicit
+            'valid_from': certificate.valid_from.strftime('%B %d, %Y') if certificate.valid_from else '',
+            'valid_until': certificate.valid_until.strftime('%B %d, %Y') if certificate.valid_until else '',
             'additional_notes': certificate.additional_notes,
             'is_fit': getattr(certificate, 'fitness_status', 'fit') == 'fit',
             'is_not_fit': getattr(certificate, 'fitness_status', 'fit') == 'not_fit',
