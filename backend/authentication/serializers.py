@@ -79,35 +79,36 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         """
         Determine user role based on email pattern and optional preference:
         - Students: emails with numbers (e.g., 21100727@usc.edu.ph) -> Always STUDENT
+        - Safe List: Check if email is pre-authorized with a specific role
         - Staff/Teachers/Medical: emails with only letters (e.g., elfabian@usc.edu.ph)
-          - If role_preference is valid, assign it
+          - If role_preference is valid, assign it (ONLY for non-administrative roles)
           - Otherwise, default to STUDENT to trigger role selection on frontend
         """
         if not email:
             return User.Role.STUDENT  # Default fallback
         
+        # 1. Check SafeEmail list for pre-authorized roles (High Priority)
+        try:
+            from .models import SafeEmail
+            safe_entry = SafeEmail.objects.filter(email=email, is_active=True).first()
+            if safe_entry:
+                return safe_entry.role
+        except Exception:
+            pass
+
         # Extract the part before @ symbol
         email_username = email.split('@')[0].lower()
         
-        # Check if the username contains any digits
+        # 2. Heuristic check: numbers in email usually mean STUDENT
         if re.search(r'\d', email_username):
-            # Contains numbers - strictly a student ID
             return User.Role.STUDENT
-        else:
-            # Only letters - staff, faculty, or medical professional
-            allowed_professional_roles = [
-                User.Role.TEACHER, 
-                User.Role.DOCTOR, 
-                User.Role.DENTIST, 
-                User.Role.NURSE,
-                User.Role.STAFF
-            ]
-            if role_preference in allowed_professional_roles:
-                return role_preference
+        
+        # 3. Handle professional roles (only TEACHER allowed for self-selection)
+        if role_preference == User.Role.TEACHER:
+            return User.Role.TEACHER
             
-            # Default to STUDENT for non-student emails if no valid preference
-            # This allows the frontend to redirect to /role-selection
-            return User.Role.STUDENT
+        # Default for text-only emails (triggers /role-selection on frontend)
+        return User.Role.STUDENT
     
     def validate_password(self, value):
         """Validate password with enhanced security checks."""
@@ -172,7 +173,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'id', 'email', 'role', 'completeSetup', 'is_active', 'is_verified',
+            'id', 'email', 'role', 'requested_role', 'completeSetup', 'is_active', 'is_verified',
             # Personal Information
             'first_name', 'last_name', 'middle_name', 'id_number',
             'course', 'year_level', 'school', 'sex', 'civil_status',

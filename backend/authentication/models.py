@@ -44,6 +44,7 @@ class User(AbstractUser):
     email = models.EmailField(max_length=200, unique=True)
     username = models.CharField(max_length=200, unique=True)  # Make explicit
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.STUDENT)
+    requested_role = models.CharField(max_length=10, choices=Role.choices, null=True, blank=True)
     completeSetup = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False)
 
@@ -114,12 +115,18 @@ class User(AbstractUser):
 
 class SafeEmail(models.Model):
     email = models.EmailField(unique=True)
+    role = models.CharField(
+        max_length=10, 
+        choices=User.Role.choices, 
+        default=User.Role.STUDENT,
+        help_text="Role to automatically assign when this user registers"
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.email
+        return f"{self.email} ({self.role})"
 
 class VerificationCode(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='verification_codes')

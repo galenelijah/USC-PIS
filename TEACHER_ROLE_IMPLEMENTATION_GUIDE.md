@@ -19,19 +19,21 @@ To simplify frontend logic, we introduced the concept of a "Patient Role". This 
 ### 3. Registration Logic
 The challenge was differentiating Teachers from Staff, as both often use text-only emails (e.g., `name@usc.edu.ph`), whereas Students typically use number-based emails.
 
-**Solution: Conditional Role Selection**
-1.  **Frontend (`Register.jsx`):**
-    *   Detects if the entered email contains digits.
-    *   **Has Digits:** Assumes Student. Hidden role field remains empty (backend defaults to Student).
-    *   **No Digits:** Displays a "Choose Your Role" radio group.
-        *   Option A: Teacher / Faculty (`TEACHER`)
-        *   Option B: Clinic Staff / Medical Personnel (`STAFF`)
-2.  **Backend (`serializers.py`):**
-    *   `UserRegistrationSerializer` accepts an optional `role` field.
-    *   `_determine_role_from_email` logic updated:
+**Solution: Hybrid Role Selection (April 2026 Update)**
+1.  **Backend (`serializers.py`):**
+    *   `_determine_role_from_email` logic:
         *   If email has digits -> Force `STUDENT`.
-        *   If email has no digits AND `role_preference == 'TEACHER'` -> Assign `TEACHER`.
-        *   Otherwise (no digits, no/other preference) -> Default to `STAFF`.
+        *   If email has no digits -> Default to `STUDENT` (Allows self-selection of `TEACHER` only).
+    *   Professional roles (Staff, Doctor, etc.) are **blocked** from self-assignment during registration to prevent unauthorized access.
+2.  **Frontend (`Login.jsx`, `Register.jsx`, `VerifyEmail.jsx`):**
+    *   Users with text-only emails who are still `STUDENT` role are redirected to `/role-selection`.
+3.  **Role Selection (`RoleSelection.jsx`):**
+    *   **Self-Service:** Users can self-identify as `TEACHER` (Faculty) or continue as `STUDENT`.
+    *   **Administrative Assignment:** If a user is Clinic Staff, Doctor, or Nurse, the UI informs them that an **Administrator must assign their role**. They cannot proceed with professional permissions until an admin updates their account.
+4.  **Backend Permissions (`user_management_views.py`):**
+    *   The `update_user_role` endpoint enforces:
+        *   **Self-Update:** Only allowed for `STUDENT` $\rightarrow$ `TEACHER`.
+        *   **Admin-Update:** All other transitions (especially to `STAFF`, `DOCTOR`, `ADMIN`) require full administrative privileges.
 
 ### 4. Profile Setup & Patient Profile
 Teachers need a `Patient` profile in the database to store medical records.

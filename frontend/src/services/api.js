@@ -1662,6 +1662,17 @@ export const userManagementService = {
     }
   },
 
+  // Request a role (Self-service/Administrative Gate)
+  requestRole: async (role) => {
+    try {
+      const response = await api.post('/auth/request-role/', { role });
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
   // Toggle user active status
   toggleUserStatus: async (userId) => {
     try {
@@ -1694,9 +1705,9 @@ export const userManagementService = {
     }
   },
   
-  addSafeEmail: async (email) => {
+  addSafeEmail: async (email, role = 'STUDENT') => {
     try {
-      const response = await api.post('/auth/admin/safe-emails/', { email });
+      const response = await api.post('/auth/admin/safe-emails/', { email, role });
       return response.data;
     } catch (error) {
       handleApiError(error);

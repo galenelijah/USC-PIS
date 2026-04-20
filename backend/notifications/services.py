@@ -373,6 +373,23 @@ class NotificationService:
         return results
     
     @staticmethod
+    def notify_admins_of_role_request(user: User, requested_role: str):
+        """Notify all administrators when a user requests a role upgrade."""
+        admins = User.objects.filter(role='ADMIN', is_active=True)
+        
+        for admin in admins:
+            NotificationService.create_notification(
+                recipient=admin,
+                notification_type='SYSTEM',
+                title='New Role Request',
+                message=f'User {user.email} has requested the role: {requested_role}.',
+                priority='HIGH',
+                delivery_method='BOTH',
+                action_url='/user-management',
+                action_text='View Requests'
+            )
+
+    @staticmethod
     def send_scheduled_notifications():
         """Send all scheduled notifications that are due"""
         now = timezone.now()

@@ -37,6 +37,7 @@ def manage_safe_emails(request):
         emails = [{
             'id': se.id,
             'email': se.email,
+            'role': se.role,
             'is_active': se.is_active,
             'created_at': se.created_at
         } for se in safe_emails]
@@ -44,19 +45,21 @@ def manage_safe_emails(request):
     
     elif request.method == 'POST':
         email = request.data.get('email', '').strip().lower()
+        role = request.data.get('role', User.Role.STUDENT)
         if not email:
             return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
         
         safe_email, created = SafeEmail.objects.get_or_create(email=email)
-        if not created:
-            safe_email.is_active = True
-            safe_email.save()
+        safe_email.role = role
+        safe_email.is_active = True
+        safe_email.save()
             
         return Response({
-            'message': f'Email {email} added to safe list',
+            'message': f'Email {email} added to safe list with role {role}',
             'safe_email': {
                 'id': safe_email.id,
                 'email': safe_email.email,
+                'role': safe_email.role,
                 'is_active': safe_email.is_active
             }
         })
@@ -141,6 +144,7 @@ def get_all_users(request):
                 'TOTAL_STAFF': User.objects.filter(role__in=[
                     User.Role.ADMIN, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE, User.Role.STAFF
                 ]).count(),
+                'PENDING_REQUESTS': User.objects.exclude(requested_role__isnull=True).exclude(requested_role='').count(),
             }
         })
         
@@ -148,6 +152,48 @@ def get_all_users(request):
         return Response({
             'error': f'Failed to fetch users: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def request_role(request):
+    """Allow a user to request a professional role upgrade."""
+    try:
+        new_role = request.data.get('role')
+        if not new_role or new_role not in [choice[0] for choice in User.Role.choices]:
+            return Response({'error': 'Invalid role requested'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Professional roles require admin approval
+        professional_roles = [User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE, User.Role.STAFF]
+        
+        if new_role in professional_roles:
+            request.user.requested_role = new_role
+            request.user.save(update_fields=['requested_role'])
+            
+            # Notify admins
+            try:
+                from notifications.services import NotificationService
+                NotificationService.notify_admins_of_role_request(request.user, new_role)
+            except Exception as e:
+                print(f"Notification error: {e}")
+                
+            return Response({
+                'message': f'Request for {new_role} role submitted to administrators.',
+                'requested_role': new_role
+            })
+        elif new_role == User.Role.TEACHER:
+            # Teachers can self-select (patient role)
+            request.user.role = User.Role.TEACHER
+            request.user.requested_role = None
+            request.user.save(update_fields=['role', 'requested_role'])
+            return Response({
+                'message': 'Role updated to Teacher successfully.',
+                'role': 'TEACHER'
+            })
+        else:
+            return Response({'error': 'Self-selection not allowed for this role'}, status=status.HTTP_403_FORBIDDEN)
+            
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
@@ -197,6 +243,9 @@ def update_user_role(request, user_id):
         
         old_role = user.role
         user.role = new_role
+        
+        # Clear any pending role requests upon admin assignment
+        user.requested_role = None
         
         # Update staff/superuser status based on role
         if new_role == User.Role.ADMIN:

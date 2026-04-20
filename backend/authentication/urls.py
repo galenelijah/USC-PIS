@@ -38,6 +38,7 @@ urlpatterns = [
     path('admin/users/<int:user_id>/role/', user_management_views.update_user_role, name='admin-update-role'),
     path('admin/users/<int:user_id>/status/', user_management_views.toggle_user_status, name='admin-toggle-status'),
     path('admin/users/<int:user_id>/delete/', user_management_views.delete_user, name='admin-delete-user'),
+    path('request-role/', user_management_views.request_role, name='request-role'),
 
     path('', include(router.urls)),
 ] 
