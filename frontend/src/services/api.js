@@ -520,6 +520,46 @@ export const authService = {
     }
   },
 
+  getGlobalEmailConfig: async () => {
+    try {
+      const response = await api.get('/utils/email/config/global/');
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  updateGlobalEmailConfig: async (configData) => {
+    try {
+      const response = await api.put('/utils/email/config/global/', configData);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  getSystemEmailConfigs: async () => {
+    try {
+      const response = await api.get('/utils/email/config/events/');
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  updateSystemEmailConfig: async (id, configData) => {
+    try {
+      const response = await api.put(`/utils/email/config/events/${id}/`, configData);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
   testEmailSystem: async (testData) => {
     try {
       const token = localStorage.getItem('Token');

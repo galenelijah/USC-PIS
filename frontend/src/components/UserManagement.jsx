@@ -599,9 +599,13 @@ const UserManagement = () => {
                             variant="contained" 
                             color="success" 
                             startIcon={<HowToReg />}
-                            onClick={() => handleRoleUpdate(user, user.requested_role)}
+                            onClick={() => setRoleDialog({ 
+                              open: true, 
+                              user, 
+                              newRole: user.requested_role || 'STAFF' 
+                            })}
                           >
-                            Approve
+                            Approve & Assign Role
                           </Button>
                           <Button 
                             variant="outlined" 
@@ -740,17 +744,22 @@ const UserManagement = () => {
 
       {/* Role Update Dialog */}
       <Dialog open={roleDialog.open} onClose={() => setRoleDialog({ open: false, user: null, newRole: '' })}>
-        <DialogTitle>Administrative Role Override</DialogTitle>
+        <DialogTitle>
+          {roleDialog.user?.requested_role ? 'Approve & Assign Role' : 'Administrative Role Override'}
+        </DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 2 }}>
-            Overriding role for: <strong>{roleDialog.user?.email}</strong>
+            {roleDialog.user?.requested_role 
+              ? `Approving professional request for: `
+              : `Overriding role for: `}
+            <strong>{roleDialog.user?.email}</strong>
           </Typography>
           <FormControl fullWidth sx={{ mt: 2 }}>
-            <InputLabel>Assign New Role</InputLabel>
+            <InputLabel>Select Final Role</InputLabel>
             <Select
               value={roleDialog.newRole}
               onChange={(e) => setRoleDialog(prev => ({ ...prev, newRole: e.target.value }))}
-              label="Assign New Role"
+              label="Select Final Role"
             >
               {roles.map((role) => (
                 <MenuItem key={role.value} value={role.value}>
@@ -760,7 +769,7 @@ const UserManagement = () => {
             </Select>
           </FormControl>
           <Alert severity="info" sx={{ mt: 3 }}>
-            Assigning a professional role (Doctor, Nurse, etc.) will grant system-wide clinical permissions.
+            Assigning a professional role (Doctor, Nurse, etc.) will grant system-wide clinical permissions and clear any pending requests.
           </Alert>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
@@ -770,9 +779,10 @@ const UserManagement = () => {
           <Button 
             onClick={() => handleRoleUpdate()}
             variant="contained"
+            color="success"
             disabled={!roleDialog.newRole}
           >
-            Apply Changes
+            Confirm & Activate
           </Button>
         </DialogActions>
       </Dialog>

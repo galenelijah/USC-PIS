@@ -353,3 +353,68 @@ class NotificationCampaign(models.Model):
         if self.delivered_count == 0:
             return 0
         return (self.read_count / self.delivered_count) * 100
+
+
+class GlobalEmailSettings(models.Model):
+    """Singleton model for global email settings"""
+    is_emails_enabled = models.BooleanField(default=True, help_text="Master switch to enable/disable all automated emails")
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Global Email Setting"
+        verbose_name_plural = "Global Email Settings"
+
+    def __str__(self):
+        return f"Global Email Settings: {'Enabled' if self.is_emails_enabled else 'Disabled'}"
+
+    @classmethod
+    def get_settings(cls):
+        obj, created = cls.objects.get_or_create(id=1)
+        return obj
+
+
+class SystemEmailConfiguration(models.Model):
+    """Configuration for specific system email events"""
+    EVENT_CHOICES = [
+        ('ROLE_REQUEST', 'Role Upgrade Request'),
+        ('NEW_REGISTRATION', 'New User Registration'),
+        ('MEDICAL_CERTIFICATE_APPROVED', 'Medical Certificate Approved'),
+        ('MEDICAL_CERTIFICATE_REJECTED', 'Medical Certificate Rejected'),
+        ('SYSTEM_HEALTH_ALERT', 'System Health Alert'),
+        ('FEEDBACK_REQUEST', 'Patient Feedback Request'),
+    ]
+
+    event_type = models.CharField(max_length=50, choices=EVENT_CHOICES, unique=True)
+    is_enabled = models.BooleanField(default=True)
+    template = models.ForeignKey(NotificationTemplate, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    target_roles = models.JSONField(
+        default=list, 
+        blank=True, 
+        help_text="List of roles that should receive this notification (e.g., ['ADMIN'])"
+    )
+    
+    included_users = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, 
+        blank=True, 
+        related_name='included_in_system_emails',
+        help_text="Specific users to ALWAYS include for this event"
+    )
+    
+    excluded_users = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, 
+        blank=True, 
+        related_name='excluded_from_system_emails',
+        help_text="Specific users to ALWAYS exclude for this event"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "System Email Configuration"
+        verbose_name_plural = "System Email Configurations"
+
+    def __str__(self):
+        return f"Email Config: {self.get_event_type_display()} ({'Active' if self.is_enabled else 'Inactive'})"

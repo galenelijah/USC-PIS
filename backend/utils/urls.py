@@ -53,4 +53,9 @@ urlpatterns = [
     path('email/feedback/send/', email_admin_views.send_feedback_emails, name='send_feedback_emails'),
     path('email/health-alert/send/', email_admin_views.send_health_alert, name='send_health_alert'),
     path('email/stats/', email_admin_views.email_automation_stats, name='email_automation_stats'),
+
+    # Email configuration endpoints
+    path('email/config/global/', email_admin_views.global_email_config, name='global_email_config'),
+    path('email/config/events/', email_admin_views.list_system_email_configs, name='list_system_email_configs'),
+    path('email/config/events/<int:config_id>/', email_admin_views.system_email_config_detail, name='system_email_config_detail'),
 ] 

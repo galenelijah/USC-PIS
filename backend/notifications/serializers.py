@@ -7,8 +7,47 @@ from .models import (
     NotificationTemplate,
     NotificationLog,
     NotificationPreference,
-    NotificationCampaign
+    NotificationCampaign,
+    GlobalEmailSettings,
+    SystemEmailConfiguration
 )
+
+
+class GlobalEmailSettingsSerializer(serializers.ModelSerializer):
+    """Serializer for global email settings"""
+    updated_by_name = serializers.CharField(source='updated_by.get_full_name', read_only=True)
+    
+    class Meta:
+        model = GlobalEmailSettings
+        fields = ['id', 'is_emails_enabled', 'updated_at', 'updated_by', 'updated_by_name']
+        read_only_fields = ['id', 'updated_at', 'updated_by']
+
+
+class SystemEmailConfigurationSerializer(serializers.ModelSerializer):
+    """Serializer for system email configuration"""
+    template_name = serializers.CharField(source='template.name', read_only=True)
+    event_type_display = serializers.CharField(source='get_event_type_display', read_only=True)
+    
+    # User details for lists
+    included_users_details = serializers.SerializerMethodField()
+    excluded_users_details = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = SystemEmailConfiguration
+        fields = [
+            'id', 'event_type', 'event_type_display', 'is_enabled', 
+            'template', 'template_name', 'target_roles',
+            'included_users', 'included_users_details',
+            'excluded_users', 'excluded_users_details',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_included_users_details(self, obj):
+        return [{'id': u.id, 'email': u.email, 'name': u.get_full_name()} for u in obj.included_users.all()]
+
+    def get_excluded_users_details(self, obj):
+        return [{'id': u.id, 'email': u.email, 'name': u.get_full_name()} for u in obj.excluded_users.all()]
 
 
 class NotificationTemplateSerializer(serializers.ModelSerializer):

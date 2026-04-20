@@ -35,6 +35,78 @@ def admin_required(view_func):
         return view_func(request, *args, **kwargs)
     return wrapper
 
+from notifications.models import (
+    NotificationLog, 
+    GlobalEmailSettings, 
+    SystemEmailConfiguration,
+    NotificationTemplate
+)
+from notifications.serializers import (
+    GlobalEmailSettingsSerializer, 
+    SystemEmailConfigurationSerializer,
+    NotificationTemplateSerializer
+)
+
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+@admin_required
+def global_email_config(request):
+    """Get or update global email settings"""
+    settings_obj = GlobalEmailSettings.get_settings()
+    
+    if request.method == 'GET':
+        serializer = GlobalEmailSettingsSerializer(settings_obj)
+        return Response(serializer.data)
+    
+    elif request.method == 'PUT':
+        serializer = GlobalEmailSettingsSerializer(settings_obj, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save(updated_by=request.user)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+@admin_required
+def list_system_email_configs(request):
+    """List all system email configurations"""
+    configs = SystemEmailConfiguration.objects.all().order_by('event_type')
+    serializer = SystemEmailConfigurationSerializer(configs, many=True)
+    
+    # Also include available templates for the frontend dropdown
+    templates = NotificationTemplate.objects.filter(is_active=True)
+    template_serializer = NotificationTemplateSerializer(templates, many=True)
+    
+    return Response({
+        'configurations': serializer.data,
+        'templates': template_serializer.data,
+        'event_choices': [
+            {'value': c[0], 'label': c[1]} 
+            for c in SystemEmailConfiguration.EVENT_CHOICES
+        ]
+    })
+
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+@admin_required
+def system_email_config_detail(request, config_id):
+    """Get or update a specific system email configuration"""
+    try:
+        config = SystemEmailConfiguration.objects.get(id=config_id)
+    except SystemEmailConfiguration.DoesNotExist:
+        return Response({'error': 'Configuration not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'GET':
+        serializer = SystemEmailConfigurationSerializer(config)
+        return Response(serializer.data)
+    
+    elif request.method == 'PUT':
+        serializer = SystemEmailConfigurationSerializer(config, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 @admin_required

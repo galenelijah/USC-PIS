@@ -233,47 +233,14 @@ const RoleSelection = () => {
                     <Typography variant="caption" color="text.secondary">ADMINISTRATIVE GATE</Typography>
                   </Divider>
 
-                  {/* Doctor Role */}
+                  {/* Generalized Clinic Staff Role */}
                   <Paper
                     variant="outlined"
                     sx={{
-                      p: 1,
+                      p: 2,
                       borderRadius: 2,
-                      borderColor: role === 'DOCTOR' ? '#800000' : 'divider',
-                      bgcolor: role === 'DOCTOR' ? alpha('#800000', 0.05) : 'transparent',
-                      transition: 'all 0.2s',
-                      cursor: 'pointer',
-                      '&:hover': { borderColor: '#800000' }
-                    }}
-                    onClick={() => setRole('DOCTOR')}
-                  >
-                    <FormControlLabel 
-                      value="DOCTOR" 
-                      control={<Radio sx={{ color: '#800000', '&.Mui-checked': { color: '#800000' } }} />} 
-                      sx={{ width: '100%', m: 0, px: 1 }}
-                      label={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 1 }}>
-                          <DoctorIcon color={role === 'DOCTOR' ? 'primary' : 'action'} />
-                          <Box sx={{ textAlign: 'left' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <Typography variant="subtitle2" fontWeight="bold">Doctor</Typography>
-                              <LockIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
-                            </Box>
-                            <Typography variant="caption" color="text.secondary">Medical physicians (Requires Admin Approval)</Typography>
-                          </Box>
-                        </Box>
-                      } 
-                    />
-                  </Paper>
-
-                  {/* Nurse/Staff Group (Simplified) */}
-                  <Paper
-                    variant="outlined"
-                    sx={{
-                      p: 1,
-                      borderRadius: 2,
-                      borderColor: (role === 'NURSE' || role === 'STAFF') ? '#800000' : 'divider',
-                      bgcolor: (role === 'NURSE' || role === 'STAFF') ? alpha('#800000', 0.05) : 'transparent',
+                      borderColor: isProfessionalRole(role) ? '#800000' : 'divider',
+                      bgcolor: isProfessionalRole(role) ? alpha('#800000', 0.05) : 'transparent',
                       transition: 'all 0.2s',
                       cursor: 'pointer',
                       '&:hover': { borderColor: '#800000' }
@@ -286,13 +253,16 @@ const RoleSelection = () => {
                       sx={{ width: '100%', m: 0, px: 1 }}
                       label={
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 1 }}>
-                          <StaffIcon color={(role === 'NURSE' || role === 'STAFF') ? 'primary' : 'action'} />
+                          <DoctorIcon color={isProfessionalRole(role) ? 'primary' : 'action'} />
                           <Box sx={{ textAlign: 'left' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <Typography variant="subtitle2" fontWeight="bold">Clinic Staff / Nurse</Typography>
+                              <Typography variant="subtitle2" fontWeight="bold">Clinic Staff / Medical Professional</Typography>
                               <LockIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
                             </Box>
-                            <Typography variant="caption" color="text.secondary">Support and nursing personnel</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Doctors, Dentists, Nurses, and Support Staff. 
+                              (Requires manual verification by Admin)
+                            </Typography>
                           </Box>
                         </Box>
                       } 

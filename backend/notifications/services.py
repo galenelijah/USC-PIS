@@ -15,7 +15,9 @@ from .models import (
     NotificationTemplate, 
     NotificationLog, 
     NotificationPreference,
-    NotificationCampaign
+    NotificationCampaign,
+    GlobalEmailSettings,
+    SystemEmailConfiguration
 )
 from .tasks import send_email_task
 from authentication.models import User
@@ -92,6 +94,14 @@ class EmailService:
     def send_notification_email(notification: Notification) -> Dict[str, Any]:
         """Send email notification"""
         try:
+            # Check master switch
+            if not GlobalEmailSettings.get_settings().is_emails_enabled:
+                return {
+                    'success': False,
+                    'error': 'Email system is globally disabled',
+                    'skipped': True
+                }
+
             # Check if email is enabled for user
             prefs = NotificationPreference.objects.filter(user=notification.recipient).first()
             if prefs and not prefs.email_enabled:
@@ -373,13 +383,43 @@ class NotificationService:
         return results
     
     @staticmethod
+    def _get_event_recipients(event_type: str) -> List[User]:
+        """Get filtered recipients based on SystemEmailConfiguration"""
+        try:
+            config = SystemEmailConfiguration.objects.get(event_type=event_type)
+            if not config.is_enabled:
+                return []
+            
+            # Start with users matching target roles
+            recipients = User.objects.filter(role__in=config.target_roles, is_active=True)
+            
+            # Add included users
+            included_ids = config.included_users.values_list('id', flat=True)
+            recipients = recipients | User.objects.filter(id__in=included_ids)
+            
+            # Remove excluded users
+            excluded_ids = config.excluded_users.values_list('id', flat=True)
+            recipients = recipients.exclude(id__in=excluded_ids)
+            
+            return list(recipients.distinct())
+        except SystemEmailConfiguration.DoesNotExist:
+            # Fallback to default behavior if config doesn't exist
+            if event_type == 'ROLE_REQUEST':
+                return list(User.objects.filter(role='ADMIN', is_active=True))
+            return []
+
+    @staticmethod
     def notify_admins_of_role_request(user: User, requested_role: str):
-        """Notify all administrators when a user requests a role upgrade."""
-        admins = User.objects.filter(role='ADMIN', is_active=True)
+        """Notify administrators based on SystemEmailConfiguration"""
+        # Global check
+        if not GlobalEmailSettings.get_settings().is_emails_enabled:
+            return
+
+        recipients = NotificationService._get_event_recipients('ROLE_REQUEST')
         
-        for admin in admins:
+        for recipient in recipients:
             NotificationService.create_notification(
-                recipient=admin,
+                recipient=recipient,
                 notification_type='SYSTEM',
                 title='New Role Request',
                 message=f'User {user.email} has requested the role: {requested_role}.',
