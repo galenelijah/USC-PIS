@@ -1,5 +1,5 @@
 from django.test import TestCase
-from django.urls import reverse
+from django.urls import reverse, NoReverseMatch
 from django.contrib.auth import get_user_model
 
 class UserModelTest(TestCase):
@@ -10,9 +10,13 @@ class UserModelTest(TestCase):
 
 class AuthEndpointTest(TestCase):
     def test_register_endpoint(self):
-        url = reverse('authentication:register') if 'authentication:register' in [u.name for u in self.client.handler._urls.urlpatterns] else '/api/auth/register/'
+        try:
+            url = reverse('authentication:register')
+        except NoReverseMatch:
+            url = '/api/auth/register/'
+            
         response = self.client.post(url, {
-            'email': 'newuser@example.com',
+            'email': 'newuser@usc.edu.ph',
             'password': 'testpass123',
             'password2': 'testpass123',
             'role': 'STUDENT',

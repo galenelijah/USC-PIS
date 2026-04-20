@@ -40,7 +40,11 @@ const VerifyEmail = () => {
   useEffect(() => {
     // If user is already verified, redirect
     if (user?.is_verified) {
-      if (user.completeSetup === false) {
+      const isTextEmail = user?.email && !/\d/.test(user.email.split('@')[0]);
+      
+      if (isTextEmail && user.role === 'STUDENT') {
+        navigate('/role-selection');
+      } else if (user.completeSetup === false) {
         navigate('/profile-setup');
       } else {
         navigate('/home');

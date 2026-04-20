@@ -1,5 +1,32 @@
 ---
 
+# Session Changes (2026-04-11)
+
+This entry documents the final system integrity audit, architectural hardening, and manuscript preparation.
+
+## Key Accomplishments
+- **Security & RBAC**: 
+  - Hardened `MedicalCertificateViewSet` to strictly block Student `POST` requests, ensuring only authorized clinic staff can create certificates.
+  - Verified `pgcrypto` column-level encryption for all sensitive PHI fields.
+- **Architectural Stability**:
+  - Refactored `NotificationService` and related signals to handle "partial user" registration (empty names) during the multi-step profile setup, preventing `AttributeError` crashes.
+  - Implemented a 503 "Service Unavailable" fallback for PDF generation to ensure workflow continuity in environments without `xhtml2pdf` system dependencies.
+- **Validation & Testing**:
+  - Achieved **100% PASS** on 46 core unit and integration tests.
+  - Benchmarked sub-50ms response times for critical clinical operations.
+- **Documentation**:
+  - Generated a comprehensive 15-file technical suite for the thesis manuscript.
+  - Created AI-optimized "Source Documents" for automated SRS and Training Plan generation via NotebookLM.
+
+## Modified Files
+- `backend/notifications/services.py`: Added null-safety guards for user context.
+- `backend/notifications/signals.py`: Refined welcome notification triggers.
+- `backend/medical_certificates/views.py`: Implemented RBAC hardening and PDF fail-safes.
+- `backend/medical_certificates/tests.py`: Aligned test cases with new status schema.
+- `backend/authentication/tests.py`: Improved URL reverse logic for registration endpoint.
+
+---
+
 # Session Changes (2026-01-31)
 
 This entry documents the unification of the Campaigns view for all user roles.

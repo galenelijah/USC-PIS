@@ -79,9 +79,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         """
         Determine user role based on email pattern and optional preference:
         - Students: emails with numbers (e.g., 21100727@usc.edu.ph) -> Always STUDENT
-        - Staff/Teachers: emails with only letters (e.g., elfabian@usc.edu.ph)
-          - If role_preference is TEACHER, assign TEACHER
-          - Otherwise, default to STAFF
+        - Staff/Teachers/Medical: emails with only letters (e.g., elfabian@usc.edu.ph)
+          - If role_preference is valid, assign it
+          - Otherwise, default to STUDENT to trigger role selection on frontend
         """
         if not email:
             return User.Role.STUDENT  # Default fallback
@@ -105,8 +105,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             if role_preference in allowed_professional_roles:
                 return role_preference
             
-            # Default to STAFF role for non-student emails if no valid preference
-            return User.Role.STAFF
+            # Default to STUDENT for non-student emails if no valid preference
+            # This allows the frontend to redirect to /role-selection
+            return User.Role.STUDENT
     
     def validate_password(self, value):
         """Validate password with enhanced security checks."""

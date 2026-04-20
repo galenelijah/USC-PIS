@@ -85,18 +85,6 @@ def toggle_user_verification(request, user_id):
         'is_verified': user.is_verified
     })
 
-def admin_required(view_func):
-    """Decorator to require admin role"""
-    def wrapper(request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-        
-        if request.user.role != User.Role.ADMIN:
-            return Response({'error': 'Admin privileges required'}, status=status.HTTP_403_FORBIDDEN)
-        
-        return view_func(request, *args, **kwargs)
-    return wrapper
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 @admin_required
@@ -163,21 +151,46 @@ def get_all_users(request):
 
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
-@admin_required
 def update_user_role(request, user_id):
-    """Update a user's role"""
+    """
+    Update a user's role.
+    - Admins can update any user's role.
+    - Users can only update their own role if it is currently STUDENT.
+    - Users cannot assign themselves the ADMIN role.
+    """
     try:
         user = get_object_or_404(User, id=user_id)
         new_role = request.data.get('role')
         
-        # Validate role
+        # Check permissions
+        is_admin = request.user.role == User.Role.ADMIN
+        is_self = request.user.id == user.id
+        
+        if not is_admin and not is_self:
+            return Response({
+                'error': 'Permission denied. Only admins can update other users.'
+            }, status=status.HTTP_403_FORBIDDEN)
+            
+        if not is_admin:
+            # Security checks for self-updates
+            if user.role != User.Role.STUDENT:
+                return Response({
+                    'error': 'Role has already been set and cannot be changed. Please contact an admin.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+            if new_role == User.Role.ADMIN:
+                return Response({
+                    'error': 'Cannot assign ADMIN role to yourself.'
+                }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Validate role exists
         if not new_role or new_role not in [choice[0] for choice in User.Role.choices]:
             return Response({
                 'error': 'Invalid role provided'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Prevent self-demotion from admin
-        if request.user.id == user.id and request.user.role == User.Role.ADMIN and new_role != User.Role.ADMIN:
+        # Prevent self-demotion from admin (even if is_admin is true)
+        if is_self and request.user.role == User.Role.ADMIN and new_role != User.Role.ADMIN:
             return Response({
                 'error': 'Cannot change your own admin role'
             }, status=status.HTTP_400_BAD_REQUEST)

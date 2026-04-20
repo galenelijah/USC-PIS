@@ -37,7 +37,7 @@ def create_notification_preferences(sender, instance, created, **kwargs):
 @receiver(post_save, sender=Patient)
 def send_welcome_notification(sender, instance, created, **kwargs):
     """Send welcome notification to new patients"""
-    if created:
+    if created and instance.user:
         # Get or create welcome template
         template, _ = NotificationTemplate.objects.get_or_create(
             template_type='CLINIC_UPDATE',
@@ -82,10 +82,20 @@ USC Health Services Team''',
         )
         
         # Create context for template
+        user = instance.user
+        first_name = getattr(user, 'first_name', '') or 'Student'
+        last_name = getattr(user, 'last_name', '') or ''
+        
         context_data = NotificationTemplateService.get_default_context(
-            user=instance.user,
+            user=user,
             patient=instance
         )
+        # Ensure name variables are populated even if user profile is incomplete
+        context_data.update({
+            'patient_first_name': first_name,
+            'patient_last_name': last_name,
+            'patient_name': f"{first_name} {last_name}".strip()
+        })
         
         # Create welcome notification
         NotificationService.create_from_template(

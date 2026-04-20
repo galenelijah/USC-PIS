@@ -56,11 +56,14 @@ class NotificationTemplateService:
     @staticmethod
     def get_default_context(user: User, patient: Optional[Patient] = None) -> Dict[str, Any]:
         """Get default context variables for templates"""
+        first_name = getattr(user, 'first_name', '') or 'Student'
+        last_name = getattr(user, 'last_name', '') or ''
+        
         context = {
-            'user_name': f"{user.first_name} {user.last_name}",
-            'user_first_name': user.first_name,
-            'user_last_name': user.last_name,
-            'user_email': user.email,
+            'user_name': f"{first_name} {last_name}".strip(),
+            'user_first_name': first_name,
+            'user_last_name': last_name,
+            'user_email': getattr(user, 'email', ''),
             'clinic_name': 'USC Health Services',
             'clinic_phone': '(032) 230-0100',
             'clinic_email': '21100727@usc.edu.ph',
@@ -69,12 +72,14 @@ class NotificationTemplateService:
         }
         
         if patient:
+            p_first = getattr(patient, 'first_name', '') or first_name
+            p_last = getattr(patient, 'last_name', '') or last_name
             context.update({
-                'patient_name': f"{patient.first_name} {patient.last_name}",
-                'patient_first_name': patient.first_name,
-                'patient_last_name': patient.last_name,
-                'patient_email': patient.email,
-                'patient_phone': patient.phone_number,
+                'patient_name': f"{p_first} {p_last}".strip(),
+                'patient_first_name': p_first,
+                'patient_last_name': p_last,
+                'patient_email': getattr(patient, 'email', ''),
+                'patient_phone': getattr(patient, 'phone_number', ''),
             })
         
         return context

@@ -1,21 +1,17 @@
 # USC-PIS User Guide
 
 [![System Status](https://img.shields.io/badge/Status-Fully%20Operational-green)]()
-[![Version](https://img.shields.io/badge/Version-February%202026-blue)]()
-[![Users](https://img.shields.io/badge/Active%20Users-10-green)]()
+[![Version](https://img.shields.io/badge/Version-April%202026-blue)]()
+[![Users](https://img.shields.io/badge/Active%20Users-12-green)]()
 
-## 🆕 Latest Updates (February 11, 2026)
+## 🆕 Latest Updates (April 9, 2026)
 
 ### **✅ Major System Achievements**
-- **✅ Enhanced Student Onboarding**: Resolved all registration error message issues and fixed profile setup navigation bugs.
-- **✅ Real-Time Profile Status**: New dashboard interface for students that highlights exactly which fields are missing from their healthcare profile.
-- **✅ Automated Data Integrity**: Deleting a user account now automatically and safely removes their associated patient record, preventing "orphaned" data.
-- **✅ Report Standardization**: Consolidated all clinic reporting into a professional USC-branded PDF generation engine.
-- **✅ Self-Healing Profiles**: The system now automatically repairs missing patient links for students who have completed their setup.
-- **✅ Enterprise-Grade Backup System**: Complete execution engine with smart restore capabilities and performance optimization.
-- **✅ Data Recovery System**: Intelligent conflict detection with merge strategies (replace, merge, skip) and preview functionality.
-- **✅ Email Notification System**: AWS SES configured with automated communications and professional templates.
-- **✅ Media Storage System**: Cloudinary integrated with CDN delivery and persistent storage.
+- **✅ Advanced Patient Filtering**: Staff can now filter patients by Academic Year, Semester, Program, and Role using a new collapsible filter bar.
+- **✅ Professional Medical Certificates**: Implemented the **USC Clinic Template (Form ACA-HSD-04F)** with a polished landscape layout and automated course name mapping.
+- **✅ Purpose-Driven Workflow**: Standardized all certificate forms to use **"Purpose/Requirement"** instead of "Diagnosis" for administrative clarity.
+- **✅ Automated Data Mapping**: The system now automatically retrieves a student's full program name (e.g., "Bachelor of Science in Computer Engineering") for all official documents.
+- **✅ Reporting Grade A+**: Finalized the reporting engine with high-precision data segmentation and professionally branded PDF exports.
 
 ### **🎯 SYSTEM STATUS (February 2026)**
 **All core infrastructure and data integrity issues resolved - System ready for Pilot Testing.**
@@ -312,7 +308,20 @@ The real-time notification center keeps you updated on your healthcare status wi
     *   **Delete Read**: Remove old notifications that you've already seen to keep your list clean.
     *   **Delete All**: Completely clear your notification history for better focus.
 
-### **Automatic Patient List Management** 📋
+### Advanced Patient Filtering (April 2026 Update) 🔍
+The Patients page now features a powerful filtering system to help staff manage and segment large patient datasets.
+
+1. **Accessing Filters**: Click the **"Filters"** button next to the search bar to toggle the advanced filter panel.
+2. **Filtering Options**:
+   - **Role**: Filter by Student or Teacher roles.
+   - **Program**: Select a specific academic program from the dropdown.
+   - **Year Level**: Filter students by their current year level (1st–4th Year).
+   - **Academic Year (AY)**: Filter by the student's registration period (e.g., AY 2025-2026).
+   - **Semester**: Further refine AY filters by selecting 1st Semester, 2nd Semester, or Short Term.
+3. **Active Filters**: Applied filters appear as removable chips below the search bar.
+4. **Combined Search**: You can use the search bar (name/email/ID) simultaneously with active filters.
+
+### Automatic Patient List Management 📋
 
 The system automatically manages who appears in the "Patients" list to ensure administrative clarity.
 
@@ -666,13 +675,13 @@ USC-PIS features comprehensive form validation to ensure data accuracy and provi
   - Height/Weight/BMI: Must be positive numbers
 - **Physical Examination**: All fields optional
 
-#### **Medical Certificate Form** (Enhanced August 2025)
+#### **Medical Certificate Form** (Polished April 2026)
 - **Patient Search & Selection**: Use the new smart search interface
   - Type patient name, email, USC ID, or ID number
   - Select from real-time filtered results with professional patient cards
   - Confirm selection in the green confirmation panel
-- **Template**: Required selection from available certificate templates
-- **Diagnosis**: Required, cannot be empty
+- **Template**: Required selection from available certificate templates (e.g., **USC Clinic Template ACA-HSD-04F**)
+- **Purpose/Requirement**: Required, detailed explanation of why the certificate is needed (e.g., Tour, Off-Campus Activity).
 - **Recommendations**: Required, cannot be empty
 - **Valid From Date**: Required, use the date picker
 - **Valid Until Date**: Required, must be after the "Valid From" date
