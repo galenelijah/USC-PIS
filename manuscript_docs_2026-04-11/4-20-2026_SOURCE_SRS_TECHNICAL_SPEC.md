@@ -1,61 +1,61 @@
-# SOURCE DOCUMENT: Software Requirements Specification (SRS) - USC-PIS
+# Software Requirements Specification (SRS): USC-PIS
+**Project:** University of San Carlos Patient Information System (USC-PIS)
 **Date:** April 20, 2026
-**Target AI Task:** Generate a formal IEEE 830-compliant SRS document.
-**Revision:** 2.3.0 (Post-Audit Comprehensive Update)
+**Version:** 3.0.0 (Comprehensive Thesis Finalization)
+**Compliance:** IEEE 830-1998 Standard
 
 ---
 
-## 1. System Overview
-The USC Patient Information System (USC-PIS) is a centralized, secure web application designed to digitize medical and dental records for the University of San Carlos Health Services Department. It serves as a comprehensive clinical management tool for students, faculty, and medical staff.
+## 1. Introduction
+
+### 1.1 Purpose
+The purpose of this document is to provide a complete and detailed specification of the requirements for the USC-PIS. It defines the functional, non-functional, and technical standards required for a secure, digitized patient information system.
+
+### 1.2 System Overview
+The USC-PIS is a centralized clinical management platform designed to replace legacy paper-based systems at the USC Health Services Department. It facilitates the digital management of medical/dental records, patient onboarding, medical certificates, and automated health outreach.
+
+---
 
 ## 2. Functional Requirements (FR)
 
-### 2.1 Authentication & Role Management (FR-AUTH)
-*   **REQ-AUTH-01:** Strictly enforce registration using `@usc.edu.ph` email addresses.
-*   **REQ-AUTH-02:** Implement a 6-digit email verification code (MFA) for all users.
-*   **REQ-AUTH-03:** **Heuristic Role Assignment:** Automatically identify Students vs. Faculty/Staff based on email username patterns (digits vs. text-only).
-*   **REQ-AUTH-04:** **Role Selection Workflow:** Users with text-based emails MUST be redirected to `/role-selection` to specify their USC status.
-*   **REQ-AUTH-05:** **Self-Service Restrictions:** Users can self-select the `TEACHER` (Faculty) role. Any administrative or medical roles (STAFF, DOCTOR, etc.) MUST be assigned by a system administrator.
+### 2.1 Identity & Access Management (FR-IAM)
+*   **REQ-IAM-01: Domain Enforcement.** The system MUST only allow registration from official `@usc.edu.ph` email addresses.
+*   **REQ-IAM-02: Multi-Factor Authentication (MFA).** All users MUST verify their identity via a 6-digit code sent to their USC email upon registration and sensitive login events.
+*   **REQ-IAM-03: Heuristic Role Classification.** The system MUST parse email usernames (e.g., `21100727` vs `elfabian`) to automatically distinguish between Students and Faculty/Staff.
+*   **REQ-IAM-04: Administrative Role Gate.** 
+    *   Professional roles (DOCTOR, DENTIST, NURSE, STAFF) MUST be requested by the user and approved by an ADMIN.
+    *   Admins MUST be able to assign specific clinical permissions during the approval process.
+*   **REQ-IAM-05: Safe List Pre-Authorization.** Admins MUST be able to pre-authorize specific email addresses with pre-assigned roles to bypass the standard request flow.
 
-### 2.2 Patient & Clinical Management (FR-CLINIC)
-*   **REQ-CLINIC-01:** **Patient Onboarding:** Mandatory multi-step profile including encrypted health history (Allergies, Medications, Illnesses).
-*   **REQ-CLINIC-02:** **Medical Records:** Capture vitals (BP, Temp, Pulse, RR) and encrypted clinical diagnosis.
-*   **REQ-CLINIC-03:** **Dental Records:** Implement FDI World Dental Federation notation (11-48) with visual priority indicators and JSON-based tooth charts.
-*   **REQ-CLINIC-04:** **Medical Certificates:** Digital issuance of official USC landscape certificates (**ACA-HSD-04F**) with Physician-only approval workflow and Fitness Status assessment.
+### 2.2 Clinical Operations (FR-CLIN)
+*   **REQ-CLIN-01: Multi-Step Patient Onboarding.** New users MUST complete a comprehensive health profile, including past medical history, allergies, and medications.
+*   **REQ-CLIN-02: Encrypted Medical Records.** Physicians MUST be able to record visit vitals and clinical diagnoses. Sensitive fields MUST be stored using AES-256 encryption.
+*   **REQ-CLIN-03: ISO/FDI Dental Charting.** Dentists MUST be able to manage tooth-specific conditions using the FDI World Dental Federation notation (11-48) with a visual JSON-based interactive chart.
+*   **REQ-CLIN-04: Medical Certificate Issuance.** The system MUST generate official USC landscape certificates (**ACA-HSD-04F**) only after physician approval and fitness assessment.
 
-### 2.3 Notifications & Educational Campaigns (FR-NOTIF)
-*   **REQ-NOTIF-01:** **Multi-Channel Delivery:** Automated alerts via Email (Gmail API) and In-App notifications.
-*   **REQ-NOTIF-02:** **Health Campaigns:** Support for visual "PubMats" (PDF/Image) with engagement tracking (Views, CTA clicks).
-*   **REQ-NOTIF-03:** **Preference Management:** Users can toggle notification channels and set quiet hours.
-
-### 2.4 Reporting, Analytics & Feedback (FR-DATA)
-*   **REQ-DATA-01:** **Reporting Engine:** Generate clinical reports in PDF, XLSX, CSV, and HTML formats.
-*   **REQ-DATA-02:** **Automated Scheduling:** Admins can schedule daily/weekly reports with automated email delivery.
-*   **REQ-DATA-03:** **Patient Feedback:** Automated survey requests 24 hours post-visit, capturing facility ratings and staff courtesy metrics.
-*   **REQ-DATA-04:** **Visual Analytics:** Real-time dashboard charts (Chart.js) for patient trends and feedback sentiment.
-
-### 2.5 System Administration & Utilities (FR-SYS)
-*   **REQ-SYS-01:** **Database Backups:** Automated daily PostgreSQL dumps with manual trigger capability.
-*   **REQ-SYS-02:** **Health Monitoring:** Real-time system and database health checks with administrator alerts.
-*   **REQ-SYS-03:** **File Security:** SHA-256 deduplication and secure hashed storage for all clinical uploads.
+### 2.3 System Communications (FR-COMM)
+*   **REQ-COMM-01: Automated Health Campaigns.** Admins MUST be able to create and schedule "PubMats" (educational graphics) with engagement tracking.
+*   **REQ-COMM-02: Global Email Control.** A master kill-switch MUST be available to disable all system-wide automated emails instantly.
+*   **REQ-COMM-03: Event-Based Routing.** Admins MUST be able to define specific templates and recipient inclusion/exclusion lists for system events (e.g., Role Requests).
 
 ---
 
 ## 3. Non-Functional Requirements (NFR)
 
 ### 3.1 Security & Privacy (NFR-SEC)
-*   **REQ-SEC-01:** **PHI Protection:** Sensitive medical data MUST be encrypted at the database level using `pgcrypto`.
-*   **REQ-SEC-02:** **RBAC:** Strict Role-Based Access Control enforcing data silos between patients and medical staff.
+*   **REQ-SEC-01: Data at Rest.** All Personal Health Information (PHI) MUST be encrypted at the database column level using PostgreSQL `pgcrypto`.
+*   **REQ-SEC-02: Data in Transit.** All communication MUST be secured via TLS 1.3 (HTTPS).
+*   **REQ-SEC-03: App Security.** The system MUST implement HSTS, CSP, and XSS protection middleware.
 
-### 3.2 Reliability & Performance (NFR-PERF)
-*   **REQ-PERF-01:** API response times < 500ms.
-*   **REQ-PERF-02:** 99.5% availability target on Heroku infrastructure.
+### 3.2 Reliability & Performance (NFR-REL)
+*   **REQ-REL-01: Availability.** The system target is 99.9% uptime on Heroku production environment.
+*   **REQ-REL-02: Latency.** API endpoints MUST respond in < 300ms for standard operations.
+*   **REQ-REL-03: Background Processing.** Email and Report tasks MUST be offloaded to Celery to prevent UI blocking.
 
 ---
 
-## 4. Technical Stack Summary
-*   **Frontend:** React (Vite, Redux Toolkit, MUI).
-*   **Backend:** Django REST Framework (Python 3.12).
-*   **Database:** PostgreSQL 16 with pgcrypto.
-*   **Tasks:** Celery + Redis for background jobs.
-*   **Services:** Gmail API (Notifications), Cloudinary (Storage).
+## 4. Technical Architecture Summary
+*   **Frontend:** React 18, Redux Toolkit (State), MUI 5 (Design).
+*   **Backend:** Django 5.1, Django REST Framework 3.15.
+*   **Database:** PostgreSQL 16 (Primary), Redis 7 (Caching/Celery).
+*   **Integrations:** Gmail API (SMTP), Cloudinary (Blobs), Heroku (PaaS).
