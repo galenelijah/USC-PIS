@@ -25,7 +25,7 @@ class GlobalEmailSettingsSerializer(serializers.ModelSerializer):
 
 class SystemEmailConfigurationSerializer(serializers.ModelSerializer):
     """Serializer for system email configuration"""
-    template_name = serializers.CharField(source='template.name', read_only=True)
+    template_name = serializers.ReadOnlyField(source='template.name')
     event_type_display = serializers.CharField(source='get_event_type_display', read_only=True)
     
     # User details for lists

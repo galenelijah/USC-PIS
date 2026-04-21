@@ -58,4 +58,5 @@ urlpatterns = [
     path('email/config/global/', email_admin_views.global_email_config, name='global_email_config'),
     path('email/config/events/', email_admin_views.list_system_email_configs, name='list_system_email_configs'),
     path('email/config/events/<int:config_id>/', email_admin_views.system_email_config_detail, name='system_email_config_detail'),
+    path('email/templates/static/', email_admin_views.list_static_templates, name='list_static_templates'),
 ] 

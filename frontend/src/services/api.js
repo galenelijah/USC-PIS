@@ -550,6 +550,16 @@ export const authService = {
     }
   },
 
+  getStaticTemplates: async () => {
+    try {
+      const response = await api.get('/utils/email/templates/static/');
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
   updateSystemEmailConfig: async (id, configData) => {
     try {
       const response = await api.put(`/utils/email/config/events/${id}/`, configData);

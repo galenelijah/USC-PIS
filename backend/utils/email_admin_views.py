@@ -14,6 +14,7 @@ from datetime import timedelta
 from functools import wraps
 from io import StringIO
 import logging
+import os
 
 from authentication.models import User
 from patients.models import MedicalRecord, DentalRecord
@@ -85,6 +86,28 @@ def list_system_email_configs(request):
             for c in SystemEmailConfiguration.EVENT_CHOICES
         ]
     })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+@admin_required
+def list_static_templates(request):
+    """List all static HTML email templates"""
+    templates_dir = os.path.join(settings.BASE_DIR, 'templates', 'emails')
+    static_templates = []
+    
+    if os.path.exists(templates_dir):
+        for filename in os.listdir(templates_dir):
+            if filename.endswith('.html'):
+                file_path = os.path.join(templates_dir, filename)
+                static_templates.append({
+                    'id': f'static:{filename}',
+                    'name': filename,
+                    'file_name': filename,
+                    'size': os.path.getsize(file_path),
+                    'is_static': True
+                })
+    
+    return Response(static_templates)
 
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])

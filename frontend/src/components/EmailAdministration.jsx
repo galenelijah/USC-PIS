@@ -73,6 +73,7 @@ const EmailAdministration = () => {
   const [systemEmailConfigs, setSystemEmailConfigs] = useState([]);
   const [availableTemplates, setAvailableTemplates] = useState([]);
   const [allTemplates, setAllTemplates] = useState([]);
+  const [staticTemplates, setStaticTemplates] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
   const [eventChoices, setEventChoices] = useState([]);
@@ -176,15 +177,20 @@ const EmailAdministration = () => {
   const fetchConfigs = async () => {
     try {
       setConfigLoading(true);
+      console.log('Fetching email configurations...');
       const [globalRes, systemRes] = await Promise.all([
         authService.getGlobalEmailConfig(),
         authService.getSystemEmailConfigs()
       ]);
+      console.log('Global Config:', globalRes);
+      console.log('System Configs:', systemRes);
+      
       setGlobalConfig(globalRes);
-      setSystemEmailConfigs(systemRes.configurations);
-      setAvailableTemplates(systemRes.templates);
-      setEventChoices(systemRes.event_choices);
+      setSystemEmailConfigs(systemRes?.configurations || []);
+      setAvailableTemplates(systemRes?.templates || []);
+      setEventChoices(systemRes?.event_choices || []);
     } catch (error) {
+      console.error('Failed to load configurations:', error);
       setNotification({
         type: 'error',
         message: `Failed to load configurations: ${error.message}`
@@ -197,8 +203,12 @@ const EmailAdministration = () => {
   const fetchTemplates = async () => {
     try {
       setLoading(true);
-      const response = await notificationService.getTemplates();
-      setAllTemplates(response.data.results || response.data);
+      const [templatesRes, staticRes] = await Promise.all([
+        notificationService.getTemplates(),
+        authService.getStaticTemplates()
+      ]);
+      setAllTemplates(templatesRes.data.results || templatesRes.data);
+      setStaticTemplates(staticRes || []);
     } catch (error) {
       setNotification({
         type: 'error',
@@ -601,6 +611,12 @@ const EmailAdministration = () => {
                     <TableBody>
                       {configLoading ? (
                         <TableRow><TableCell colSpan={6} align="center"><LinearProgress sx={{ my: 2 }} /></TableCell></TableRow>
+                      ) : systemEmailConfigs.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
+                            <Typography variant="body2" color="text.secondary">No event routing configurations found.</Typography>
+                          </TableCell>
+                        </TableRow>
                       ) : systemEmailConfigs.map((config) => (
                         <TableRow key={config.id} hover>
                           <TableCell sx={{ fontWeight: 'medium' }}>{config.event_type_display}</TableCell>
@@ -917,6 +933,51 @@ const EmailAdministration = () => {
               </Grid>
             ))}
           </Grid>
+
+          {staticTemplates.length > 0 && (
+            <Box sx={{ mt: 5 }}>
+              <Divider sx={{ mb: 4 }} />
+              <Typography variant="h6" fontWeight="bold" gutterBottom>
+                System Static HTML Templates (File-based)
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                These templates are defined as static HTML files in the backend and are used for core system functions.
+              </Typography>
+              
+              <Grid container spacing={3}>
+                {staticTemplates.map((template) => (
+                  <Grid item xs={12} md={4} key={template.id}>
+                    <Card variant="outlined" sx={{ bgcolor: 'grey.50', height: '100%' }}>
+                      <CardContent>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                          <DescriptionIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                          <Typography variant="subtitle1" fontWeight="bold" noWrap sx={{ maxWidth: '100%' }}>
+                            {template.name}
+                          </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                          File: {template.file_name}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Chip 
+                            label={`${(template.size / 1024).toFixed(1)} KB`} 
+                            size="small" 
+                            variant="outlined" 
+                          />
+                          <Chip 
+                            label="READ-ONLY" 
+                            size="small" 
+                            color="default"
+                            variant="filled"
+                          />
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          )}
         </Box>
       )}
 
