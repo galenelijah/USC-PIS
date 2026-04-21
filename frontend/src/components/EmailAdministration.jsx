@@ -163,7 +163,25 @@ const EmailAdministration = () => {
   }, [activeTab]);
 
   const fetchEmailData = async () => {
-  ...
+    try {
+      setLoading(true);
+      const [statusResponse, statsResponse] = await Promise.all([
+        authService.getEmailSystemStatus(),
+        authService.getEmailStats()
+      ]);
+
+      setEmailStatus(statusResponse.data);
+      setEmailStats(statsResponse.data);
+    } catch (error) {
+      setNotification({
+        type: 'error',
+        message: `Failed to load email data: ${error.message}`
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchStaffAccess = async () => {
     try {
       setStaffLoading(true);
