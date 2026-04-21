@@ -227,17 +227,14 @@ const EmailAdministration = () => {
   };
 
   const fetchCampaigns = async () => {
-      const [statusResponse, statsResponse] = await Promise.all([
-        authService.getEmailSystemStatus(),
-        authService.getEmailStats()
-      ]);
-
-      setEmailStatus(statusResponse.data);
-      setEmailStats(statsResponse.data);
+    try {
+      setLoading(true);
+      const response = await notificationService.getCampaigns();
+      setCampaigns(response.data.results || response.data);
     } catch (error) {
       setNotification({
         type: 'error',
-        message: `Failed to load email data: ${error.message}`
+        message: `Failed to load campaigns: ${error.message}`
       });
     } finally {
       setLoading(false);
