@@ -96,7 +96,8 @@ const HealthRecords = () => {
   const [currentRecord, setCurrentRecord] = useState(null);
   const [dialogMode, setDialogMode] = useState('create'); // 'create' or 'edit'
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
   const [tabValue, setTabValue] = useState(0);
   const user = useSelector(selectCurrentUser);
   const [selectedMedicalRecordId, setSelectedMedicalRecordId] = useState(null);
@@ -476,18 +477,31 @@ Treatment: ${r.treatment || 'N/A'}
     });
   };
 
-  // Filter records based on search term and selected date
+  // Filter records based on search term and date range
   const filteredRecords = records.filter(record => {
     const searchMatch = 
       (record.patient_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (record.patient_usc_id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (record.diagnosis || '').toLowerCase().includes(searchTerm.toLowerCase());
     
-    const dateMatch = selectedDate ? record.visit_date === dayjs(selectedDate).format('YYYY-MM-DD') : true;
+    // Date Range Match
+    let dateMatch = true;
+    if (startDate) {
+      dateMatch = dateMatch && dayjs(record.visit_date).isAfter(dayjs(startDate).subtract(1, 'day'));
+    }
+    if (endDate) {
+      dateMatch = dateMatch && dayjs(record.visit_date).isBefore(dayjs(endDate).add(1, 'day'));
+    }
     
     // Medical-only page; no type filtering needed
     return searchMatch && dateMatch;
   });
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStartDate(null);
+    setEndDate(null);
+  };
 
   // Enhanced Export Functions
   const handleExportCSV = () => {
@@ -640,7 +654,15 @@ Treatment: ${r.treatment || 'N/A'}
             <h3>Report Summary</h3>
             <p><strong>Total Records:</strong> ${filteredRecords.length}</p>
             
-            <p><strong>Date Filter:</strong> ${selectedDate ? dayjs(selectedDate).format('MMMM DD, YYYY') : 'All dates'}</p>
+            <p><strong>Date Filter:</strong> ${
+              startDate && endDate 
+                ? `${dayjs(startDate).format('MMM DD, YYYY')} to ${dayjs(endDate).format('MMM DD, YYYY')}`
+                : startDate 
+                  ? `From ${dayjs(startDate).format('MMM DD, YYYY')}`
+                  : endDate
+                    ? `Until ${dayjs(endDate).format('MMM DD, YYYY')}`
+                    : 'All dates'
+            }</p>
             <p><strong>Search Term:</strong> ${searchTerm || 'None'}</p>
             <p><strong>Report Type:</strong> Medical Health Records</p>
           </div>
@@ -883,14 +905,37 @@ Treatment: ${r.treatment || 'N/A'}
         />
 
         <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <DatePicker
-            label="Filter by Date"
-            value={selectedDate}
-            onChange={setSelectedDate}
-            slotProps={{ textField: { size: 'small' } }}
-            sx={{ width: 200 }}
-          />
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <DatePicker
+              label="From Date"
+              value={startDate}
+              onChange={setStartDate}
+              slotProps={{ textField: { size: 'small' } }}
+              sx={{ width: 170 }}
+              maxDate={endDate || dayjs()}
+            />
+            <DatePicker
+              label="To Date"
+              value={endDate}
+              onChange={setEndDate}
+              slotProps={{ textField: { size: 'small' } }}
+              sx={{ width: 170 }}
+              minDate={startDate}
+              maxDate={dayjs()}
+            />
+          </Box>
         </LocalizationProvider>
+
+        {(searchTerm || startDate || endDate) && (
+          <Button 
+            variant="text" 
+            onClick={clearFilters}
+            size="small"
+            sx={{ ml: 1 }}
+          >
+            Clear
+          </Button>
+        )}
 
         {canEditRecords && (
           <Box sx={{ display: 'flex', gap: 2, ml: 'auto' }}>

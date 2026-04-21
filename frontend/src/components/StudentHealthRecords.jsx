@@ -75,7 +75,8 @@ const StudentHealthRecords = () => {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
   const [tabValue, setTabValue] = useState(0);
   const [expandedRecord, setExpandedRecord] = useState(false);
   const user = useSelector(selectCurrentUser);
@@ -135,7 +136,7 @@ const StudentHealthRecords = () => {
     setExpandedRecord(isExpanded ? panel : false);
   };
 
-  // Filter records based on search term and selected date (only medical records)
+  // Filter records based on search term and date range
   const filteredRecords = records.filter(record => {
     const searchMatch = 
       (record.diagnosis || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -143,10 +144,23 @@ const StudentHealthRecords = () => {
       (record.chief_complaint || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (record.notes || '').toLowerCase().includes(searchTerm.toLowerCase());
     
-    const dateMatch = selectedDate ? record.visit_date === dayjs(selectedDate).format('YYYY-MM-DD') : true;
+    // Date Range Match
+    let dateMatch = true;
+    if (startDate) {
+      dateMatch = dateMatch && dayjs(record.visit_date).isAfter(dayjs(startDate).subtract(1, 'day'));
+    }
+    if (endDate) {
+      dateMatch = dateMatch && dayjs(record.visit_date).isBefore(dayjs(endDate).add(1, 'day'));
+    }
     
     return searchMatch && dateMatch;
   });
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStartDate(null);
+    setEndDate(null);
+  };
 
   // Get health insights for the student
   const getHealthInsights = () => {
@@ -384,21 +398,44 @@ const StudentHealthRecords = () => {
         />
 
         <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <DatePicker
-            label="Filter by Date"
-            value={selectedDate}
-            onChange={setSelectedDate}
-            slotProps={{ textField: { size: 'small' } }}
-            sx={{ width: 200 }}
-          />
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <DatePicker
+              label="From Date"
+              value={startDate}
+              onChange={setStartDate}
+              slotProps={{ textField: { size: 'small' } }}
+              sx={{ width: 170 }}
+              maxDate={endDate || dayjs()}
+            />
+            <DatePicker
+              label="To Date"
+              value={endDate}
+              onChange={setEndDate}
+              slotProps={{ textField: { size: 'small' } }}
+              sx={{ width: 170 }}
+              minDate={startDate}
+              maxDate={dayjs()}
+            />
+          </Box>
         </LocalizationProvider>
+
+        {(searchTerm || startDate || endDate) && (
+          <Button 
+            variant="text" 
+            onClick={clearFilters}
+            size="small"
+            sx={{ ml: 1 }}
+          >
+            Clear
+          </Button>
+        )}
       </Box>
 
       {/* Medical Records Header */}
       <Box sx={{ mb: 2 }}>
         <Typography variant="h5" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
           <MedicalIcon color="primary" />
-          Medical Records ({records.length})
+          Medical Records ({filteredRecords.length})
         </Typography>
         <Typography variant="body2" color="text.secondary">
           Your complete medical visit history and treatment records
@@ -560,15 +597,15 @@ const StudentHealthRecords = () => {
             No Health Records Found
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {searchTerm || selectedDate 
+            {searchTerm || startDate || endDate 
               ? 'No records match your current filters. Try adjusting your search criteria.'
               : 'You don\'t have any health records yet. Visit the USC clinic for your first checkup!'
             }
           </Typography>
-          {(searchTerm || selectedDate) && (
+          {(searchTerm || startDate || endDate) && (
             <Button 
               variant="outlined" 
-              onClick={() => { setSearchTerm(''); setSelectedDate(null); }}
+              onClick={clearFilters}
               size="small"
             >
               Clear Filters
