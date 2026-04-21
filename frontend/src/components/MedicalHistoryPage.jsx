@@ -111,7 +111,7 @@ const MedicalHistoryPage = () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch both medical and dental records
+      // Fetch both medical and dental consultations
       const [medResp, dentResp] = await Promise.all([
         healthRecordsService.getAll(),
         dentalRecordService.getAll().catch(() => ({ data: [] }))

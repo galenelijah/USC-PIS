@@ -191,7 +191,7 @@ const StudentHealthRecords = () => {
       
       insights.push({
         type: 'info',
-        message: 'For dental records, please visit the dedicated Dental Records page.',
+        message: 'For dental consultations, please visit the dedicated Dental Records page.',
         icon: <HealingIcon />
       });
     }

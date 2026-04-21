@@ -83,7 +83,8 @@ const Dental = () => {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
   const [procedureFilter, setProcedureFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [tabValue, setTabValue] = useState(0);
@@ -130,8 +131,8 @@ const Dental = () => {
       setDentalRecords(response.data || []);
       setError(null);
     } catch (error) {
-      console.error('Error fetching dental records:', error);
-      setError('Failed to load dental records. Please try again.');
+      console.error('Error fetching dental consultations:', error);
+      setError('Failed to load dental consultations. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -230,10 +231,10 @@ const Dental = () => {
 
       if (isEditing) {
         await dentalRecordService.update(selectedRecord.id, submitData);
-        setSuccess('Dental record updated successfully!');
+        setSuccess('Dental consultation updated successfully!');
       } else {
         await dentalRecordService.create(submitData);
-        setSuccess('Dental record created successfully!');
+        setSuccess('Dental consultation created successfully!');
       }
       
       handleCloseDialog();
@@ -242,23 +243,23 @@ const Dental = () => {
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
     } catch (error) {
-      console.error('Error saving dental record:', error);
-      setError(error.response?.data?.detail || 'Failed to save dental record');
+      console.error('Error saving dental consultation:', error);
+      setError(error.response?.data?.detail || 'Failed to save dental consultation');
       // Clear error message after 5 seconds
       setTimeout(() => setError(null), 5000);
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this dental record?')) {
+    if (window.confirm('Are you sure you want to delete this dental consultation?')) {
       try {
         await dentalRecordService.delete(id);
-        setSuccess('Dental record deleted successfully!');
+        setSuccess('Dental consultation deleted successfully!');
         fetchDentalRecords();
         setTimeout(() => setSuccess(null), 3000);
       } catch (error) {
-        console.error('Error deleting dental record:', error);
-        setError('Failed to delete dental record');
+        console.error('Error deleting dental consultation:', error);
+        setError('Failed to delete dental consultation');
         setTimeout(() => setError(null), 5000);
       }
     }
@@ -291,14 +292,28 @@ const Dental = () => {
       (record.diagnosis || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (record.procedure_performed_display || '').toLowerCase().includes(searchTerm.toLowerCase());
     
-    const dateMatch = selectedDate ? 
-      dayjs(record.visit_date).format('YYYY-MM-DD') === dayjs(selectedDate).format('YYYY-MM-DD') : true;
+    // Date Range Match
+    let dateMatch = true;
+    if (startDate) {
+      dateMatch = dateMatch && dayjs(record.visit_date).isAfter(dayjs(startDate).subtract(1, 'day'));
+    }
+    if (endDate) {
+      dateMatch = dateMatch && dayjs(record.visit_date).isBefore(dayjs(endDate).add(1, 'day'));
+    }
     
     const procedureMatch = procedureFilter ? record.procedure_performed === procedureFilter : true;
     const priorityMatch = priorityFilter ? record.priority === priorityFilter : true;
     
     return searchMatch && dateMatch && procedureMatch && priorityMatch;
   });
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStartDate(null);
+    setEndDate(null);
+    setProcedureFilter('');
+    setPriorityFilter('');
+  };
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -313,7 +328,7 @@ const Dental = () => {
   // Export Functions
   const handleExportCSV = () => {
     if (filteredRecords.length === 0) {
-      setError('No dental records to export');
+      setError('No dental consultations to export');
       setTimeout(() => setError(null), 3000);
       return;
     }
@@ -358,13 +373,13 @@ const Dental = () => {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    setSuccess(`Exported ${filteredRecords.length} dental records to CSV`);
+    setSuccess(`Exported ${filteredRecords.length} dental consultations to CSV`);
     setTimeout(() => setSuccess(null), 3000);
   };
 
   const handleExportExcel = async () => {
     if (filteredRecords.length === 0) {
-      setError('No dental records to export');
+      setError('No dental consultations to export');
       setTimeout(() => setError(null), 3000);
       return;
     }
@@ -412,7 +427,7 @@ const Dental = () => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      setSuccess(`Exported ${filteredRecords.length} dental records to Excel format`);
+      setSuccess(`Exported ${filteredRecords.length} dental consultations to Excel format`);
       setTimeout(() => setSuccess(null), 3000);
     } catch (error) {
       console.error('Error exporting to Excel:', error);
@@ -423,7 +438,7 @@ const Dental = () => {
 
   const handlePrintReport = () => {
     if (filteredRecords.length === 0) {
-      setError('No dental records to print');
+      setError('No dental consultations to print');
       setTimeout(() => setError(null), 3000);
       return;
     }
@@ -433,7 +448,7 @@ const Dental = () => {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>USC-PIS Dental Records Report</title>
+          <title>USC-PIS Dental Consultation Report</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
             .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #1976d2; padding-bottom: 20px; }
@@ -460,14 +475,22 @@ const Dental = () => {
           <div class="header">
             <h1>University of Southern California</h1>
             <h2>Patient Information System</h2>
-            <h3>Dental Records Report</h3>
+            <h3>Dental Consultation Report</h3>
             <p>Generated on: ${dayjs().format('MMMM DD, YYYY [at] HH:mm')}</p>
             <p>Total Records: ${filteredRecords.length}</p>
           </div>
           
           <div class="summary">
             <h3>Report Summary</h3>
-            <p><strong>Date Range:</strong> ${selectedDate ? dayjs(selectedDate).format('MMMM DD, YYYY') : 'All dates'}</p>
+            <p><strong>Date Range:</strong> ${
+              startDate && endDate 
+                ? `${dayjs(startDate).format('MMM DD, YYYY')} to ${dayjs(endDate).format('MMM DD, YYYY')}`
+                : startDate 
+                  ? `From ${dayjs(startDate).format('MMM DD, YYYY')}`
+                  : endDate
+                    ? `Until ${dayjs(endDate).format('MMM DD, YYYY')}`
+                    : 'All dates'
+            }</p>
             <p><strong>Procedure Filter:</strong> ${procedureFilter || 'All procedures'}</p>
             <p><strong>Priority Filter:</strong> ${priorityFilter ? getPriorityLabel(priorityFilter) : 'All priorities'}</p>
             <p><strong>Search Term:</strong> ${searchTerm || 'None'}</p>
@@ -562,9 +585,9 @@ const Dental = () => {
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <Typography variant="h4" gutterBottom>
-              Dental Records Management
+              Dental Consultation Management
             </Typography>
-            <InfoTooltip title="Create, search, and manage dental records. Filter, export, and print as needed." />
+            <InfoTooltip title="Create, search, and manage dental consultations. Filter, export, and print as needed." />
           </Box>
           <Box display="flex" gap={2} alignItems="center">
             {/* Export Buttons */}
@@ -604,7 +627,7 @@ const Dental = () => {
                 onClick={() => handleOpenDialog()}
                 sx={{ bgcolor: '#1976d2' }}
               >
-                New Dental Record
+                New Dental Consultation
               </Button>
             )}
           </Box>
@@ -628,7 +651,7 @@ const Dental = () => {
             <Grid item xs={12} md={3}>
               <TextField
                 fullWidth
-                placeholder="Search records..."
+                placeholder="Search consultations..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 InputProps={{
@@ -640,13 +663,24 @@ const Dental = () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={2}>
-              <DatePicker
-                label="Filter by Date"
-                value={selectedDate}
-                onChange={(date) => setSelectedDate(date)}
-                slotProps={{ textField: { fullWidth: true, size: 'small' } }}
-              />
+            <Grid item xs={12} md={4}>
+              <Box display="flex" gap={1} alignItems="center">
+                <DatePicker
+                  label="From Date"
+                  value={startDate}
+                  onChange={(date) => setStartDate(date)}
+                  slotProps={{ textField: { fullWidth: true, size: 'small' } }}
+                  maxDate={endDate || dayjs()}
+                />
+                <DatePicker
+                  label="To Date"
+                  value={endDate}
+                  onChange={(date) => setEndDate(date)}
+                  slotProps={{ textField: { fullWidth: true, size: 'small' } }}
+                  minDate={startDate}
+                  maxDate={dayjs()}
+                />
+              </Box>
             </Grid>
             <Grid item xs={12} md={2}>
               <FormControl fullWidth size="small">
@@ -665,7 +699,7 @@ const Dental = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={2}>
+            <Grid item xs={12} md={1}>
               <FormControl fullWidth size="small">
                 <InputLabel>Priority</InputLabel>
                 <Select
@@ -673,24 +707,20 @@ const Dental = () => {
                   label="Priority"
                   onChange={(e) => setPriorityFilter(e.target.value)}
                 >
-                  <MenuItem value="">All Priorities</MenuItem>
+                  <MenuItem value="">All</MenuItem>
                   <MenuItem value="LOW">Low</MenuItem>
-                  <MenuItem value="MEDIUM">Medium</MenuItem>
+                  <MenuItem value="MEDIUM">Med</MenuItem>
                   <MenuItem value="HIGH">High</MenuItem>
                   <MenuItem value="URGENT">Urgent</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid item xs={12} md={2}>
               <Box display="flex" gap={1}>
                 <Button
                   startIcon={<FilterIcon />}
-                  onClick={() => {
-                    setSearchTerm('');
-                    setSelectedDate(null);
-                    setProcedureFilter('');
-                    setPriorityFilter('');
-                  }}
+                  onClick={clearFilters}
+                  size="small"
                 >
                   Clear Filters
                 </Button>
@@ -800,10 +830,10 @@ const Dental = () => {
         ) : (
           <Paper sx={{ p: 4, textAlign: 'center' }}>
             <Typography variant="h6" color="text.secondary">
-              No dental records found
+              No dental consultations found
             </Typography>
             <Typography variant="body2" color="text.secondary" mt={1}>
-              {canEdit ? 'Create a new dental record to get started.' : 'No records to display.'}
+              {canEdit ? 'Create a new dental consultation to get started.' : 'No records to display.'}
             </Typography>
           </Paper>
         )}
@@ -816,15 +846,19 @@ const Dental = () => {
           fullWidth
         >
           <DialogTitle>
-            {isEditing ? 'Edit Dental Record' : 'Create New Dental Record'}
+            {isEditing ? 'Edit Dental Consultation' : 'Create New Dental Consultation'}
           </DialogTitle>
           <DialogContent>
-            <Box sx={{ mt: 2 }}>
-              <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
-                <Tab label="Basic Information" />
-                <Tab label="Clinical Details" />
-                <Tab label="Treatment & Follow-up" />
-              </Tabs>
+              <Box sx={{ mb: 2 }}>
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  Note: The clinic primarily provides dental consultations. Complex procedures or surgeries may require external referral.
+                </Alert>
+                <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
+                  <Tab label="Basic Information" />
+                  <Tab label="Clinical Details" />
+                  <Tab label="Treatment & Follow-up" />
+                </Tabs>
+              </Box>
               
               {/* Basic Information Tab */}
               {tabValue === 0 && (
@@ -1111,7 +1145,7 @@ const Dental = () => {
           fullWidth
         >
           <DialogTitle>
-            Dental Record Details
+            Dental Consultation Details
             <IconButton
               sx={{ position: 'absolute', right: 8, top: 8 }}
               onClick={() => setViewDialogOpen(false)}

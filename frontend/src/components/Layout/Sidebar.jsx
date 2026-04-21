@@ -102,7 +102,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
         ? 'Detailed visit logs, clinic records, and specific medical documents'
         : 'Create and manage specific medical visit records and documentation'
     },
-    { text: 'Dental Records', icon: <DentalIcon />, path: '/dental-records', description: 'Manage dental procedures and records' },
+    { text: 'Dental Consultations', icon: <DentalIcon />, path: '/dental-records', description: 'Manage dental consultations and oral health assessments' },
     { text: 'Medical Certificates', icon: <MedicalInformationIcon />, path: '/medical-certificates', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE', 'STUDENT'] },
   ];
 
