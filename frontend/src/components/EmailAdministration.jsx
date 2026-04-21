@@ -61,6 +61,9 @@ const EmailAdministration = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [configLoading, setConfigLoading] = useState(false);
   const [editConfigOpen, setEditConfigOpen] = useState(false);
+  const [testDialogOpen, setTestDialogOpen] = useState(false);
+  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
+  const [alertDialogOpen, setAlertDialogOpen] = useState(false);
   const [selectedConfig, setSelectedConfig] = useState(null);
   const [expandedSections, setExpandedSections] = useState({
     status: true,
@@ -785,7 +788,62 @@ const EmailAdministration = () => {
 
       {/* Health Alert Dialog */}
       <Dialog open={alertDialogOpen} onClose={() => setAlertDialogOpen(false)} maxWidth="sm" fullWidth>
-        ...
+        <DialogTitle>Send Health System Alert</DialogTitle>
+        <DialogContent>
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Alert Level</InputLabel>
+            <Select
+              value={alertForm.alertLevel}
+              onChange={(e) => setAlertForm(prev => ({ ...prev, alertLevel: e.target.value }))}
+              label="Alert Level"
+            >
+              <MenuItem value="info">Info (Blue)</MenuItem>
+              <MenuItem value="warning">Warning (Orange)</MenuItem>
+              <MenuItem value="error">Critical (Red)</MenuItem>
+            </Select>
+          </FormControl>
+          
+          <FormControlLabel
+            control={
+              <Switch
+                checked={alertForm.forceAlert}
+                onChange={(e) => setAlertForm(prev => ({ ...prev, forceAlert: e.target.checked }))}
+              />
+            }
+            label="Force Alert (Bypass per-user settings)"
+          />
+          
+          <FormControlLabel
+            control={
+              <Switch
+                checked={alertForm.dryRun}
+                onChange={(e) => setAlertForm(prev => ({ ...prev, dryRun: e.target.checked }))}
+              />
+            }
+            label="Dry Run (Preview Only)"
+          />
+          
+          {alertResults && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle1" gutterBottom>Results:</Typography>
+              <Alert severity="info">
+                {alertForm.dryRun ? 'Would alert' : 'Alerted'} {alertResults.user_count} users
+              </Alert>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAlertDialogOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={handleSendHealthAlert} 
+            variant="contained" 
+            color="warning"
+            disabled={actionLoading}
+            startIcon={actionLoading ? <CircularProgress size={20} /> : null}
+          >
+            {alertForm.dryRun ? 'Preview' : 'Send'} Alert
+          </Button>
+        </DialogActions>
       </Dialog>
 
       {/* Edit Configuration Dialog */}
