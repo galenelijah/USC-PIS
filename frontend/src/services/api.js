@@ -1272,6 +1272,43 @@ export const notificationService = {
     }
   },
 
+  // Get preferences for a specific user (Admin only)
+  getUserPreferences: async (userId) => {
+    try {
+      return await api.get(`/notifications/preferences/?user=${userId}`);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Update preferences for a specific user (Admin only)
+  updateUserPreferences: async (preferenceId, data) => {
+    try {
+      return await api.patch(`/notifications/preferences/${preferenceId}/`, data);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Get preferences for all staff members (Admin only)
+  getStaffPreferences: async () => {
+    try {
+      // Fetch all preferences; we'll filter by staff roles on frontend or backend
+      return await api.get('/notifications/preferences/');
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Create preferences for a user if they don't exist (Admin only)
+  createUserPreferences: async (userId) => {
+    try {
+      return await api.post('/notifications/preferences/', { user: userId });
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
   // Create notification (for medical staff)
   create: async (data) => {
     try {

@@ -60,7 +60,10 @@ import {
   Description as DescriptionIcon,
   Campaign as CampaignIcon,
   Notifications as NotificationsIcon,
-  FilterList as FilterListIcon
+  FilterList as FilterListIcon,
+  PeopleAlt as StaffIcon,
+  AppRegistration as AppNotifIcon,
+  PhonelinkRing as DesktopIcon
 } from '@mui/icons-material';
 import { authService, notificationService } from '../services/api';
 import InfoTooltip from './utils/InfoTooltip';
@@ -76,9 +79,11 @@ const EmailAdministration = () => {
   const [staticTemplates, setStaticTemplates] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
+  const [staffPreferences, setStaffPreferences] = useState([]);
   const [eventChoices, setEventChoices] = useState([]);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [staffLoading, setStaffLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [configLoading, setConfigLoading] = useState(false);
   const [editConfigOpen, setEditConfigOpen] = useState(false);
@@ -93,7 +98,8 @@ const EmailAdministration = () => {
     stats: true,
     actions: true,
     events: true,
-    templates: true
+    templates: true,
+    staff: true
   });
 
   // Template form state
@@ -148,15 +154,61 @@ const EmailAdministration = () => {
     } else if (activeTab === 2) {
       fetchNotifications();
     } else if (activeTab === 3) {
-      fetchCampaigns();
+      fetchStaffAccess();
     } else if (activeTab === 4) {
+      fetchCampaigns();
+    } else if (activeTab === 5) {
       fetchLogs();
     }
   }, [activeTab]);
 
   const fetchEmailData = async () => {
+  ...
+  const fetchStaffAccess = async () => {
     try {
-      setLoading(true);
+      setStaffLoading(true);
+      const response = await notificationService.getStaffPreferences();
+      // Filter for non-students on frontend (though backend filter is preferred)
+      const nonStudents = (response.data.results || response.data).filter(
+        pref => !pref.user_email?.endsWith('@student.usc.edu.ph') && 
+                pref.user_email !== null
+      );
+      setStaffPreferences(nonStudents);
+    } catch (error) {
+      setNotification({
+        type: 'error',
+        message: `Failed to load staff preferences: ${error.message}`
+      });
+    } finally {
+      setStaffLoading(false);
+    }
+  };
+
+  const handleToggleStaffAccess = async (prefId, field, currentValue) => {
+    try {
+      setActionLoading(true);
+      const data = { [field]: !currentValue };
+      await notificationService.updateUserPreferences(prefId, data);
+
+      setStaffPreferences(prev => prev.map(p => 
+        p.id === prefId ? { ...p, [field]: !currentValue } : p
+      ));
+
+      setNotification({
+        type: 'success',
+        message: 'Preference updated successfully'
+      });
+    } catch (error) {
+      setNotification({
+        type: 'error',
+        message: `Failed to update preference: ${error.message}`
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const fetchCampaigns = async () => {
       const [statusResponse, statsResponse] = await Promise.all([
         authService.getEmailSystemStatus(),
         authService.getEmailStats()
@@ -518,10 +570,11 @@ const EmailAdministration = () => {
               if (activeTab === 0) { fetchEmailData(); fetchConfigs(); }
               else if (activeTab === 1) fetchTemplates();
               else if (activeTab === 2) fetchNotifications();
-              else if (activeTab === 3) fetchCampaigns();
-              else if (activeTab === 4) fetchLogs();
+              else if (activeTab === 3) fetchStaffAccess();
+              else if (activeTab === 4) fetchCampaigns();
+              else if (activeTab === 5) fetchLogs();
             }}
-            disabled={loading || configLoading}
+            disabled={loading || configLoading || staffLoading}
           >
             Refresh
           </Button>
@@ -536,6 +589,7 @@ const EmailAdministration = () => {
         <Tab icon={<SettingsIcon />} iconPosition="start" label="Routing & Status" />
         <Tab icon={<DescriptionIcon />} iconPosition="start" label="Email Templates" />
         <Tab icon={<NotificationsIcon />} iconPosition="start" label="Sent Notifications" />
+        <Tab icon={<StaffIcon />} iconPosition="start" label="Staff Access" />
         <Tab icon={<CampaignIcon />} iconPosition="start" label="Email Campaigns" />
         <Tab icon={<HistoryIcon />} iconPosition="start" label="System Logs" />
       </Tabs>
@@ -579,97 +633,6 @@ const EmailAdministration = () => {
                   }
                 />
               </Box>
-            </CardContent>
-          </Card>
-
-          {/* Event and Template Configurations */}
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Box display="flex" justifyContent="space-between" alignItems="center">
-                <Typography variant="h6" fontWeight="bold">
-                  <TimelineIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                  Event Routing & Routing Rules
-                </Typography>
-                <IconButton onClick={() => toggleSection('events')}>
-                  {expandedSections.events ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                </IconButton>
-              </Box>
-              
-              <Collapse in={expandedSections.events}>
-                <TableContainer component={Paper} variant="outlined" sx={{ mt: 2 }}>
-                  <Table size="small">
-                    <TableHead sx={{ bgcolor: 'grey.50' }}>
-                      <TableRow>
-                        <TableCell>System Event</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Assigned Template</TableCell>
-                        <TableCell>Target Roles</TableCell>
-                        <TableCell>Exceptions</TableCell>
-                        <TableCell align="right">Action</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {configLoading ? (
-                        <TableRow><TableCell colSpan={6} align="center"><LinearProgress sx={{ my: 2 }} /></TableCell></TableRow>
-                      ) : systemEmailConfigs.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
-                            <Typography variant="body2" color="text.secondary">No event routing configurations found.</Typography>
-                          </TableCell>
-                        </TableRow>
-                      ) : systemEmailConfigs.map((config) => (
-                        <TableRow key={config.id} hover>
-                          <TableCell sx={{ fontWeight: 'medium' }}>{config.event_type_display}</TableCell>
-                          <TableCell>
-                            <Chip 
-                              label={config.is_enabled ? 'ACTIVE' : 'INACTIVE'} 
-                              size="small" 
-                              color={config.is_enabled ? 'success' : 'default'} 
-                              variant={config.is_enabled ? 'filled' : 'outlined'}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            {config.template_name ? (
-                              <Chip label={config.template_name} size="small" variant="outlined" color="primary" icon={<EmailIcon />} />
-                            ) : (
-                              <Typography variant="caption" color="text.secondary">Default / None</Typography>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                              {config.target_roles.map(role => (
-                                <Chip key={role} label={role} size="small" variant="outlined" />
-                              ))}
-                            </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Box display="flex" flexDirection="column" gap={0.5}>
-                              {config.excluded_users_details?.length > 0 && (
-                                <Typography variant="caption" color="error">
-                                  Excluded: {config.excluded_users_details.length} users
-                                </Typography>
-                              )}
-                              {config.included_users_details?.length > 0 && (
-                                <Typography variant="caption" color="success.main">
-                                  Included: {config.included_users_details.length} users
-                                </Typography>
-                              )}
-                              {!(config.excluded_users_details?.length > 0) && !(config.included_users_details?.length > 0) && (
-                                <Typography variant="caption" color="text.secondary">None</Typography>
-                              )}
-                            </Box>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Button size="small" variant="text" onClick={() => handleEditConfig(config)} startIcon={<SettingsIcon />}>
-                              Configure
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Collapse>
             </CardContent>
           </Card>
 
@@ -987,10 +950,19 @@ const EmailAdministration = () => {
             <Typography variant="h6" fontWeight="bold">
               Sent Notifications History
             </Typography>
-            <Box>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <InfoTooltip title="History of all individual notifications sent by the system." />
               <Button startIcon={<FilterListIcon />} variant="outlined" size="small">Filter</Button>
             </Box>
           </Box>
+
+          <Alert severity="info" sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" fontWeight="bold">System Notification Capabilities:</Typography>
+            <Typography variant="body2">
+              The system currently supports the following notification types: 
+              <strong> Appointment, Medication, Health Campaign, Clinic Update, Follow-up, Vaccination, Dental, System Alert, and Custom.</strong>
+            </Typography>
+          </Alert>
 
           <TableContainer component={Paper} variant="outlined">
             <Table size="small">
@@ -1041,6 +1013,105 @@ const EmailAdministration = () => {
       )}
 
       {activeTab === 3 && (
+        <Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box>
+              <Typography variant="h6" fontWeight="bold">
+                Staff Notification Access Management
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Control how and if non-student users (Doctor, Nurse, Admin, etc.) receive system notifications.
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <InfoTooltip title="Manage communication channels for clinic personnel and administrators." />
+              <Button startIcon={<RefreshIcon />} variant="outlined" size="small" onClick={fetchStaffAccess}>Refresh Staff</Button>
+            </Box>
+          </Box>
+
+          <TableContainer component={Paper} variant="outlined">
+            <Table size="small">
+              <TableHead sx={{ bgcolor: 'grey.50' }}>
+                <TableRow>
+                  <TableCell>Staff Member</TableCell>
+                  <TableCell>Contact Info</TableCell>
+                  <TableCell align="center">In-App Notifications</TableCell>
+                  <TableCell align="center">Email Notifications</TableCell>
+                  <TableCell align="center">Desktop Alerts</TableCell>
+                  <TableCell align="center">Status</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {staffLoading ? (
+                  <TableRow><TableCell colSpan={6} align="center"><LinearProgress sx={{ my: 3 }} /></TableCell></TableRow>
+                ) : staffPreferences.length === 0 ? (
+                  <TableRow><TableCell colSpan={6} align="center" sx={{ py: 5 }}>No non-student users with notification profiles found.</TableCell></TableRow>
+                ) : staffPreferences.map((pref) => (
+                  <TableRow key={pref.id} hover>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <StaffIcon sx={{ mr: 1.5, color: 'primary.main' }} />
+                        <Box>
+                          <Typography variant="subtitle2" fontWeight="bold">{pref.user_name || 'Unnamed User'}</Typography>
+                          <Typography variant="caption" color="text.secondary">{pref.user_email}</Typography>
+                        </Box>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="caption" sx={{ display: 'block' }}>TZ: {pref.timezone}</Typography>
+                      <Typography variant="caption" sx={{ display: 'block' }}>Freq: {pref.digest_frequency_display}</Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Tooltip title={pref.in_app_enabled ? "Disable In-App Notifications" : "Enable In-App Notifications"}>
+                        <Switch 
+                          checked={pref.in_app_enabled} 
+                          onChange={() => handleToggleStaffAccess(pref.id, 'in_app_enabled', pref.in_app_enabled)}
+                          color="primary"
+                        />
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Tooltip title={pref.email_enabled ? "Disable Email Notifications" : "Enable Email Notifications"}>
+                        <Switch 
+                          checked={pref.email_enabled} 
+                          onChange={() => handleToggleStaffAccess(pref.id, 'email_enabled', pref.email_enabled)}
+                          color="secondary"
+                        />
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Tooltip title={pref.desktop_notifications ? "Disable Desktop Alerts" : "Enable Desktop Alerts"}>
+                        <Switch 
+                          checked={pref.desktop_notifications} 
+                          onChange={() => handleToggleStaffAccess(pref.id, 'desktop_notifications', pref.desktop_notifications)}
+                        />
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip 
+                        label={(pref.in_app_enabled || pref.email_enabled) ? 'RECEIVING' : 'BLOCKED'} 
+                        size="small" 
+                        color={(pref.in_app_enabled || pref.email_enabled) ? 'success' : 'error'}
+                        variant="outlined"
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          <Box sx={{ mt: 3 }}>
+            <Alert severity="info" variant="outlined">
+              <Typography variant="caption">
+                <strong>Note:</strong> Changes made here take effect immediately. If a user is not listed, they may not have initialized their notification profile yet (it happens on their first login).
+              </Typography>
+            </Alert>
+          </Box>
+        </Box>
+      )}
+
+      {activeTab === 4 && (
         <Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <Typography variant="h6" fontWeight="bold">
@@ -1099,7 +1170,7 @@ const EmailAdministration = () => {
         </Box>
       )}
 
-      {activeTab === 4 && (
+      {activeTab === 5 && (
         <Box>
           <Typography variant="h6" fontWeight="bold" gutterBottom>
             System Activity Logs
