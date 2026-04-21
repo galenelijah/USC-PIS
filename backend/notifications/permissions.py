@@ -13,7 +13,7 @@ class IsOwnerOrMedicalStaff(permissions.BasePermission):
         
         # Write permissions for owner or medical staff
         return (hasattr(obj, 'user') and obj.user == request.user) or \
-               (hasattr(request.user, 'role') and request.user.role in ['medical_staff', 'admin'])
+               (hasattr(request.user, 'role') and request.user.role in ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'])
 
 
 class IsMedicalStaff(permissions.BasePermission):
@@ -25,7 +25,7 @@ class IsMedicalStaff(permissions.BasePermission):
         return (
             request.user.is_authenticated and
             hasattr(request.user, 'role') and
-            request.user.role in ['medical_staff', 'admin']
+            request.user.role in ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE']
         )
 
 
@@ -39,7 +39,7 @@ class CanManageNotifications(permissions.BasePermission):
     
     def has_object_permission(self, request, view, obj):
         # Medical staff can manage all notifications
-        if hasattr(request.user, 'role') and request.user.role in ['medical_staff', 'admin']:
+        if hasattr(request.user, 'role') and request.user.role in ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE']:
             return True
         
         # Users can only manage their own notifications

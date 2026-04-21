@@ -52,7 +52,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
         
         # Check if user wants to see all notifications (admin/staff only)
         show_all = self.request.query_params.get('all', 'false').lower() == 'true'
-        is_medical_staff = user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE, 'medical_staff']
+        is_medical_staff = user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE]
         
         if show_all and is_medical_staff:
             # Medical staff and admins can see all notifications if requested
@@ -89,7 +89,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
         """Allow users to delete their own notifications"""
         instance = self.get_object()
         # Medical staff/Admins can delete any notification
-        is_medical_staff = request.user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE, 'medical_staff']
+        is_medical_staff = request.user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE]
         
         if not is_medical_staff and instance.recipient != request.user:
             return Response(
@@ -125,7 +125,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
         notification = self.get_object()
         
         # Check if user is the recipient or has administrative roles
-        is_medical_staff = request.user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE, 'medical_staff']
+        is_medical_staff = request.user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE]
         
         if notification.recipient != request.user and not is_medical_staff:
             return Response(
@@ -201,7 +201,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
         user = request.user
         
         # Base queryset
-        if user.role in ['medical_staff', 'admin']:
+        if user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE]:
             queryset = Notification.objects.all()
         else:
             queryset = Notification.objects.filter(recipient=user)
@@ -390,7 +390,7 @@ class NotificationPreferenceViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Users can only access their own preferences"""
-        if self.request.user.role in ['medical_staff', 'admin']:
+        if self.request.user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE]:
             return NotificationPreference.objects.all()
         else:
             return NotificationPreference.objects.filter(user=self.request.user)
