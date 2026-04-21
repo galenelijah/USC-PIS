@@ -119,11 +119,14 @@ const MedicalHistoryPage = () => {
 
       const medical = (medResp?.data || []).map(r => ({
         ...r,
-        record_type: 'MEDICAL'
+        record_type: 'MEDICAL',
+        composite_id: `MEDICAL-${r.id}`
       }));
 
       const dental = (dentResp?.data || []).map(r => ({
+        ...r, // Keep original fields for ID checking
         id: r.id,
+        composite_id: `DENTAL-${r.id}`,
         patient: r.patient,
         patient_name: r.patient_name,
         visit_date: r.visit_date,
@@ -140,7 +143,17 @@ const MedicalHistoryPage = () => {
         priority: r.priority,
       }));
 
-      const combined = [...medical, ...dental].sort((a, b) => new Date(b.visit_date) - new Date(a.visit_date));
+      let combined = [...medical, ...dental];
+      
+      // If user is a student/teacher, only show their records
+      if (isStudent && user?.id) {
+        combined = combined.filter(record => {
+          const patientId = record.patient?.id || record.patient;
+          return String(patientId) === String(user.id);
+        });
+      }
+      
+      combined = combined.sort((a, b) => new Date(b.visit_date) - new Date(a.visit_date));
       setRecords(combined);
     } catch (err) {
       setError('Failed to load medical records.');
@@ -164,17 +177,23 @@ const MedicalHistoryPage = () => {
 
     // Filter by selected patient (for staff/medical)
     if (selectedPatient) {
-      filtered = filtered.filter(record => record.patient?.id === selectedPatient.id);
+      filtered = filtered.filter(record => {
+        const patientId = record.patient?.id || record.patient;
+        return String(patientId) === String(selectedPatient.id);
+      });
     }
 
     // Filter by search term
     if (searchTerm.trim() !== '') {
+      const lowerSearch = searchTerm.toLowerCase();
       filtered = filtered.filter(record => 
-        record.patient_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.diagnosis?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.treatment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.chief_complaint?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.medications?.toLowerCase().includes(searchTerm.toLowerCase())
+        (record.patient_name || '').toLowerCase().includes(lowerSearch) ||
+        (record.diagnosis || '').toLowerCase().includes(lowerSearch) ||
+        (record.treatment || '').toLowerCase().includes(lowerSearch) ||
+        (record.chief_complaint || '').toLowerCase().includes(lowerSearch) ||
+        (record.medications || '').toLowerCase().includes(lowerSearch) ||
+        (record.procedure_performed || '').toLowerCase().includes(lowerSearch) ||
+        (record.notes || '').toLowerCase().includes(lowerSearch)
       );
     }
 
@@ -706,8 +725,8 @@ const MedicalHistoryPage = () => {
 
     return (
       <Stack spacing={2}>
-        {filteredRecords.map((record, index) => (
-          <Card key={record.id} sx={{ position: 'relative' }}>
+        {filteredRecords.map((record) => (
+          <Card key={record.composite_id} sx={{ position: 'relative' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
                 <Avatar 
@@ -862,14 +881,14 @@ const MedicalHistoryPage = () => {
                       )}
                     </Box>
                     <IconButton
-                      onClick={() => handleExpandRecord(record.id)}
+                      onClick={() => handleExpandRecord(record.composite_id)}
                       size="small"
                     >
-                      {expandedRecord === record.id ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                      {expandedRecord === record.composite_id ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                     </IconButton>
                   </Box>
 
-                  <Collapse in={expandedRecord === record.id}>
+                  <Collapse in={expandedRecord === record.composite_id}>
                     <Divider sx={{ my: 2 }} />
                     <Grid container spacing={2}>
                       {record.record_type === 'DENTAL' && (
