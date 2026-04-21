@@ -179,12 +179,13 @@ class NotificationPreferenceSerializer(serializers.ModelSerializer):
     """Serializer for notification preferences"""
     user_email = serializers.CharField(source='user.email', read_only=True)
     user_name = serializers.CharField(source='user.get_full_name', read_only=True)
+    user_role = serializers.CharField(source='user.role', read_only=True)
     digest_frequency_display = serializers.CharField(source='get_digest_frequency_display', read_only=True)
     
     class Meta:
         model = NotificationPreference
         fields = [
-            'id', 'user', 'user_email', 'user_name',
+            'id', 'user', 'user_email', 'user_name', 'user_role',
             'email_enabled', 'appointment_reminders', 'medication_reminders',
             'health_campaigns', 'clinic_updates', 'follow_up_reminders',
             'vaccination_reminders', 'dental_reminders',

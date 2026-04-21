@@ -186,9 +186,10 @@ const EmailAdministration = () => {
     try {
       setStaffLoading(true);
       const response = await notificationService.getStaffPreferences();
-      // Filter for non-students on frontend (though backend filter is preferred)
+      // Filter for non-students using role and fallback email check
       const nonStudents = (response.data.results || response.data).filter(
-        pref => !pref.user_email?.endsWith('@student.usc.edu.ph') && 
+        pref => pref.user_role !== 'STUDENT' && 
+                !pref.user_email?.endsWith('@student.usc.edu.ph') && 
                 pref.user_email !== null
       );
       setStaffPreferences(nonStudents);
