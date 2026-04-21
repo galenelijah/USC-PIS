@@ -30,7 +30,8 @@ import {
   CircularProgress,
   Divider,
   IconButton,
-  Collapse
+  Collapse,
+  alpha
 } from '@mui/material';
 import {
   Email as EmailIcon,
