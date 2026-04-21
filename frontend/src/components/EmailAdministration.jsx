@@ -185,18 +185,12 @@ const EmailAdministration = () => {
   const fetchStaffAccess = async () => {
     try {
       setStaffLoading(true);
-      const response = await notificationService.getStaffPreferences();
-      // Filter for non-students using role and fallback email check
-      const nonStudents = (response.data.results || response.data).filter(
-        pref => pref.user_role !== 'STUDENT' && 
-                !pref.user_email?.endsWith('@student.usc.edu.ph') && 
-                pref.user_email !== null
-      );
-      setStaffPreferences(nonStudents);
+      const response = await notificationService.getStaffAccess();
+      setStaffPreferences(response.data || []);
     } catch (error) {
       setNotification({
         type: 'error',
-        message: `Failed to load staff preferences: ${error.message}`
+        message: `Failed to load staff access: ${error.message}`
       });
     } finally {
       setStaffLoading(false);

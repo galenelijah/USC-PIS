@@ -425,6 +425,25 @@ class NotificationPreferenceViewSet(viewsets.ModelViewSet):
             serializer.save()
             return Response(serializer.data)
 
+    @action(detail=False, methods=['get'])
+    def staff_access(self, request):
+        """Get notification access settings for all non-student users"""
+        if request.user.role not in [User.Role.ADMIN, User.Role.STAFF]:
+            return Response({'detail': 'Not authorized'}, status=status.HTTP_403_FORBIDDEN)
+            
+        # Get all non-student users
+        staff_roles = [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE, User.Role.TEACHER]
+        staff_users = User.objects.filter(role__in=staff_roles)
+        
+        results = []
+        for user in staff_users:
+            # Get or create preference for each staff member to ensure they are manageable
+            pref, created = NotificationPreference.objects.get_or_create(user=user)
+            serializer = self.get_serializer(pref)
+            results.append(serializer.data)
+            
+        return Response(results)
+
 
 class NotificationCampaignViewSet(viewsets.ModelViewSet):
     """ViewSet for managing notification campaigns"""

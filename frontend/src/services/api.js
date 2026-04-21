@@ -1309,6 +1309,15 @@ export const notificationService = {
     }
   },
 
+  // Get notification access for all staff (Admin only)
+  getStaffAccess: async () => {
+    try {
+      return await api.get('/notifications/preferences/staff_access/');
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
   // Create notification (for medical staff)
   create: async (data) => {
     try {
