@@ -563,20 +563,26 @@ export const authService = {
   testEmailSystem: async (testData) => {
     try {
       const token = localStorage.getItem('Token');
+      // Map dryRun to dry_run for backend
+      const payload = {
+        ...testData,
+        dry_run: testData.dryRun
+      };
       const response = await fetch('/api/utils/email/test/', {
         method: 'POST',
         headers: {
           'Authorization': `Token ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(testData),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      const data = await response.json();
+      return { data: data.data || data };
     } catch (error) {
       handleApiError(error);
       throw error;
@@ -586,20 +592,26 @@ export const authService = {
   sendFeedbackEmails: async (feedbackData) => {
     try {
       const token = localStorage.getItem('Token');
+      // Map dryRun to dry_run for backend
+      const payload = {
+        ...feedbackData,
+        dry_run: feedbackData.dryRun
+      };
       const response = await fetch('/api/utils/email/feedback/send/', {
         method: 'POST',
         headers: {
           'Authorization': `Token ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(feedbackData),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      const data = await response.json();
+      return { data: data.data || data };
     } catch (error) {
       handleApiError(error);
       throw error;
@@ -609,20 +621,28 @@ export const authService = {
   sendHealthAlert: async (alertData) => {
     try {
       const token = localStorage.getItem('Token');
+      // Map alertLevel to alert_level and dryRun to dry_run for backend
+      const payload = {
+        ...alertData,
+        alert_level: alertData.alertLevel,
+        force_alert: alertData.forceAlert,
+        dry_run: alertData.dryRun
+      };
       const response = await fetch('/api/utils/email/health-alert/send/', {
         method: 'POST',
         headers: {
           'Authorization': `Token ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(alertData),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      const data = await response.json();
+      return { data: data.data || data };
     } catch (error) {
       handleApiError(error);
       throw error;
@@ -1263,7 +1283,34 @@ export const notificationService = {
   // Get notification templates
   getTemplates: async () => {
     try {
-      return await api.get('/medical-certificates/templates/');
+      return await api.get('/notifications/templates/');
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Create notification template
+  createTemplate: async (data) => {
+    try {
+      return await api.post('/notifications/templates/', data);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Update notification template
+  updateTemplate: async (id, data) => {
+    try {
+      return await api.put(`/notifications/templates/${id}/`, data);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  // Delete notification template
+  deleteTemplate: async (id) => {
+    try {
+      return await api.delete(`/notifications/templates/${id}/`);
     } catch (error) {
       handleApiError(error);
     }

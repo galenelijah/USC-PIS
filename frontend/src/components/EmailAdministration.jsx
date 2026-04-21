@@ -31,7 +31,14 @@ import {
   Divider,
   IconButton,
   Collapse,
-  alpha
+  alpha,
+  Tabs,
+  Tab,
+  Tooltip,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction
 } from '@mui/material';
 import {
   Email as EmailIcon,
@@ -45,31 +52,51 @@ import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   PlayArrow as PlayArrowIcon,
-  Stop as StopIcon
+  Stop as StopIcon,
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  History as HistoryIcon,
+  Description as DescriptionIcon
 } from '@mui/icons-material';
-import { authService } from '../services/api';
+import { authService, notificationService } from '../services/api';
 import InfoTooltip from './utils/InfoTooltip';
 
 const EmailAdministration = () => {
+  const [activeTab, setActiveTab] = useState(0);
   const [emailStatus, setEmailStatus] = useState(null);
   const [emailStats, setEmailStats] = useState(null);
   const [globalConfig, setGlobalConfig] = useState(null);
   const [systemEmailConfigs, setSystemEmailConfigs] = useState([]);
   const [availableTemplates, setAvailableTemplates] = useState([]);
+  const [allTemplates, setAllTemplates] = useState([]);
   const [eventChoices, setEventChoices] = useState([]);
+  const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [configLoading, setConfigLoading] = useState(false);
   const [editConfigOpen, setEditConfigOpen] = useState(false);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
   const [alertDialogOpen, setAlertDialogOpen] = useState(false);
   const [selectedConfig, setSelectedConfig] = useState(null);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [expandedSections, setExpandedSections] = useState({
     status: true,
     stats: true,
     actions: true,
-    events: true
+    events: true,
+    templates: true
+  });
+
+  // Template form state
+  const [templateForm, setTemplateForm] = useState({
+    name: '',
+    template_type: 'CUSTOM',
+    subject_template: '',
+    body_template: '',
+    is_active: true
   });
 
   // Edit config state
@@ -107,9 +134,15 @@ const EmailAdministration = () => {
   const [notification, setNotification] = useState(null);
 
   useEffect(() => {
-    fetchEmailData();
-    fetchConfigs();
-  }, []);
+    if (activeTab === 0) {
+      fetchEmailData();
+      fetchConfigs();
+    } else if (activeTab === 1) {
+      fetchTemplates();
+    } else if (activeTab === 2) {
+      fetchLogs();
+    }
+  }, [activeTab]);
 
   const fetchEmailData = async () => {
     try {
@@ -152,6 +185,119 @@ const EmailAdministration = () => {
     }
   };
 
+  const fetchTemplates = async () => {
+    try {
+      setLoading(true);
+      const response = await notificationService.getTemplates();
+      setAllTemplates(response.data.results || response.data);
+    } catch (error) {
+      setNotification({
+        type: 'error',
+        message: `Failed to load templates: ${error.message}`
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchLogs = async () => {
+    try {
+      setLoading(true);
+      const response = await notificationService.getLogs();
+      setLogs(response.data.results || response.data);
+    } catch (error) {
+      setNotification({
+        type: 'error',
+        message: `Failed to load logs: ${error.message}`
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateTemplate = async () => {
+    try {
+      setActionLoading(true);
+      await notificationService.createTemplate(templateForm);
+      setNotification({
+        type: 'success',
+        message: 'Template created successfully'
+      });
+      setTemplateDialogOpen(false);
+      fetchTemplates();
+    } catch (error) {
+      setNotification({
+        type: 'error',
+        message: `Failed to create template: ${error.message}`
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUpdateTemplate = async () => {
+    try {
+      setActionLoading(true);
+      await notificationService.updateTemplate(selectedTemplate.id, templateForm);
+      setNotification({
+        type: 'success',
+        message: 'Template updated successfully'
+      });
+      setTemplateDialogOpen(false);
+      fetchTemplates();
+    } catch (error) {
+      setNotification({
+        type: 'error',
+        message: `Failed to update template: ${error.message}`
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteTemplate = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this template?')) return;
+    try {
+      setActionLoading(true);
+      await notificationService.deleteTemplate(id);
+      setNotification({
+        type: 'success',
+        message: 'Template deleted successfully'
+      });
+      fetchTemplates();
+    } catch (error) {
+      setNotification({
+        type: 'error',
+        message: `Failed to delete template: ${error.message}`
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const openTemplateDialog = (template = null) => {
+    if (template) {
+      setSelectedTemplate(template);
+      setTemplateForm({
+        name: template.name,
+        template_type: template.template_type,
+        subject_template: template.subject_template,
+        body_template: template.body_template,
+        is_active: template.is_active
+      });
+    } else {
+      setSelectedTemplate(null);
+      setTemplateForm({
+        name: '',
+        template_type: 'CUSTOM',
+        subject_template: '',
+        body_template: '',
+        is_active: true
+      });
+    }
+    setTemplateDialogOpen(true);
+  };
+
   const handleGlobalToggle = async () => {
     try {
       const newValue = !globalConfig.is_emails_enabled;
@@ -186,7 +332,12 @@ const EmailAdministration = () => {
   const handleUpdateConfig = async () => {
     try {
       setActionLoading(true);
-      const response = await authService.updateSystemEmailConfig(selectedConfig.id, editForm);
+      // Ensure template is null if empty string for backend compatibility
+      const payload = {
+        ...editForm,
+        template: editForm.template === '' ? null : editForm.template
+      };
+      const response = await authService.updateSystemEmailConfig(selectedConfig.id, payload);
       setSystemEmailConfigs(prev => prev.map(c => c.id === selectedConfig.id ? response : c));
       setEditConfigOpen(false);
       setNotification({
@@ -303,13 +454,38 @@ const EmailAdministration = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-        <Typography variant="h4" gutterBottom>
-          <EmailIcon sx={{ mr: 2, verticalAlign: 'middle' }} />
-          Email System Administration
-        </Typography>
-        <InfoTooltip title="View status, stats, and run test/automation emails. Use actions to preview or send." />
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <EmailIcon sx={{ mr: 2, verticalAlign: 'middle', color: 'primary.main', fontSize: 32 }} />
+          <Typography variant="h4" fontWeight="bold">
+            Email System Administration
+          </Typography>
+          <InfoTooltip title="Manage global email settings, event routing, templates, and view system logs." />
+        </Box>
+        <Box>
+          <Button 
+            startIcon={<RefreshIcon />} 
+            onClick={() => {
+              if (activeTab === 0) { fetchEmailData(); fetchConfigs(); }
+              else if (activeTab === 1) fetchTemplates();
+              else if (activeTab === 2) fetchLogs();
+            }}
+            disabled={loading || configLoading}
+          >
+            Refresh
+          </Button>
+        </Box>
       </Box>
+
+      <Tabs 
+        value={activeTab} 
+        onChange={(e, newValue) => setActiveTab(newValue)} 
+        sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
+      >
+        <Tab icon={<SettingsIcon />} iconPosition="start" label="Routing & Status" />
+        <Tab icon={<DescriptionIcon />} iconPosition="start" label="Email Templates" />
+        <Tab icon={<HistoryIcon />} iconPosition="start" label="Recent Activity" />
+      </Tabs>
 
       {notification && (
         <Alert 
@@ -321,339 +497,507 @@ const EmailAdministration = () => {
         </Alert>
       )}
 
-      {/* Global Master Switch */}
-      <Card sx={{ mb: 3, bgcolor: alpha(globalConfig?.is_emails_enabled ? '#4caf50' : '#f44336', 0.05) }}>
-        <CardContent sx={{ py: 1, '&:last-child': { pb: 1 } }}>
-          <Box display="flex" justifyContent="space-between" alignItems="center">
-            <Box display="flex" alignItems="center">
-              <PlayArrowIcon color={globalConfig?.is_emails_enabled ? 'success' : 'disabled'} sx={{ mr: 1 }} />
-              <Typography variant="h6" fontWeight="bold">
-                Global Email System Master Switch
-              </Typography>
-              <InfoTooltip title="When disabled, NO automated emails will be sent by the system (except manual tests)." />
-            </Box>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={globalConfig?.is_emails_enabled || false}
-                  onChange={handleGlobalToggle}
-                  color="success"
-                  size="large"
+      {activeTab === 0 && (
+        <Box>
+          {/* Global Master Switch */}
+          <Card sx={{ mb: 3, bgcolor: alpha(globalConfig?.is_emails_enabled ? '#4caf50' : '#f44336', 0.05) }}>
+            <CardContent sx={{ py: 1, '&:last-child': { pb: 1 } }}>
+              <Box display="flex" justifyContent="space-between" alignItems="center">
+                <Box display="flex" alignItems="center">
+                  <PlayArrowIcon color={globalConfig?.is_emails_enabled ? 'success' : 'disabled'} sx={{ mr: 1 }} />
+                  <Typography variant="h6" fontWeight="bold">
+                    Global Email System Master Switch
+                  </Typography>
+                  <InfoTooltip title="When disabled, NO automated emails will be sent by the system (except manual tests)." />
+                </Box>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={globalConfig?.is_emails_enabled || false}
+                      onChange={handleGlobalToggle}
+                      color="success"
+                      size="large"
+                    />
+                  }
+                  label={
+                    <Typography variant="button" fontWeight="bold" color={globalConfig?.is_emails_enabled ? 'success.main' : 'error.main'}>
+                      {globalConfig?.is_emails_enabled ? 'SYSTEM ONLINE' : 'SYSTEM OFFLINE'}
+                    </Typography>
+                  }
                 />
-              }
-              label={
-                <Typography variant="button" fontWeight="bold" color={globalConfig?.is_emails_enabled ? 'success.main' : 'error.main'}>
-                  {globalConfig?.is_emails_enabled ? 'SYSTEM ONLINE' : 'SYSTEM OFFLINE'}
+              </Box>
+            </CardContent>
+          </Card>
+
+          {/* Event and Template Configurations */}
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Box display="flex" justifyContent="space-between" alignItems="center">
+                <Typography variant="h6" fontWeight="bold">
+                  <TimelineIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                  Event Routing & Routing Rules
                 </Typography>
-              }
-            />
-          </Box>
-        </CardContent>
-      </Card>
+                <IconButton onClick={() => toggleSection('events')}>
+                  {expandedSections.events ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </IconButton>
+              </Box>
+              
+              <Collapse in={expandedSections.events}>
+                <TableContainer component={Paper} variant="outlined" sx={{ mt: 2 }}>
+                  <Table size="small">
+                    <TableHead sx={{ bgcolor: 'grey.50' }}>
+                      <TableRow>
+                        <TableCell>System Event</TableCell>
+                        <TableCell>Status</TableCell>
+                        <TableCell>Assigned Template</TableCell>
+                        <TableCell>Target Roles</TableCell>
+                        <TableCell>Exceptions</TableCell>
+                        <TableCell align="right">Action</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {configLoading ? (
+                        <TableRow><TableCell colSpan={6} align="center"><LinearProgress sx={{ my: 2 }} /></TableCell></TableRow>
+                      ) : systemEmailConfigs.map((config) => (
+                        <TableRow key={config.id} hover>
+                          <TableCell sx={{ fontWeight: 'medium' }}>{config.event_type_display}</TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={config.is_enabled ? 'ACTIVE' : 'INACTIVE'} 
+                              size="small" 
+                              color={config.is_enabled ? 'success' : 'default'} 
+                              variant={config.is_enabled ? 'filled' : 'outlined'}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            {config.template_name ? (
+                              <Chip label={config.template_name} size="small" variant="outlined" color="primary" icon={<EmailIcon />} />
+                            ) : (
+                              <Typography variant="caption" color="text.secondary">Default / None</Typography>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                              {config.target_roles.map(role => (
+                                <Chip key={role} label={role} size="small" variant="outlined" />
+                              ))}
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            <Box display="flex" flexDirection="column" gap={0.5}>
+                              {config.excluded_users_details?.length > 0 && (
+                                <Typography variant="caption" color="error">
+                                  Excluded: {config.excluded_users_details.length} users
+                                </Typography>
+                              )}
+                              {config.included_users_details?.length > 0 && (
+                                <Typography variant="caption" color="success.main">
+                                  Included: {config.included_users_details.length} users
+                                </Typography>
+                              )}
+                              {!(config.excluded_users_details?.length > 0) && !(config.included_users_details?.length > 0) && (
+                                <Typography variant="caption" color="text.secondary">None</Typography>
+                              )}
+                            </Box>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Button size="small" variant="text" onClick={() => handleEditConfig(config)} startIcon={<SettingsIcon />}>
+                              Configure
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Collapse>
+            </CardContent>
+          </Card>
 
-      {/* Event and Template Configurations */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box display="flex" justifyContent="space-between" alignItems="center">
-            <Typography variant="h6">
-              <TimelineIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-              Event Routing & Template Configurations
-            </Typography>
-            <Box>
-              <IconButton onClick={() => toggleSection('events')}>
-                {expandedSections.events ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-              </IconButton>
-              <IconButton onClick={fetchConfigs} disabled={configLoading}>
-                <RefreshIcon />
-              </IconButton>
-            </Box>
-          </Box>
-          
-          <Collapse in={expandedSections.events}>
-            <TableContainer component={Paper} variant="outlined" sx={{ mt: 2 }}>
-              <Table size="small">
-                <TableHead sx={{ bgcolor: 'grey.50' }}>
-                  <TableRow>
-                    <TableCell>System Event</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Assigned Template</TableCell>
-                    <TableCell>Target Roles</TableCell>
-                    <TableCell>Exceptions</TableCell>
-                    <TableCell align="right">Action</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {configLoading ? (
-                    <TableRow><TableCell colSpan={6} align="center"><LinearProgress sx={{ my: 2 }} /></TableCell></TableRow>
-                  ) : systemEmailConfigs.map((config) => (
-                    <TableRow key={config.id} hover>
-                      <TableCell sx={{ fontWeight: 'medium' }}>{config.event_type_display}</TableCell>
-                      <TableCell>
-                        <Chip 
-                          label={config.is_enabled ? 'ACTIVE' : 'INACTIVE'} 
-                          size="small" 
-                          color={config.is_enabled ? 'success' : 'default'} 
-                          variant={config.is_enabled ? 'filled' : 'outlined'}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {config.template_name ? (
-                          <Chip label={config.template_name} size="small" variant="outlined" color="primary" icon={<EmailIcon />} />
-                        ) : (
-                          <Typography variant="caption" color="text.secondary">Default / None</Typography>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                          {config.target_roles.map(role => (
-                            <Chip key={role} label={role} size="small" variant="outlined" />
-                          ))}
+          {/* Email System Status */}
+          <Grid container spacing={3} sx={{ mb: 3 }}>
+            <Grid item xs={12} md={6}>
+              <Card sx={{ height: '100%' }}>
+                <CardContent>
+                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                    <Typography variant="h6" fontWeight="bold">
+                      <SettingsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                      System Health
+                    </Typography>
+                  </Box>
+                  
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="subtitle1" gutterBottom>
+                      Health Score: {emailStats?.system_health?.health_percentage || 0}%
+                    </Typography>
+                    <LinearProgress 
+                      variant="determinate" 
+                      value={emailStats?.system_health?.health_percentage || 0}
+                      color={getHealthColor(emailStats?.system_health?.health_percentage || 0)}
+                      sx={{ height: 12, borderRadius: 6, mb: 1 }}
+                    />
+                    <Grid container spacing={1} sx={{ mt: 1 }}>
+                      <Grid item xs={4}>
+                        <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'success.light', borderRadius: 1, color: 'success.contrastText' }}>
+                          <Typography variant="h6">{emailStats?.system_health?.healthy_checks || 0}</Typography>
+                          <Typography variant="caption">Healthy</Typography>
                         </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Box display="flex" flexDirection="column" gap={0.5}>
-                          {config.excluded_users_details?.length > 0 && (
-                            <Typography variant="caption" color="error">
-                              Excluded: {config.excluded_users_details.length} users
-                            </Typography>
-                          )}
-                          {config.included_users_details?.length > 0 && (
-                            <Typography variant="caption" color="success.main">
-                              Included: {config.included_users_details.length} users
-                            </Typography>
-                          )}
-                          {!(config.excluded_users_details?.length > 0) && !(config.included_users_details?.length > 0) && (
-                            <Typography variant="caption" color="text.secondary">None</Typography>
-                          )}
+                      </Grid>
+                      <Grid item xs={4}>
+                        <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'warning.light', borderRadius: 1, color: 'warning.contrastText' }}>
+                          <Typography variant="h6">{emailStats?.system_health?.warning_checks || 0}</Typography>
+                          <Typography variant="caption">Warning</Typography>
                         </Box>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Button size="small" variant="text" onClick={() => handleEditConfig(config)} startIcon={<SettingsIcon />}>
-                          Configure
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Collapse>
-        </CardContent>
-      </Card>
+                      </Grid>
+                      <Grid item xs={4}>
+                        <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'error.light', borderRadius: 1, color: 'error.contrastText' }}>
+                          <Typography variant="h6">{emailStats?.system_health?.unhealthy_checks || 0}</Typography>
+                          <Typography variant="caption">Critical</Typography>
+                        </Box>
+                      </Grid>
+                    </Grid>
+                  </Box>
 
-      {/* Email System Status */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box display="flex" justifyContent="between" alignItems="center">
-            <Typography variant="h6">
-              <SettingsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-              System Status
-            </Typography>
-            <Box>
-              <IconButton onClick={() => toggleSection('status')}>
-                {expandedSections.status ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-              </IconButton>
-              <IconButton onClick={fetchEmailData} disabled={loading}>
-                <RefreshIcon />
-              </IconButton>
-            </Box>
-          </Box>
-          
-          <Collapse in={expandedSections.status}>
-            <Grid container spacing={3} sx={{ mt: 1 }}>
-              <Grid item xs={12} md={6}>
-                <Box>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Email Backend
-                  </Typography>
-                  <Typography variant="body1">
-                    {emailStatus?.email_backend || 'Unknown'}
-                  </Typography>
-                </Box>
-              </Grid>
-              
-              <Grid item xs={12} md={6}>
-                <Box>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    System Mode
-                  </Typography>
-                  <Chip 
-                    label={emailStatus?.is_development_mode ? 'Development' : 'Production'}
-                    color={getStatusColor(emailStatus?.system_health)}
-                    size="small"
-                  />
-                </Box>
-              </Grid>
-              
-              <Grid item xs={12} md={6}>
-                <Box>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    SMTP Host
-                  </Typography>
-                  <Typography variant="body1">
-                    {emailStatus?.smtp_host || 'Not configured'}
-                  </Typography>
-                </Box>
-              </Grid>
-              
-              <Grid item xs={12} md={6}>
-                <Box>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    From Email
-                  </Typography>
-                  <Typography variant="body1">
-                    {emailStatus?.from_email || 'Not set'}
-                  </Typography>
-                </Box>
-              </Grid>
+                  <Divider sx={{ my: 2 }} />
+                  
+                  <Grid container spacing={2}>
+                    <Grid item xs={6}>
+                      <Typography variant="caption" color="text.secondary">Backend</Typography>
+                      <Typography variant="body2" fontWeight="bold">{emailStatus?.email_backend}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="caption" color="text.secondary">Environment</Typography>
+                      <Typography variant="body2" fontWeight="bold">{emailStatus?.is_development_mode ? 'DEVELOPMENT' : 'PRODUCTION'}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="caption" color="text.secondary">SMTP Host</Typography>
+                      <Typography variant="body2" fontWeight="bold">{emailStatus?.smtp_host}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="caption" color="text.secondary">From Address</Typography>
+                      <Typography variant="body2" fontWeight="bold">{emailStatus?.from_email}</Typography>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
             </Grid>
-          </Collapse>
-        </CardContent>
-      </Card>
 
-      {/* Email Statistics */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box display="flex" justifyContent="between" alignItems="center">
-            <Typography variant="h6">
-              <TimelineIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-              Automation Statistics
+            <Grid item xs={12} md={6}>
+              <Card sx={{ height: '100%' }}>
+                <CardContent>
+                  <Typography variant="h6" fontWeight="bold" gutterBottom>
+                    <TimelineIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                    Volume Statistics
+                  </Typography>
+                  
+                  <Grid container spacing={2} sx={{ mt: 1 }}>
+                    <Grid item xs={6}>
+                      <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+                        <Typography variant="h4" color="primary.main">{emailStats?.visits?.today || 0}</Typography>
+                        <Typography variant="body2" color="text.secondary">Today</Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+                        <Typography variant="h4" color="secondary.main">{emailStats?.visits?.yesterday || 0}</Typography>
+                        <Typography variant="body2" color="text.secondary">Yesterday</Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+                        <Typography variant="h4" color="success.main">{emailStats?.visits?.last_7_days || 0}</Typography>
+                        <Typography variant="body2" color="text.secondary">Last 7 Days</Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+                        <Typography variant="h4" color="info.main">{emailStats?.visits?.last_30_days || 0}</Typography>
+                        <Typography variant="body2" color="text.secondary">Last 30 Days</Typography>
+                      </Paper>
+                    </Grid>
+                  </Grid>
+
+                  <Box sx={{ mt: 3 }}>
+                    <Typography variant="subtitle2" gutterBottom>Success Rate by Type</Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {Object.entries(emailStats?.by_type || {}).map(([type, count]) => (
+                        <Chip key={type} label={`${type}: ${count}`} size="small" variant="outlined" />
+                      ))}
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+
+          {/* Email Actions */}
+          <Card>
+            <CardContent>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                <Typography variant="h6" fontWeight="bold">
+                  <PlayArrowIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                  Automation Control Panel
+                </Typography>
+              </Box>
+              
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={4}>
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    startIcon={<SendIcon />}
+                    onClick={() => setTestDialogOpen(true)}
+                    disabled={actionLoading}
+                    sx={{ py: 1.5 }}
+                  >
+                    Send Manual Test Email
+                  </Button>
+                </Grid>
+                
+                <Grid item xs={12} md={4}>
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    color="secondary"
+                    startIcon={<EmailIcon />}
+                    onClick={() => setFeedbackDialogOpen(true)}
+                    disabled={actionLoading}
+                    sx={{ py: 1.5 }}
+                  >
+                    Trigger Feedback Loop
+                  </Button>
+                </Grid>
+                
+                <Grid item xs={12} md={4}>
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    color="warning"
+                    startIcon={<WarningIcon />}
+                    onClick={() => setAlertDialogOpen(true)}
+                    disabled={actionLoading}
+                    sx={{ py: 1.5 }}
+                  >
+                    Broadcast Health Alert
+                  </Button>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Box>
+      )}
+
+      {activeTab === 1 && (
+        <Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h6" fontWeight="bold">
+              Notification & Email Templates
             </Typography>
-            <IconButton onClick={() => toggleSection('stats')}>
-              {expandedSections.stats ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </IconButton>
+            <Button 
+              variant="contained" 
+              startIcon={<AddIcon />} 
+              onClick={() => openTemplateDialog()}
+            >
+              Create New Template
+            </Button>
           </Box>
-          
-          <Collapse in={expandedSections.stats}>
-            <Grid container spacing={3} sx={{ mt: 1 }}>
-              <Grid item xs={12} md={3}>
-                <Box textAlign="center">
-                  <Typography variant="h4" color="primary">
-                    {emailStats?.visits?.today || 0}
-                  </Typography>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Visits Today
-                  </Typography>
-                </Box>
+
+          <Grid container spacing={3}>
+            {loading ? (
+              <Grid item xs={12} sx={{ textAlign: 'center', py: 5 }}>
+                <CircularProgress />
               </Grid>
-              
-              <Grid item xs={12} md={3}>
-                <Box textAlign="center">
-                  <Typography variant="h4" color="secondary">
-                    {emailStats?.visits?.yesterday || 0}
-                  </Typography>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Visits Yesterday
-                  </Typography>
-                </Box>
-              </Grid>
-              
-              <Grid item xs={12} md={3}>
-                <Box textAlign="center">
-                  <Typography variant="h4" color="success.main">
-                    {emailStats?.visits?.last_7_days || 0}
-                  </Typography>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Last 7 Days
-                  </Typography>
-                </Box>
-              </Grid>
-              
-              <Grid item xs={12} md={3}>
-                <Box textAlign="center">
-                  <Typography variant="h4" color="info.main">
-                    {emailStats?.visits?.last_30_days || 0}
-                  </Typography>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Last 30 Days
-                  </Typography>
-                </Box>
-              </Grid>
-              
+            ) : allTemplates.length === 0 ? (
               <Grid item xs={12}>
-                <Divider sx={{ my: 2 }} />
-                <Typography variant="subtitle1" gutterBottom>
-                  System Health: {emailStats?.system_health?.health_percentage || 0}%
-                </Typography>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={emailStats?.system_health?.health_percentage || 0}
-                  color={getHealthColor(emailStats?.system_health?.health_percentage || 0)}
-                  sx={{ height: 8, borderRadius: 4 }}
-                />
-                <Box display="flex" justifyContent="space-between" mt={1}>
-                  <Typography variant="caption">
-                    Healthy: {emailStats?.system_health?.healthy_checks || 0}
-                  </Typography>
-                  <Typography variant="caption">
-                    Warning: {emailStats?.system_health?.warning_checks || 0}
-                  </Typography>
-                  <Typography variant="caption">
-                    Unhealthy: {emailStats?.system_health?.unhealthy_checks || 0}
-                  </Typography>
-                </Box>
+                <Paper sx={{ p: 5, textAlign: 'center', bgcolor: 'grey.50' }}>
+                  <DescriptionIcon sx={{ fontSize: 60, color: 'grey.400', mb: 2 }} />
+                  <Typography variant="h6" color="text.secondary">No templates found</Typography>
+                  <Typography variant="body2" color="text.disabled">Create your first template to get started</Typography>
+                </Paper>
               </Grid>
-            </Grid>
-          </Collapse>
-        </CardContent>
-      </Card>
+            ) : allTemplates.map((template) => (
+              <Grid item xs={12} md={6} lg={4} key={template.id}>
+                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <CardContent sx={{ flexGrow: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="subtitle1" fontWeight="bold" noWrap sx={{ maxWidth: '70%' }}>
+                        {template.name}
+                      </Typography>
+                      <Chip 
+                        label={template.template_type_display} 
+                        size="small" 
+                        color="primary" 
+                        variant="outlined" 
+                      />
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" gutterBottom sx={{ 
+                      display: '-webkit-box',
+                      WebkitLineClamp: 1,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden'
+                    }}>
+                      Subject: {template.subject_template}
+                    </Typography>
+                    <Divider sx={{ my: 1.5 }} />
+                    <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mb: 1 }}>
+                      BODY PREVIEW:
+                    </Typography>
+                    <Typography variant="body2" sx={{ 
+                      bgcolor: 'grey.50', 
+                      p: 1.5, 
+                      borderRadius: 1,
+                      fontFamily: 'monospace',
+                      fontSize: '0.75rem',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 4,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      minHeight: 80
+                    }}>
+                      {template.body_template}
+                    </Typography>
+                  </CardContent>
+                  <Divider />
+                  <Box sx={{ p: 1, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                    <Tooltip title="Edit Template">
+                      <IconButton size="small" onClick={() => openTemplateDialog(template)}>
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete Template">
+                      <IconButton size="small" color="error" onClick={() => handleDeleteTemplate(template.id)}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
 
-      {/* Email Actions */}
-      <Card>
-        <CardContent>
-          <Box display="flex" justifyContent="between" alignItems="center">
-            <Typography variant="h6">
-              <PlayArrowIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-              Email Automation Controls
-            </Typography>
-            <IconButton onClick={() => toggleSection('actions')}>
-              {expandedSections.actions ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </IconButton>
-          </Box>
-          
-          <Collapse in={expandedSections.actions}>
-            <Grid container spacing={3} sx={{ mt: 1 }}>
-              <Grid item xs={12} md={4}>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  startIcon={<SendIcon />}
-                  onClick={() => setTestDialogOpen(true)}
-                  disabled={actionLoading}
-                >
-                  Test Email System
-                </Button>
-              </Grid>
-              
-              <Grid item xs={12} md={4}>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  color="secondary"
-                  startIcon={<EmailIcon />}
-                  onClick={() => setFeedbackDialogOpen(true)}
-                  disabled={actionLoading}
-                >
-                  Send Feedback Emails
-                </Button>
-              </Grid>
-              
-              <Grid item xs={12} md={4}>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  color="warning"
-                  startIcon={<WarningIcon />}
-                  onClick={() => setAlertDialogOpen(true)}
-                  disabled={actionLoading}
-                >
-                  Send Health Alert
-                </Button>
-              </Grid>
+      {activeTab === 2 && (
+        <Box>
+          <Typography variant="h6" fontWeight="bold" gutterBottom>
+            System Notification Logs
+          </Typography>
+          <TableContainer component={Paper} variant="outlined">
+            <Table>
+              <TableHead sx={{ bgcolor: 'grey.50' }}>
+                <TableRow>
+                  <TableCell>Timestamp</TableCell>
+                  <TableCell>Action</TableCell>
+                  <TableCell>Recipient/Details</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Error</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {loading ? (
+                  <TableRow><TableCell colSpan={5} align="center"><LinearProgress sx={{ my: 3 }} /></TableCell></TableRow>
+                ) : logs.length === 0 ? (
+                  <TableRow><TableCell colSpan={5} align="center" sx={{ py: 5 }}>No activity logs found</TableCell></TableRow>
+                ) : logs.map((log) => (
+                  <TableRow key={log.id} hover>
+                    <TableCell>{new Date(log.timestamp).toLocaleString()}</TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={log.action_display} 
+                        size="small" 
+                        color={log.action === 'FAILED' ? 'error' : log.action === 'SENT' ? 'success' : 'default'} 
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">{log.details}</Typography>
+                      {log.email_message_id && (
+                        <Typography variant="caption" color="text.disabled">ID: {log.email_message_id}</Typography>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {log.metadata?.status || 'N/A'}
+                    </TableCell>
+                    <TableCell color="error.main">
+                      {log.error_message || '-'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
+      )}
+
+      {/* Template Dialog */}
+      <Dialog open={templateDialogOpen} onClose={() => setTemplateDialogOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>{selectedTemplate ? 'Edit Template' : 'Create New Template'}</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            <Grid item xs={12} md={8}>
+              <TextField
+                fullWidth
+                label="Template Name"
+                value={templateForm.name}
+                onChange={(e) => setTemplateForm(prev => ({ ...prev, name: e.target.value }))}
+                margin="normal"
+                required
+              />
             </Grid>
-          </Collapse>
-        </CardContent>
-      </Card>
+            <Grid item xs={12} md={4}>
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Template Type</InputLabel>
+                <Select
+                  value={templateForm.template_type}
+                  onChange={(e) => setTemplateForm(prev => ({ ...prev, template_type: e.target.value }))}
+                  label="Template Type"
+                >
+                  <MenuItem value="APPOINTMENT_REMINDER">Appointment Reminder</MenuItem>
+                  <MenuItem value="MEDICATION_REMINDER">Medication Reminder</MenuItem>
+                  <MenuItem value="HEALTH_CAMPAIGN">Health Campaign</MenuItem>
+                  <MenuItem value="CLINIC_UPDATE">Clinic Update</MenuItem>
+                  <MenuItem value="FOLLOW_UP">Follow-up Reminder</MenuItem>
+                  <MenuItem value="VACCINATION_REMINDER">Vaccination Reminder</MenuItem>
+                  <MenuItem value="DENTAL_REMINDER">Dental Checkup Reminder</MenuItem>
+                  <MenuItem value="CUSTOM">Custom Notification</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Subject Template"
+                value={templateForm.subject_template}
+                onChange={(e) => setTemplateForm(prev => ({ ...prev, subject_template: e.target.value }))}
+                margin="normal"
+                placeholder="e.g. Hello {{user_name}}, your appointment is confirmed"
+                helperText="Use {{variable_name}} for dynamic content"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Body Template (HTML/Text)"
+                value={templateForm.body_template}
+                onChange={(e) => setTemplateForm(prev => ({ ...prev, body_template: e.target.value }))}
+                margin="normal"
+                multiline
+                rows={10}
+                placeholder="Enter HTML or plain text content..."
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setTemplateDialogOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={selectedTemplate ? handleUpdateTemplate : handleCreateTemplate} 
+            variant="contained"
+            disabled={actionLoading || !templateForm.name}
+          >
+            {actionLoading ? <CircularProgress size={24} /> : selectedTemplate ? 'Update Template' : 'Create Template'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Test Email Dialog */}
       <Dialog open={testDialogOpen} onClose={() => setTestDialogOpen(false)} maxWidth="sm" fullWidth>
