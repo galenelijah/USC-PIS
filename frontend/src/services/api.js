@@ -1163,6 +1163,15 @@ export const notificationService = {
     }
   },
 
+  // Get all notifications (admin/staff view with optional filtering)
+  getAllNotifications: async (params = {}) => {
+    try {
+      return await api.get('/notifications/notifications/', { params });
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
   // Get unread notifications
   getUnreadNotifications: async () => {
     try {

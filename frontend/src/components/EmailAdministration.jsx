@@ -57,7 +57,10 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   History as HistoryIcon,
-  Description as DescriptionIcon
+  Description as DescriptionIcon,
+  Campaign as CampaignIcon,
+  Notifications as NotificationsIcon,
+  FilterList as FilterListIcon
 } from '@mui/icons-material';
 import { authService, notificationService } from '../services/api';
 import InfoTooltip from './utils/InfoTooltip';
@@ -70,6 +73,8 @@ const EmailAdministration = () => {
   const [systemEmailConfigs, setSystemEmailConfigs] = useState([]);
   const [availableTemplates, setAvailableTemplates] = useState([]);
   const [allTemplates, setAllTemplates] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
   const [eventChoices, setEventChoices] = useState([]);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -140,6 +145,10 @@ const EmailAdministration = () => {
     } else if (activeTab === 1) {
       fetchTemplates();
     } else if (activeTab === 2) {
+      fetchNotifications();
+    } else if (activeTab === 3) {
+      fetchCampaigns();
+    } else if (activeTab === 4) {
       fetchLogs();
     }
   }, [activeTab]);
@@ -194,6 +203,36 @@ const EmailAdministration = () => {
       setNotification({
         type: 'error',
         message: `Failed to load templates: ${error.message}`
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      const response = await notificationService.getAllNotifications({ all: true });
+      setNotifications(response.data.results || response.data);
+    } catch (error) {
+      setNotification({
+        type: 'error',
+        message: `Failed to load notifications: ${error.message}`
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCampaigns = async () => {
+    try {
+      setLoading(true);
+      const response = await notificationService.getCampaigns();
+      setCampaigns(response.data.results || response.data);
+    } catch (error) {
+      setNotification({
+        type: 'error',
+        message: `Failed to load campaigns: ${error.message}`
       });
     } finally {
       setLoading(false);
@@ -468,7 +507,9 @@ const EmailAdministration = () => {
             onClick={() => {
               if (activeTab === 0) { fetchEmailData(); fetchConfigs(); }
               else if (activeTab === 1) fetchTemplates();
-              else if (activeTab === 2) fetchLogs();
+              else if (activeTab === 2) fetchNotifications();
+              else if (activeTab === 3) fetchCampaigns();
+              else if (activeTab === 4) fetchLogs();
             }}
             disabled={loading || configLoading}
           >
@@ -484,7 +525,9 @@ const EmailAdministration = () => {
       >
         <Tab icon={<SettingsIcon />} iconPosition="start" label="Routing & Status" />
         <Tab icon={<DescriptionIcon />} iconPosition="start" label="Email Templates" />
-        <Tab icon={<HistoryIcon />} iconPosition="start" label="Recent Activity" />
+        <Tab icon={<NotificationsIcon />} iconPosition="start" label="Sent Notifications" />
+        <Tab icon={<CampaignIcon />} iconPosition="start" label="Email Campaigns" />
+        <Tab icon={<HistoryIcon />} iconPosition="start" label="System Logs" />
       </Tabs>
 
       {notification && (
@@ -879,8 +922,126 @@ const EmailAdministration = () => {
 
       {activeTab === 2 && (
         <Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h6" fontWeight="bold">
+              Sent Notifications History
+            </Typography>
+            <Box>
+              <Button startIcon={<FilterListIcon />} variant="outlined" size="small">Filter</Button>
+            </Box>
+          </Box>
+
+          <TableContainer component={Paper} variant="outlined">
+            <Table size="small">
+              <TableHead sx={{ bgcolor: 'grey.50' }}>
+                <TableRow>
+                  <TableCell>Sent At</TableCell>
+                  <TableCell>Recipient</TableCell>
+                  <TableCell>Subject</TableCell>
+                  <TableCell>Type</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Method</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {loading ? (
+                  <TableRow><TableCell colSpan={6} align="center"><LinearProgress sx={{ my: 3 }} /></TableCell></TableRow>
+                ) : notifications.length === 0 ? (
+                  <TableRow><TableCell colSpan={6} align="center" sx={{ py: 5 }}>No notifications found</TableCell></TableRow>
+                ) : notifications.map((notif) => (
+                  <TableRow key={notif.id} hover>
+                    <TableCell>{new Date(notif.created_at).toLocaleString()}</TableCell>
+                    <TableCell>
+                      <Typography variant="body2">{notif.recipient_email}</Typography>
+                      <Typography variant="caption" color="text.secondary">{notif.recipient_name}</Typography>
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {notif.title}
+                    </TableCell>
+                    <TableCell>
+                      <Chip label={notif.notification_type_display} size="small" variant="outlined" />
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={notif.status} 
+                        size="small" 
+                        color={notif.status === 'READ' ? 'success' : notif.status === 'SENT' ? 'info' : 'default'} 
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="caption">{notif.delivery_method}</Typography>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
+      )}
+
+      {activeTab === 3 && (
+        <Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h6" fontWeight="bold">
+              Email Campaigns
+            </Typography>
+            <Button variant="contained" startIcon={<AddIcon />} disabled>New Campaign</Button>
+          </Box>
+
+          <Grid container spacing={3}>
+            {loading ? (
+              <Grid item xs={12} sx={{ textAlign: 'center', py: 5 }}>
+                <CircularProgress />
+              </Grid>
+            ) : campaigns.length === 0 ? (
+              <Grid item xs={12}>
+                <Paper sx={{ p: 5, textAlign: 'center', bgcolor: 'grey.50' }}>
+                  <CampaignIcon sx={{ fontSize: 60, color: 'grey.400', mb: 2 }} />
+                  <Typography variant="h6" color="text.secondary">No campaigns found</Typography>
+                </Paper>
+              </Grid>
+            ) : campaigns.map((campaign) => (
+              <Grid item xs={12} md={6} key={campaign.id}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="subtitle1" fontWeight="bold">{campaign.name}</Typography>
+                      <Chip 
+                        label={campaign.status} 
+                        size="small" 
+                        color={campaign.status === 'ACTIVE' ? 'success' : campaign.status === 'COMPLETED' ? 'primary' : 'default'} 
+                      />
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Type: {campaign.campaign_type_display} | Audience: {campaign.audience_type}
+                    </Typography>
+                    <Divider sx={{ my: 1 }} />
+                    <Grid container spacing={1}>
+                      <Grid item xs={4}>
+                        <Typography variant="caption" color="text.secondary">Sent</Typography>
+                        <Typography variant="body2" fontWeight="bold">{campaign.sent_count || 0}</Typography>
+                      </Grid>
+                      <Grid item xs={4}>
+                        <Typography variant="caption" color="text.secondary">Read</Typography>
+                        <Typography variant="body2" fontWeight="bold">{campaign.read_count || 0}</Typography>
+                      </Grid>
+                      <Grid item xs={4}>
+                        <Typography variant="caption" color="text.secondary">Failed</Typography>
+                        <Typography variant="body2" fontWeight="bold">{campaign.failed_count || 0}</Typography>
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
+
+      {activeTab === 4 && (
+        <Box>
           <Typography variant="h6" fontWeight="bold" gutterBottom>
-            System Notification Logs
+            System Activity Logs
           </Typography>
           <TableContainer component={Paper} variant="outlined">
             <Table>
