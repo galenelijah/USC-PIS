@@ -858,7 +858,6 @@ const Dental = () => {
                   <Tab label="Clinical Details" />
                   <Tab label="Treatment & Follow-up" />
                 </Tabs>
-              </Box>
               
               {/* Basic Information Tab */}
               {tabValue === 0 && (
