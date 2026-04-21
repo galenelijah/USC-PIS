@@ -226,21 +226,6 @@ const EmailAdministration = () => {
     }
   };
 
-  const fetchCampaigns = async () => {
-    try {
-      setLoading(true);
-      const response = await notificationService.getCampaigns();
-      setCampaigns(response.data.results || response.data);
-    } catch (error) {
-      setNotification({
-        type: 'error',
-        message: `Failed to load campaigns: ${error.message}`
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const fetchConfigs = async () => {
     try {
       setConfigLoading(true);
