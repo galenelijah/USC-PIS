@@ -18,17 +18,16 @@ const Layout = ({ children }) => {
         component="main"
         sx={{
           flexGrow: 1,
-          width: { md: `calc(100% - 240px)` },
-          ml: { md: '240px' },
           display: 'flex',
           flexDirection: 'column',
+          minWidth: 0, // Prevent flex items from overflowing
         }}
       >
         <Header handleDrawerToggle={handleDrawerToggle} />
         <Container 
           maxWidth="xl" 
           sx={{ 
-            mt: { xs: 8, sm: 10 }, 
+            mt: 2, 
             mb: { xs: 2, sm: 4 }, 
             pt: { xs: 1, sm: 2 },
             px: { xs: 1, sm: 3 },

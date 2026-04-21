@@ -162,92 +162,61 @@ If you're not receiving emails:
 
 ## Email Administration (Admin/Staff/Doctor Only)
 
-USC-PIS includes a comprehensive email administration interface for managing automated communications and monitoring system health.
+USC-PIS includes a comprehensive email administration interface for managing automated communications, templates, and system health.
 
 ### **Accessing Email Administration**
-
-#### **Web Interface Access**
 - **Navigation**: Admin Dashboard → "Email Administration" menu item
-- **Direct URL**: `/email-administration`
 - **Role Access**: Admin, Staff, and Doctor roles only
-- **Icon**: 📧 Email icon in the sidebar and dashboard
+- **Layout**: The interface is divided into five specialized tabs for focused management.
 
-#### **Quick Access from Dashboard**
-- **Admin Dashboard**: Look for the "Email Administration" quick action card
-- **Features**: Direct access to email system management from the main dashboard
+### **1. Routing & Status**
+This tab provides a high-level overview of the communication system.
+- **Global Master Switch**: A "kill switch" to instantly enable or disable all automated system emails.
+- **System Health Card**: Monitor 7 core infrastructure checks (Database, Email, Backups, Security, Performance, Storage, and Cache).
+- **Volume Statistics**: View notification traffic from today, yesterday, and the last 30 days.
+- **Automation Control Panel**: Manual triggers for system-wide tests, feedback loops, and health alerts.
 
-### **Email Administration Features**
+### **2. Email Templates**
+Full lifecycle management for notification content.
+- **Database Templates**: Create, edit, and delete templates for clinical and administrative events.
+- **Dynamic Content**: Support for `{{user_name}}`, `{{appointment_date}}`, and other variables.
+- **Static HTML Templates**: View read-only system files (e.g., `password_reset.html`) that serve as core system content.
+- **Preview**: Monaco-style body preview for verifying HTML/text content.
 
-#### **System Status Monitoring**
-- **Email Backend Status**: View current email configuration (SMTP/Console)
-- **System Mode**: See if system is in Development or Production mode
-- **SMTP Configuration**: Monitor email host and from address settings
-- **Real-time Health**: Check operational status with automatic refresh
+### **3. Sent Notifications**
+A real-time history of all individual communications sent by the system.
+- **Recipients**: Track exactly who received what (Email and Name).
+- **Status Tracking**: See if an email is **SENT**, **READ**, or **FAILED**.
+- **Capabilities Guide**: Quick reference of all supported notification types (Clinical, Engagement, and System).
 
-#### **Email Testing & Validation**
-- **Multi-Type Testing**: Test feedback, welcome, certificate, and health alert emails
-- **Dry Run Mode**: Preview emails without actually sending them
-- **Test Results**: View detailed success/failure reports for each email type
-- **Individual Email Testing**: Send test emails to specific addresses
+### **4. Staff Access**
+Dedicated management for non-student notification channels.
+- **Role Filtering**: Automatically lists all Admins, Doctors, Nurses, and Teachers (excluding students).
+- **Channel Toggles**: Instantly enable or disable **In-App Notifications**, **Email Notifications**, and **Desktop Alerts** per staff member.
+- **Access Status**: Clear indicator showing if a staff member is currently **RECEIVING** or **BLOCKED** from communications.
 
-#### **Automation Controls**
-- **Feedback Email Automation**: Manually trigger feedback requests for visits from specific hours ago
-- **Health Alert System**: Send system health alerts with customizable severity levels
-- **Scheduling Integration**: Control when and how automated emails are sent
+### **5. System Activity Logs**
+Detailed technical logs for auditing and troubleshooting.
+- **Timestamped Actions**: Detailed history of backend email events.
+- **Error Diagnostics**: View specific error messages and provider responses for failed deliveries.
+- **Audit Trail**: Identify which administrator triggered specific manual actions.
 
-#### **Statistics & Analytics**
-- **Visit Metrics**: Monitor visits today, yesterday, last 7 days, and last 30 days
-- **Email Activity**: Track estimated pending feedback emails
-- **System Health**: View overall system health percentage and check statuses
-- **Real-time Updates**: Get current statistics with automatic refresh
+### **Using the System Health Card**
+Click **"View Details"** on the System Health card to see a breakdown of the 7 core diagnostics:
+1. **Database**: Connectivity and record retrieval speed.
+2. **Email Infrastructure**: Authentication and provider readiness.
+3. **Automated Backups**: Success of recent data snapshots.
+4. **Security Shield**: SSL status and production configuration.
+5. **Performance**: System responsiveness and rate-limiting.
+6. **Cloud Storage**: Persistent storage of medical uploads.
+7. **System Speed**: Cache layer health for UI snappiness.
 
-### **Using the Email Administration Interface**
-
-#### **1. System Status Review**
-1. **Access Interface**: Navigate to Email Administration page
-2. **System Status Section**: Review email backend and configuration
-3. **Health Monitoring**: Check system mode and operational status
-4. **Refresh Data**: Use the refresh button for latest information
-
-#### **2. Testing Email System**
-1. **Test Button**: Click "Test Email System" in the automation controls
-2. **Email Configuration**:
-   - Enter test email address (e.g., `21100727@usc.edu.ph`)
-   - Select email types to test (feedback, welcome, certificate, health_alert)
-   - Enable "Dry Run" for preview mode or disable for actual sending
-3. **Execute Test**: Click "Preview Test" (dry run) or "Send Test" (actual)
-4. **Review Results**: Check the results table for success/failure status and messages
-
-#### **3. Manual Feedback Email Sending**
-1. **Feedback Button**: Click "Send Feedback Emails" in automation controls
-2. **Configuration**:
-   - Set "Hours Since Visit" (default: 24 hours)
-   - Enable "Dry Run" to preview without sending
-3. **Execute**: Click "Preview Emails" or "Send Emails"
-4. **Results**: Review sent count, error count, and detailed output
-
-#### **4. Health Alert Management**
-1. **Alert Button**: Click "Send Health Alert" in automation controls
-2. **Alert Configuration**:
-   - **Alert Level**: Choose "All Issues", "Warning & Above", or "Unhealthy Only"
-   - **Force Alert**: Send regardless of current system status
-   - **Dry Run**: Preview alert without sending
-3. **Send Alert**: Click "Preview Alert" or "Send Alert"
-4. **Confirmation**: Review alert status and delivery confirmation
+---
 
 ### **Email Administration Best Practices**
-
-#### **Regular Monitoring**
-- **Daily Check**: Review system status daily during business hours
-- **Weekly Testing**: Test email system weekly with dry run mode
-- **Health Alerts**: Monitor health alert frequency and response
-
-#### **Testing Protocol**
-- **Always Use Dry Run First**: Preview emails before sending to avoid spam
-- **Test Different Types**: Verify all email types (feedback, welcome, certificate, alerts)
-- **Use Valid Test Emails**: Test with actual USC email addresses for accurate results
-
-#### **Automation Management**
+- **Always Use Dry Run**: When using the Automation Control Panel, enable "Dry Run" first to preview the impact before sending actual emails.
+- **Monitor Blocked Staff**: Regularly check the "Staff Access" tab to ensure medical personnel haven't accidentally disabled critical clinical notification channels.
+- **Review Failures**: Check the "System Logs" weekly to identify recurring delivery failures (e.g., invalid email addresses).
 - **Feedback Timing**: Send feedback emails 24-48 hours after visits for best response rates
 - **Health Alert Thresholds**: Use appropriate alert levels to avoid alert fatigue
 - **Documentation**: Log any manual email sends for audit purposes

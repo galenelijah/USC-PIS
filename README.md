@@ -19,7 +19,9 @@ A comprehensive healthcare management system for the University of Southern Cali
 - ✅ **Automated Record Context** - Intelligent mapping of program IDs to full USC course names for all official documents.
 - ✅ **Database Monitor & Backup** - Enterprise-grade with smart restore, conflict resolution, and real-time health monitoring.
 - ✅ **Campaign & Announcement System** - Complete CRUD with image uploads and interactive student dashboards.
-- ✅ **Email Administration** - AWS SES with automated welcome, feedback, and certificate notifications.
+- ✅ **Email Administration** - Full template CRUD, real-time activity logs, and staff notification channel management.
+- ✅ **Infrastructure Diagnostics** - 7-point real-time health monitoring (DB, Email, Backup, Security, Performance, Storage, Cache).
+- ✅ **Gmail API Integration** - Exclusive use of the modern Google OAuth 2.0 API for high-reliability clinical communications.
 - ✅ **Security Implementation** - Enterprise-grade with HSTS, CSP, rate limiting, and pgcrypto encryption.
 
 ### **🚀 RECENT SYSTEM OPTIMIZATIONS** (April 2026):
@@ -91,7 +93,7 @@ A comprehensive healthcare management system for the University of Southern Cali
 ### **Infrastructure**  
 - **Hosting**: Heroku with automatic CI/CD pipelines.
 - **Media**: Cloudinary CDN for persistent image storage.
-- **Email**: AWS SES for high-reliability automated communications.
+- **Email**: Gmail API (OAuth 2.0) for high-reliability clinical communications.
 
 ## 🏛️ Academic Context
 

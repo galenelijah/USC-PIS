@@ -35,7 +35,21 @@
 ### 🔎 API Matrices
 - [Endpoint Matrix](docs/api/ENDPOINT_MATRIX.md) — One-page list of endpoints grouped by app and typical roles
 
-### 🛠️ Build Consolidated Docs
+## 🎓 Manuscript & Thesis Documents (April 2026)
+
+### 📂 [manuscript_docs_2026-04-11/](manuscript_docs_2026-04-11/)
+**Final project documentation for thesis submission**
+- [Functional Specification](manuscript_docs_2026-04-11/4-21-2026_FUNCTIONAL_SPEC.md) — Production-ready system capabilities.
+- [Technical Architecture](manuscript_docs_2026-04-11/4-21-2026_TECH_ARCHITECTURE.md) — 7-Point Diagnostic Engine and Flexbox architecture.
+- [Security & Permissions](manuscript_docs_2026-04-11/4-21-2026_SECURITY_PERMISSIONS.md) — Standardized RBAC and pgcrypto implementation.
+- [Database Schema](manuscript_docs_2026-04-11/4-21-2026_DATABASE_SCHEMA.md) — Full data dictionary including notification preferences.
+- [SRS Technical Spec](manuscript_docs_2026-04-11/4-21-2026_SOURCE_SRS_TECHNICAL_SPEC.md) — IEEE 830 compliant requirements.
+- [Manuscript Results (Ch. 4)](manuscript_docs_2026-04-11/4-21-2026_SOURCE_MANUSCRIPT_RESULTS_CH4.md) — Empirical validation and performance benchmarks.
+- [Testing Methodology](manuscript_docs_2026-04-11/4-21-2026_TESTING_METHODOLOGY.md) — Infrastructure audit and resilience testing protocols.
+- [Training Plan Guide](manuscript_docs_2026-04-11/4-21-2026_TRAINING_PLAN_GUIDE.md) — Deployment strategy and staff onboarding modules.
+- [SRS Construction Guide](manuscript_docs_2026-04-11/4-21-2026_SRS_CONSTRUCTION_GUIDE.md) — Foundational data for automated SRS generation.
+
+## 🛠️ Build Consolidated Docs
 - Script: `scripts/build-docs.sh`
 - Output: `docs/build/consolidated.md` (+ HTML/PDF if `pandoc` installed)
 

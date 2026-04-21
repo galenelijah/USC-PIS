@@ -566,12 +566,6 @@ const EmailAdministration = () => {
     return 'error';
   };
 
-  const getHealthColor = (percentage) => {
-    if (percentage >= 90) return 'success';
-    if (percentage >= 70) return 'warning';
-    return 'error';
-  };
-
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -679,35 +673,29 @@ const EmailAdministration = () => {
                   </Box>
                   
                   <Box sx={{ mb: 3 }}>
-                    <Typography variant="subtitle1" gutterBottom>
-                      Health Score: {emailStats?.system_health?.health_percentage || 0}%
-                    </Typography>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={emailStats?.system_health?.health_percentage || 0}
-                      color={getHealthColor(emailStats?.system_health?.health_percentage || 0)}
-                      sx={{ height: 12, borderRadius: 6, mb: 1 }}
-                    />
-                    <Grid container spacing={1} sx={{ mt: 1 }}>
+                    <Grid container spacing={1}>
                       <Grid item xs={4}>
                         <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'success.light', borderRadius: 1, color: 'success.contrastText' }}>
-                          <Typography variant="h6">{emailStats?.system_health?.healthy_checks || 0}</Typography>
-                          <Typography variant="caption">Healthy</Typography>
+                          <Typography variant="h6" fontWeight="bold">{emailStats?.system_health?.healthy_checks || 0}</Typography>
+                          <Typography variant="caption" sx={{ display: 'block', lineHeight: 1 }}>HEALTHY</Typography>
                         </Box>
                       </Grid>
                       <Grid item xs={4}>
                         <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'warning.light', borderRadius: 1, color: 'warning.contrastText' }}>
-                          <Typography variant="h6">{emailStats?.system_health?.warning_checks || 0}</Typography>
-                          <Typography variant="caption">Warning</Typography>
+                          <Typography variant="h6" fontWeight="bold">{emailStats?.system_health?.warning_checks || 0}</Typography>
+                          <Typography variant="caption" sx={{ display: 'block', lineHeight: 1 }}>WARNING</Typography>
                         </Box>
                       </Grid>
                       <Grid item xs={4}>
                         <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'error.light', borderRadius: 1, color: 'error.contrastText' }}>
-                          <Typography variant="h6">{emailStats?.system_health?.unhealthy_checks || 0}</Typography>
-                          <Typography variant="caption">Critical</Typography>
+                          <Typography variant="h6" fontWeight="bold">{emailStats?.system_health?.unhealthy_checks || 0}</Typography>
+                          <Typography variant="caption" sx={{ display: 'block', lineHeight: 1 }}>CRITICAL</Typography>
                         </Box>
                       </Grid>
                     </Grid>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block', textAlign: 'center' }}>
+                      Status of 7 core infrastructure checks
+                    </Typography>
                   </Box>
 
                   <Divider sx={{ my: 2 }} />

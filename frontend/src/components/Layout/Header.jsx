@@ -82,13 +82,12 @@ const Header = ({ handleDrawerToggle }) => {
 
   return (
     <AppBar
-      position="fixed"
+      position="sticky"
       sx={{
-        ml: { md: '240px' },
-        width: { xs: '100%', md: 'calc(100% - 240px)' },
         backgroundColor: 'white',
         color: 'black',
         boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+        zIndex: (theme) => theme.zIndex.drawer + 1,
       }}
     >
       <Toolbar>
