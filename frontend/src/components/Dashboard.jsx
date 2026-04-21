@@ -231,7 +231,7 @@ const Dashboard = memo(({ user }) => {
             <Grid item xs={12} md={4}>
               <QuickAction
                 title="Medical Records"
-                description="View and manage your medical records and consultation history"
+                description="View your detailed clinic visit logs, specific consultation records, and medical documentation"
                 icon={<MedicalIcon />}
                 to="/health-records"
                 color="primary"

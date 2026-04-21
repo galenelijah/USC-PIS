@@ -1003,8 +1003,8 @@ const MedicalHistoryPage = () => {
         </Box>
         <Typography variant="body1" color="text.secondary">
           {isStaffOrMedical
-            ? 'Browse patient history with summaries, trends, and insights. View comprehensive records, vitals, and treatment progression.'
-            : 'See your health history, summaries, and insights at a glance.'}
+            ? 'Browse a chronological health timeline with data-driven insights. View treatment progression, vitals trends, and comprehensive history.'
+            : 'Explore your chronological health timeline. View data-driven insights, treatment trends, and your complete medical history at a glance.'}
         </Typography>
       </Box>
 
