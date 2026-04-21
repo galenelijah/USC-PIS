@@ -91,8 +91,40 @@ const EmailAdministration = () => {
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
   const [alertDialogOpen, setAlertDialogOpen] = useState(false);
+  const [healthDialogOpen, setHealthDialogOpen] = useState(false);
   const [selectedConfig, setSelectedConfig] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
+  
+  const healthExplanations = {
+    database: {
+      title: "Database Connectivity",
+      desc: "Connectivity and query performance check. Ensures patient and medical records are accessible and retrieving quickly."
+    },
+    email_system: {
+      title: "Email Infrastructure",
+      desc: "Verifies the email provider (SMTP/Gmail) is authenticated. A failure here prevents all automated communication."
+    },
+    backup_system: {
+      title: "Automated Backups",
+      desc: "Checks for recent successful database backups. Vital for disaster recovery and preventing data loss."
+    },
+    security: {
+      title: "Security Shield",
+      desc: "Scans for production risks like SSL enforcement and DEBUG mode status to keep medical data private."
+    },
+    performance: {
+      title: "System Performance",
+      desc: "Monitors system responsiveness and checks if rate-limiting is active to prevent server overload."
+    },
+    file_storage: {
+      title: "Cloud File Storage",
+      desc: "Ensures uploaded files (like medical certs) are stored on persistent cloud storage instead of temporary server memory."
+    },
+    cache: {
+      title: "System Speed (Cache)",
+      desc: "Verifies the speed-optimization layer is working to keep the user interface fast and snappy."
+    }
+  };
   const [expandedSections, setExpandedSections] = useState({
     status: true,
     stats: true,
@@ -641,6 +673,9 @@ const EmailAdministration = () => {
                       <SettingsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
                       System Health
                     </Typography>
+                    <Button size="small" variant="outlined" onClick={() => setHealthDialogOpen(true)}>
+                      View Details
+                    </Button>
                   </Box>
                   
                   <Box sx={{ mb: 3 }}>
@@ -1646,6 +1681,50 @@ const EmailAdministration = () => {
             disabled={actionLoading}
           >
             Save Configuration
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* System Health Details Dialog */}
+      <Dialog open={healthDialogOpen} onClose={() => setHealthDialogOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>
+          Understanding System Health Diagnostics
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body1" paragraph fontWeight="bold">
+            USC-PIS runs 7 critical infrastructure checks to ensure medical data safety and system availability.
+          </Typography>
+          
+          <Grid container spacing={3}>
+            {Object.entries(healthExplanations).map(([key, info]) => (
+              <Grid item xs={12} key={key}>
+                <Paper variant="outlined" sx={{ p: 2, bgcolor: alpha('#1976d2', 0.02) }}>
+                  <Box display="flex" alignItems="center" mb={1}>
+                    <CheckCircleIcon color="success" sx={{ mr: 1, fontSize: 20 }} />
+                    <Typography variant="subtitle1" fontWeight="bold">
+                      {info.title}
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary">
+                    {info.desc}
+                  </Typography>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+          
+          <Box sx={{ mt: 4, p: 2, bgcolor: 'warning.light', borderRadius: 1, color: 'warning.contrastText' }}>
+            <Typography variant="subtitle2" fontWeight="bold">
+              What if a check fails?
+            </Typography>
+            <Typography variant="caption">
+              Failures (Red) usually mean a service is down or credentials have expired. Warnings (Orange) typically mean the system is working but using "Development" settings which should be updated before a full production launch.
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setHealthDialogOpen(false)} variant="contained">
+            Got it
           </Button>
         </DialogActions>
       </Dialog>
