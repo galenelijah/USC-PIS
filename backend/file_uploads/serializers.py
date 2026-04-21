@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import UploadedFile
+from .models import UploadedFile, PatientDocument
 
 class UploadedFileSerializer(serializers.ModelSerializer):
     uploaded_by_email = serializers.EmailField(source='uploaded_by.email', read_only=True)
@@ -36,4 +36,31 @@ class UploadedFileSerializer(serializers.ModelSerializer):
             validated_data['content_type'] = 'application/octet-stream'
             validated_data['file_size'] = 0
 
-        return super().create(validated_data) 
+        return super().create(validated_data)
+
+class PatientDocumentSerializer(serializers.ModelSerializer):
+    uploaded_by_name = serializers.SerializerMethodField()
+    patient_name = serializers.SerializerMethodField()
+    document_type_display = serializers.CharField(source='get_document_type_display', read_only=True)
+
+    class Meta:
+        model = PatientDocument
+        fields = [
+            'id', 'patient', 'patient_name', 'file', 'original_filename',
+            'document_type', 'document_type_display', 'other_type',
+            'description', 'uploaded_by', 'uploaded_by_name',
+            'uploaded_at', 'file_size', 'content_type'
+        ]
+        read_only_fields = [
+            'uploaded_by', 'uploaded_at', 'content_type',
+            'file_size', 'original_filename', 'uploaded_by_name',
+            'patient_name', 'document_type_display'
+        ]
+
+    def get_uploaded_by_name(self, obj):
+        if obj.uploaded_by:
+            return f"{obj.uploaded_by.first_name} {obj.uploaded_by.last_name}".strip() or obj.uploaded_by.email
+        return "Unknown"
+
+    def get_patient_name(self, obj):
+        return obj.patient.get_full_name()

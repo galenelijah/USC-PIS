@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 import os
+from patients.models import Patient
 
 class UploadedFile(models.Model):
     """Stores files uploaded by users."""
@@ -43,3 +44,51 @@ class UploadedFile(models.Model):
             models.Index(fields=['uploaded_by', '-upload_date']),
             models.Index(fields=['checksum']),
         ]
+
+class PatientDocument(models.Model):
+    """Stores documents specifically linked to a patient profile."""
+    DOCUMENT_TYPES = [
+        ('CONSULTATION', 'Scanned Consultation'),
+        ('MEDICAL_RECORD', 'Medical Record'),
+        ('DENTAL_RECORD', 'Dental Record'),
+        ('LAB_RESULT', 'Laboratory Result'),
+        ('PRESCRIPTION', 'Prescription'),
+        ('XRAY', 'X-Ray'),
+        ('OTHER', 'Other'),
+    ]
+
+    patient = models.ForeignKey(
+        Patient,
+        on_delete=models.CASCADE,
+        related_name='documents'
+    )
+    file = models.FileField(upload_to='patient_documents/')
+    original_filename = models.CharField(max_length=255, blank=True)
+    document_type = models.CharField(max_length=20, choices=DOCUMENT_TYPES, default='OTHER')
+    other_type = models.CharField(max_length=100, blank=True, null=True, help_text="Custom document type if 'Other' is selected")
+    description = models.TextField(blank=True, null=True)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='uploaded_patient_documents'
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    file_size = models.PositiveIntegerField(null=True, blank=True)
+    content_type = models.CharField(max_length=100, blank=True)
+
+    def save(self, *args, **kwargs):
+        if not self.original_filename and self.file:
+            self.original_filename = os.path.basename(self.file.name)
+        if self.file and self.file_size is None:
+            try:
+                self.file_size = self.file.size
+            except:
+                self.file_size = 0
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.patient.get_full_name()} - {self.get_document_type_display()} ({self.uploaded_at.strftime('%Y-%m-%d')})"
+
+    class Meta:
+        ordering = ['-uploaded_at']

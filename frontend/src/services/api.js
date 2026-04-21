@@ -1888,4 +1888,38 @@ export const userManagementService = {
   }
 };
 
+// Patient Document Services
+export const patientDocumentService = {
+  // Get all documents for a patient
+  getPatientDocuments: (patientId) => {
+    return api.get('/file-uploads/patient-documents/', {
+      params: { patient: patientId }
+    });
+  },
+
+  // Get all documents (staff only)
+  getAllDocuments: (params = {}) => {
+    return api.get('/file-uploads/patient-documents/', { params });
+  },
+
+  // Upload document
+  uploadDocument: (formData) => {
+    return api.post('/file-uploads/patient-documents/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  },
+
+  // Delete document
+  deleteDocument: (id) => {
+    return api.delete(`/file-uploads/patient-documents/${id}/`);
+  },
+
+  // Get document details
+  getDocumentDetails: (id) => {
+    return api.get(`/file-uploads/patient-documents/${id}/`);
+  }
+};
+
 export default api; 

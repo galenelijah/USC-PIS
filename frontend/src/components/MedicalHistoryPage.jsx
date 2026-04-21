@@ -47,14 +47,16 @@ import {
   Feedback as FeedbackIcon,
   Warning as WarningIcon,
   DateRange as DateRangeIcon,
-  Clear as ClearIcon
+  Clear as ClearIcon,
+  AttachFile as AttachmentIcon,
+  FileOpen as FileIcon,
 } from '@mui/icons-material';
 
 import { Autocomplete } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { healthRecordsService, patientService } from '../services/api';
+import { healthRecordsService, patientService, patientDocumentService } from '../services/api';
 import { dentalRecordService } from '../services/api';
 import { useSelector } from 'react-redux';
 import dayjs from 'dayjs';
@@ -111,10 +113,11 @@ const MedicalHistoryPage = () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch both medical and dental consultations
-      const [medResp, dentResp] = await Promise.all([
+      // Fetch medical, dental, and document data
+      const [medResp, dentResp, docResp] = await Promise.all([
         healthRecordsService.getAll(),
-        dentalRecordService.getAll().catch(() => ({ data: [] }))
+        dentalRecordService.getAll().catch(() => ({ data: [] })),
+        patientDocumentService.getAllDocuments().catch(() => ({ data: [] }))
       ]);
 
       const medical = (medResp?.data || []).map(r => ({
@@ -124,26 +127,25 @@ const MedicalHistoryPage = () => {
       }));
 
       const dental = (dentResp?.data || []).map(r => ({
-        ...r, // Keep original fields for ID checking
-        id: r.id,
+        ...r,
+        record_type: 'DENTAL',
         composite_id: `DENTAL-${r.id}`,
-        patient: r.patient,
-        patient_name: r.patient_name,
-        visit_date: r.visit_date,
-        diagnosis: r.diagnosis,
         treatment: r.treatment_performed || r.treatment_plan,
         notes: r.clinical_notes,
-        record_type: 'DENTAL',
-        // Dental-specific fields kept for rendering
         procedure_performed: r.procedure_performed_display || r.procedure_performed,
-        tooth_numbers: r.tooth_numbers,
-        affected_teeth_display: r.affected_teeth_display,
-        pain_level: r.pain_level,
-        cost: r.cost,
-        priority: r.priority,
       }));
 
-      let combined = [...medical, ...dental];
+      const documents = (docResp?.data || []).map(d => ({
+        ...d,
+        record_type: 'ATTACHMENT',
+        composite_id: `DOC-${d.id}`,
+        visit_date: d.uploaded_at, // Use upload date as the event date
+        diagnosis: d.document_type_display,
+        treatment: d.description || 'No description provided',
+        patient_name: d.patient_name
+      }));
+
+      let combined = [...medical, ...dental, ...documents];
       
       // If user is a student/teacher, only show their records
       if (isStudent && user?.id) {
@@ -235,11 +237,19 @@ const MedicalHistoryPage = () => {
   };
 
   const getRecordIcon = (recordType) => {
-    return recordType === 'DENTAL' ? <DentalIcon /> : <MedicalIcon />;
+    switch (recordType) {
+      case 'DENTAL': return <DentalIcon />;
+      case 'ATTACHMENT': return <AttachmentIcon />;
+      default: return <MedicalIcon />;
+    }
   };
 
   const getRecordColor = (recordType) => {
-    return recordType === 'DENTAL' ? '#f093fb' : '#667eea';
+    switch (recordType) {
+      case 'DENTAL': return '#f093fb';
+      case 'ATTACHMENT': return '#4caf50';
+      default: return '#667eea';
+    }
   };
 
   const handleExpandRecord = (recordId) => {
@@ -726,32 +736,74 @@ const MedicalHistoryPage = () => {
     return (
       <Stack spacing={2}>
         {filteredRecords.map((record) => (
-          <Card key={record.composite_id} sx={{ position: 'relative' }}>
+          <Card 
+            key={record.composite_id} 
+            elevation={2} 
+            sx={{ 
+              mb: 2,
+              border: `2px solid ${getRecordColor(record.record_type)}20`,
+              '&:hover': {
+                boxShadow: 6,
+                transform: 'translateY(-2px)',
+                transition: 'all 0.3s ease'
+              }
+            }}
+          >
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                <Avatar 
-                  sx={{ 
-                    bgcolor: getRecordColor(record.record_type),
-                    width: 40,
-                    height: 40
-                  }}
-                >
-                  {getRecordIcon(record.record_type)}
-                </Avatar>
-                <Box sx={{ flex: 1 }}>
-              <Card 
-                elevation={2} 
-                sx={{ 
-                  mb: 2,
-                  border: `2px solid ${getRecordColor(record.record_type)}20`,
-                  '&:hover': {
-                    boxShadow: 6,
-                    transform: 'translateY(-2px)',
-                    transition: 'all 0.3s ease'
-                  }
-                }}
-              >
-                <CardContent>
+              {/* Attachment specific UI */}
+              {record.record_type === 'ATTACHMENT' ? (
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                  <Avatar sx={{ bgcolor: getRecordColor(record.record_type), width: 40, height: 40 }}>
+                    <AttachmentIcon />
+                  </Avatar>
+                  <Box sx={{ flex: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                          <Typography variant="h6" sx={{ mb: 0 }}>
+                            {record.diagnosis} {/* This is document_type_display */}
+                          </Typography>
+                          <Chip label="FILE" size="small" sx={{ bgcolor: '#4caf50', color: 'white' }} />
+                        </Box>
+                        
+                        <Typography variant="body2" fontWeight="medium" color="text.primary" sx={{ mb: 1 }}>
+                          {record.patient_name}
+                        </Typography>
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                          <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                          <Typography variant="body2" color="text.secondary">
+                            {formatDate(record.visit_date).formatted}
+                            <span style={{ marginLeft: 8, fontStyle: 'italic' }}>
+                              ({formatDate(record.visit_date).relative})
+                            </span>
+                          </Typography>
+                        </Box>
+                      </Box>
+                      
+                      <Button
+                        variant="outlined"
+                        startIcon={<FileIcon />}
+                        size="small"
+                        onClick={() => window.open(record.file, '_blank')}
+                        sx={{ color: '#2e7d32', borderColor: '#2e7d32' }}
+                      >
+                        View Attachment
+                      </Button>
+                    </Box>
+
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontStyle: 'italic' }}>
+                      {record.treatment} {/* This is description */}
+                    </Typography>
+                    
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                      File: {record.original_filename} ({(record.file_size / 1024).toFixed(1)} KB)
+                    </Typography>
+                  </Box>
+                </Box>
+              ) : (
+                /* Medical/Dental UI (existing) */
+                <>
                   {/* Allergy/Medication Alerts */}
                   {(record.notes?.toLowerCase().includes('allerg') || 
                     record.diagnosis?.toLowerCase().includes('allerg') ||
@@ -999,10 +1051,8 @@ const MedicalHistoryPage = () => {
                       )}
                     </Grid>
                   </Collapse>
-                </CardContent>
-              </Card>
-                </Box>
-              </Box>
+                </>
+              )}
             </CardContent>
           </Card>
         ))}

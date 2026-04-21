@@ -21,9 +21,11 @@ import {
   Warning, 
   Phone, 
   Email, 
-  Home,
   School,
-  Badge
+  Home,
+  Badge,
+  AttachFile as AttachmentIcon,
+  FileOpen as FileIcon,
 } from "@mui/icons-material";
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../features/authentication/authSlice';
@@ -36,7 +38,7 @@ import {
   formatMedicalInfo,
   convertStringToArray 
 } from '../utils/fieldMappers';
-import { healthRecordsService } from '../services/api';
+import { healthRecordsService, patientDocumentService } from '../services/api';
 import BMI_male_1 from "../assets/images/BMI_Visual/BMI_male_1.png";
 import BMI_male_2 from "../assets/images/BMI_Visual/BMI_male_2.png";
 import BMI_male_3 from "../assets/images/BMI_Visual/BMI_male_3.png";
@@ -55,21 +57,25 @@ const PatientMedicalDashboard = () => {
   const [error, setError] = useState(null);
   const [medicalRecords, setMedicalRecords] = useState([]);
   const [latestVitalSigns, setLatestVitalSigns] = useState({});
+  const [documents, setDocuments] = useState([]);
 
   // Fetch medical records to get vital signs
   useEffect(() => {
-    const fetchMedicalRecords = async () => {
+    const fetchDashboardData = async () => {
       if (!currentUser) return;
       
       try {
         setLoading(true);
-        const response = await healthRecordsService.getAll();
+        const [medResp, docResp] = await Promise.all([
+          healthRecordsService.getAll(),
+          patientDocumentService.getPatientDocuments(currentUser.id).catch(() => ({ data: [] }))
+        ]);
         
-        if (response?.data && Array.isArray(response.data)) {
-          setMedicalRecords(response.data);
+        if (medResp?.data && Array.isArray(medResp.data)) {
+          setMedicalRecords(medResp.data);
           
           // Find the most recent medical record with vital signs
-          const recordsWithVitalSigns = response.data.filter(record => 
+          const recordsWithVitalSigns = medResp.data.filter(record => 
             record.vital_signs && Object.keys(record.vital_signs).length > 0
           );
           
@@ -81,15 +87,19 @@ const PatientMedicalDashboard = () => {
             setLatestVitalSigns(sortedRecords[0].vital_signs);
           }
         }
+
+        if (docResp?.data && Array.isArray(docResp.data)) {
+          setDocuments(docResp.data);
+        }
       } catch (err) {
-        console.error('Error fetching medical records:', err);
-        setError('Failed to load medical records');
+        console.error('Error fetching dashboard data:', err);
+        setError('Failed to load medical records and documents');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchMedicalRecords();
+    fetchDashboardData();
   }, [currentUser]);
 
   // Format vital signs for display
@@ -586,6 +596,63 @@ const PatientMedicalDashboard = () => {
                   </Box>
                 </Grid>
               </Grid>
+            </CardContent>
+          </Card>
+
+          {/* Attachments Card */}
+          <Card elevation={3} sx={{ mt: 3 }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <AttachmentIcon color="primary" />
+                Attachments & Documents
+              </Typography>
+              <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                Uploaded files, scanned consultations, and medical documents
+              </Typography>
+
+              {documents.length > 0 ? (
+                <Grid container spacing={2}>
+                  {documents.map((doc) => (
+                    <Grid item xs={12} sm={6} key={doc.id}>
+                      <Paper 
+                        variant="outlined" 
+                        sx={{ 
+                          p: 2, 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 2,
+                          '&:hover': { bgcolor: 'rgba(0,0,0,0.02)' }
+                        }}
+                      >
+                        <Avatar sx={{ bgcolor: 'success.light' }}>
+                          <FileIcon />
+                        </Avatar>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="body2" fontWeight="bold" noWrap>
+                            {doc.document_type_display}
+                          </Typography>
+                          <Typography variant="caption" color="textSecondary" sx={{ display: 'block' }}>
+                            {dayjs(doc.uploaded_at).format('MMM DD, YYYY')}
+                          </Typography>
+                        </Box>
+                        <Button 
+                          size="small" 
+                          variant="outlined"
+                          onClick={() => window.open(doc.file, '_blank')}
+                        >
+                          View
+                        </Button>
+                      </Paper>
+                    </Grid>
+                  ))}
+                </Grid>
+              ) : (
+                <Box sx={{ py: 3, textAlign: 'center' }}>
+                  <Typography variant="body2" color="textSecondary">
+                    No documents uploaded for this patient.
+                  </Typography>
+                </Box>
+              )}
             </CardContent>
           </Card>
         </Grid>

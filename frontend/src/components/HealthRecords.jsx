@@ -55,7 +55,9 @@ import {
   Timeline as TimelineIcon,
   Assignment as CertificateIcon,
   BarChart as ReportIcon,
-  Launch as LaunchIcon
+  Launch as LaunchIcon,
+  CloudUpload as UploadIcon,
+  Description as FileIcon,
 } from '@mui/icons-material';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -63,9 +65,10 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../features/authentication/authSlice';
 import dayjs from 'dayjs';
-import { healthRecordsService, patientService } from '../services/api';
+import { healthRecordsService, patientService, patientDocumentService } from '../services/api';
 import MedicalRecord from './MedicalRecord';
 import ClinicalAnalytics from './ClinicalAnalytics';
+import PatientDocumentUpload from './PatientDocumentUpload';
 
 // Tab panel component for different record types
 function TabPanel(props) {
@@ -99,10 +102,20 @@ const HealthRecords = () => {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [tabValue, setTabValue] = useState(0);
+  const [openUploadDialog, setOpenUploadDialog] = useState(false);
+  const [selectedPatientForUpload, setSelectedPatientForUpload] = useState(null);
   const user = useSelector(selectCurrentUser);
   const [selectedMedicalRecordId, setSelectedMedicalRecordId] = useState(null);
   const [openMedicalRecordModal, setOpenMedicalRecordModal] = useState(false);
   const [openTemplateDialog, setOpenTemplateDialog] = useState(false);
+
+  const handleOpenUpload = (record) => {
+    setSelectedPatientForUpload({
+      id: record.patient,
+      name: record.patient_name
+    });
+    setOpenUploadDialog(true);
+  };
 
   // Check if user can edit records (not a student)
   const canEditRecords = user && user.role !== 'STUDENT';
@@ -1065,6 +1078,11 @@ Treatment: ${r.treatment || 'N/A'}
                       
                       {/* Regular Action Buttons */}
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Tooltip title="Upload Scanned Document">
+                          <IconButton onClick={() => handleOpenUpload(record)} disabled={!canEditRecords}>
+                            <UploadIcon color="primary" />
+                          </IconButton>
+                        </Tooltip>
                         <Button size="small" onClick={() => { setSelectedMedicalRecordId(record.id); setOpenMedicalRecordModal(true); }}>
                           View
                         </Button>
@@ -1188,6 +1206,20 @@ Treatment: ${r.treatment || 'N/A'}
           <Button onClick={handleCloseTemplateDialog}>Cancel</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Document Upload Dialog */}
+      {selectedPatientForUpload && (
+        <PatientDocumentUpload
+          open={openUploadDialog}
+          onClose={() => setOpenUploadDialog(false)}
+          patientId={selectedPatientForUpload.id}
+          patientName={selectedPatientForUpload.name}
+          onUploadSuccess={() => {
+            // Success alert or refresh if needed
+            console.log('Document uploaded successfully');
+          }}
+        />
+      )}
     </Box>
   );
 };

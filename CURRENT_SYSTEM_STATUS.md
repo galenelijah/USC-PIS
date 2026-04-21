@@ -1,46 +1,43 @@
 # Current System Status
 
-**Last Updated:** April 2, 2026
+**Last Updated:** April 22, 2026
 
 ## System Overview
-The USC-PIS has successfully completed its **Communication & Branding Stabilization**. The reports system is production-ready, clinical patient profiles are accurate, and all automated communications now feature centralized, standardized contact information (April 2, 2026).
+The USC-PIS has successfully completed its **Patient Records Stabilization & Document Management** phase. The system now supports secure external document uploads for patients, unified date-range filtering across all record types, and has resolved critical UI bugs in the Health Insights timeline.
 
 ## Core Modules Status
 
-### 1. Reports & Analytics
-*   **Status:** Stable / Standardized / Enhanced
-*   **Features:** Multi-format export, custom branding, and interactive **Analytics Dashboard**.
-*   **Engagement Tracking:** Automated `view_count` and interaction metrics for `/health-info` and `/campaigns`.
+### 1. Patient Document Management (New - April 2026)
+*   **Status:** Operational
+*   **Features:** Secure upload of external files (X-Rays, Lab Results, Prescriptions) by clinic staff.
+*   **Access Control:** Only non-student roles can upload; Patients (Students/Teachers) can view their own documents.
 
-### 2. Authentication & Roles
+### 2. Medical & Dental Consultations
+*   **Status:** Stable & Enhanced
+*   **Terminology:** "Dental Records" renamed to **"Dental Consultations"** to better reflect the clinic's primary role as a diagnostic and assessment facility.
+*   **Filtering:** Comprehensive **Date Range Filters** (From/To) added to Medical History, Health Records, and Dental Consultations.
+*   **Reliability:** Implemented `composite_id` tracking for timeline records to eliminate duplication bugs caused by overlapping database sequences.
+
+### 3. Reports & Analytics
+*   **Status:** Stable / Standardized
+*   **Features:** Multi-format export, custom branding, and interactive **Analytics Dashboard**.
+
+### 4. Authentication & Roles
 *   **Status:** Stable & Hardened
-*   **Security:** Mandatory Email Verification and Google OAuth enforcement.
 *   **Roles Supported:** Admin, Doctor, Nurse, Staff, Dentist, Student, Teacher.
 
-### 3. Medical & Dental Records
-*   **Status:** Stable & Unified
-*   **UI:** Unified components for all record types.
-*   **Data Accuracy:** Correct historical filtering and advanced autocomplete search.
-
-### 4. Communication & Notifications (Stabilized April 2026)
+### 5. Communication & Notifications
 *   **Status:** Operational & Standardized
-*   **Contact Info:** Centralized in `settings.py` (Phone: (032) 230-0100, Email: 21100727@usc.edu.ph).
-*   **Templates:** Refactored for consistency; non-functional features (e.g., Appointments) removed from onboarding flows.
 *   **Delivery:** Verified via Gmail API OAuth 2.0.
-
-### 5. Medical Certificates
-*   **Status:** Operational
-*   **Workflows:** Direct creation and generation from existing records.
 
 ### 6. Deployment
 *   **Status:** Operational
 *   **Platform:** Heroku
-*   **Build:** Passing and Optimized (Celery memory limits enforced).
+*   **Build:** Passing and Optimized.
 
 ## Known Issues
 *   **Appointment Scheduling:** Feature currently disabled and removed from system communications.
-*   **Help Center:** Direct email support preferred over the non-existent /help page.
 
 ## Upcoming Roadmap
-1.  **UAT for Teacher Role:** Final verification of end-to-end flows.
-2.  **Scale Monitoring:** Performance tuning for high-volume report generation.
+1.  **Mobile View Optimization:** Enhancing the new document timeline for smaller screens.
+2.  **Scale Monitoring:** Performance tuning for high-volume file storage.
