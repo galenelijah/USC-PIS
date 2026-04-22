@@ -646,7 +646,7 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                             
                             {!medicalRecordId ? (
                                 <Alert severity="info" sx={{ mb: 2 }}>
-                                    Supporting documents (X-rays, Lab Results) can be added via the **Document Archive** after you save this clinical record.
+                                    Supporting documents (X-rays, Lab Results) can be added after you save this clinical record.
                                 </Alert>
                             ) : (
                                 <>
@@ -751,18 +751,6 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                         {loading ? <CircularProgress size={24} /> : (medicalRecordId ? 'Update Medical Record' : 'Create Medical Record')}
                     </Button>
                 </Box>
-            )}
-
-            {/* Upload Dialog */}
-            {selectedPatient && (
-                <PatientDocumentUpload
-                    open={openUploadDialog}
-                    onClose={() => setOpenUploadDialog(false)}
-                    patientId={selectedPatient.id}
-                    patientName={`${selectedPatient.first_name} ${selectedPatient.last_name}`}
-                    medicalRecordId={medicalRecordId}
-                    onUploadSuccess={fetchAttachments}
-                />
             )}
         </Box>
     );

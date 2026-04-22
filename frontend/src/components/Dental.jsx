@@ -991,7 +991,7 @@ const Dental = () => {
                     </Grid>
                     <Grid item xs={12}>
                       <Alert severity="info">
-                        Supporting documents (X-rays, dental charts) can be added via the **Document Archive** in Health History after you save this record.
+                        Supporting documents (X-rays, dental charts) can be added after you save this record.
                       </Alert>
                     </Grid>
                     <Grid item xs={12} sm={6}>
