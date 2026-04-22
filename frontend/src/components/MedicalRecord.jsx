@@ -323,12 +323,19 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                 setSuccess('Medical record updated successfully!');
             } else {
                 const res = await healthRecordsService.create(payload);
-                recordId = res.data.id;
+                // Extract ID from created record (handle potentially wrapped response)
+                recordId = res?.data?.id || res?.id;
+                
+                if (!recordId) {
+                    console.error('Failed to get record ID from creation response:', res);
+                    throw new Error('Record created but ID not returned. Files could not be attached.');
+                }
                 setSuccess('Medical record created successfully!');
             }
 
             // Handle pending file uploads if any
             if (pendingFiles.length > 0 && recordId) {
+                console.log(`Uploading ${pendingFiles.length} attachments for record ${recordId}...`);
                 const uploadPromises = pendingFiles.map(file => {
                     const formData = new FormData();
                     formData.append('file', file);
@@ -338,16 +345,29 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                     formData.append('description', 'Attached during visit creation');
                     return patientDocumentService.uploadDocument(formData);
                 });
-                await Promise.all(uploadPromises);
-                setPendingFiles([]);
+                
+                try {
+                    await Promise.all(uploadPromises);
+                    console.log('All attachments uploaded successfully');
+                    setPendingFiles([]);
+                } catch (uploadErr) {
+                    console.error('Error during background file upload:', uploadErr);
+                    setGlobalError('Record saved, but some attachments failed to upload. Please check the Document Archive.');
+                    // Don't throw here, we want to proceed since the record itself was saved
+                }
             }
 
             if (onSuccess) {
-                setTimeout(() => onSuccess(), 1500);
+                // Wait a bit so user can see success message
+                setTimeout(() => onSuccess(), 2000);
             } else if (!medicalRecordId) {
-                resetForm(); // Reset form after successful creation
+                // For new records, reset after a delay
+                setTimeout(() => {
+                    resetForm();
+                    setSuccess(false);
+                }, 3000);
             } else {
-                fetchAttachments(); // Refresh attachments after update
+                fetchAttachments(); // Refresh attachments for existing record
             }
         } catch (err) {
             console.error('Error saving record:', err);
