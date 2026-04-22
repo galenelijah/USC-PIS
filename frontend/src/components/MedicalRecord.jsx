@@ -323,14 +323,23 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                 setSuccess('Medical record updated successfully!');
             } else {
                 const res = await healthRecordsService.create(payload);
-                // Extract ID (handle both direct object and nested in .data)
-                recordId = res?.id || res?.data?.id;
+                console.log('Record creation response:', res);
+                
+                // Extremely robust ID extraction
+                recordId = res?.data?.id || res?.id || (Array.isArray(res?.data) ? res.data[0]?.id : null);
                 
                 if (!recordId) {
-                    console.error('Failed to get record ID from creation response:', res);
-                    // Log but don't crash the whole process if record was likely saved
-                    setSuccess('Medical record created, but could not link attachments.');
+                    console.warn('Record ID not found in direct response paths. Checking deep data...');
+                    if (res?.data?.results && Array.isArray(res.data.results)) {
+                        recordId = res.data.results[0]?.id;
+                    }
+                }
+
+                if (!recordId) {
+                    console.error('CRITICAL: Could not find ID in server response. Full payload:', JSON.stringify(res));
+                    setSuccess('Medical record created, but could not link attachments. Please refresh and upload them manually in the Document Archive.');
                 } else {
+                    console.log(`Successfully identified new record ID: ${recordId}`);
                     setSuccess('Medical record created successfully!');
                 }
             }
