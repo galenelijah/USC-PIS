@@ -22,10 +22,12 @@ import BMI_female_3 from "../assets/images/BMI_Visual/BMI_female_3.png";
 import BMI_female_4 from "../assets/images/BMI_Visual/BMI_female_4.png";
 import BMI_female_5 from "../assets/images/BMI_Visual/BMI_female_5.png";
 import ReadOnlyTextField from "./forms/ReadOnlyTextField";
-import { healthRecordsService, patientService } from '../services/api';
+import { healthRecordsService, patientService, patientDocumentService } from '../services/api';
 import { useSelector } from 'react-redux';
 import { extractErrorMessage, extractFieldErrors } from '../utils/errorUtils';
 import { formatDateForInput } from '../utils/dateUtils';
+import PatientDocumentUpload from './PatientDocumentUpload';
+import { Description as FileIcon, CloudUpload as UploadIcon } from '@mui/icons-material';
 
 const defaultUserData = {
     height: "",
@@ -63,6 +65,11 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
     const [loading, setLoading] = useState(false);
     const [globalError, setGlobalError] = useState(null);
     const [success, setSuccess] = useState(false);
+    
+    // Attachments state
+    const [attachments, setAttachments] = useState([]);
+    const [openUploadDialog, setOpenUploadDialog] = useState(false);
+
     const user = useSelector(state => state.auth.user);
     const isStaffOrMedical = user?.role && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
     
@@ -140,10 +147,21 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
     useEffect(() => {
         if (medicalRecordId) {
             fetchRecord();
+            fetchAttachments();
         } else {
             resetForm();
+            setAttachments([]);
         }
     }, [medicalRecordId]);
+
+    const fetchAttachments = async () => {
+        try {
+            const res = await patientDocumentService.getAllDocuments({ medical_record: medicalRecordId });
+            setAttachments(res.data || []);
+        } catch (err) {
+            console.error('Error fetching attachments:', err);
+        }
+    };
 
     const resetForm = () => {
         reset({
@@ -632,6 +650,62 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                     </Paper>
                 </Grid>
 
+                {/* Attachments Section */}
+                {medicalRecordId && (
+                    <Grid item xs={12}>
+                        <Paper sx={{ 
+                            p: 3, 
+                            mb: 2,
+                            borderLeft: `5px solid #00acc1`,
+                            boxShadow: 3
+                        }}>
+                            <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                                <Typography variant="h6" sx={{ color: '#00acc1', display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <FileIcon /> Attachments & Documents
+                                </Typography>
+                                {canEdit && (
+                                    <Button 
+                                        variant="outlined" 
+                                        size="small" 
+                                        startIcon={<UploadIcon />}
+                                        onClick={() => setOpenUploadDialog(true)}
+                                    >
+                                        Add Files
+                                    </Button>
+                                )}
+                            </Box>
+                            <Divider sx={{ mb: 2 }} />
+                            
+                            {attachments.length > 0 ? (
+                                <Grid container spacing={2}>
+                                    {attachments.map((doc) => (
+                                        <Grid item xs={12} sm={6} md={4} key={doc.id}>
+                                            <Paper variant="outlined" sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                                <FileIcon color="primary" />
+                                                <Box sx={{ overflow: 'hidden' }}>
+                                                    <Typography variant="body2" noWrap fontWeight="medium">
+                                                        {doc.original_filename}
+                                                    </Typography>
+                                                    <Typography variant="caption" color="text.secondary" display="block">
+                                                        {doc.document_type_display}
+                                                    </Typography>
+                                                </Box>
+                                                <Button size="small" href={doc.file} target="_blank" sx={{ ml: 'auto' }}>
+                                                    View
+                                                </Button>
+                                            </Paper>
+                                        </Grid>
+                                    ))}
+                                </Grid>
+                            ) : (
+                                <Typography variant="body2" color="text.secondary" fontStyle="italic">
+                                    No documents attached to this visit.
+                                </Typography>
+                            )}
+                        </Paper>
+                    </Grid>
+                )}
+
                 {/* Diagnosis and Treatment Section */}
                 <Grid item xs={12}>
                     <Paper sx={{ 
@@ -700,6 +774,18 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                         {loading ? <CircularProgress size={24} /> : (medicalRecordId ? 'Update Medical Record' : 'Create Medical Record')}
                     </Button>
                 </Box>
+            )}
+
+            {/* Upload Dialog */}
+            {selectedPatient && (
+                <PatientDocumentUpload
+                    open={openUploadDialog}
+                    onClose={() => setOpenUploadDialog(false)}
+                    patientId={selectedPatient.id}
+                    patientName={`${selectedPatient.first_name} ${selectedPatient.last_name}`}
+                    medicalRecordId={medicalRecordId}
+                    onUploadSuccess={fetchAttachments}
+                />
             )}
         </Box>
     );

@@ -62,6 +62,21 @@ class PatientDocument(models.Model):
         on_delete=models.CASCADE,
         related_name='documents'
     )
+    # Optional links to specific records
+    medical_record = models.ForeignKey(
+        'patients.MedicalRecord',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='attachments'
+    )
+    dental_record = models.ForeignKey(
+        'patients.DentalRecord',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='attachments'
+    )
     file = models.FileField(upload_to='patient_documents/')
     original_filename = models.CharField(max_length=255, blank=True)
     document_type = models.CharField(max_length=20, choices=DOCUMENT_TYPES, default='OTHER')

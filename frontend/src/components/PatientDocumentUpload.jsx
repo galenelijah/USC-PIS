@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -15,12 +15,19 @@ import {
   Alert,
   CircularProgress,
   IconButton,
-  Tooltip
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  ListItemSecondaryAction,
+  Paper
 } from '@mui/material';
 import {
   CloudUpload as UploadIcon,
   Close as CloseIcon,
-  Description as FileIcon
+  Description as FileIcon,
+  Delete as DeleteIcon,
+  CheckCircle as SuccessIcon
 } from '@mui/icons-material';
 import { patientDocumentService } from '../services/api';
 
@@ -34,29 +41,66 @@ const DOCUMENT_TYPES = [
   { value: 'OTHER', label: 'Other' },
 ];
 
-const PatientDocumentUpload = ({ open, onClose, patientId, patientName, onUploadSuccess }) => {
-  const [file, setFile] = useState(null);
+const PatientDocumentUpload = ({ 
+  open, 
+  onClose, 
+  patientId, 
+  patientName, 
+  medicalRecordId = null,
+  dentalRecordId = null,
+  onUploadSuccess 
+}) => {
+  const [files, setFiles] = useState([]);
   const [description, setDescription] = useState('');
   const [documentType, setDocumentType] = useState('CONSULTATION');
   const [otherType, setOtherType] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleFiles = (selectedFiles) => {
+    const validFiles = Array.from(selectedFiles).filter(file => {
+      if (file.size > 10 * 1024 * 1024) {
+        setError(`File ${file.name} exceeds 10MB limit.`);
+        return false;
+      }
+      return true;
+    });
+
+    setFiles(prev => [...prev, ...validFiles]);
+    setError(null);
+  };
 
   const handleFileChange = (event) => {
-    const selectedFile = event.target.files[0];
-    if (selectedFile) {
-      if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
-        setError('File size exceeds 10MB limit.');
-        return;
-      }
-      setFile(selectedFile);
-      setError(null);
+    if (event.target.files) {
+      handleFiles(event.target.files);
+    }
+  };
+
+  const removeFile = (index) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const onDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const onDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const onDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files) {
+      handleFiles(e.dataTransfer.files);
     }
   };
 
   const handleSubmit = async () => {
-    if (!file) {
-      setError('Please select a file to upload.');
+    if (files.length === 0) {
+      setError('Please select at least one file to upload.');
       return;
     }
 
@@ -64,20 +108,28 @@ const PatientDocumentUpload = ({ open, onClose, patientId, patientName, onUpload
     setError(null);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('patient', patientId);
-      formData.append('document_type', documentType);
-      formData.append('description', description);
-      
-      if (documentType === 'OTHER' && otherType) {
-        formData.append('other_type', otherType);
-      }
+      // Upload each file sequentially (or in parallel)
+      const uploadPromises = files.map(file => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('patient', patientId);
+        formData.append('document_type', documentType);
+        formData.append('description', description);
+        
+        if (medicalRecordId) formData.append('medical_record', medicalRecordId);
+        if (dentalRecordId) formData.append('dental_record', dentalRecordId);
+        
+        if (documentType === 'OTHER' && otherType) {
+          formData.append('other_type', otherType);
+        }
+        
+        return patientDocumentService.uploadDocument(formData);
+      });
 
-      await patientDocumentService.uploadDocument(formData);
+      await Promise.all(uploadPromises);
       
       // Reset form
-      setFile(null);
+      setFiles([]);
       setDescription('');
       setDocumentType('CONSULTATION');
       setOtherType('');
@@ -88,7 +140,7 @@ const PatientDocumentUpload = ({ open, onClose, patientId, patientName, onUpload
       onClose();
     } catch (err) {
       console.error('Upload error:', err);
-      setError(err.response?.data?.detail || 'Failed to upload document. Please try again.');
+      setError(err.response?.data?.detail || 'Failed to upload documents. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -97,7 +149,9 @@ const PatientDocumentUpload = ({ open, onClose, patientId, patientName, onUpload
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h6">Upload Document for {patientName}</Typography>
+        <Typography variant="h6">
+          {medicalRecordId || dentalRecordId ? 'Attach Documents to Visit' : `Upload Document for ${patientName}`}
+        </Typography>
         <IconButton onClick={onClose} size="small">
           <CloseIcon />
         </IconButton>
@@ -109,41 +163,58 @@ const PatientDocumentUpload = ({ open, onClose, patientId, patientName, onUpload
           
           <Box
             sx={{
-              border: '2px dashed #ccc',
+              border: '2px dashed',
+              borderColor: isDragging ? 'primary.main' : '#ccc',
               borderRadius: 2,
               p: 3,
               textAlign: 'center',
               cursor: 'pointer',
-              '&:hover': { bgcolor: 'rgba(0,0,0,0.02)', borderColor: 'primary.main' },
-              bgcolor: file ? 'rgba(46, 125, 50, 0.05)' : 'transparent'
+              bgcolor: isDragging ? 'rgba(25, 118, 210, 0.05)' : 'transparent',
+              transition: 'all 0.2s ease',
+              '&:hover': { bgcolor: 'rgba(0,0,0,0.02)', borderColor: 'primary.main' }
             }}
             onClick={() => document.getElementById('file-upload-input').click()}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
           >
             <input
               type="file"
               id="file-upload-input"
               hidden
+              multiple
               onChange={handleFileChange}
               accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
             />
-            {file ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                <FileIcon color="success" />
-                <Typography variant="body1" fontWeight="medium">{file.name}</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                </Typography>
-              </Box>
-            ) : (
-              <Box>
-                <UploadIcon sx={{ fontSize: 40, color: 'text.secondary', mb: 1 }} />
-                <Typography variant="body1">Click to select or drag and drop</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Accepted: PDF, Images, DOC (Max 10MB)
-                </Typography>
-              </Box>
-            )}
+            <UploadIcon sx={{ fontSize: 40, color: isDragging ? 'primary.main' : 'text.secondary', mb: 1 }} />
+            <Typography variant="body1">Click to select or drag and drop files</Typography>
+            <Typography variant="caption" color="text.secondary">
+              Accepted: PDF, Images, DOC (Max 10MB each)
+            </Typography>
           </Box>
+
+          {files.length > 0 && (
+            <Paper variant="outlined" sx={{ maxHeight: 200, overflow: 'auto' }}>
+              <List size="small" dense>
+                {files.map((file, index) => (
+                  <ListItem key={index}>
+                    <ListItemIcon>
+                      <FileIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary={file.name} 
+                      secondary={`${(file.size / 1024 / 1024).toFixed(2)} MB`}
+                    />
+                    <ListItemSecondaryAction>
+                      <IconButton edge="end" size="small" onClick={() => removeFile(index)}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                ))}
+              </List>
+            </Paper>
+          )}
 
           <FormControl fullWidth size="small">
             <InputLabel>Document Type</InputLabel>
@@ -174,12 +245,12 @@ const PatientDocumentUpload = ({ open, onClose, patientId, patientName, onUpload
 
           <TextField
             fullWidth
-            label="Description"
+            label="Description (applied to all files)"
             multiline
-            rows={3}
+            rows={2}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Provide a brief description of the document"
+            placeholder="Provide a brief description of the documents"
           />
         </Box>
       </DialogContent>
@@ -189,10 +260,10 @@ const PatientDocumentUpload = ({ open, onClose, patientId, patientName, onUpload
         <Button
           onClick={handleSubmit}
           variant="contained"
-          disabled={!file || loading || (documentType === 'OTHER' && !otherType)}
+          disabled={files.length === 0 || loading || (documentType === 'OTHER' && !otherType)}
           startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <UploadIcon />}
         >
-          {loading ? 'Uploading...' : 'Upload Document'}
+          {loading ? `Uploading ${files.length} file(s)...` : 'Upload All'}
         </Button>
       </DialogActions>
     </Dialog>

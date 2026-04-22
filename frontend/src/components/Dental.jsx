@@ -61,7 +61,8 @@ import {
   PictureAsPdf as PdfIcon,
   TableChart as ExcelIcon,
   InsertDriveFile as CsvIcon,
-  Assessment as ReportIcon
+  Assessment as ReportIcon,
+  Description as FileIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -70,7 +71,7 @@ import dayjs from 'dayjs';
 import InfoTooltip from './utils/InfoTooltip';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../features/authentication/authSlice';
-import { dentalRecordService, patientService } from '../services/api';
+import { dentalRecordService, patientService, patientDocumentService } from '../services/api';
 import PatientDocumentUpload from './PatientDocumentUpload';
 
 const Dental = () => {
@@ -95,6 +96,7 @@ const Dental = () => {
   // Document upload state
   const [openUploadDialog, setOpenUploadDialog] = useState(false);
   const [selectedPatientForUpload, setSelectedPatientForUpload] = useState(null);
+  const [attachments, setAttachments] = useState([]);
 
   const user = useSelector(selectCurrentUser);
   const canEdit = user && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
@@ -223,9 +225,17 @@ const Dental = () => {
     setIsEditing(false);
   };
 
-  const handleViewRecord = (record) => {
+  const handleViewRecord = async (record) => {
     setSelectedRecord(record);
     setViewDialogOpen(true);
+    // Fetch attachments for this dental record
+    try {
+      const res = await patientDocumentService.getAllDocuments({ dental_record: record.id });
+      setAttachments(res.data || []);
+    } catch (err) {
+      console.error('Error fetching dental attachments:', err);
+      setAttachments([]);
+    }
   };
 
   const handleInputChange = (field, value) => {
@@ -867,8 +877,12 @@ const Dental = () => {
           onClose={() => setOpenUploadDialog(false)}
           patientId={selectedPatientForUpload?.id}
           patientName={selectedPatientForUpload?.name}
+          dentalRecordId={selectedRecord?.id}
           onUploadSuccess={() => {
             setSuccess('Document uploaded successfully!');
+            if (viewDialogOpen) {
+              handleViewRecord(selectedRecord);
+            }
             setTimeout(() => setSuccess(null), 3000);
           }}
         />
@@ -1325,6 +1339,41 @@ const Dental = () => {
                     </Grid>
                   )}
                 </Grid>
+
+                {/* Attachments Section */}
+                <Box sx={{ mt: 3 }}>
+                  <Divider sx={{ mb: 2 }} />
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#00acc1' }}>
+                    <FileIcon /> Attachments & Documents
+                  </Typography>
+                  
+                  {attachments.length > 0 ? (
+                    <Grid container spacing={2} sx={{ mt: 0.5 }}>
+                      {attachments.map((doc) => (
+                        <Grid item xs={12} sm={6} key={doc.id}>
+                          <Paper variant="outlined" sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <FileIcon color="primary" />
+                            <Box sx={{ overflow: 'hidden' }}>
+                              <Typography variant="body2" noWrap fontWeight="medium">
+                                {doc.original_filename}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                {doc.document_type_display}
+                              </Typography>
+                            </Box>
+                            <Button size="small" href={doc.file} target="_blank" sx={{ ml: 'auto' }}>
+                              View
+                            </Button>
+                          </Paper>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary" fontStyle="italic">
+                      No documents attached to this dental consultation.
+                    </Typography>
+                  )}
+                </Box>
               </Box>
             )}
           </DialogContent>
