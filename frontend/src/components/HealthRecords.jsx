@@ -113,6 +113,7 @@ const HealthRecords = () => {
   const [openTemplateDialog, setOpenTemplateDialog] = useState(false);
 
   const handleOpenUpload = (record) => {
+    setCurrentRecord(record); // Track the record being uploaded to
     setSelectedPatientForUpload({
       id: record.patient,
       name: record.patient_name
@@ -1230,16 +1231,20 @@ Treatment: ${r.treatment || 'N/A'}
       {selectedPatientForUpload && (
         <PatientDocumentUpload
           open={openUploadDialog}
-          onClose={() => setOpenUploadDialog(false)}
+          onClose={() => {
+            setOpenUploadDialog(false);
+            setCurrentRecord(null);
+          }}
           patientId={selectedPatientForUpload.id}
           patientName={selectedPatientForUpload.name}
+          medicalRecordId={currentRecord?.id}
           onUploadSuccess={() => {
             // Success alert or refresh if needed
             console.log('Document uploaded successfully');
+            fetchDocuments();
           }}
         />
-      )}
-    </Box>
+      )}    </Box>
   );
 };
 

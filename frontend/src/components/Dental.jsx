@@ -153,6 +153,7 @@ const Dental = () => {
   };
 
   const handleOpenUpload = (record) => {
+    setSelectedRecord(record); // Track the record being uploaded to
     setSelectedPatientForUpload({
       id: record.patient,
       name: record.patient_name
@@ -898,7 +899,10 @@ const Dental = () => {
         {/* Patient Document Upload Dialog */}
         <PatientDocumentUpload
           open={openUploadDialog}
-          onClose={() => setOpenUploadDialog(false)}
+          onClose={() => {
+            setOpenUploadDialog(false);
+            if (!viewDialogOpen) setSelectedRecord(null);
+          }}
           patientId={selectedPatientForUpload?.id}
           patientName={selectedPatientForUpload?.name}
           dentalRecordId={selectedRecord?.id}

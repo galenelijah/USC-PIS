@@ -68,6 +68,7 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
     
     // Attachments state
     const [attachments, setAttachments] = useState([]);
+    const [openUploadDialog, setOpenUploadDialog] = useState(false);
 
     const user = useSelector(state => state.auth.user);
     const isStaffOrMedical = user?.role && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
@@ -641,6 +642,15 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                                 <Typography variant="h6" sx={{ color: '#00acc1', display: 'flex', alignItems: 'center', gap: 1 }}>
                                     <FileIcon /> Supporting Documents
                                 </Typography>
+                                {medicalRecordId && canEdit && (
+                                    <Button 
+                                        size="small"
+                                        startIcon={<UploadIcon />}
+                                        onClick={() => setOpenUploadDialog(true)}
+                                    >
+                                        Add Files
+                                    </Button>
+                                )}
                             </Box>
                             <Divider sx={{ mb: 2 }} />
                             
@@ -751,6 +761,17 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                         {loading ? <CircularProgress size={24} /> : (medicalRecordId ? 'Update Medical Record' : 'Create Medical Record')}
                     </Button>
                 </Box>
+            )}
+            {/* Upload Dialog */}
+            {selectedPatient && (
+                <PatientDocumentUpload
+                    open={openUploadDialog}
+                    onClose={() => setOpenUploadDialog(false)}
+                    patientId={selectedPatient.id}
+                    patientName={`${selectedPatient.first_name} ${selectedPatient.last_name}`}
+                    medicalRecordId={medicalRecordId}
+                    onUploadSuccess={fetchAttachments}
+                />
             )}
         </Box>
     );
