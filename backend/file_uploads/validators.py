@@ -61,10 +61,15 @@ class FileSecurityValidator:
         'application/pdf': '.pdf',
         'application/msword': '.doc',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+        'application/vnd.ms-excel': '.xls',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+        'application/vnd.ms-powerpoint': '.ppt',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
         'text/plain': '.txt',
         'application/rtf': '.rtf',
         'application/zip': '.zip',
-        'text/csv': '.csv'
+        'text/csv': '.csv',
+        'application/octet-stream': None,  # Allow but verify via extension
     }
     
     # Suspicious file signatures (magic bytes)
@@ -209,30 +214,45 @@ class FileSecurityValidator:
             uploaded_file.seek(0)
             
             # Use python-magic for MIME detection
+            detected_mime = None
             if HAS_MAGIC:
                 try:
                     detected_mime = magic.from_buffer(file_content, mime=True)
                 except:
-                    # Fallback to mimetypes
-                    detected_mime, _ = mimetypes.guess_type(uploaded_file.name)
-            else:
-                # Fallback to mimetypes when python-magic is not available
+                    pass
+            
+            if not detected_mime:
+                # Fallback to mimetypes
                 detected_mime, _ = mimetypes.guess_type(uploaded_file.name)
             
+            # DRF or Django might have already set content_type
+            if not detected_mime and hasattr(uploaded_file, 'content_type'):
+                detected_mime = uploaded_file.content_type
+
             if not detected_mime:
                 errors.append("Could not determine file type")
                 return errors
             
             # Check if MIME type is allowed
             if detected_mime not in cls.ALLOWED_MIME_TYPES:
-                errors.append(f"File type '{detected_mime}' is not allowed")
+                # Be more lenient with octet-stream if the extension is safe
+                if detected_mime == 'application/octet-stream':
+                    pass # Handled by extension check later
+                else:
+                    errors.append(f"File type '{detected_mime}' is not allowed")
+                    return errors
             
             # Check MIME type vs extension consistency
             ext = os.path.splitext(uploaded_file.name.lower())[1]
             expected_ext = cls.ALLOWED_MIME_TYPES.get(detected_mime)
             
+            # Only enforce consistency if expected_ext is defined and not None
             if expected_ext and ext != expected_ext:
-                errors.append(f"File extension '{ext}' does not match file content")
+                # Special cases for mixed types (e.g. .jpg vs .jpeg)
+                if detected_mime == 'image/jpeg' and ext in ['.jpg', '.jpeg']:
+                    pass
+                else:
+                    errors.append(f"File extension '{ext}' does not match file content type '{detected_mime}'")
             
         except Exception as e:
             logger.error(f"MIME type validation error: {str(e)}")

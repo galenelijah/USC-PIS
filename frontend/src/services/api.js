@@ -1892,19 +1892,19 @@ export const userManagementService = {
 export const patientDocumentService = {
   // Get all documents for a patient
   getPatientDocuments: (patientId) => {
-    return api.get('/file-uploads/patient-documents/', {
+    return api.get('/files/patient-documents/', {
       params: { patient: patientId }
     });
   },
 
   // Get all documents (staff only)
   getAllDocuments: (params = {}) => {
-    return api.get('/file-uploads/patient-documents/', { params });
+    return api.get('/files/patient-documents/', { params });
   },
 
   // Upload document
   uploadDocument: (formData) => {
-    return api.post('/file-uploads/patient-documents/', formData, {
+    return api.post('/files/patient-documents/', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
@@ -1913,12 +1913,12 @@ export const patientDocumentService = {
 
   // Delete document
   deleteDocument: (id) => {
-    return api.delete(`/file-uploads/patient-documents/${id}/`);
+    return api.delete(`/files/patient-documents/${id}/`);
   },
 
   // Get document details
   getDocumentDetails: (id) => {
-    return api.get(`/file-uploads/patient-documents/${id}/`);
+    return api.get(`/files/patient-documents/${id}/`);
   }
 };
 
