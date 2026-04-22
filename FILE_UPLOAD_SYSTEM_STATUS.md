@@ -1,5 +1,7 @@
 # File Upload System Status - April 2026
 
+**Last Updated: April 22, 2026**
+
 ## **Overview**
 The USC-PIS file upload system has been stabilized and optimized for production deployment on Heroku using Cloudinary for permanent storage. This document summarizes the recent fixes and the current architecture.
 

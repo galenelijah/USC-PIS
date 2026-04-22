@@ -58,6 +58,7 @@ import {
   Launch as LaunchIcon,
   CloudUpload as UploadIcon,
   Description as FileIcon,
+  Attachment as AttachmentIcon,
 } from '@mui/icons-material';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';

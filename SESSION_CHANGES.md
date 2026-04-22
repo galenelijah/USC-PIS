@@ -156,4 +156,47 @@ This entry documents enhancements to the Medical Certificate system and Advanced
 ## Verify Quickly
 - **Medical Certificates**: Generate a certificate using the "USC Clinic Template" and verify it renders as a single-page landscape PDF with the student's full course name.
 - **Filtering**: On the Patients page, use the Filter button to select "AY 2025-2026" and "1st Semester" to see only students registered in that period.
+
+---
+
+# Session Changes (2026-04-22)
+
+This entry documents the stabilization of the File Upload System and fixes for Medical Record visibility.
+
+## Modified Files
+- `backend/health_info/serializers.py`
+  - Refactored `HealthCampaignCreateUpdateSerializer` to use standard Django storage patterns.
+  - Ensured all campaign images are routed exclusively to **Cloudinary** to prevent data loss on Heroku.
+- `backend/file_uploads/validators.py`
+  - Expanded `ALLOWED_MIME_TYPES` and `ALLOWED_EXTENSIONS` to support professional formats like `.xlsx` and `.pptx`.
+  - Improved MIME type detection robustness with safe fallbacks and consistency checks.
+- `frontend/src/services/api.js`
+  - Synchronized `patientDocumentService` URLs to match the backend `/api/files/` routes.
+  - Added safety wrappers to `healthRecordsService`, `dentalRecordService`, and `patientService` to ensure they always return a valid data structure (`{ data: [] }`) on error, preventing frontend crashes.
+- `frontend/src/components/HealthRecords.jsx`
+  - Added a new **"Attachments"** tab to display all uploaded patient documents globally.
+  - Implemented automatic data refreshing after successful document uploads.
+- `frontend/src/components/Dental.jsx`
+  - Added a new global **"Dental Attachments"** tab for visibility of dental-specific files like X-rays.
+  - Implemented a document management table with delete functionality.
+- `frontend/src/components/MedicalHistoryPage.jsx`
+  - Fixed a critical "map is not a function" crash by adding robust array validation and fallbacks for all clinical record streams.
+- `backend/backend/settings.py` & `backend/backend/middleware.py`
+  - Hardened and fixed Content Security Policy (CSP) to allow loading/embedding PDFs and other media from Cloudinary.
+  - Adjusted `X-Frame-Options` to `SAMEORIGIN` to support PDF viewing while maintaining protection against clickjacking.
+
+## Documentation
+- Created `FILE_UPLOAD_SYSTEM_STATUS.md` as a comprehensive guide to the current storage architecture.
+- Updated `CAMPAIGN_IMAGE_UPLOAD_FIX.md` to emphasize Cloudinary-exclusive requirements.
+- Archived outdated campaign fix notes to `docs/history/`.
+
+## Rationale
+- **Persistence**: Fixed the critical issue where campaign images and documents would disappear or fail to upload due to Heroku's ephemeral filesystem and configuration mismatches.
+- **Visibility**: Addressed user reports that "files can't be seen" by providing dedicated attachment tabs in the clinical interfaces.
+- **Stability**: Resolved page crashes caused by unexpected API responses or connection errors during record retrieval.
+
+## Verify Quickly
+- **Uploads**: Create a new Health Campaign with an image and verify it persists after a server restart (points to Cloudinary).
+- **Attachments**: Navigate to `/health-records` or `/dental-records` and use the "Attachments" tab to view existing files.
+- **Health Insights**: Open the "Health Insights & History" page and verify it loads without console errors.
 ---

@@ -75,13 +75,14 @@ class SecurityHeadersMiddleware:
         # Add Content Security Policy
         csp_directives = [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-            "font-src 'self' https://fonts.gstatic.com",
-            "img-src 'self' data: https:",
-            "connect-src 'self'",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://res.cloudinary.com",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
+            "font-src 'self' https://fonts.gstatic.com data:",
+            "img-src 'self' data: https: https://res.cloudinary.com",
+            "connect-src 'self' https://res.cloudinary.com",
+            "frame-src 'self' https://res.cloudinary.com",
             "frame-ancestors 'none'",
-            "object-src 'none'",
+            "object-src 'self' https://res.cloudinary.com",
             "base-uri 'self'",
             "form-action 'self'"
         ]
