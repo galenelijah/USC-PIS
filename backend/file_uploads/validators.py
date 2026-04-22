@@ -59,6 +59,11 @@ class FileSecurityValidator:
         'image/bmp': '.bmp',
         'image/webp': '.webp',
         'application/pdf': '.pdf',
+        'application/x-pdf': '.pdf',
+        'application/acrobat': '.pdf',
+        'applications/vnd.pdf': '.pdf',
+        'text/pdf': '.pdf',
+        'text/x-pdf': '.pdf',
         'application/msword': '.doc',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
         'application/vnd.ms-excel': '.xls',
@@ -229,6 +234,10 @@ class FileSecurityValidator:
             if not detected_mime and hasattr(uploaded_file, 'content_type'):
                 detected_mime = uploaded_file.content_type
 
+            # Special case for PDF: If it has the %PDF signature, trust it as a PDF
+            if file_content.startswith(b'%PDF'):
+                detected_mime = 'application/pdf'
+
             if not detected_mime:
                 errors.append("Could not determine file type")
                 return errors
@@ -250,6 +259,9 @@ class FileSecurityValidator:
             if expected_ext and ext != expected_ext:
                 # Special cases for mixed types (e.g. .jpg vs .jpeg)
                 if detected_mime == 'image/jpeg' and ext in ['.jpg', '.jpeg']:
+                    pass
+                # Special case for PDF variants
+                elif detected_mime == 'application/pdf' and ext == '.pdf':
                     pass
                 else:
                     errors.append(f"File extension '{ext}' does not match file content type '{detected_mime}'")

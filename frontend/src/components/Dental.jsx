@@ -100,7 +100,6 @@ const Dental = () => {
   const [selectedPatientForUpload, setSelectedPatientForUpload] = useState(null);
   const [attachments, setAttachments] = useState([]);
   const [globalDocuments, setGlobalDocuments] = useState([]);
-  const [pendingFiles, setPendingFiles] = useState([]);
 
   const user = useSelector(selectCurrentUser);
   const canEdit = user && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
@@ -245,25 +244,7 @@ const Dental = () => {
     setDialogOpen(false);
     setSelectedRecord(null);
     setIsEditing(false);
-    setPendingFiles([]);
     setTabValue(0);
-  };
-
-  const handlePendingFiles = (e) => {
-    if (e.target.files) {
-        const newFiles = Array.from(e.target.files).filter(file => {
-            if (file.size > 10 * 1024 * 1024) {
-                setError(`File ${file.name} exceeds 10MB limit.`);
-                return false;
-            }
-            return true;
-        });
-        setPendingFiles(prev => [...prev, ...newFiles]);
-    }
-  };
-
-  const removePendingFile = (index) => {
-    setPendingFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleViewRecord = async (record) => {
@@ -294,54 +275,12 @@ const Dental = () => {
         next_appointment_recommended: formData.next_appointment_recommended || null
       };
 
-      let recordId = selectedRecord?.id;
       if (isEditing) {
         await dentalRecordService.update(selectedRecord.id, submitData);
         setSuccess('Dental consultation updated successfully!');
       } else {
-        const res = await dentalRecordService.create(submitData);
-        console.log('Dental creation response:', res);
-        
-        // Extremely robust ID extraction
-        recordId = res?.data?.id || res?.id || (Array.isArray(res?.data) ? res.data[0]?.id : null);
-        
-        if (!recordId) {
-            console.warn('Dental record ID not found in direct response paths. Checking deep data...');
-            if (res?.data?.results && Array.isArray(res.data.results)) {
-                recordId = res.data.results[0]?.id;
-            }
-        }
-
-        if (!recordId) {
-            console.error('CRITICAL: Could not find Dental ID in server response. Full payload:', JSON.stringify(res));
-            setSuccess('Dental consultation created, but could not link attachments. Please upload them manually in the Document Archive.');
-        } else {
-            console.log(`Successfully identified new dental record ID: ${recordId}`);
-            setSuccess('Dental consultation created successfully!');
-        }
-      }
-
-      // Handle pending file uploads if any
-      if (pendingFiles.length > 0 && recordId) {
-        console.log(`Uploading ${pendingFiles.length} dental attachments for record ${recordId}...`);
-        const uploadPromises = pendingFiles.map(file => {
-            const formDataUpload = new FormData();
-            formDataUpload.append('file', file);
-            formDataUpload.append('patient', formData.patient);
-            formDataUpload.append('dental_record', recordId);
-            formDataUpload.append('document_type', 'DENTAL_RECORD');
-            formDataUpload.append('description', 'Attached during dental consultation creation');
-            return patientDocumentService.uploadDocument(formDataUpload);
-        });
-        
-        try {
-            await Promise.all(uploadPromises);
-            console.log('All dental attachments uploaded successfully');
-            setPendingFiles([]);
-        } catch (uploadErr) {
-            console.error('Error during background dental upload:', uploadErr);
-            setError('Consultation saved, but some attachments failed.');
-        }
+        await dentalRecordService.create(submitData);
+        setSuccess('Dental consultation created successfully!');
       }
       
       handleCloseDialog();
@@ -991,7 +930,6 @@ const Dental = () => {
                   <Tab label="Basic Information" />
                   <Tab label="Clinical Details" />
                   <Tab label="Treatment & Follow-up" />
-                  <Tab label="Attachments" />
                 </Tabs>
               
               {/* Basic Information Tab */}
@@ -1050,6 +988,11 @@ const Dental = () => {
                         onChange={(date) => handleInputChange('visit_date', dayjs(date).format('YYYY-MM-DD'))}
                         slotProps={{ textField: { fullWidth: true } }}
                       />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Alert severity="info">
+                        Supporting documents (X-rays, dental charts) can be added via the **Document Archive** in Health History after you save this record.
+                      </Alert>
                     </Grid>
                     <Grid item xs={12} sm={6}>
                       <FormControl fullWidth>
@@ -1255,66 +1198,6 @@ const Dental = () => {
                       />
                     </Grid>
                   </Grid>
-                </Box>
-              )}
-              
-              {/* Attachments Tab */}
-              {tabValue === 3 && (
-                <Box sx={{ mt: 3 }}>
-                  <Typography variant="subtitle1" gutterBottom color="primary">
-                    Upload X-rays or Clinical Documents
-                  </Typography>
-                  <Box 
-                    sx={{ 
-                      mb: 3, 
-                      p: 4, 
-                      border: '2px dashed #1976d2', 
-                      borderRadius: 2,
-                      textAlign: 'center',
-                      bgcolor: 'rgba(25, 118, 210, 0.02)',
-                      cursor: 'pointer',
-                      '&:hover': { bgcolor: 'rgba(25, 118, 210, 0.05)' }
-                    }}
-                    onClick={() => document.getElementById('dental-file-upload').click()}
-                  >
-                    <input
-                      type="file"
-                      id="dental-file-upload"
-                      hidden
-                      multiple
-                      onChange={handlePendingFiles}
-                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                    />
-                    <UploadIcon color="primary" sx={{ fontSize: 40, mb: 1 }} />
-                    <Typography variant="body1" fontWeight="medium">
-                      Select files to attach to this visit
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      (X-rays, dental charts, scanned forms)
-                    </Typography>
-                  </Box>
-
-                  {pendingFiles.length > 0 && (
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="subtitle2" gutterBottom>Selected Files ({pendingFiles.length}):</Typography>
-                      <Grid container spacing={1}>
-                        {pendingFiles.map((file, index) => (
-                          <Grid item key={index}>
-                            <Chip 
-                              icon={<FileIcon />} 
-                              label={file.name} 
-                              onDelete={() => removePendingFile(index)}
-                              color="primary"
-                              variant="outlined"
-                            />
-                          </Grid>
-                        ))}
-                      </Grid>
-                      <Alert severity="success" sx={{ mt: 2 }}>
-                        These files will be automatically uploaded and linked when you click <strong>{isEditing ? 'Update' : 'Create'}</strong>.
-                      </Alert>
-                    </Box>
-                  )}
                 </Box>
               )}
             </Box>

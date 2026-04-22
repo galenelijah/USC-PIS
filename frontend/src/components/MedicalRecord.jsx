@@ -68,8 +68,6 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
     
     // Attachments state
     const [attachments, setAttachments] = useState([]);
-    const [pendingFiles, setPendingFiles] = useState([]);
-    const [openUploadDialog, setOpenUploadDialog] = useState(false);
 
     const user = useSelector(state => state.auth.user);
     const isStaffOrMedical = user?.role && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
@@ -156,6 +154,7 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
     }, [medicalRecordId]);
 
     const fetchAttachments = async () => {
+        if (!medicalRecordId) return;
         try {
             const res = await patientDocumentService.getAllDocuments({ medical_record: medicalRecordId });
             const data = res.data?.results || res.data || [];
@@ -194,24 +193,6 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
             }
         });
         setSelectedPatient(null);
-        setPendingFiles([]);
-    };
-
-    const handlePendingFiles = (e) => {
-        if (e.target.files) {
-            const newFiles = Array.from(e.target.files).filter(file => {
-                if (file.size > 10 * 1024 * 1024) {
-                    setGlobalError(`File ${file.name} exceeds 10MB limit.`);
-                    return false;
-                }
-                return true;
-            });
-            setPendingFiles(prev => [...prev, ...newFiles]);
-        }
-    };
-
-    const removePendingFile = (index) => {
-        setPendingFiles(prev => prev.filter((_, i) => i !== index));
     };
 
     const fetchRecord = async () => {
@@ -220,12 +201,12 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
         try {
             const response = await healthRecordsService.getById(medicalRecordId);
             const data = response.data;
-            
+
             // Format visit_date for input field (YYYY-MM-DD)
             if (data.visit_date) {
                 data.visit_date = formatDateForInput(data.visit_date);
             }
-            
+
             // Ensure vital_signs and physical_examination exist with defensive checks
             const safeData = {
                 ...data,
@@ -249,10 +230,10 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                     neurological: ''
                 }
             };
-            
+
             // Reset form with fetched data
             reset(safeData);
-            
+
             // Find and set the selected patient for display
             if (data.patient) {
                 // If patient object is nested in data (some APIs do this)
@@ -279,8 +260,6 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
         }
     };
 
-    // Function removed - using react-hook-form Controllers instead
-
     const handlePatientChange = (event, value) => {
         setSelectedPatient(value);
         setValue('patient', value ? value.id : '', { shouldValidate: true });
@@ -291,8 +270,6 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
         setPatientSearchTerm('');
         setFilteredPatients(patients);
     };
-
-    // Validation is now handled by Yup schema
 
     const onSubmit = async (data) => {
         if (!canEdit) return;
@@ -316,55 +293,13 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                 vital_signs: data.vital_signs || {},
                 physical_examination: data.physical_examination || {}
             };
-            
-            let recordId = medicalRecordId;
+
             if (medicalRecordId) {
                 await healthRecordsService.update(medicalRecordId, payload);
                 setSuccess('Medical record updated successfully!');
             } else {
-                const res = await healthRecordsService.create(payload);
-                console.log('Record creation response:', res);
-                
-                // Extremely robust ID extraction
-                recordId = res?.data?.id || res?.id || (Array.isArray(res?.data) ? res.data[0]?.id : null);
-                
-                if (!recordId) {
-                    console.warn('Record ID not found in direct response paths. Checking deep data...');
-                    if (res?.data?.results && Array.isArray(res.data.results)) {
-                        recordId = res.data.results[0]?.id;
-                    }
-                }
-
-                if (!recordId) {
-                    console.error('CRITICAL: Could not find ID in server response. Full payload:', JSON.stringify(res));
-                    setSuccess('Medical record created, but could not link attachments. Please refresh and upload them manually in the Document Archive.');
-                } else {
-                    console.log(`Successfully identified new record ID: ${recordId}`);
-                    setSuccess('Medical record created successfully!');
-                }
-            }
-
-            // Handle pending file uploads if any
-            if (pendingFiles.length > 0 && recordId) {
-                console.log(`Uploading ${pendingFiles.length} attachments for record ${recordId}...`);
-                const uploadPromises = pendingFiles.map(file => {
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    formData.append('patient', data.patient);
-                    formData.append('medical_record', recordId);
-                    formData.append('document_type', 'MEDICAL_RECORD');
-                    formData.append('description', 'Attached during visit creation');
-                    return patientDocumentService.uploadDocument(formData);
-                });
-                
-                try {
-                    await Promise.all(uploadPromises);
-                    console.log('All attachments uploaded successfully');
-                    setPendingFiles([]);
-                } catch (uploadErr) {
-                    console.error('Error during background file upload:', uploadErr);
-                    setGlobalError('Record saved, but some attachments failed to upload.');
-                }
+                await healthRecordsService.create(payload);
+                setSuccess('Medical record created successfully!');
             }
 
             if (onSuccess) {
@@ -377,8 +312,7 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
             } else {
                 fetchAttachments();
             }
-        } catch (err) {
-            console.error('Error saving record:', err);
+        } catch (err) {            console.error('Error saving record:', err);
             
             // Map field-specific errors if available for real-time form feedback
             const fieldErrors = extractFieldErrors(err);
@@ -705,106 +639,45 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                         }}>
                             <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                                 <Typography variant="h6" sx={{ color: '#00acc1', display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <FileIcon /> Attachments & Documents
+                                    <FileIcon /> Supporting Documents
                                 </Typography>
-                                {canEdit && medicalRecordId && (
-                                    <Button 
-                                        variant="outlined" 
-                                        size="small" 
-                                        startIcon={<UploadIcon />}
-                                        onClick={() => setOpenUploadDialog(true)}
-                                    >
-                                        Add Files
-                                    </Button>
-                                )}
                             </Box>
                             <Divider sx={{ mb: 2 }} />
                             
-                            {/* Upload Area for New Records or editing records */}
-                            {canEdit && (
-                                <Box 
-                                    sx={{ 
-                                        mb: 3, 
-                                        p: 2, 
-                                        border: '1px dashed #00acc1', 
-                                        borderRadius: 1,
-                                        textAlign: 'center',
-                                        bgcolor: 'rgba(0, 172, 193, 0.02)',
-                                        cursor: 'pointer',
-                                        '&:hover': { bgcolor: 'rgba(0, 172, 193, 0.05)' }
-                                    }}
-                                    onClick={() => document.getElementById('pending-file-upload').click()}
-                                >
-                                    <input
-                                        type="file"
-                                        id="pending-file-upload"
-                                        hidden
-                                        multiple
-                                        onChange={handlePendingFiles}
-                                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                                    />
-                                    <UploadIcon color="primary" sx={{ fontSize: 30, mb: 1 }} />
-                                    <Typography variant="body2">
-                                        Click to attach documents to this visit
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                        (X-rays, Lab Results, Prescriptions)
-                                    </Typography>
-                                </Box>
-                            )}
-
-                            {/* Pending Files List */}
-                            {pendingFiles.length > 0 && (
-                                <Box sx={{ mb: 2 }}>
-                                    <Typography variant="subtitle2" gutterBottom>Pending Uploads:</Typography>
-                                    <Grid container spacing={1}>
-                                        {pendingFiles.map((file, index) => (
-                                            <Grid item key={index}>
-                                                <Chip 
-                                                    icon={<FileIcon />} 
-                                                    label={file.name} 
-                                                    onDelete={() => removePendingFile(index)}
-                                                    color="primary"
-                                                    variant="outlined"
-                                                    size="small"
-                                                />
-                                            </Grid>
-                                        ))}
-                                    </Grid>
-                                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                                        Files will be uploaded when you save the medical record.
-                                    </Typography>
-                                </Box>
-                            )}
-
-                            {/* Existing Attachments List */}
-                            {medicalRecordId && (Array.isArray(attachments) ? attachments : []).length > 0 && (
-                                <Grid container spacing={2}>
-                                    {(Array.isArray(attachments) ? attachments : []).map((doc) => (
-                                        <Grid item xs={12} sm={6} md={4} key={doc.id}>
-                                            <Paper variant="outlined" sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                                <FileIcon color="primary" />
-                                                <Box sx={{ overflow: 'hidden' }}>
-                                                    <Typography variant="body2" noWrap fontWeight="medium">
-                                                        {doc.original_filename}
-                                                    </Typography>
-                                                    <Typography variant="caption" color="text.secondary" display="block">
-                                                        {doc.document_type_display}
-                                                    </Typography>
-                                                </Box>
-                                                <Button size="small" href={doc.file} target="_blank" sx={{ ml: 'auto' }}>
-                                                    View
-                                                </Button>
-                                            </Paper>
+                            {!medicalRecordId ? (
+                                <Alert severity="info" sx={{ mb: 2 }}>
+                                    Supporting documents (X-rays, Lab Results) can be added via the **Document Archive** after you save this clinical record.
+                                </Alert>
+                            ) : (
+                                <>
+                                    {/* Existing Attachments List */}
+                                    {(Array.isArray(attachments) ? attachments : []).length > 0 ? (
+                                        <Grid container spacing={2}>
+                                            {(Array.isArray(attachments) ? attachments : []).map((doc) => (
+                                                <Grid item xs={12} sm={6} md={4} key={doc.id}>
+                                                    <Paper variant="outlined" sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                                        <FileIcon color="primary" />
+                                                        <Box sx={{ overflow: 'hidden' }}>
+                                                            <Typography variant="body2" noWrap fontWeight="medium">
+                                                                {doc.original_filename}
+                                                            </Typography>
+                                                            <Typography variant="caption" color="text.secondary" display="block">
+                                                                {doc.document_type_display}
+                                                            </Typography>
+                                                        </Box>
+                                                        <Button size="small" href={doc.file} target="_blank" sx={{ ml: 'auto' }}>
+                                                            View
+                                                        </Button>
+                                                    </Paper>
+                                                </Grid>
+                                            ))}
                                         </Grid>
-                                    ))}
-                                </Grid>
-                            )}
-                            
-                            {medicalRecordId && attachments.length === 0 && pendingFiles.length === 0 && (
-                                <Typography variant="body2" color="text.secondary" fontStyle="italic">
-                                    No documents attached to this visit.
-                                </Typography>
+                                    ) : (
+                                        <Typography variant="body2" color="text.secondary" fontStyle="italic">
+                                            No documents attached to this visit. Use the Document Archive to add files.
+                                        </Typography>
+                                    )}
+                                </>
                             )}
                         </Paper>
                     </Grid>
