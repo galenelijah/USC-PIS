@@ -136,5 +136,15 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
         patient_id = self.request.query_params.get('patient')
         if patient_id:
             queryset = queryset.filter(patient_id=patient_id)
+
+        # Filter by medical_record if provided
+        medical_record = self.request.query_params.get('medical_record')
+        if medical_record:
+            queryset = queryset.filter(medical_record_id=medical_record)
+
+        # Filter by dental_record if provided
+        dental_record = self.request.query_params.get('dental_record')
+        if dental_record:
+            queryset = queryset.filter(dental_record_id=dental_record)
             
         return queryset
