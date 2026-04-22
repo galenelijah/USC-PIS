@@ -1383,23 +1383,22 @@ const MedicalHistoryPage = () => {
                       </Typography>
                     </CardContent>
                   </Card>
-                </Card>
+                </Grid>
+                <Grid item xs={6} md={3}>
+                  <Card elevation={1}>
+                    <CardContent sx={{ textAlign: 'center', py: { xs: 1, md: 2 } }}>
+                      <Typography variant={{ xs: 'h5', md: 'h4' }} color="primary">
+                        {filteredRecords.filter(r => dayjs(r.visit_date).isAfter(dayjs().subtract(30, 'day'))).length}
+                      </Typography>
+                      <Typography variant={{ xs: 'caption', md: 'body2' }} color="text.secondary">
+                        Recent
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
               </Grid>
-              <Grid item xs={6} md={3}>
-                <Card elevation={1}>
-                  <CardContent sx={{ textAlign: 'center', py: { xs: 1, md: 2 } }}>
-                    <Typography variant={{ xs: 'h5', md: 'h4' }} color="primary">
-                      {filteredRecords.filter(r => dayjs(r.visit_date).isAfter(dayjs().subtract(30, 'day'))).length}
-                    </Typography>
-                    <Typography variant={{ xs: 'caption', md: 'body2' }} color="text.secondary">
-                      Recent
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
-          )}
-          {renderRecordTimeline()}
+            )}
+            {renderRecordTimeline()}
           </TabPanel>
 
           <TabPanel value={tabValue} index={1}>
@@ -1415,7 +1414,7 @@ const MedicalHistoryPage = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {documents.filter(doc => {
+                  {(Array.isArray(documents) ? documents : []).filter(doc => {
                     const searchMatch = !searchTerm || 
                       (doc.patient_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                       (doc.document_type_display || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1427,7 +1426,7 @@ const MedicalHistoryPage = () => {
                     
                     return searchMatch && dateMatch;
                   }).length > 0 ? (
-                    documents.filter(doc => {
+                    (Array.isArray(documents) ? documents : []).filter(doc => {
                       const searchMatch = !searchTerm || 
                         (doc.patient_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                         (doc.document_type_display || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
