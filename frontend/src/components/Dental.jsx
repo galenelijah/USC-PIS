@@ -1394,7 +1394,7 @@ const Dental = () => {
                                 {doc.document_type_display}
                               </Typography>
                             </Box>
-                            <Button size="small" href={doc.file} target="_blank" sx={{ ml: 'auto' }}>
+                            <Button size="small" href={doc.view_url || doc.file} target="_blank" sx={{ ml: 'auto' }}>
                               View
                             </Button>
                           </Paper>

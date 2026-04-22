@@ -1465,7 +1465,7 @@ const MedicalHistoryPage = () => {
                             size="small" 
                             variant="outlined"
                             startIcon={<FileIcon />} 
-                            onClick={() => window.open(doc.file, '_blank')}
+                            onClick={() => window.open(doc.view_url || doc.file, '_blank')}
                           >
                             View
                           </Button>
