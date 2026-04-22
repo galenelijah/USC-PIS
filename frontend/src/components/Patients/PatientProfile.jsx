@@ -52,7 +52,7 @@ import {
   convertStringToArray,
   getCivilStatusLabel
 } from '../../utils/fieldMappers';
-import { healthRecordsService, consultationService, dentalRecordService, patientService } from '../../services/api';
+import { healthRecordsService, consultationService, dentalRecordService, patientService, patientDocumentService } from '../../services/api';
 
 // Visual assets
 import BMI_male_1 from "../../assets/images/BMI_Visual/BMI_male_1.png";
@@ -72,6 +72,7 @@ const PatientProfile = ({ patient: partialPatient, onBack }) => {
   const [error, setError] = useState(null);
   const [patient, setPatient] = useState(partialPatient);
   const [history, setHistory] = useState([]);
+  const [documents, setDocuments] = useState([]);
   const [latestVitalSigns, setLatestVitalSigns] = useState({});
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -91,18 +92,22 @@ const PatientProfile = ({ patient: partialPatient, onBack }) => {
         }
 
         // Fetch all related history with patient filtering
-        const [medicalResp, consultationResp, dentalResp] = await Promise.all([
+        const [medicalResp, consultationResp, dentalResp, documentResp] = await Promise.all([
           healthRecordsService.getAll({ patient: partialPatient.id }).catch(() => ({ data: [] })),
           consultationService.getAll({ patient: partialPatient.id }).catch(() => ({ data: [] })),
-          dentalRecordService.getAll({ patient: partialPatient.id }).catch(() => ({ data: [] }))
+          dentalRecordService.getAll({ patient: partialPatient.id }).catch(() => ({ data: [] })),
+          patientDocumentService.getPatientDocuments(partialPatient.id).catch(() => ({ data: [] }))
         ]);
         
         // Merge and tag records
         const medical = (medicalResp?.data || []).map(r => ({ ...r, type: 'Medical', date: r.visit_date }));
         const consultations = (consultationResp?.data || []).map(r => ({ ...r, type: 'Consultation', date: r.date_time }));
         const dental = (dentalResp?.data || []).map(r => ({ ...r, type: 'Dental', date: r.visit_date }));
+        const docs = (documentResp?.data || []).map(r => ({ ...r, type: 'Document', date: r.uploaded_at }));
 
-        const allHistory = [...medical, ...consultations, ...dental].sort((a, b) => 
+        setDocuments(docs);
+
+        const allHistory = [...medical, ...consultations, ...dental, ...docs].sort((a, b) => 
           new Date(b.date) - new Date(a.date)
         );
         
@@ -180,6 +185,7 @@ const PatientProfile = ({ patient: partialPatient, onBack }) => {
     if (record.type === 'Medical') return record.diagnosis || record.reason_for_visit || 'N/A';
     if (record.type === 'Consultation') return record.chief_complaints || 'N/A';
     if (record.type === 'Dental') return record.procedure_performed_display || record.diagnosis || 'N/A';
+    if (record.type === 'Document') return `${record.document_type || 'File'}: ${record.original_filename}`;
     return 'N/A';
   };
 
@@ -507,7 +513,7 @@ const PatientProfile = ({ patient: partialPatient, onBack }) => {
                             <Chip 
                               label={record.type} 
                               size="small" 
-                              color={record.type === 'Medical' ? 'primary' : record.type === 'Dental' ? 'secondary' : 'info'}
+                              color={record.type === 'Medical' ? 'primary' : record.type === 'Dental' ? 'secondary' : record.type === 'Document' ? 'success' : 'info'}
                               variant="outlined"
                             />
                           </TableCell>
@@ -603,6 +609,35 @@ const PatientProfile = ({ patient: partialPatient, onBack }) => {
                     <Box>
                       <Typography variant="caption" color="textSecondary">Treatment Performed</Typography>
                       <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{selectedRecord.treatment_performed || 'N/A'}</Typography>
+                    </Box>
+                  </>
+                )}
+
+                {selectedRecord.type === 'Document' && (
+                  <>
+                    <Box>
+                      <Typography variant="caption" color="textSecondary">Document Type</Typography>
+                      <Typography variant="body1">{selectedRecord.document_type || 'N/A'}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" color="textSecondary">Original Filename</Typography>
+                      <Typography variant="body1">{selectedRecord.original_filename || 'N/A'}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" color="textSecondary">Description</Typography>
+                      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{selectedRecord.description || 'No description provided'}</Typography>
+                    </Box>
+                    <Box sx={{ mt: 2 }}>
+                      <Button 
+                        variant="contained" 
+                        color="primary" 
+                        fullWidth 
+                        href={selectedRecord.file} 
+                        target="_blank"
+                        startIcon={<Public />}
+                      >
+                        View / Download Document
+                      </Button>
                     </Box>
                   </>
                 )}

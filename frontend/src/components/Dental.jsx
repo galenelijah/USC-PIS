@@ -71,6 +71,7 @@ import InfoTooltip from './utils/InfoTooltip';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../features/authentication/authSlice';
 import { dentalRecordService, patientService } from '../services/api';
+import PatientDocumentUpload from './PatientDocumentUpload';
 
 const Dental = () => {
   const [dentalRecords, setDentalRecords] = useState([]);
@@ -90,6 +91,10 @@ const Dental = () => {
   const [tabValue, setTabValue] = useState(0);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+
+  // Document upload state
+  const [openUploadDialog, setOpenUploadDialog] = useState(false);
+  const [selectedPatientForUpload, setSelectedPatientForUpload] = useState(null);
 
   const user = useSelector(selectCurrentUser);
   const canEdit = user && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
@@ -123,6 +128,14 @@ const Dental = () => {
     fetchProcedures();
     fetchToothConditions();
   }, []);
+
+  const handleOpenUpload = (record) => {
+    setSelectedPatientForUpload({
+      id: record.patient,
+      name: record.patient_name
+    });
+    setOpenUploadDialog(true);
+  };
 
   const fetchDentalRecords = async () => {
     setLoading(true);
@@ -803,6 +816,16 @@ const Dental = () => {
                     >
                       View
                     </Button>
+                    <Tooltip title="Upload Dental Document (X-ray, Chart, etc.)">
+                      <IconButton 
+                        size="small" 
+                        color="primary"
+                        onClick={() => handleOpenUpload(record)}
+                        disabled={!canEdit}
+                      >
+                        <UploadIcon />
+                      </IconButton>
+                    </Tooltip>
                     {canEdit && (
                       <>
                         <Button 
@@ -837,6 +860,18 @@ const Dental = () => {
             </Typography>
           </Paper>
         )}
+
+        {/* Patient Document Upload Dialog */}
+        <PatientDocumentUpload
+          open={openUploadDialog}
+          onClose={() => setOpenUploadDialog(false)}
+          patientId={selectedPatientForUpload?.id}
+          patientName={selectedPatientForUpload?.name}
+          onUploadSuccess={() => {
+            setSuccess('Document uploaded successfully!');
+            setTimeout(() => setSuccess(null), 3000);
+          }}
+        />
 
         {/* Create/Edit Dialog */}
         <Dialog 
