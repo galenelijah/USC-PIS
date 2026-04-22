@@ -300,14 +300,15 @@ const Dental = () => {
         setSuccess('Dental consultation updated successfully!');
       } else {
         const res = await dentalRecordService.create(submitData);
-        // Safely extract ID (handle paginated or wrapped responses)
-        recordId = res?.data?.id || res?.id;
+        // Safely extract ID (handle both direct object and nested in .data)
+        recordId = res?.id || res?.data?.id;
         
         if (!recordId) {
             console.error('Failed to get dental record ID from response:', res);
-            throw new Error('Record created but ID not returned. Files could not be attached.');
+            setSuccess('Dental consultation created, but could not link attachments.');
+        } else {
+            setSuccess('Dental consultation created successfully!');
         }
-        setSuccess('Dental consultation created successfully!');
       }
 
       // Handle pending file uploads if any
@@ -329,7 +330,7 @@ const Dental = () => {
             setPendingFiles([]);
         } catch (uploadErr) {
             console.error('Error during background dental upload:', uploadErr);
-            setError('Consultation saved, but some attachments failed. Check the Document Archive.');
+            setError('Consultation saved, but some attachments failed.');
         }
       }
       
@@ -341,7 +342,7 @@ const Dental = () => {
       setTimeout(() => setSuccess(null), 3000);
     } catch (error) {
       console.error('Error saving dental consultation:', error);
-      setError(error.response?.data?.detail || 'Failed to save dental consultation');
+      setError(extractErrorMessage(error));
       // Clear error message after 5 seconds
       setTimeout(() => setError(null), 5000);
     }

@@ -128,9 +128,10 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
         user = self.request.user
         queryset = PatientDocument.objects.all().order_by('-uploaded_at')
         
-        # Patients/Students can only see their own documents
+        # Patients/Students/Teachers can only see their own documents
         if hasattr(user, 'role') and user.role in ['STUDENT', 'TEACHER']:
-            queryset = queryset.filter(patient__user=user)
+            from django.db.models import Q
+            queryset = queryset.filter(Q(patient__user=user) | Q(uploaded_by=user))
         
         # Filter by patient_id if provided
         patient_id = self.request.query_params.get('patient')

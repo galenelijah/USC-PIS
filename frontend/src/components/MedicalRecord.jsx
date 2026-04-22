@@ -323,14 +323,16 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                 setSuccess('Medical record updated successfully!');
             } else {
                 const res = await healthRecordsService.create(payload);
-                // Extract ID from created record (handle potentially wrapped response)
-                recordId = res?.data?.id || res?.id;
+                // Extract ID (handle both direct object and nested in .data)
+                recordId = res?.id || res?.data?.id;
                 
                 if (!recordId) {
                     console.error('Failed to get record ID from creation response:', res);
-                    throw new Error('Record created but ID not returned. Files could not be attached.');
+                    // Log but don't crash the whole process if record was likely saved
+                    setSuccess('Medical record created, but could not link attachments.');
+                } else {
+                    setSuccess('Medical record created successfully!');
                 }
-                setSuccess('Medical record created successfully!');
             }
 
             // Handle pending file uploads if any
@@ -352,58 +354,33 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                     setPendingFiles([]);
                 } catch (uploadErr) {
                     console.error('Error during background file upload:', uploadErr);
-                    setGlobalError('Record saved, but some attachments failed to upload. Please check the Document Archive.');
-                    // Don't throw here, we want to proceed since the record itself was saved
+                    setGlobalError('Record saved, but some attachments failed to upload.');
                 }
             }
 
             if (onSuccess) {
-                // Wait a bit so user can see success message
                 setTimeout(() => onSuccess(), 2000);
             } else if (!medicalRecordId) {
-                // For new records, reset after a delay
                 setTimeout(() => {
                     resetForm();
                     setSuccess(false);
                 }, 3000);
             } else {
-                fetchAttachments(); // Refresh attachments for existing record
+                fetchAttachments();
             }
         } catch (err) {
             console.error('Error saving record:', err);
             
-            // Handle structured validation errors from backend
-            if (err.response?.data) {
-                const data = err.response.data;
-                
-                // If it's a list of errors (common in our custom validators)
-                if (Array.isArray(data)) {
-                    setGlobalError(data.join(', '));
-                } 
-                // If it's a detail object with field errors
-                else if (typeof data === 'object') {
-                    if (data.detail && typeof data.detail === 'string') {
-                        setGlobalError(data.detail);
-                    } else if (data.non_field_errors) {
-                        setGlobalError(Array.isArray(data.non_field_errors) ? data.non_field_errors.join(', ') : data.non_field_errors);
-                    } else {
-                        // Map field-specific errors
-                        const fieldErrors = extractFieldErrors(err);
-                        if (Object.keys(fieldErrors).length > 0) {
-                            Object.keys(fieldErrors).forEach(field => {
-                                setFieldError(field, { type: 'server', message: fieldErrors[field] });
-                            });
-                            setGlobalError('Validation failed. Please check the fields below.');
-                        } else {
-                            setGlobalError(extractErrorMessage(err));
-                        }
-                    }
-                } else {
-                    setGlobalError(extractErrorMessage(err));
-                }
-            } else {
-                setGlobalError(extractErrorMessage(err));
+            // Map field-specific errors if available for real-time form feedback
+            const fieldErrors = extractFieldErrors(err);
+            if (Object.keys(fieldErrors).length > 0) {
+                Object.keys(fieldErrors).forEach(field => {
+                    setFieldError(field, { type: 'server', message: fieldErrors[field] });
+                });
             }
+
+            // Always display the most descriptive exact error message at the top
+            setGlobalError(extractErrorMessage(err));
         } finally {
             setLoading(false);
         }

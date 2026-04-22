@@ -47,15 +47,18 @@ export const extractErrorMessage = (error) => {
                         const msg = Array.isArray(msgs) ? msgs[0] : msgs;
                         // Skip if the message is actually an object (nested error)
                         if (typeof msg === 'object') return null; 
-                        return `${field}: ${msg}`;
+                        
+                        // Format field name nicely (e.g. 'first_name' -> 'First name')
+                        const readableField = field.split('_').join(' ');
+                        const capitalizedField = readableField.charAt(0).toUpperCase() + readableField.slice(1);
+                        
+                        return `${capitalizedField}: ${msg}`;
                     })
                     .filter(Boolean); // Remove nulls
 
                 if (fieldErrors.length > 0) {
-                    // Return the first error, or a summary if short
-                    return fieldErrors.length === 1 
-                        ? fieldErrors[0].split(': ')[1] // Just return the message for single errors
-                        : 'Please correct the errors in the form.';
+                    // Return all errors joined by a separator for maximum transparency
+                    return fieldErrors.join(' | ');
                 }
             }
 
