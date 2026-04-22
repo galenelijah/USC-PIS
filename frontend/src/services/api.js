@@ -736,9 +736,11 @@ export const authService = {
 export const patientService = {
   getAll: async (params = {}) => {
     try {
-      return await api.get('/patients/patients/', { params });
+      const response = await api.get('/patients/patients/', { params });
+      return response || { data: [] };
     } catch (error) {
       handleApiError(error);
+      return { data: [] };
     }
   },
   getById: async (id) => {
@@ -844,9 +846,11 @@ export const healthInfoService = {
 export const healthRecordsService = {
   getAll: async (params = {}) => {
     try {
-      return await api.get('/patients/medical-records/', { params });
+      const response = await api.get('/patients/medical-records/', { params });
+      return response || { data: [] };
     } catch (error) {
       handleApiError(error);
+      return { data: [] };
     }
   },
   getById: async (id) => {
@@ -1451,10 +1455,10 @@ const dentalRecordService = {
   getAll: async (params = {}) => {
     try {
       const response = await api.get('/patients/dental-records/', { params });
-      return response;
+      return response || { data: [] };
     } catch (error) {
       console.error('Error fetching dental records:', error);
-      throw error;
+      return { data: [] };
     }
   },
 
@@ -1898,8 +1902,14 @@ export const patientDocumentService = {
   },
 
   // Get all documents (staff only)
-  getAllDocuments: (params = {}) => {
-    return api.get('/files/patient-documents/', { params });
+  getAllDocuments: async (params = {}) => {
+    try {
+      const response = await api.get('/files/patient-documents/', { params });
+      return response || { data: [] };
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      return { data: [] };
+    }
   },
 
   // Upload document

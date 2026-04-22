@@ -115,18 +115,37 @@ const MedicalHistoryPage = () => {
     try {
       // Fetch medical, dental, and document data
       const [medResp, dentResp, docResp] = await Promise.all([
-        healthRecordsService.getAll(),
-        dentalRecordService.getAll().catch(() => ({ data: [] })),
-        patientDocumentService.getAllDocuments().catch(() => ({ data: [] }))
+        healthRecordsService.getAll().catch(err => {
+          console.error('Error fetching medical records:', err);
+          return { data: [] };
+        }),
+        dentalRecordService.getAll().catch(err => {
+          console.error('Error fetching dental records:', err);
+          return { data: [] };
+        }),
+        patientDocumentService.getAllDocuments().catch(err => {
+          console.error('Error fetching documents:', err);
+          return { data: [] };
+        })
       ]);
 
-      const medical = (medResp?.data || []).map(r => ({
+      // Ensure data is an array before mapping
+      const medData = Array.isArray(medResp?.data) ? medResp.data : 
+                     (medResp?.data && typeof medResp.data === 'object' && medResp.data.results ? medResp.data.results : []);
+      
+      const dentData = Array.isArray(dentResp?.data) ? dentResp.data : 
+                      (dentResp?.data && typeof dentResp.data === 'object' && dentResp.data.results ? dentResp.data.results : []);
+      
+      const docData = Array.isArray(docResp?.data) ? docResp.data : 
+                     (docResp?.data && typeof docResp.data === 'object' && docResp.data.results ? docResp.data.results : []);
+
+      const medical = medData.map(r => ({
         ...r,
         record_type: 'MEDICAL',
         composite_id: `MEDICAL-${r.id}`
       }));
 
-      const dental = (dentResp?.data || []).map(r => ({
+      const dental = dentData.map(r => ({
         ...r,
         record_type: 'DENTAL',
         composite_id: `DENTAL-${r.id}`,
@@ -135,7 +154,7 @@ const MedicalHistoryPage = () => {
         procedure_performed: r.procedure_performed_display || r.procedure_performed,
       }));
 
-      const documents = (docResp?.data || []).map(d => ({
+      const documents = docData.map(d => ({
         ...d,
         record_type: 'ATTACHMENT',
         composite_id: `DOC-${d.id}`,

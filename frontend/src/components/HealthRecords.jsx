@@ -93,8 +93,10 @@ function TabPanel(props) {
 
 const HealthRecords = () => {
   const [records, setRecords] = useState([]);
+  const [documents, setDocuments] = useState([]);
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingDocs, setLoadingDocs] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
   const [currentRecord, setCurrentRecord] = useState(null);
   const [dialogMode, setDialogMode] = useState('create'); // 'create' or 'edit'
@@ -160,6 +162,7 @@ const HealthRecords = () => {
   useEffect(() => {
     fetchHealthRecords();
     fetchPatients();
+    fetchDocuments();
   }, []);
 
   const fetchHealthRecords = async () => {
@@ -171,6 +174,18 @@ const HealthRecords = () => {
       console.error('Error fetching health records:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDocuments = async () => {
+    setLoadingDocs(true);
+    try {
+      const response = await patientDocumentService.getAllDocuments();
+      setDocuments(response.data || []);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+    } finally {
+      setLoadingDocs(false);
     }
   };
 
@@ -1003,17 +1018,116 @@ Treatment: ${r.treatment || 'N/A'}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="clinical record tabs">
           <Tab label="All Clinical Records" id="clinical-record-tab-0" />
-          <Tab label="Analytics" id="clinical-record-tab-1" icon={<ReportIcon />} iconPosition="start" />
+          <Tab label="Attachments" id="clinical-record-tab-1" icon={<AttachmentIcon />} iconPosition="start" />
+          <Tab label="Analytics" id="clinical-record-tab-2" icon={<ReportIcon />} iconPosition="start" />
         </Tabs>
       </Box>
 
-      {/* Records Table or Analytics */}
+      {/* Records Table, Documents or Analytics */}
       {loading ? (
         <Typography>Loading records...</Typography>
-      ) : tabValue === 1 ? (
+      ) : tabValue === 2 ? (
         <Box sx={{ mt: 2 }}>
           <ClinicalAnalytics records={records} />
         </Box>
+      ) : tabValue === 1 ? (
+        <TableContainer component={Paper} sx={{ mt: 2 }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Upload Date</TableCell>
+                <TableCell>Patient</TableCell>
+                <TableCell>Type</TableCell>
+                <TableCell>Description</TableCell>
+                <TableCell>File Info</TableCell>
+                <TableCell align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loadingDocs ? (
+                <TableRow><TableCell colSpan={6} align="center"><CircularProgress size={24} /></TableCell></TableRow>
+              ) : documents.filter(doc => {
+                  const searchMatch = 
+                    (doc.patient_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    (doc.document_type_display || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    (doc.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+                  
+                  let dateMatch = true;
+                  if (startDate) dateMatch = dateMatch && dayjs(doc.uploaded_at).isAfter(dayjs(startDate).subtract(1, 'day'));
+                  if (endDate) dateMatch = dateMatch && dayjs(doc.uploaded_at).isBefore(dayjs(endDate).add(1, 'day'));
+                  
+                  return searchMatch && dateMatch;
+                }).length > 0 ? (
+                documents.filter(doc => {
+                  const searchMatch = 
+                    (doc.patient_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    (doc.document_type_display || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    (doc.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+                  
+                  let dateMatch = true;
+                  if (startDate) dateMatch = dateMatch && dayjs(doc.uploaded_at).isAfter(dayjs(startDate).subtract(1, 'day'));
+                  if (endDate) dateMatch = dateMatch && dayjs(doc.uploaded_at).isBefore(dayjs(endDate).add(1, 'day'));
+                  
+                  return searchMatch && dateMatch;
+                }).map((doc) => (
+                  <TableRow key={doc.id}>
+                    <TableCell>{dayjs(doc.uploaded_at).format('MMM DD, YYYY')}</TableCell>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight="medium">
+                        {doc.patient_name}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip label={doc.document_type_display} size="small" variant="outlined" />
+                    </TableCell>
+                    <TableCell>{doc.description || 'No description'}</TableCell>
+                    <TableCell>
+                      <Typography variant="caption" display="block">
+                        {doc.original_filename}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {(doc.file_size / 1024).toFixed(1)} KB
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Button 
+                        size="small" 
+                        startIcon={<LaunchIcon />} 
+                        onClick={() => window.open(doc.file, '_blank')}
+                      >
+                        View
+                      </Button>
+                      {canEditRecords && (
+                        <IconButton 
+                          size="small" 
+                          color="error"
+                          onClick={async () => {
+                            if (window.confirm('Are you sure you want to delete this document?')) {
+                              try {
+                                await patientDocumentService.deleteDocument(doc.id);
+                                fetchDocuments();
+                              } catch (e) {
+                                alert('Failed to delete document');
+                              }
+                            }
+                          }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} align="center">
+                    No documents found
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       ) : (
         <TableContainer component={Paper} sx={{ mt: 2 }}>
           <Table>
