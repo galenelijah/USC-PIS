@@ -727,21 +727,13 @@ const Dental = () => {
           </Alert>
         )}
 
-        {/* Global Tabs */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-          <Tabs value={globalTabValue} onChange={(e, newValue) => setGlobalTabValue(newValue)}>
-            <Tab label="Dental Consultations" />
-            <Tab label="Dental Attachments" icon={<FileIcon />} iconPosition="start" />
-          </Tabs>
-        </Box>
-
         {/* Search and Filters */}
         <Paper sx={{ p: 2, mb: 3 }}>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} md={3}>
               <TextField
                 fullWidth
-                placeholder={globalTabValue === 0 ? "Search consultations..." : "Search documents..."}
+                placeholder="Search consultations..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 InputProps={{
@@ -772,44 +764,40 @@ const Dental = () => {
                 />
               </Box>
             </Grid>
-            {globalTabValue === 0 && (
-              <>
-                <Grid item xs={12} md={2}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Procedure</InputLabel>
-                    <Select
-                      value={procedureFilter}
-                      label="Procedure"
-                      onChange={(e) => setProcedureFilter(e.target.value)}
-                    >
-                      <MenuItem value="">All Procedures</MenuItem>
-                      {procedures.map((proc) => (
-                        <MenuItem key={proc.value} value={proc.value}>
-                          {proc.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={1}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Priority</InputLabel>
-                    <Select
-                      value={priorityFilter}
-                      label="Priority"
-                      onChange={(e) => setPriorityFilter(e.target.value)}
-                    >
-                      <MenuItem value="">All</MenuItem>
-                      <MenuItem value="LOW">Low</MenuItem>
-                      <MenuItem value="MEDIUM">Med</MenuItem>
-                      <MenuItem value="HIGH">High</MenuItem>
-                      <MenuItem value="URGENT">Urgent</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-              </>
-            )}
-            <Grid item xs={12} md={globalTabValue === 0 ? 2 : 5}>
+            <Grid item xs={12} md={2}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Procedure</InputLabel>
+                <Select
+                  value={procedureFilter}
+                  label="Procedure"
+                  onChange={(e) => setProcedureFilter(e.target.value)}
+                >
+                  <MenuItem value="">All Procedures</MenuItem>
+                  {procedures.map((proc) => (
+                    <MenuItem key={proc.value} value={proc.value}>
+                      {proc.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={1}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Priority</InputLabel>
+                <Select
+                  value={priorityFilter}
+                  label="Priority"
+                  onChange={(e) => setPriorityFilter(e.target.value)}
+                >
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="LOW">Low</MenuItem>
+                  <MenuItem value="MEDIUM">Med</MenuItem>
+                  <MenuItem value="HIGH">High</MenuItem>
+                  <MenuItem value="URGENT">Urgent</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={2}>
               <Box display="flex" gap={1} justifyContent="flex-end">
                 <Button
                   startIcon={<FilterIcon />}
@@ -824,106 +812,7 @@ const Dental = () => {
         </Paper>
 
         {/* Records Display */}
-        {globalTabValue === 1 ? (
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead sx={{ bgcolor: '#f5f5f5' }}>
-                <TableRow>
-                  <TableCell>Upload Date</TableCell>
-                  <TableCell>Patient</TableCell>
-                  <TableCell>Type</TableCell>
-                  <TableCell>Description</TableCell>
-                  <TableCell>File Info</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {loadingDocs ? (
-                  <TableRow><TableCell colSpan={6} align="center"><CircularProgress size={24} /></TableCell></TableRow>
-                ) : (Array.isArray(globalDocuments) ? globalDocuments : []).filter(doc => {
-                    const searchMatch = 
-                      (doc.patient_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      (doc.document_type_display || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      (doc.description || '').toLowerCase().includes(searchTerm.toLowerCase());
-                    
-                    let dateMatch = true;
-                    if (startDate) dateMatch = dateMatch && dayjs(doc.uploaded_at).isAfter(dayjs(startDate).subtract(1, 'day'));
-                    if (endDate) dateMatch = dateMatch && dayjs(doc.uploaded_at).isBefore(dayjs(endDate).add(1, 'day'));
-                    
-                    return searchMatch && dateMatch;
-                  }).length > 0 ? (
-                  (Array.isArray(globalDocuments) ? globalDocuments : []).filter(doc => {
-                    const searchMatch = 
-                      (doc.patient_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      (doc.document_type_display || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      (doc.description || '').toLowerCase().includes(searchTerm.toLowerCase());
-                    
-                    let dateMatch = true;
-                    if (startDate) dateMatch = dateMatch && dayjs(doc.uploaded_at).isAfter(dayjs(startDate).subtract(1, 'day'));
-                    if (endDate) dateMatch = dateMatch && dayjs(doc.uploaded_at).isBefore(dayjs(endDate).add(1, 'day'));
-                    
-                    return searchMatch && dateMatch;
-                  }).map((doc) => (
-                    <TableRow key={doc.id}>
-                      <TableCell>{dayjs(doc.uploaded_at).format('MMM DD, YYYY')}</TableCell>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight="medium">
-                          {doc.patient_name}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip label={doc.document_type_display} size="small" variant="outlined" color="primary" />
-                      </TableCell>
-                      <TableCell>{doc.description || 'No description'}</TableCell>
-                      <TableCell>
-                        <Typography variant="caption" display="block" noWrap sx={{ maxWidth: 200 }}>
-                          {doc.original_filename}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {(doc.file_size / 1024).toFixed(1)} KB
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Button 
-                          size="small" 
-                          startIcon={<ViewIcon />} 
-                          onClick={() => window.open(doc.file, '_blank')}
-                        >
-                          View
-                        </Button>
-                        {canEdit && (
-                          <IconButton 
-                            size="small" 
-                            color="error"
-                            onClick={async () => {
-                              if (window.confirm('Are you sure you want to delete this document?')) {
-                                try {
-                                  await patientDocumentService.deleteDocument(doc.id);
-                                  fetchGlobalDocuments();
-                                  setSuccess('Document deleted successfully');
-                                } catch (e) {
-                                  setError('Failed to delete document');
-                                }
-                              }
-                            }}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center">
-                      No dental documents found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        ) : filteredRecords.length > 0 ? (
+        {filteredRecords.length > 0 ? (
           <Grid container spacing={3}>
             {filteredRecords.map((record) => (
               <Grid item xs={12} md={6} lg={4} key={record.id}>

@@ -82,9 +82,11 @@ function TabPanel(props) {
 
 const MedicalHistoryPage = () => {
   const [records, setRecords] = useState([]);
+  const [documents, setDocuments] = useState([]); // New state for raw documents
   const [filteredRecords, setFilteredRecords] = useState([]);
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingDocs, setLoadingDocs] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -129,15 +131,15 @@ const MedicalHistoryPage = () => {
         })
       ]);
 
-      // Ensure data is an array before mapping
-      const medData = Array.isArray(medResp?.data) ? medResp.data : 
-                     (medResp?.data && typeof medResp.data === 'object' && medResp.data.results ? medResp.data.results : []);
-      
-      const dentData = Array.isArray(dentResp?.data) ? dentResp.data : 
-                      (dentResp?.data && typeof dentResp.data === 'object' && dentResp.data.results ? dentResp.data.results : []);
-      
-      const docData = Array.isArray(docResp?.data) ? docResp.data : 
-                     (docResp?.data && typeof docResp.data === 'object' && docResp.data.results ? docResp.data.results : []);
+      // Ensure data is an array before mapping (handle paginated responses)
+      const getResults = (resp) => {
+        const data = resp?.data?.results || resp?.data || [];
+        return Array.isArray(data) ? data : [];
+      };
+
+      const medData = getResults(medResp);
+      const dentData = getResults(dentResp);
+      const docData = getResults(docResp);
 
       const medical = medData.map(r => ({
         ...r,
@@ -154,7 +156,7 @@ const MedicalHistoryPage = () => {
         procedure_performed: r.procedure_performed_display || r.procedure_performed,
       }));
 
-      const documents = docData.map(d => ({
+      const documentsMapped = docData.map(d => ({
         ...d,
         record_type: 'ATTACHMENT',
         composite_id: `DOC-${d.id}`,
@@ -164,7 +166,7 @@ const MedicalHistoryPage = () => {
         patient_name: d.patient_name
       }));
 
-      let combined = [...medical, ...dental, ...documents];
+      let combined = [...medical, ...dental, ...documentsMapped];
       
       // If user is a student/teacher, only show their records
       if (isStudent && user?.id) {
@@ -176,6 +178,7 @@ const MedicalHistoryPage = () => {
       
       combined = combined.sort((a, b) => new Date(b.visit_date) - new Date(a.visit_date));
       setRecords(combined);
+      setDocuments(docData);
     } catch (err) {
       setError('Failed to load medical records.');
       console.error('Error fetching records:', err);
@@ -1328,8 +1331,9 @@ const MedicalHistoryPage = () => {
       {/* Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="medical history tabs">
-          <Tab label="History" id="medical-history-tab-0" />
-          <Tab label="Health Insights" id="medical-history-tab-1" icon={<ExpandMoreIcon />} iconPosition="start" />
+          <Tab label="Unified History" id="medical-history-tab-0" icon={<TimelineIcon />} iconPosition="start" />
+          <Tab label="Document Archive" id="medical-history-tab-1" icon={<AttachmentIcon />} iconPosition="start" />
+          <Tab label="Health Insights" id="medical-history-tab-2" icon={<TimelineIcon />} iconPosition="start" />
         </Tabs>
       </Box>
 
@@ -1340,43 +1344,45 @@ const MedicalHistoryPage = () => {
         </Box>
       ) : (
         <>
-          {/* Summary Cards - Mobile Optimized */}
-          {filteredRecords.length > 0 && (
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={6} md={3}>
-                <Card elevation={1}>
-                  <CardContent sx={{ textAlign: 'center', py: { xs: 1, md: 2 } }}>
-                    <Typography variant={{ xs: 'h5', md: 'h4' }} color="primary">
-                      {filteredRecords.length}
-                    </Typography>
-                    <Typography variant={{ xs: 'caption', md: 'body2' }} color="text.secondary">
-                      Total Records
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item xs={6} md={3}>
-                <Card elevation={1}>
-                  <CardContent sx={{ textAlign: 'center', py: { xs: 1, md: 2 } }}>
-                    <Typography variant={{ xs: 'h5', md: 'h4' }} color="primary">
-                      {filteredRecords.filter(r => r.record_type === 'MEDICAL').length}
-                    </Typography>
-                    <Typography variant={{ xs: 'caption', md: 'body2' }} color="text.secondary">
-                      Medical
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item xs={6} md={3}>
-                <Card elevation={1}>
-                  <CardContent sx={{ textAlign: 'center', py: { xs: 1, md: 2 } }}>
-                    <Typography variant={{ xs: 'h5', md: 'h4' }} color="primary">
-                      {filteredRecords.filter(r => r.record_type === 'DENTAL').length}
-                    </Typography>
-                    <Typography variant={{ xs: 'caption', md: 'body2' }} color="text.secondary">
-                      Dental
-                    </Typography>
-                  </CardContent>
+          <TabPanel value={tabValue} index={0}>
+            {/* Summary Cards - Mobile Optimized */}
+            {filteredRecords.length > 0 && (
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid item xs={6} md={3}>
+                  <Card elevation={1}>
+                    <CardContent sx={{ textAlign: 'center', py: { xs: 1, md: 2 } }}>
+                      <Typography variant={{ xs: 'h5', md: 'h4' }} color="primary">
+                        {filteredRecords.length}
+                      </Typography>
+                      <Typography variant={{ xs: 'caption', md: 'body2' }} color="text.secondary">
+                        Total Records
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={6} md={3}>
+                  <Card elevation={1}>
+                    <CardContent sx={{ textAlign: 'center', py: { xs: 1, md: 2 } }}>
+                      <Typography variant={{ xs: 'h5', md: 'h4' }} color="primary">
+                        {filteredRecords.filter(r => r.record_type === 'MEDICAL').length}
+                      </Typography>
+                      <Typography variant={{ xs: 'caption', md: 'body2' }} color="text.secondary">
+                        Medical
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={6} md={3}>
+                  <Card elevation={1}>
+                    <CardContent sx={{ textAlign: 'center', py: { xs: 1, md: 2 } }}>
+                      <Typography variant={{ xs: 'h5', md: 'h4' }} color="primary">
+                        {filteredRecords.filter(r => r.record_type === 'DENTAL').length}
+                      </Typography>
+                      <Typography variant={{ xs: 'caption', md: 'body2' }} color="text.secondary">
+                        Dental
+                      </Typography>
+                    </CardContent>
+                  </Card>
                 </Card>
               </Grid>
               <Grid item xs={6} md={3}>
@@ -1393,11 +1399,89 @@ const MedicalHistoryPage = () => {
               </Grid>
             </Grid>
           )}
+          {renderRecordTimeline()}
+          </TabPanel>
 
-          {/* Timeline or Health Insights */}
-          <Paper elevation={1} sx={{ p: 3 }}>
-            {tabValue === 1 ? renderHealthInsights() : renderRecordTimeline()}
-          </Paper>
+          <TabPanel value={tabValue} index={1}>
+            <TableContainer component={Paper} elevation={1}>
+              <Table size="small">
+                <TableHead sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Date</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Patient</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Type</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Description</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }} align="right">Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {documents.filter(doc => {
+                    const searchMatch = !searchTerm || 
+                      (doc.patient_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      (doc.document_type_display || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      (doc.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+                    
+                    let dateMatch = true;
+                    if (startDate) dateMatch = dateMatch && dayjs(doc.uploaded_at).isAfter(dayjs(startDate).subtract(1, 'day'));
+                    if (endDate) dateMatch = dateMatch && dayjs(doc.uploaded_at).isBefore(dayjs(endDate).add(1, 'day'));
+                    
+                    return searchMatch && dateMatch;
+                  }).length > 0 ? (
+                    documents.filter(doc => {
+                      const searchMatch = !searchTerm || 
+                        (doc.patient_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        (doc.document_type_display || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        (doc.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+                      
+                      let dateMatch = true;
+                      if (startDate) dateMatch = dateMatch && dayjs(doc.uploaded_at).isAfter(dayjs(startDate).subtract(1, 'day'));
+                      if (endDate) dateMatch = dateMatch && dayjs(doc.uploaded_at).isBefore(dayjs(endDate).add(1, 'day'));
+                      
+                      return searchMatch && dateMatch;
+                    }).map((doc) => (
+                      <TableRow key={doc.id} hover>
+                        <TableCell>{dayjs(doc.uploaded_at).format('MMM DD, YYYY')}</TableCell>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight="medium">{doc.patient_name}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip label={doc.document_type_display} size="small" variant="outlined" color="primary" />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" noWrap sx={{ maxWidth: 300 }}>
+                            {doc.description || 'No description'}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            {doc.original_filename} ({(doc.file_size / 1024).toFixed(1)} KB)
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Button 
+                            size="small" 
+                            variant="outlined"
+                            startIcon={<FileIcon />} 
+                            onClick={() => window.open(doc.file, '_blank')}
+                          >
+                            View
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                        <Typography variant="body2" color="text.secondary">No documents found matching filters.</Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={2}>
+            {renderHealthInsights()}
+          </TabPanel>
         </>
       )}
     </Box>
