@@ -143,9 +143,11 @@ const Dental = () => {
       const response = await patientDocumentService.getAllDocuments({ 
         document_type__in: 'DENTAL_RECORD,XRAY'
       });
-      setGlobalDocuments(response.data || []);
+      const data = response.data?.results || response.data || [];
+      setGlobalDocuments(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching dental documents:', error);
+      setGlobalDocuments([]);
     } finally {
       setLoadingDocs(false);
     }
@@ -270,7 +272,8 @@ const Dental = () => {
     // Fetch attachments for this dental record
     try {
       const res = await patientDocumentService.getAllDocuments({ dental_record: record.id });
-      setAttachments(res.data || []);
+      const data = res.data?.results || res.data || [];
+      setAttachments(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching dental attachments:', err);
       setAttachments([]);
@@ -837,7 +840,7 @@ const Dental = () => {
               <TableBody>
                 {loadingDocs ? (
                   <TableRow><TableCell colSpan={6} align="center"><CircularProgress size={24} /></TableCell></TableRow>
-                ) : globalDocuments.filter(doc => {
+                ) : (Array.isArray(globalDocuments) ? globalDocuments : []).filter(doc => {
                     const searchMatch = 
                       (doc.patient_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                       (doc.document_type_display || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -849,7 +852,7 @@ const Dental = () => {
                     
                     return searchMatch && dateMatch;
                   }).length > 0 ? (
-                  globalDocuments.filter(doc => {
+                  (Array.isArray(globalDocuments) ? globalDocuments : []).filter(doc => {
                     const searchMatch = 
                       (doc.patient_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                       (doc.document_type_display || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1575,9 +1578,9 @@ const Dental = () => {
                     <FileIcon /> Attachments & Documents
                   </Typography>
                   
-                  {attachments.length > 0 ? (
+                  { (Array.isArray(attachments) ? attachments : []).length > 0 ? (
                     <Grid container spacing={2} sx={{ mt: 0.5 }}>
-                      {attachments.map((doc) => (
+                      { (Array.isArray(attachments) ? attachments : []).map((doc) => (
                         <Grid item xs={12} sm={6} key={doc.id}>
                           <Paper variant="outlined" sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
                             <FileIcon color="primary" />

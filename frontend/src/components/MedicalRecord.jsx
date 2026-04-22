@@ -158,9 +158,11 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
     const fetchAttachments = async () => {
         try {
             const res = await patientDocumentService.getAllDocuments({ medical_record: medicalRecordId });
-            setAttachments(res.data || []);
+            const data = res.data?.results || res.data || [];
+            setAttachments(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error('Error fetching attachments:', err);
+            setAttachments([]);
         }
     };
 
@@ -770,9 +772,9 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                             )}
 
                             {/* Existing Attachments List */}
-                            {medicalRecordId && attachments.length > 0 && (
+                            {medicalRecordId && (Array.isArray(attachments) ? attachments : []).length > 0 && (
                                 <Grid container spacing={2}>
-                                    {attachments.map((doc) => (
+                                    {(Array.isArray(attachments) ? attachments : []).map((doc) => (
                                         <Grid item xs={12} sm={6} md={4} key={doc.id}>
                                             <Paper variant="outlined" sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                                 <FileIcon color="primary" />

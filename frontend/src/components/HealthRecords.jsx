@@ -182,9 +182,12 @@ const HealthRecords = () => {
     setLoadingDocs(true);
     try {
       const response = await patientDocumentService.getAllDocuments();
-      setDocuments(response.data || []);
+      // Handle both direct array and paginated response
+      const data = response.data?.results || response.data || [];
+      setDocuments(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching documents:', error);
+      setDocuments([]);
     } finally {
       setLoadingDocs(false);
     }
@@ -1047,7 +1050,7 @@ Treatment: ${r.treatment || 'N/A'}
             <TableBody>
               {loadingDocs ? (
                 <TableRow><TableCell colSpan={6} align="center"><CircularProgress size={24} /></TableCell></TableRow>
-              ) : documents.filter(doc => {
+              ) : (Array.isArray(documents) ? documents : []).filter(doc => {
                   const searchMatch = 
                     (doc.patient_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                     (doc.document_type_display || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1059,7 +1062,7 @@ Treatment: ${r.treatment || 'N/A'}
                   
                   return searchMatch && dateMatch;
                 }).length > 0 ? (
-                documents.filter(doc => {
+                (Array.isArray(documents) ? documents : []).filter(doc => {
                   const searchMatch = 
                     (doc.patient_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                     (doc.document_type_display || '').toLowerCase().includes(searchTerm.toLowerCase()) ||

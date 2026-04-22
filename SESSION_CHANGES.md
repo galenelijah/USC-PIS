@@ -173,12 +173,13 @@ This entry documents the stabilization of the File Upload System and fixes for M
 - `frontend/src/services/api.js`
   - Synchronized `patientDocumentService` URLs to match the backend `/api/files/` routes.
   - Added safety wrappers to `healthRecordsService`, `dentalRecordService`, and `patientService` to ensure they always return a valid data structure (`{ data: [] }`) on error, preventing frontend crashes.
-- `frontend/src/components/HealthRecords.jsx`
+- `frontend/src/components/HealthRecords.jsx` & `frontend/src/components/Dental.jsx`
   - Added a new **"Attachments"** tab to display all uploaded patient documents globally.
   - Implemented automatic data refreshing after successful document uploads.
-- `frontend/src/components/Dental.jsx`
-  - Added a new global **"Dental Attachments"** tab for visibility of dental-specific files like X-rays.
-  - Implemented a document management table with delete functionality.
+  - **Fixed `q.filter` crash** by adding robust handling for paginated API responses (extracting `results` array).
+- `frontend/src/components/MedicalRecord.jsx`
+  - Fixed attachment invisibility in specific records by properly handling paginated backend data.
+  - Added defensive array checks before mapping clinical attachments.
 - `frontend/src/components/MedicalHistoryPage.jsx`
   - Fixed a critical "map is not a function" crash by adding robust array validation and fallbacks for all clinical record streams.
 - `backend/backend/settings.py` & `backend/backend/middleware.py`
