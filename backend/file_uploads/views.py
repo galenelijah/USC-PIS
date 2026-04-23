@@ -115,8 +115,8 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def download(self, request, pk=None):
         """
-        Securely download a document.
-        Fix: Enforces .pdf extension to avoid Cloudinary on-the-fly transformation triggers (401 errors).
+        Securely download a document using Cloudinary's official private download mechanism.
+        This handles transformation security (401 errors) and varied resource types.
         """
         document = self.get_object()
         if not document.file:
@@ -127,50 +127,45 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
             is_pdf = (document.original_filename and document.original_filename.lower().endswith('.pdf')) or \
                      (document.file.name and document.file.name.lower().endswith('.pdf'))
             
-            # CRITICAL FIX: If it's a PDF, Cloudinary MUST have the .pdf extension in the URL
-            # otherwise it attempts an on-the-fly image transformation which triggers 401/403.
-            if is_pdf and '.pdf' not in file_url.lower() and '?' not in file_url:
-                file_url = f"{file_url}.pdf"
-                logger.info(f"Fixed PDF URL for document {document.id}: {file_url}")
+            # Use Cloudinary SDK to generate a safe, signed download URL if applicable
+            if 'res.cloudinary.com' in file_url and settings.USE_CLOUDINARY:
+                from cloudinary.utils import private_download_url
+                
+                # Extract public_id and folder structure from URL
+                # Matches /upload/ (or other types) and catches everything until the extension
+                match = re.search(r'/(?:upload|private|authenticated)/(?:v\d+/)?([^.]+)', file_url)
+                if match:
+                    public_id = match.group(1)
+                    res_type = 'raw' if '/raw/' in file_url else 'image'
+                    fmt = 'pdf' if is_pdf else None
+                    
+                    # Generate the "Master" signed URL using API credentials
+                    # This bypasses transformation restrictions and forces attachment headers
+                    file_url = private_download_url(
+                        public_id, 
+                        format=fmt, 
+                        resource_type=res_type, 
+                        type='upload',
+                        attachment=True
+                    )
+                    logger.info(f"Generated official private download URL for doc {document.id}")
 
             headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) USC-PIS/1.0'}
             
             with requests.Session() as session:
                 session.headers.clear()
-                
-                # Fetch the file. Most Cloudinary files in /upload/ are public but require extension matching.
                 response = session.get(file_url, stream=True, timeout=30, headers=headers)
                 
-                # Fallback: If still restricted, try a simple signed URL as a last resort
-                if response.status_code in [401, 403] and settings.USE_CLOUDINARY and 'res.cloudinary.com' in file_url:
-                    logger.info(f"Public access restricted ({response.status_code}), trying basic signed URL")
-                    import cloudinary.utils
-                    # Get public_id by splitting the URL (everything after /upload/v123/)
-                    match = re.search(r'/upload/(?:v\d+/)?(.+)$', file_url)
-                    if match:
-                        public_id = match.group(1)
-                        # Remove extension for signing if it's an image resource type
-                        if '/image/' in file_url and '.' in public_id:
-                            public_id = public_id.rsplit('.', 1)[0]
-                            
-                        res_type = 'raw' if '/raw/' in file_url else 'image'
-                        signed_url = cloudinary.utils.cloudinary_url(
-                            public_id, sign_url=True, resource_type=res_type, secure=True
-                        )[0]
-                        response = session.get(signed_url, stream=True, timeout=30, headers=headers)
-
                 if response.status_code != 200:
-                    logger.error(f"Retrieval failed for document {document.id} with status {response.status_code}")
+                    logger.error(f"Official retrieval failed with status {response.status_code}")
                     return Response({'detail': f'Storage error: {response.status_code}'}, status=status.HTTP_502_BAD_GATEWAY)
 
-                # Stream the response
                 proxy_response = StreamingHttpResponse(
                     response.iter_content(chunk_size=8192),
                     content_type=document.content_type or response.headers.get('Content-Type', 'application/octet-stream')
                 )
                 
             filename = document.original_filename or f"document_{document.id}"
-            # Ensure filename has extension if missing
             if '.' not in filename and document.content_type:
                 ext = mimetypes.guess_extension(document.content_type)
                 if ext: filename += ext
