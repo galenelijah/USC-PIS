@@ -16,6 +16,7 @@ from .validators import (
 )
 import logging
 import traceback
+import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +106,7 @@ class PatientViewSet(viewsets.ModelViewSet):
                         created_at__month__lte=7
                     )
                 else: # Whole Academic Year: Aug (start) to July (end)
+                    # Use Q objects with consistent timezone-aware filtering
                     queryset = queryset.filter(
                         Q(created_at__year=start_year, created_at__month__gte=8) |
                         Q(created_at__year=start_year + 1, created_at__month__lte=7)
@@ -513,11 +515,19 @@ class DentalRecordViewSet(viewsets.ModelViewSet):
             
             date_from = self.request.query_params.get('date_from', None)
             if date_from:
-                queryset = queryset.filter(visit_date__gte=date_from)
+                try:
+                    parsed_date = timezone.make_aware(datetime.datetime.strptime(date_from, '%Y-%m-%d'))
+                    queryset = queryset.filter(visit_date__gte=parsed_date)
+                except (ValueError, TypeError):
+                    queryset = queryset.filter(visit_date__gte=date_from)
             
             date_to = self.request.query_params.get('date_to', None)
             if date_to:
-                queryset = queryset.filter(visit_date__lte=date_to)
+                try:
+                    parsed_date = timezone.make_aware(datetime.datetime.strptime(date_to, '%Y-%m-%d').replace(hour=23, minute=59, second=59))
+                    queryset = queryset.filter(visit_date__lte=parsed_date)
+                except (ValueError, TypeError):
+                    queryset = queryset.filter(visit_date__lte=date_to)
 
             return queryset.order_by('-visit_date')
             
@@ -554,14 +564,22 @@ class DentalRecordViewSet(viewsets.ModelViewSet):
                     'detail': 'Insufficient permissions to create dental records'
                 }, status=status.HTTP_403_FORBIDDEN)
             
-            # Validate required fields
-            required_fields = ['visit_date', 'procedure_performed', 'diagnosis', 'treatment_performed']
-            missing_fields = [field for field in required_fields if not request.data.get(field)]
-            if missing_fields:
-                return Response({
-                    'detail': 'Missing required fields',
-                    'missing_fields': missing_fields
-                }, status=status.HTTP_400_BAD_REQUEST)
+            # Use medical record validator for general dental record validation + normalization
+            validation_errors = record_validator.validate_medical_record(request.data)
+            if validation_errors:
+                # Filter out medical-specific field errors if they are not relevant to dental
+                relevant_errors = [e for e in validation_errors if 'Diagnosis' not in e and 'Treatment' not in e]
+                # Re-validate dental specific fields
+                if not request.data.get('diagnosis'):
+                    relevant_errors.append("Diagnosis is required")
+                if not request.data.get('treatment_performed'):
+                    relevant_errors.append("Treatment performed is required")
+                
+                if relevant_errors:
+                    return Response({
+                        'detail': 'Dental record validation failed',
+                        'errors': relevant_errors
+                    }, status=status.HTTP_400_BAD_REQUEST)
             
             # Check for duplicate records on same date and procedure
             visit_date = request.data.get('visit_date')

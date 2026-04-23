@@ -110,9 +110,11 @@ class PatientDataValidator:
                     
                 dob = parsed_date
             
-            elif hasattr(dob, 'date'):
+            elif isinstance(dob, datetime.datetime):
                 dob = dob.date()
-            elif not isinstance(dob, datetime.date):
+            elif isinstance(dob, datetime.date):
+                pass # Already a date object
+            else:
                 errors.append("Invalid date format")
                 return errors
             
@@ -257,8 +259,14 @@ class DuplicatePatientDetector:
             data2.get('last_name', '')
         ).ratio()
         
-        # Date of birth exact match
-        dob_similarity = 1.0 if data1.get('date_of_birth') == data2.get('date_of_birth') else 0.0
+        # Date of birth exact match - normalize to date objects for comparison
+        dob1 = data1.get('date_of_birth')
+        dob2 = data2.get('date_of_birth')
+        
+        if hasattr(dob1, 'date'): dob1 = dob1.date()
+        if hasattr(dob2, 'date'): dob2 = dob2.date()
+        
+        dob_similarity = 1.0 if dob1 == dob2 and dob1 else 0.0
         
         # Email exact match (case insensitive)
         email_similarity = 1.0 if (data1.get('email', '').lower() == data2.get('email', '').lower() 
@@ -319,6 +327,29 @@ class MedicalRecordValidator:
         if visit_date:
             date_errors = MedicalRecordValidator._validate_visit_date(visit_date)
             errors.extend(date_errors)
+            
+            # Normalize the date in-place in the data dict to avoid type errors later
+            if not date_errors:
+                try:
+                    # Re-parse or use the already validated date if possible
+                    # _validate_visit_date doesn't return the parsed date, so we re-parse
+                    if isinstance(visit_date, str):
+                        for fmt in ['%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%S.%fZ', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d']:
+                            try:
+                                dt = datetime.datetime.strptime(visit_date, fmt)
+                                if timezone.is_naive(dt):
+                                    dt = timezone.make_aware(dt)
+                                data['visit_date'] = dt
+                                break
+                            except (ValueError, IndexError):
+                                continue
+                    elif isinstance(visit_date, datetime.datetime):
+                        if timezone.is_naive(visit_date):
+                            data['visit_date'] = timezone.make_aware(visit_date)
+                    elif isinstance(visit_date, datetime.date):
+                        data['visit_date'] = timezone.make_aware(datetime.datetime.combine(visit_date, datetime.time.min))
+                except Exception:
+                    pass
         else:
             errors.append("Visit date is required")
         
@@ -375,11 +406,14 @@ class MedicalRecordValidator:
                     errors.append("Visit date/time must be in a valid format (e.g., YYYY-MM-DD HH:MM)")
                     return errors
                 visit_date = parsed_dt
-            elif isinstance(visit_date, datetime.datetime):
+            
+            # Check for datetime first (since datetime is a subclass of date)
+            if isinstance(visit_date, datetime.datetime):
                 if timezone.is_naive(visit_date):
                     visit_date = timezone.make_aware(visit_date)
-            elif hasattr(visit_date, 'date'):
-                # Convert date to datetime at midnight
+            # Then check for plain date
+            elif isinstance(visit_date, datetime.date):
+                # Convert date to aware datetime at midnight
                 visit_date = timezone.make_aware(datetime.datetime.combine(visit_date, datetime.time.min))
             elif not isinstance(visit_date, (datetime.date, datetime.datetime)):
                 errors.append("Invalid visit date/time format")

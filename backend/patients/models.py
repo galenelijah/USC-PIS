@@ -1,5 +1,7 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
+import datetime
 
 # Create your models here.
 
@@ -63,6 +65,15 @@ class MedicalRecord(models.Model):
 
     class Meta:
         ordering = ['-visit_date']
+
+    def save(self, *args, **kwargs):
+        # Ensure visit_date is an aware datetime if it's a plain date
+        if self.visit_date and not isinstance(self.visit_date, datetime.datetime) and isinstance(self.visit_date, datetime.date):
+            self.visit_date = timezone.make_aware(datetime.datetime.combine(self.visit_date, datetime.time.min))
+        # Ensure it's aware if it's a naive datetime
+        elif self.visit_date and isinstance(self.visit_date, datetime.datetime) and timezone.is_naive(self.visit_date):
+            self.visit_date = timezone.make_aware(self.visit_date)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.patient} - {self.visit_date}"
@@ -174,6 +185,15 @@ class DentalRecord(models.Model):
 
     class Meta:
         ordering = ['-visit_date']
+
+    def save(self, *args, **kwargs):
+        # Ensure visit_date is an aware datetime if it's a plain date
+        if self.visit_date and not isinstance(self.visit_date, datetime.datetime) and isinstance(self.visit_date, datetime.date):
+            self.visit_date = timezone.make_aware(datetime.datetime.combine(self.visit_date, datetime.time.min))
+        # Ensure it's aware if it's a naive datetime
+        elif self.visit_date and isinstance(self.visit_date, datetime.datetime) and timezone.is_naive(self.visit_date):
+            self.visit_date = timezone.make_aware(self.visit_date)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.patient} - {self.procedure_performed} - {self.visit_date}"
