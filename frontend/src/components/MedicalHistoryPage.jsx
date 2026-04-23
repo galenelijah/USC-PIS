@@ -57,6 +57,7 @@ import {
   Clear as ClearIcon,
   AttachFile as AttachmentIcon,
   FileOpen as FileIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 
 import { Autocomplete } from '@mui/material';
@@ -90,6 +91,8 @@ function TabPanel(props) {
 const MedicalHistoryPage = () => {
   const [records, setRecords] = useState([]);
   const [documents, setDocuments] = useState([]); // New state for raw documents
+  const [medicalMap, setMedicalMap] = useState({});
+  const [dentalMap, setDentalMap] = useState({});
   const [filteredRecords, setFilteredRecords] = useState([]);
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -112,6 +115,22 @@ const MedicalHistoryPage = () => {
       alert('Failed to download document. Please try again.');
     }
   };
+
+  const handleDeleteDocument = async (docId) => {
+    if (!window.confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await patientDocumentService.deleteDocument(docId);
+      // Refresh data
+      fetchRecords();
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      alert('Failed to delete document. Please try again.');
+    }
+  };
+
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -167,8 +186,8 @@ const MedicalHistoryPage = () => {
       const docData = getResults(docResp);
 
       // Create maps for quick lookup to group attachments
-      const medicalMap = {};
-      const dentalMap = {};
+      const medMap = {};
+      const dentMap = {};
 
       const medical = medData.map(r => {
         const record = {
@@ -177,7 +196,7 @@ const MedicalHistoryPage = () => {
           composite_id: `MEDICAL-${r.id}`,
           attachments: []
         };
-        medicalMap[r.id] = record;
+        medMap[r.id] = record;
         return record;
       });
 
@@ -191,7 +210,7 @@ const MedicalHistoryPage = () => {
           procedure_performed: r.procedure_performed_display || r.procedure_performed,
           attachments: []
         };
-        dentalMap[r.id] = record;
+        dentMap[r.id] = record;
         return record;
       });
 
@@ -209,16 +228,18 @@ const MedicalHistoryPage = () => {
         };
 
         // Group with records if linked
-        if (d.medical_record && medicalMap[d.medical_record]) {
-          medicalMap[d.medical_record].attachments.push(attachment);
-        } else if (d.dental_record && dentalMap[d.dental_record]) {
-          dentalMap[d.dental_record].attachments.push(attachment);
+        if (d.medical_record && medMap[d.medical_record]) {
+          medMap[d.medical_record].attachments.push(attachment);
+        } else if (d.dental_record && dentMap[d.dental_record]) {
+          dentMap[d.dental_record].attachments.push(attachment);
         } else {
           standaloneAttachments.push(attachment);
         }
       });
 
-      let combined = [...medical, ...dental, ...standaloneAttachments];
+      // Unified history only shows actual records (medical/dental)
+      // Attachments are shown within their respective record cards
+      let combined = [...medical, ...dental];
       
       // If user is a student/teacher, only show their records
       if (isStudent && user?.id) {
@@ -228,9 +249,25 @@ const MedicalHistoryPage = () => {
         });
       }
       
-      combined = combined.sort((a, b) => new Date(b.visit_date) - new Date(a.visit_date));
+      // Sort by visit_date (primary) and created_at (secondary) to ensure consistent chronological order
+      combined = combined.sort((a, b) => {
+        const dateA = new Date(a.visit_date);
+        const dateB = new Date(b.visit_date);
+        
+        if (dateA.getTime() !== dateB.getTime()) {
+          return dateB - dateA; // Newest first
+        }
+        
+        // Tie-breaker: creation time
+        const createA = new Date(a.created_at);
+        const createB = new Date(b.created_at);
+        return createB - createA;
+      });
+
       setRecords(combined);
       setDocuments(docData);
+      setMedicalMap(medMap);
+      setDentalMap(dentMap);
     } catch (err) {
       setError('Failed to load medical records.');
       console.error('Error fetching records:', err);
@@ -1489,6 +1526,7 @@ const MedicalHistoryPage = () => {
                     <TableCell sx={{ fontWeight: 'bold' }}>Date</TableCell>
                     <TableCell sx={{ fontWeight: 'bold' }}>Patient</TableCell>
                     <TableCell sx={{ fontWeight: 'bold' }}>Type</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Linked Record</TableCell>
                     <TableCell sx={{ fontWeight: 'bold' }}>Description</TableCell>
                     <TableCell sx={{ fontWeight: 'bold' }} align="right">Actions</TableCell>
                   </TableRow>
@@ -1527,6 +1565,29 @@ const MedicalHistoryPage = () => {
                           <Chip label={doc.document_type_display} size="small" variant="outlined" color="primary" />
                         </TableCell>
                         <TableCell>
+                          {doc.medical_record && medicalMap[doc.medical_record] ? (
+                            <Box>
+                              <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block' }}>
+                                Medical Record
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {medicalMap[doc.medical_record].diagnosis || 'No Diagnosis'} ({dayjs(medicalMap[doc.medical_record].visit_date).format('MMM DD, YYYY')})
+                              </Typography>
+                            </Box>
+                          ) : doc.dental_record && dentalMap[doc.dental_record] ? (
+                            <Box>
+                              <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block' }}>
+                                Dental Record
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {dentalMap[doc.dental_record].diagnosis || 'No Diagnosis'} ({dayjs(dentalMap[doc.dental_record].visit_date).format('MMM DD, YYYY')})
+                              </Typography>
+                            </Box>
+                          ) : (
+                            <Typography variant="caption" color="text.secondary">Standalone File</Typography>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           <Typography variant="body2" noWrap sx={{ maxWidth: 300 }}>
                             {doc.description || 'No description'}
                           </Typography>
@@ -1535,19 +1596,32 @@ const MedicalHistoryPage = () => {
                           </Typography>
                         </TableCell>
                         <TableCell align="right">
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<DownloadIcon />}
-                            onClick={() => handleDownloadDocument(doc)}
-                          >
-                            Download
-                          </Button>                        </TableCell>
+                          <Stack direction="row" spacing={1} justifyContent="flex-end">
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={<DownloadIcon />}
+                              onClick={() => handleDownloadDocument(doc)}
+                            >
+                              Download
+                            </Button>
+                            {isStaffOrMedical && (
+                              <IconButton 
+                                size="small" 
+                                color="error" 
+                                onClick={() => handleDeleteDocument(doc.id)}
+                                title="Delete Document"
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            )}
+                          </Stack>
+                        </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                      <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                         <Typography variant="body2" color="text.secondary">No documents found matching filters.</Typography>
                       </TableCell>
                     </TableRow>
