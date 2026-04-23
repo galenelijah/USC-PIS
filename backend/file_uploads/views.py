@@ -201,13 +201,17 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
                             # Matches anything after /upload/ (including version v123/)
                             path_match = re.search(r'/upload/(?:v\d+/)?(.+)$', file_url)
                             if path_match:
+                                # Extract public_id and handle extension
                                 public_id = path_match.group(1)
-                                # Remove extension for images, keep for raw (PDFs are usually raw)
-                                if is_pdf and public_id.endswith('.pdf'):
-                                    # For raw assets, the public_id includes the extension
-                                    resource_type = 'raw'
-                                else:
-                                    resource_type = 'image'
+                                
+                                # Cloudinary signing quirk: The public_id used for signing 
+                                # usually should NOT include the extension, even for raw files.
+                                # Example: 'patient_documents/abc.pdf' -> public_id is 'patient_documents/abc'
+                                if '.' in public_id:
+                                    public_id = public_id.rsplit('.', 1)[0]
+                                
+                                # PDFs are 'raw' resource type in Cloudinary
+                                resource_type = 'raw' if is_pdf else 'image'
                                 
                                 logger.info(f"Generating signed URL for Cloudinary public_id: {public_id} ({resource_type})")
                                 signed_url = cloudinary.utils.cloudinary_url(
