@@ -7,6 +7,7 @@ from django.http import StreamingHttpResponse, FileResponse
 from django.conf import settings
 import requests
 import re
+import os
 from .models import UploadedFile, PatientDocument
 from .serializers import UploadedFileSerializer, PatientDocumentSerializer
 from .validators import FileSecurityValidator, FileIntegrityChecker, FilenameValidator
@@ -198,11 +199,17 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
                         # We generate a signed URL that expires in 1 hour
                         if 'res.cloudinary.com' in file_url:
                             public_id = None
-                            # Detect resource type from URL if possible
-                            resource_type = 'raw' if is_pdf or '/raw/' in file_url else 'image'
+                            
+                            # Detect resource type strictly from the URL path.
+                            # Cloudinary URLs follow: /<resource_type>/<type>/v<version>/<public_id>
+                            if '/raw/' in file_url:
+                                resource_type = 'raw'
+                            elif '/video/' in file_url:
+                                resource_type = 'video'
+                            else:
+                                resource_type = 'image'
                             
                             # Matches anything after /upload/ (including version v123/)
-                            # We need to strip the version (v12345678/) and the extension
                             path_match = re.search(r'/upload/(?:v\d+/)?(.+)$', file_url)
                             if path_match:
                                 # Extract public_id from the path
