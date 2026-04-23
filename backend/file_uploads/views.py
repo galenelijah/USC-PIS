@@ -219,25 +219,28 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
                             if path_match:
                                 # Extract public_id from the path
                                 public_id = path_match.group(1)
+                                fmt = None
                                 
                                 # Cloudinary signing quirk:
-                                # - For true images (JPG/PNG): Strip the extension
-                                # - For PDFs/Docs: MUST HAVE the extension for the signature to match
-                                if is_pdf:
-                                    # Ensure extension is present
-                                    if not public_id.lower().endswith('.pdf'):
-                                        public_id = f"{public_id}.pdf"
-                                elif resource_type == 'image':
-                                    # Strip extension for standard images
+                                # - For RAW: MUST HAVE the extension in the ID.
+                                # - For IMAGE: MUST NOT have the extension in the ID, but pass it as 'format'.
+                                if resource_type == 'image':
                                     if '.' in public_id:
-                                        public_id = public_id.rsplit('.', 1)[0]
+                                        public_id, fmt = public_id.rsplit('.', 1)
+                                    elif is_pdf:
+                                        fmt = 'pdf'
+                                else:
+                                    # Raw resource - ensure extension is part of ID
+                                    if is_pdf and not public_id.lower().endswith('.pdf'):
+                                        public_id = f"{public_id}.pdf"
                                 
-                                logger.info(f"Generating signed URL. ID: {public_id}, Type: {resource_type}, Version: {version}")
+                                logger.info(f"Generating signed URL. ID: {public_id}, Type: {resource_type}, Format: {fmt}, Version: {version}")
                                 signed_url = cloudinary.utils.cloudinary_url(
                                     public_id, 
                                     sign_url=True, 
                                     resource_type=resource_type,
                                     version=version,
+                                    format=fmt,
                                     secure=True
                                 )[0]
                                 logger.info(f"Using signed URL for retrieval: {signed_url}")
