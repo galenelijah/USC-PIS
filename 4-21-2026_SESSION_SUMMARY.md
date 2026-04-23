@@ -23,7 +23,7 @@ Restore and enhance the **Email Administration** system, resolve critical fronte
 ### 3. **Staff Access System**
 - **New Backend Action**: Implemented `staff_access` in the `NotificationPreferenceViewSet` to proactively identify and manage all non-student users.
 - **Granular Toggles**: Enabled real-time toggling of **In-App**, **Email**, and **Desktop** notifications per staff member.
-- **Smart Filtering**: Refined logic to ensure students are strictly excluded from staff management lists while including all professional roles (Admins, Doctors, Nurses, Teachers).
+- **Smart Filtering**: Refined logic to ensure students are strictly excluded from staff management lists while including all professional roles (Admins, Doctors, Nurses, Facultys).
 
 ### 4. **System Health Diagnostics**
 - **7-Point Infrastructure Audit**: Enhanced the health checker to monitor:

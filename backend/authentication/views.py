@@ -698,7 +698,7 @@ class CompleteProfileSetupView(APIView):
                 # Address is required (either permanent or present)
                 if not data.get('address_permanent') and not data.get('address_present'):
                     validation_errors.append('Either permanent or present address is required')
-            elif user.role == User.Role.TEACHER:
+            elif user.role == User.Role.FACULTY:
                 required_fields.extend(['birthday', 'department'])
                 if not data.get('address_permanent') and not data.get('address_present'):
                     validation_errors.append('Either permanent or present address is required')
@@ -767,7 +767,7 @@ class CompleteProfileSetupView(APIView):
                     logger.info(f"User profile updated for {user.email}")
                     
                     # Handle student/teacher patient profile creation (simplified)
-                    if user.role in [User.Role.STUDENT, User.Role.TEACHER]:
+                    if user.role in [User.Role.STUDENT, User.Role.FACULTY]:
                         patient_data = _prepare_patient_data(user, user_serializer.validated_data, request.data)
                         
                         if patient_data:

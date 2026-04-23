@@ -25,7 +25,7 @@ The training program follows a **Role-Based Competency Model**, ensuring each us
     *   **Reporting:** Navigating to `/reports` to generate daily visit logs or program-specific summaries.
     *   **Campaigns:** Managing health posters and PubMats via the `/campaigns` module.
 
-### 2.3 For End-Users (Students & Teachers)
+### 2.3 For End-Users (Students & Facultys)
 *   **Key Path:** `/verify-email` $\rightarrow$ `/profile-setup` $\rightarrow$ `/home`.
 *   **Core Tasks:** 
     *   Completing the mandatory Health Checklist (Medical History).

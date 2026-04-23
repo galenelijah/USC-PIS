@@ -107,7 +107,7 @@ const UserManagement = () => {
     { value: 'DENTIST', label: 'Dentist', icon: MedicalServices, color: 'warning' },
     { value: 'NURSE', label: 'Nurse', icon: HealthAndSafety, color: 'secondary' },
     { value: 'STAFF', label: 'Staff', icon: Work, color: 'info' },
-    { value: 'TEACHER', label: 'Teacher', icon: HistoryEdu, color: 'primary' },
+    { value: 'FACULTY', label: 'Faculty', icon: HistoryEdu, color: 'primary' },
     { value: 'STUDENT', label: 'Student', icon: School, color: 'success' }
   ];
 

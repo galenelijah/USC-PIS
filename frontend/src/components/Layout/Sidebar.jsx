@@ -94,10 +94,10 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
     { text: 'Patient Medical Dashboard', icon: <MedicalInformationIcon />, path: '/patient-dashboard' },
     { text: 'Health Insights & History', icon: <InsightsIcon />, path: '/health-insights', description: 'Visual health timeline, trends, and chronological history of all medical events' },
     {
-      text: ['STUDENT', 'TEACHER'].includes(user?.role) ? 'My Health Records' : 'Medical Records (Manage)',
+      text: ['STUDENT', 'FACULTY'].includes(user?.role) ? 'My Health Records' : 'Medical Records (Manage)',
       icon: <AssignmentIcon />,
       path: '/health-records',
-      description: ['STUDENT', 'TEACHER'].includes(user?.role)
+      description: ['STUDENT', 'FACULTY'].includes(user?.role)
         ? 'Detailed visit logs, clinic records, and specific medical documents'
         : 'Create and manage specific medical visit records and documentation'
     },

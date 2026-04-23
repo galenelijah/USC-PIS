@@ -1,10 +1,10 @@
 # System Status Report - March 18, 2026
 
 ## Executive Summary
-The USC-PIS system has achieved a major milestone in professional reliability. The registration system is now fully inclusive of both Students and Teachers, with a streamlined onboarding process for each. Most significantly, the email infrastructure has been modernized with the Google Gmail API, ensuring that all system notifications (Welcome, Password Reset, Certificates) are delivered reliably and securely, even in restricted institutional networks.
+The USC-PIS system has achieved a major milestone in professional reliability. The registration system is now fully inclusive of both Students and Facultys, with a streamlined onboarding process for each. Most significantly, the email infrastructure has been modernized with the Google Gmail API, ensuring that all system notifications (Welcome, Password Reset, Certificates) are delivered reliably and securely, even in restricted institutional networks.
 
 ## System Health
-*   **Frontend:** Stable. Registration UI fixed; Profile Setup now dynamically adapts to the "Teacher" role.
+*   **Frontend:** Stable. Registration UI fixed; Profile Setup now dynamically adapts to the "Faculty" role.
 *   **Backend:** Stable. Switched to `django-gmailapi-backend` for superior email handling.
 *   **Email System:** ✅ **Modernized (OAuth 2.0)**. Successfully bypassed SMTP limitations.
 *   **Database:** Stable. No schema changes required for this update.
@@ -16,9 +16,9 @@ The USC-PIS system has achieved a major milestone in professional reliability. T
 *   **Status:** ✅ Resolved
 *   **Details:** Fixed a bug where students were blocked from registering because the "role" field was hidden but required. The system now correctly auto-assigns the "Student" role without requiring user input or failing validation.
 
-### 2. Teacher Profile Completion
+### 2. Faculty Profile Completion
 *   **Status:** ✅ Optimized
-*   **Details:** Teachers now have a dedicated onboarding path. They provide their Department and Medical History but skip irrelevant student academic fields. This ensures data integrity for the clinic without frustrating faculty users.
+*   **Details:** Facultys now have a dedicated onboarding path. They provide their Department and Medical History but skip irrelevant student academic fields. This ensures data integrity for the clinic without frustrating faculty users.
 
 ### 3. Professional Email Infrastructure
 *   **Status:** ✅ Operational (Production)
@@ -31,7 +31,7 @@ The USC-PIS system has achieved a major milestone in professional reliability. T
 ## Current Priorities & Roadmap
 
 ### High Priority (Thesis Ready)
-1.  **End-to-End Testing:** Final walkthrough of the "Teacher" lifecycle from registration to Medical Certificate request.
+1.  **End-to-End Testing:** Final walkthrough of the "Faculty" lifecycle from registration to Medical Certificate request.
 2.  **Environment Audit:** Ensure all Heroku Config Vars match the latest Gmail API credentials.
 
 ### Medium Priority

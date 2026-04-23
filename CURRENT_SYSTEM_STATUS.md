@@ -10,7 +10,7 @@ The USC-PIS has successfully completed its **Patient Records Stabilization & Doc
 ### 1. Patient Document Management (New - April 2026)
 *   **Status:** Operational
 *   **Features:** Secure upload of external files (X-Rays, Lab Results, Prescriptions) by clinic staff.
-*   **Access Control:** Only non-student roles can upload; Patients (Students/Teachers) can view their own documents.
+*   **Access Control:** Only non-student roles can upload; Patients (Students/Facultys) can view their own documents.
 
 ### 2. Medical & Dental Consultations
 *   **Status:** Stable & Enhanced
@@ -24,7 +24,7 @@ The USC-PIS has successfully completed its **Patient Records Stabilization & Doc
 
 ### 4. Authentication & Roles
 *   **Status:** Stable & Hardened
-*   **Roles Supported:** Admin, Doctor, Nurse, Staff, Dentist, Student, Teacher.
+*   **Roles Supported:** Admin, Doctor, Nurse, Staff, Dentist, Student, Faculty.
 
 ### 5. Communication & Notifications
 *   **Status:** Operational & Standardized

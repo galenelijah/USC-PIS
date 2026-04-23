@@ -191,7 +191,7 @@ A real-time history of all individual communications sent by the system.
 
 ### **4. Staff Access**
 Dedicated management for non-student notification channels.
-- **Role Filtering**: Automatically lists all Admins, Doctors, Nurses, and Teachers (excluding students).
+- **Role Filtering**: Automatically lists all Admins, Doctors, Nurses, and Facultys (excluding students).
 - **Channel Toggles**: Instantly enable or disable **In-App Notifications**, **Email Notifications**, and **Desktop Alerts** per staff member.
 - **Access Status**: Clear indicator showing if a staff member is currently **RECEIVING** or **BLOCKED** from communications.
 
@@ -282,7 +282,7 @@ The Patients page now features a powerful filtering system to help staff manage 
 
 1. **Accessing Filters**: Click the **"Filters"** button next to the search bar to toggle the advanced filter panel.
 2. **Filtering Options**:
-   - **Role**: Filter by Student or Teacher roles.
+   - **Role**: Filter by Student or Faculty roles.
    - **Program**: Select a specific academic program from the dropdown.
    - **Year Level**: Filter students by their current year level (1st–4th Year).
    - **Academic Year (AY)**: Filter by the student's registration period (e.g., AY 2025-2026).
@@ -294,7 +294,7 @@ The Patients page now features a powerful filtering system to help staff manage 
 
 The system automatically manages who appears in the "Patients" list to ensure administrative clarity.
 
-*   **Role-Based Filtering**: Only users with **Student** or **Teacher** roles appear in the patient database.
+*   **Role-Based Filtering**: Only users with **Student** or **Faculty** roles appear in the patient database.
 *   **Automatic Updates**: If an administrator changes a user's role from Student to Admin or Staff, that user is automatically removed from the Patients list and dashboard statistics.
 *   **Unified Counts**: Patient totals are synchronized across the Dashboard, Patient List, and User Management pages for accurate reporting.
 
@@ -307,8 +307,8 @@ The system automatically manages who appears in the "Patients" list to ensure ad
 *   **Medical Certificates**: Request and track certificates for school/work.
 *   **Health Campaigns**: View interactive health information and clinic updates.
 
-### Teacher (Faculty)
-*   **Patient Status**: Teachers use the clinic's services as patients, similar to Students.
+### Faculty (Faculty)
+*   **Patient Status**: Facultys use the clinic's services as patients, similar to Students.
 *   **Profile Setup**: Profile completion requires "Department" information instead of "Course/Year".
 *   **Records Access**: View personal medical and dental records just like Students.
 

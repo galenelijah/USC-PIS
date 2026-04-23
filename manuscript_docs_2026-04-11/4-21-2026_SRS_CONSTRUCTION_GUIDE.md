@@ -29,7 +29,7 @@ The USC-PIS is a secure, three-tier healthcare application designed to digitize 
 | **Admin** | System Maintainer | Manage backups, users, and global infrastructure health. |
 | **Doctor / Dentist** | Senior Medical | Clinical diagnosis, procedure logging, and certificate approval. |
 | **Nurse / Staff** | Clinical Support | Patient registration, vitals tracking, and email administration. |
-| **Teacher / Student** | Patient (End-user) | Profile management, record viewing, and campaign engagement. |
+| **Faculty / Student** | Patient (End-user) | Profile management, record viewing, and campaign engagement. |
 
 ---
 

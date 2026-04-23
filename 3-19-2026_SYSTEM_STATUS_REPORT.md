@@ -16,7 +16,7 @@ The system's password validation logic has been refined to ensure full consisten
 
 ### 2. Dynamic Patient List Filtering
 *   **Status:** ✅ Resolved
-*   **Details:** Fixed a logic error where users whose roles were changed from Student to Admin/Staff still appeared in the Patients list. The `/patients` list now dynamically filters by role, ensuring only Student and Teacher roles are displayed as active patients. Patient totals are now synchronized and consistent across the Dashboard, Patient List, and User Management pages.
+*   **Details:** Fixed a logic error where users whose roles were changed from Student to Admin/Staff still appeared in the Patients list. The `/patients` list now dynamically filters by role, ensuring only Student and Faculty roles are displayed as active patients. Patient totals are now synchronized and consistent across the Dashboard, Patient List, and User Management pages.
 
 ### 3. Notification Management & Storage Efficiency
 *   **Status:** ✅ Enhanced

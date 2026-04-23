@@ -11,7 +11,7 @@
 The central identity model extending Django's `AbstractUser`.
 *   **Authentication**: `email` (Primary Identifier/Username), `password` (Hashed).
 *   **Role Management**:
-    *   `role`: Current active role (ADMIN, DOCTOR, DENTIST, NURSE, STAFF, STUDENT, TEACHER).
+    *   `role`: Current active role (ADMIN, DOCTOR, DENTIST, NURSE, STAFF, STUDENT, FACULTY).
     *   `requested_role`: Stores a pending professional role request awaiting Admin approval.
 *   **Status Flags**: `is_verified` (MFA status), `completeSetup` (Onboarding status), `is_active`, `is_staff`, `is_superuser`.
 *   **Profile Metadata**: `id_number`, `course`, `year_level`, `department`, `birthday`, `sex`, `phone`.

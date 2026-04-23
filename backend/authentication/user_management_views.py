@@ -139,8 +139,8 @@ def get_all_users(request):
                 'NURSE': User.objects.filter(role=User.Role.NURSE).count(),
                 'STAFF': User.objects.filter(role=User.Role.STAFF).count(),
                 'STUDENT': User.objects.filter(role=User.Role.STUDENT).count(),
-                'TEACHER': User.objects.filter(role=User.Role.TEACHER).count(),
-                'TOTAL_PATIENTS': User.objects.filter(role__in=[User.Role.STUDENT, User.Role.TEACHER]).count(),
+                'FACULTY': User.objects.filter(role=User.Role.FACULTY).count(),
+                'TOTAL_PATIENTS': User.objects.filter(role__in=[User.Role.STUDENT, User.Role.FACULTY]).count(),
                 'TOTAL_STAFF': User.objects.filter(role__in=[
                     User.Role.ADMIN, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE, User.Role.STAFF
                 ]).count(),
@@ -180,14 +180,14 @@ def request_role(request):
                 'message': f'Request for {new_role} role submitted to administrators.',
                 'requested_role': new_role
             })
-        elif new_role == User.Role.TEACHER:
+        elif new_role == User.Role.FACULTY:
             # Teachers can self-select (patient role)
-            request.user.role = User.Role.TEACHER
+            request.user.role = User.Role.FACULTY
             request.user.requested_role = None
             request.user.save(update_fields=['role', 'requested_role'])
             return Response({
-                'message': 'Role updated to Teacher successfully.',
-                'role': 'TEACHER'
+                'message': 'Role updated to Faculty successfully.',
+                'role': 'FACULTY'
             })
         else:
             return Response({'error': 'Self-selection not allowed for this role'}, status=status.HTTP_403_FORBIDDEN)
@@ -254,7 +254,7 @@ def update_user_role(request, user_id):
         elif new_role in [User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE, User.Role.STAFF]:
             user.is_staff = True
             user.is_superuser = False
-        else:  # STUDENT or TEACHER
+        else:  # STUDENT or FACULTY
             user.is_staff = False
             user.is_superuser = False
         

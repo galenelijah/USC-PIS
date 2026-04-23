@@ -151,7 +151,7 @@ This entry documents enhancements to the Medical Certificate system and Advanced
 
 ## Rationale
 - **Medical Certificates**: The clinic requested a more professional and administrative-focused medical certificate for students. Moving from "Diagnosis" to "Purpose/Requirement" and automating the course name retrieval reduces manual effort for medical staff.
-- **Patient Filtering**: Staff needed a way to separate students from teachers and filter them by their academic registration window (AY and Semester), fulfilling a key requirement for student data management.
+- **Patient Filtering**: Staff needed a way to separate students from facultys and filter them by their academic registration window (AY and Semester), fulfilling a key requirement for student data management.
 
 ## Verify Quickly
 - **Medical Certificates**: Generate a certificate using the "USC Clinic Template" and verify it renders as a single-page landscape PDF with the student's full course name.

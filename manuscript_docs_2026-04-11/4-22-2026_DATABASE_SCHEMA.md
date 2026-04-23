@@ -9,7 +9,7 @@
 
 ### 1.1 CustomUser
 Extends Django's `AbstractUser`. Acts as the central identity for the application.
-*   **Role Constants**: `ADMIN`, `DOCTOR`, `DENTIST`, `NURSE`, `STAFF`, `TEACHER`, `STUDENT`.
+*   **Role Constants**: `ADMIN`, `DOCTOR`, `DENTIST`, `NURSE`, `STAFF`, `FACULTY`, `STUDENT`.
 *   **Fields**: `email` (PK), `role`, `requested_role`, `is_verified` (MFA Status), `completeSetup`.
 
 ### 1.2 Access Control

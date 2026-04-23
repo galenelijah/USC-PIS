@@ -1534,7 +1534,7 @@ const EmailAdministration = () => {
 
             <Typography variant="subtitle2" sx={{ mt: 3, mb: 1 }}>Target Roles</Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {['ADMIN', 'DOCTOR', 'DENTIST', 'NURSE', 'STAFF', 'TEACHER', 'STUDENT'].map(role => (
+              {['ADMIN', 'DOCTOR', 'DENTIST', 'NURSE', 'STAFF', 'FACULTY', 'STUDENT'].map(role => (
                 <Chip
                   key={role}
                   label={role}

@@ -610,7 +610,7 @@ class ReportDataService:
     @staticmethod
     def _get_role_distribution(patients):
         """Helper to aggregate patients by role"""
-        roles = {'STUDENT': 0, 'STAFF': 0, 'TEACHER': 0, 'OTHER': 0}
+        roles = {'STUDENT': 0, 'STAFF': 0, 'FACULTY': 0, 'OTHER': 0}
         for patient in patients:
             if patient.user:
                 role = patient.user.role

@@ -135,7 +135,7 @@ const getStepsForRole = (role) => {
         { label: 'Academic Information', icon: School, color: '#f093fb' },
         { label: 'Medical Information', icon: LocalHospital, color: '#f5576c' }
       ];
-    case 'TEACHER':
+    case 'FACULTY':
       return [
         ...baseSteps,
         { label: 'Department Information', icon: Badge, color: '#f093fb' },
@@ -221,7 +221,7 @@ const createValidationSchema = (role) => {
         contact_mother_name: commonValidation.optionalText,
       });
 
-    case 'TEACHER':
+    case 'FACULTY':
       return Yup.object().shape({
         ...baseValidation,
         nationality: commonValidation.requiredText('Nationality'),
@@ -265,7 +265,7 @@ const getStepFieldsForRole = (role) => {
         ['id_number', 'course', 'year_level', 'school', 'weight', 'height'],
         [] // Medical information step
       ];
-    case 'TEACHER':
+    case 'FACULTY':
       return [
         ['first_name', 'last_name', 'middle_name', 'sex', 'civil_status', 'birthday', 'nationality', 'religion'],
         ['address_permanent', 'address_present', 'phone', 'email', 'contact_emergency_name', 'contact_emergency_number'],
@@ -298,7 +298,7 @@ const ProfileSetup = () => {
   
   // User role checks
   const userRole = currentUser?.role;
-  const isStudent = currentUser && ['STUDENT', 'TEACHER'].includes(currentUser.role);
+  const isStudent = currentUser && ['STUDENT', 'FACULTY'].includes(currentUser.role);
   const isStaffOrMedical = currentUser && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(currentUser.role);
   
   // Get role-based configuration
@@ -345,7 +345,7 @@ const ProfileSetup = () => {
           contact_father_name: '',
           contact_mother_name: '',
         };
-      case 'TEACHER':
+      case 'FACULTY':
         return {
           ...baseDefaults,
           nationality: '',
@@ -1131,7 +1131,7 @@ const ProfileSetup = () => {
               </Card>
             </Box>
           );
-        } else if (userRole === 'TEACHER') {
+        } else if (userRole === 'FACULTY') {
           return renderAdministrativeInfo(stepKey);
         }
         return null;

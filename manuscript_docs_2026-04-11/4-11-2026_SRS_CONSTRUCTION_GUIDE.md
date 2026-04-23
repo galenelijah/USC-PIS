@@ -30,7 +30,7 @@ The USC-PIS is a web-based, three-tier application designed to digitize health r
 | **Doctor / Dentist** | Medical Professional | Create/edit records, diagnose, assess fitness, approve certificates. |
 | **Nurse / Staff** | Clinic Admin | Register patients, record vitals, generate reports, manage campaigns. |
 | **Student** | Patient (End-user) | Update profile, view own records, request certificates, give feedback. |
-| **Teacher** | Patient (Staff-user) | Similar to Student but with Department-specific profile fields. |
+| **Faculty** | Patient (Staff-user) | Similar to Student but with Department-specific profile fields. |
 
 ### 2.3 Operating Environment
 *   **Client:** Modern web browsers (Chrome, Firefox, Safari, Edge).
@@ -53,7 +53,7 @@ The USC-PIS is a web-based, three-tier application designed to digitize health r
 ### 3.3 Medical & Dental Records
 *   **REQ-6:** Medical Records: Must capture diagnosis, treatment, vital signs, and clinical notes.
 *   **REQ-7:** Dental Records: Must support visual priority indicators (Urgent to Low) and FDI tooth notation (11-48).
-*   **REQ-8:** RBAC Enforcement: Students/Teachers can ONLY view their own records; Medical staff can view/edit all.
+*   **REQ-8:** RBAC Enforcement: Students/Facultys can ONLY view their own records; Medical staff can view/edit all.
 
 ### 3.4 Medical Certificates (ACA-HSD-04F)
 *   **REQ-9:** Template-based Generation: Certificates MUST use the official USC landscape layout.

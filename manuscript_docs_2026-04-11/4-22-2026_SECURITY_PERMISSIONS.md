@@ -16,7 +16,7 @@ The system enforces strict access control through a standardized role hierarchy.
 | **DOCTOR / DENTIST** | Senior Medical | Full clinical management and certificate approval authority. |
 | **NURSE** | Clinical Support | Patient vitals, triage records, and clinical support actions. |
 | **STAFF** | Administrative | Patient onboarding, general reporting, and document uploads. |
-| **TEACHER / STUDENT** | Patient (End-user) | Read-only access to personal history and uploaded documents. |
+| **FACULTY / STUDENT** | Patient (End-user) | Read-only access to personal history and uploaded documents. |
 
 ### 1.2 Administrative Gating
 *   **Default Deny**: New registrations default to `STUDENT` status.
@@ -47,7 +47,7 @@ The **7-Point Health Audit** serves as a real-time security monitor:
 
 ### 3.2 Patient Document Security (New)
 *   **Upload Restriction**: Only users with roles `ADMIN`, `STAFF`, `DOCTOR`, `DENTIST`, or `NURSE` can upload files to a patient profile.
-*   **Read Isolation**: Patients (Students/Teachers) can only see documents where the `patient` field matches their own profile.
+*   **Read Isolation**: Patients (Students/Facultys) can only see documents where the `patient` field matches their own profile.
 *   **Integrity Enforcement**: Documents are linked to both the `patient` and the `uploaded_by` (Staff) for full accountability.
 
 ---

@@ -1,19 +1,19 @@
 # Session Summary - February 15, 2026
 
 ## Overview
-This session focused on three major areas: implementing a new "Teacher" role with patient-like privileges, overhauling the Medical Records UI/UX for better data integrity and usability, and fixing critical workflows in the Medical Certificate system.
+This session focused on three major areas: implementing a new "Faculty" role with patient-like privileges, overhauling the Medical Records UI/UX for better data integrity and usability, and fixing critical workflows in the Medical Certificate system.
 
 ## Key Accomplishments
 
-### 1. Teacher Role Implementation
-**Objective:** Enable school teachers/faculty to use clinic services similar to students, while resolving the email format conflict with staff.
+### 1. Faculty Role Implementation
+**Objective:** Enable school facultys/faculty to use clinic services similar to students, while resolving the email format conflict with staff.
 
-*   **Backend Models:** Added `TEACHER` to `User.Role` choices in `backend/authentication/models.py`.
+*   **Backend Models:** Added `FACULTY` to `User.Role` choices in `backend/authentication/models.py`.
 *   **Conditional Registration:** Modified the registration flow.
     *   Emails with numbers (e.g., `21100727@usc.edu.ph`) are still auto-assigned as `STUDENT`.
-    *   Text-only emails (e.g., `elfabian@usc.edu.ph`) now trigger a "Choose Your Role" UI, allowing selection between `TEACHER` (Faculty) or `STAFF` (Medical/Clinic Personnel).
-*   **Permissions & Access:** Updated `App.jsx`, Sidebar, Dashboard, and various components to grant `TEACHER` role the same read-only access to their own records as `STUDENT`.
-*   **Profile Setup:** Updated `ProfileSetup.jsx` and backend views to ensure Teachers create a `Patient` profile upon registration completion, just like students.
+    *   Text-only emails (e.g., `elfabian@usc.edu.ph`) now trigger a "Choose Your Role" UI, allowing selection between `FACULTY` (Faculty) or `STAFF` (Medical/Clinic Personnel).
+*   **Permissions & Access:** Updated `App.jsx`, Sidebar, Dashboard, and various components to grant `FACULTY` role the same read-only access to their own records as `STUDENT`.
+*   **Profile Setup:** Updated `ProfileSetup.jsx` and backend views to ensure Facultys create a `Patient` profile upon registration completion, just like students.
 
 ### 2. Medical Records System Overhaul
 **Objective:** Fix UI/UX issues, date formatting errors, and unify the record management interface.
@@ -40,6 +40,6 @@ This session focused on three major areas: implementing a new "Teacher" role wit
 *   Fixed date formatting inconsistencies between frontend inputs and backend validation.
 
 ## Next Steps
-*   Monitor Teacher role adoption and ensure profile setup flow remains smooth.
+*   Monitor Faculty role adoption and ensure profile setup flow remains smooth.
 *   Verify that the seeded template renders correctly in PDF generation (HTML/CSS check).
-*   Consider adding specific dashboard widgets for Teachers if their needs diverge from Students in the future.
+*   Consider adding specific dashboard widgets for Facultys if their needs diverge from Students in the future.

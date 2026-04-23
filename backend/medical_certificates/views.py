@@ -59,7 +59,7 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
         queryset = super().get_queryset()
         
         # If student, only show their own certificates
-        if hasattr(user, 'role') and user.role in ['STUDENT', 'TEACHER']:
+        if hasattr(user, 'role') and user.role in ['STUDENT', 'FACULTY']:
             # Find the patient profile linked to the student user
             try:
                 # Some models might use 'patient' or 'patient_profile'
@@ -382,7 +382,7 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
         Students and Teachers cannot delete medical certificates.
         """
         user = request.user
-        if hasattr(user, 'role') and user.role in ['STUDENT', 'TEACHER']:
+        if hasattr(user, 'role') and user.role in ['STUDENT', 'FACULTY']:
             return Response(
                 {'detail': 'You do not have permission to delete medical certificates.'},
                 status=status.HTTP_403_FORBIDDEN

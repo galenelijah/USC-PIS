@@ -12,7 +12,7 @@
 *   **Bypass Logic**: If the email exists in the `SafeEmail` list, the MFA is skipped (optional) and the pre-authorized role is assigned immediately.
 
 ### 1.2 Role-Based Selection & Gating
-*   **Patient Roles**: Students and Teachers can self-complete their profiles and access clinical services immediately.
+*   **Patient Roles**: Students and Facultys can self-complete their profiles and access clinical services immediately.
 *   **Administrative Gate**: Users requesting `STAFF`, `DOCTOR`, or `DENTIST` roles are placed in a `PENDING` state. Admins are notified and must manually activate the account and assign the correct clinical level.
 
 ---

@@ -18,8 +18,8 @@ class MedicalRecordPermission(permissions.BasePermission):
         if request.user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.NURSE, User.Role.DENTIST]:
             return True
 
-        # Patients (Students and Teachers) can only perform safe methods (GET, HEAD, OPTIONS)
-        if request.user.role in [User.Role.STUDENT, User.Role.TEACHER]:
+        # Patients (Students and Faculty) can only perform safe methods (GET, HEAD, OPTIONS)
+        if request.user.role in [User.Role.STUDENT, User.Role.FACULTY]:
             return request.method in permissions.SAFE_METHODS
 
         # All other roles have no access

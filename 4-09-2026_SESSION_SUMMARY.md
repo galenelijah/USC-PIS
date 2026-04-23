@@ -17,7 +17,7 @@ Today's session focused on finalizing the **USC Clinic Medical Certificate Templ
 ### 2. Advanced Patient Filtering
 *   **New Filter Bar:** Added a collapsible advanced filter section to the `/patients` page.
 *   **Comprehensive Criteria:** Healthcare staff can now filter patients by:
-    *   **Role:** Separate Students from Teachers/Staff.
+    *   **Role:** Separate Students from Facultys/Staff.
     *   **Academic Program:** Filter by specific USC courses.
     *   **Year Level:** Filter by 1st, 2nd, 3rd, or 4th year status.
     *   **Registration Period:** Filter by **Academic Year** (e.g., 2025-2026) and **Semester** (1st, 2nd, or Short Term).

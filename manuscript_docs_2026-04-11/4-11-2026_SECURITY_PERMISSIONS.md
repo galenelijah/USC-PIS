@@ -13,7 +13,7 @@ The system defines 7 distinct roles managed in `authentication/models.py` (`User
 | **ADMIN** | Full Access | All Menus + User Management + Database Monitor |
 | **STAFF / DOCTOR / DENTIST** | Medical Management | Patients, Records, Certificates, Reports, Campaigns |
 | **NURSE** | Clinical Support | Patients, Vital Signs, Record Entry, Inventory |
-| **STUDENT / TEACHER** | Patient Access | Self-Records, Certificate Requests, Campaigns |
+| **STUDENT / FACULTY** | Patient Access | Self-Records, Certificate Requests, Campaigns |
 
 ### 1.2 View-Level Enforcement
 Permissions are enforced at the API level in `backend/patients/views.py` using role checks within `get_queryset` and `create/update` methods.

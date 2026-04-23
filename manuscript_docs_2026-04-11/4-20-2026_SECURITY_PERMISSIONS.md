@@ -17,7 +17,7 @@ The system utilizes 7 distinct roles to enforce strict data silos.
 | **DENTIST** | Senior Medical | Specialized ISO/FDI dental charting, dental treatment logs, and dental-specific certificate issuance. |
 | **NURSE** | Clinical Support | Patient vitals (BP, Temp, Pulse) capture, medication history updates, and draft record creation. |
 | **STAFF** | Clinical Support | Administrative assistance, patient onboarding, and generating non-sensitive reports. |
-| **TEACHER** | Patient / User | Viewing personal medical history, requesting medical certificates, and receiving health alerts. |
+| **FACULTY** | Patient / User | Viewing personal medical history, requesting medical certificates, and receiving health alerts. |
 | **STUDENT** | Patient / User | Viewing personal medical history, accessing educational campaigns, and receiving clinic updates. |
 
 ### 1.2 Administrative Gating & Privilege Escalation

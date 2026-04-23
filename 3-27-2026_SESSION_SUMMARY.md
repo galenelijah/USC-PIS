@@ -8,7 +8,7 @@ Implement a mandatory email verification system, resolve critical email delivery
 ### Email Verification System
 - **Backend Logic**: Implemented `VerificationCode` model with 15-minute expiry and `SafeEmail` list for automatic bypass.
 - **Middleware Guard**: Developed `EmailVerificationMiddleware` to strictly enforce the `is_verified` state across all sensitive API endpoints.
-- **Dynamic Role Flow**: Implemented a new registration flow where users verify their email *before* choosing specific roles (Teacher/Staff), preventing placeholder data corruption.
+- **Dynamic Role Flow**: Implemented a new registration flow where users verify their email *before* choosing specific roles (Faculty/Staff), preventing placeholder data corruption.
 - **Verification UI**: Created `VerifyEmail.jsx` with a countdown timer, automatic resend logic, and role-selection integration.
 
 ### Infrastructure & Hardening

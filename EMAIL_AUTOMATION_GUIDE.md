@@ -44,7 +44,7 @@ The system runs real-time diagnostics on the following critical components:
 7. **System Speed (Cache)**: Health of the UI speed-optimization layer.
 
 ### **Staff Access Management**
-Admins can now manage communication channels for **all clinic personnel** (Doctors, Nurses, Staff, Teachers):
+Admins can now manage communication channels for **all clinic personnel** (Doctors, Nurses, Staff, Facultys):
 - **Granular Control**: Toggle In-App, Email, and Desktop alerts per individual.
 - **Role-Based Inclusion**: Automatically identifies all professional roles while excluding students.
 - **Real-time Status**: Monitors if a staff member is actively receiving or blocked from system alerts.

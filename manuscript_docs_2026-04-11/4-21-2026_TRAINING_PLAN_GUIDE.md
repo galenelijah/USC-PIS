@@ -14,7 +14,7 @@ The training program is optimized for the final production feature set, focusing
 | :--- | :--- | :--- |
 | **Medical** | Doctors, Dentists, Nurses | Clinical charting, FDI notation, and Medical Certificate (Form ACA-HSD-04F) approval. |
 | **Clinical Ops** | Clinic Staff, Assistants | Patient registration, advanced filtering, and email system administration. |
-| **Patient** | Students, Teachers | Profile completion (4-step wizard) and campaign engagement. |
+| **Patient** | Students, Facultys | Profile completion (4-step wizard) and campaign engagement. |
 | **Systems** | Administrators | 7-Point Health Audits, Role Approval, and Infrastructure Governance. |
 
 ---

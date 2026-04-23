@@ -70,8 +70,8 @@ const App = () => {
     isDoctor: !!user && (user.role === 'DOCTOR' || user.role === 'DENTIST'),
     isNurse: !!user && user.role === 'NURSE',
     isStudent: !!user && user.role === 'STUDENT',
-    isTeacher: !!user && user.role === 'TEACHER',
-    isPatientRole: !!user && ['STUDENT', 'TEACHER'].includes(user.role)
+    isFaculty: !!user && user.role === 'FACULTY',
+    isPatientRole: !!user && ['STUDENT', 'FACULTY'].includes(user.role)
   }), [user]);
 
   const loadPatients = useCallback(async () => {

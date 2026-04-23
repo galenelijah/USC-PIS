@@ -72,7 +72,7 @@ const Login = () => {
       if (!isVerified) {
         navigate('/verify-email');
       } else if (isTextEmail && user.role === 'STUDENT') {
-        // Text emails that are still STUDENT role need to pick TEACHER or STAFF
+        // Text emails that are still STUDENT role need to pick FACULTY or STAFF
         navigate('/role-selection');
       } else if (user && user.completeSetup === false) {
         navigate('/profile-setup');

@@ -9,8 +9,8 @@
 *   **Module:** `backend/patients/`
 *   **Models:** `Patient`, `MedicalRecord`, `DentalRecord`, `Consultation`.
 *   **Data Retrieval:** `PatientViewSet.get_queryset` in `views.py` implements role-based filtering. 
-    *   *Student/Teacher:* Filters by `user=self.request.user`.
-    *   *Medical Staff:* Returns all patients categorized by `Student` or `Teacher` roles.
+    *   *Student/Faculty:* Filters by `user=self.request.user`.
+    *   *Medical Staff:* Returns all patients categorized by `Student` or `Faculty` roles.
 *   **Vitals Tracking:** `MedicalRecord` model explicitly captures `temperature`, `blood_pressure`, `pulse_rate`, and `respiratory_rate`.
 
 ## 2. Notification System

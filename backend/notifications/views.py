@@ -432,7 +432,7 @@ class NotificationPreferenceViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'Not authorized'}, status=status.HTTP_403_FORBIDDEN)
             
         # Get all non-student users
-        staff_roles = [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE, User.Role.TEACHER]
+        staff_roles = [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE, User.Role.FACULTY]
         staff_users = User.objects.filter(role__in=staff_roles)
         
         results = []

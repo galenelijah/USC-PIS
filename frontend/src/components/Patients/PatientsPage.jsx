@@ -158,7 +158,7 @@ const PatientsPage = ({ initialPatients = [] }) => {
                 >
                   <MenuItem value="">All Patients</MenuItem>
                   <MenuItem value="STUDENT">Students</MenuItem>
-                  <MenuItem value="TEACHER">Teachers</MenuItem>
+                  <MenuItem value="FACULTY">Faculty</MenuItem>
                 </Select>
               </FormControl>
             </Grid>

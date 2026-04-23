@@ -104,7 +104,7 @@ const MedicalRecordsPage = () => {
   
   const user = useSelector(state => state.auth.user);
   const isStaffOrMedical = user?.role && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
-  const isStudent = ['STUDENT', 'TEACHER'].includes(user?.role);
+  const isStudent = ['STUDENT', 'FACULTY'].includes(user?.role);
 
   useEffect(() => {
     fetchMedicalRecords();

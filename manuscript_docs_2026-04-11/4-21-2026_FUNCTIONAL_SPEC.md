@@ -12,8 +12,8 @@
 *   **Safe List Integration**: Pre-authorized emails in the `SafeEmail` list receive automatic role assignment upon first login.
 
 ### 1.2 Role-Based Selection & Gating
-*   **Patient Roles**: Students and Teachers can self-complete their profiles and access clinical services immediately.
-*   **Administrative Gate**: Professional roles (`STAFF`, `DOCTOR`, `DENTIST`, `NURSE`, `TEACHER`) require administrative approval. 
+*   **Patient Roles**: Students and Facultys can self-complete their profiles and access clinical services immediately.
+*   **Administrative Gate**: Professional roles (`STAFF`, `DOCTOR`, `DENTIST`, `NURSE`, `FACULTY`) require administrative approval. 
 *   **Permissions Standardization**: Backend logic uses uppercase role constants (e.g., `User.Role.ADMIN`) for all queryset filtering and view access to ensure rigorous security.
 
 ---

@@ -1,7 +1,7 @@
 # System Status Report - February 15, 2026
 
 ## Executive Summary
-The USC-PIS application has undergone significant feature expansion and stabilization. The addition of the "Teacher" role bridges a critical gap in user coverage. The Medical Records module has been modernized with better UX and robust data handling. Critical blocking issues in Medical Certificates and deployment (build failures) have been resolved.
+The USC-PIS application has undergone significant feature expansion and stabilization. The addition of the "Faculty" role bridges a critical gap in user coverage. The Medical Records module has been modernized with better UX and robust data handling. Critical blocking issues in Medical Certificates and deployment (build failures) have been resolved.
 
 ## System Health
 *   **Frontend:** Stable. Build issues resolved. New unified `MedicalRecord` component is performing well.
@@ -11,9 +11,9 @@ The USC-PIS application has undergone significant feature expansion and stabiliz
 
 ## Recent Feature Additions
 
-### 1. Teacher Role Support
+### 1. Faculty Role Support
 *   **Status:** ✅ Complete
-*   **Details:** Teachers can now register using standard USC emails. The system differentiates them from Staff via a new role selection step during registration. Teachers have patient-level access to health records and certificates.
+*   **Details:** Facultys can now register using standard USC emails. The system differentiates them from Staff via a new role selection step during registration. Facultys have patient-level access to health records and certificates.
 
 ### 2. Medical Records 2.0
 *   **Status:** ✅ Complete
@@ -34,17 +34,17 @@ The USC-PIS application has undergone significant feature expansion and stabiliz
 ## Current Priorities & Roadmap
 
 ### High Priority
-1.  **User Acceptance Testing (UAT):** Verify the new Teacher registration flow with actual users/data.
+1.  **User Acceptance Testing (UAT):** Verify the new Faculty registration flow with actual users/data.
 2.  **PDF Rendering:** Confirm the new default template renders correctly in the PDF generator (`xhtml2pdf`).
-3.  **Data Consistency:** Monitor the backend logs for any `DataConsistencyChecker` warnings regarding the new Teacher profiles.
+3.  **Data Consistency:** Monitor the backend logs for any `DataConsistencyChecker` warnings regarding the new Faculty profiles.
 
 ### Medium Priority
-1.  **Dashboard Customization:** Evaluate if Teachers need different dashboard widgets compared to Students.
-2.  **Notification Refinement:** Ensure email notifications for Teachers are appropriately worded (e.g., distinct from Student notifications if necessary).
+1.  **Dashboard Customization:** Evaluate if Facultys need different dashboard widgets compared to Students.
+2.  **Notification Refinement:** Ensure email notifications for Facultys are appropriately worded (e.g., distinct from Student notifications if necessary).
 
 ## Known Issues (Non-Critical)
 *   *None currently blocking.* Previous issues with "formData is not defined" and "Invalid Date" have been resolved.
 
 ## Documentation Status
-*   **Updated:** Session logs, System Status, Teacher Role Guide (created).
-*   **Pending:** Update User Guide with Teacher registration instructions.
+*   **Updated:** Session logs, System Status, Faculty Role Guide (created).
+*   **Pending:** Update User Guide with Faculty registration instructions.

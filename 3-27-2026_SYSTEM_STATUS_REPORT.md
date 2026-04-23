@@ -19,7 +19,7 @@ The USC-PIS has undergone a **Major Security and Infrastructure Upgrade**. We ha
 ### Mandatory Email Verification
 *   **Verification Barrier**: Users are now blocked from accessing profiles or roles until they verify their USC email via a 6-digit code.
 *   **Safe List Bypass**: Emails on the `SafeEmail` list (e.g., USC administration) bypass verification automatically.
-*   **Decoupled Role Selection**: Users with text-based emails now choose their role (Teacher/Staff) *after* verification, ensuring data integrity.
+*   **Decoupled Role Selection**: Users with text-based emails now choose their role (Faculty/Staff) *after* verification, ensuring data integrity.
 *   **Retroactive Enforcement**: Existing unverified users are prompted to verify upon their next login.
 
 ### Infrastructure & Stability

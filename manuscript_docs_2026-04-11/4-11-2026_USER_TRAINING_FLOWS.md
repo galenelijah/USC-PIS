@@ -26,7 +26,7 @@
 ### 2.1 Account Onboarding
 1.  **Registration:** Sign up using `@usc.edu.ph` email.
 2.  **Verification:** Check email for 6-digit code and enter it on the verification screen.
-3.  **Role Selection:** Faculty/Staff must select "Teacher" role if applicable.
+3.  **Role Selection:** Faculty/Staff must select "Faculty" role if applicable.
 4.  **Profile Setup:** Complete the multi-step form (Personal -> Health History -> Emergency Contacts).
 5.  **Dashboard Access:** Once `completeSetup` is True, the full dashboard (Campaigns/Records) is unlocked.
 

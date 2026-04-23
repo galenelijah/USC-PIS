@@ -71,7 +71,7 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
     parser_classes = [parsers.MultiPartParser, parsers.FormParser]
 
     def create(self, request, *args, **kwargs):
-        if hasattr(request.user, 'role') and request.user.role in ['STUDENT', 'TEACHER']:
+        if hasattr(request.user, 'role') and request.user.role in ['STUDENT', 'FACULTY']:
             return Response({'detail': 'Not authorized to upload.'}, status=status.HTTP_403_FORBIDDEN)
 
         try:
@@ -102,7 +102,7 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         queryset = PatientDocument.objects.all().order_by('-uploaded_at')
-        if hasattr(user, 'role') and user.role in ['STUDENT', 'TEACHER']:
+        if hasattr(user, 'role') and user.role in ['STUDENT', 'FACULTY']:
             from django.db.models import Q
             queryset = queryset.filter(Q(patient__user=user) | Q(uploaded_by=user))
         

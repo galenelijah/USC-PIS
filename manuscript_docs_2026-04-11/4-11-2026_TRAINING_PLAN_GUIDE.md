@@ -13,7 +13,7 @@ The goal of this training plan is to ensure 100% competency among USC-DC Clinic 
 ## 2. Target Audience Groups
 1.  **Medical Personnel (Doctors/Dentists):** Clinical record management and certificate approval.
 2.  **Administrative Staff (Nurses/Staff):** Patient registration, report generation, and campaign management.
-3.  **End-Users (Students/Teachers):** Profile completion and personal health history access.
+3.  **End-Users (Students/Facultys):** Profile completion and personal health history access.
 4.  **System Administrators (Technical Team):** System monitoring, backups, and security management.
 
 ---

@@ -103,9 +103,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         if re.search(r'\d', email_username):
             return User.Role.STUDENT
         
-        # 3. Handle professional roles (only TEACHER allowed for self-selection)
-        if role_preference == User.Role.TEACHER:
-            return User.Role.TEACHER
+        # 3. Handle professional roles (only FACULTY allowed for self-selection)
+        if role_preference == User.Role.FACULTY:
+            return User.Role.FACULTY
             
         # Default for text-only emails (triggers /role-selection on frontend)
         return User.Role.STUDENT

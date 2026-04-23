@@ -16,7 +16,7 @@ The system enforces strict access control through a standardized role hierarchy.
 | **DOCTOR / DENTIST** | Senior Medical | Full clinical management and certificate approval authority. |
 | **NURSE** | Clinical Support | Patient vitals, triage records, and clinical support actions. |
 | **STAFF** | Administrative | Patient onboarding, general reporting, and document uploads. |
-| **TEACHER / STUDENT** | Patient (End-user) | Read-only access to personal history and uploaded documents. |
+| **FACULTY / STUDENT** | Patient (End-user) | Read-only access to personal history and uploaded documents. |
 
 ### 1.2 Administrative Gating
 *   **Default Deny**: New registrations default to `STUDENT` status.
@@ -47,7 +47,7 @@ The **7-Point Health Audit** serves as a real-time security monitor:
 *   **URL Masking**: Patient document serializers now treat the storage `file` field as `write_only`. This ensures raw Cloudinary URLs are never leaked in API responses.
 *   **Authenticated Download Proxy**: Documents are accessed via a secure endpoint (`/api/files/patient-documents/{id}/download/`). 
 *   **Backend-to-Storage Auth**: The backend uses official Cloudinary API signatures and isolated sessions to fetch files, ensuring that even if a public link were discovered, it would be subject to expiration and signature validation.
-*   **Privacy Isolation**: Patients (Students/Teachers) can only trigger the download proxy for documents where they are the verified owner.
+*   **Privacy Isolation**: Patients (Students/Facultys) can only trigger the download proxy for documents where they are the verified owner.
 
 ---
 

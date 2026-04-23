@@ -16,7 +16,7 @@ The system enforces strict access control through a standardized role hierarchy.
 | **DOCTOR / DENTIST** | Senior Medical | Full clinical management and certificate approval authority. |
 | **NURSE** | Clinical Support | Patient vitals, triage records, and clinical support actions. |
 | **STAFF** | Administrative | Patient onboarding, general reporting, and email administration. |
-| **TEACHER / STUDENT** | Patient (End-user) | Read-only access to personal history and campaign engagement. |
+| **FACULTY / STUDENT** | Patient (End-user) | Read-only access to personal history and campaign engagement. |
 
 ### 1.2 Administrative Gating
 *   **Default Deny**: New registrations default to `STUDENT` status.

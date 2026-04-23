@@ -8,7 +8,7 @@
 | Module | Status | Security Level | Reliability |
 | :--- | :--- | :--- | :--- |
 | **Authentication** | ✅ PASS | High (Self-Service Role Selection Hardened) | 100% |
-| **Patient Profiles** | ✅ PASS | High (Includes Teacher Role Support) | 100% |
+| **Patient Profiles** | ✅ PASS | High (Includes Faculty Role Support) | 100% |
 | **Clinical Records** | ✅ PASS | High (pgcrypto Active) | 100% |
 | **Certificates** | ✅ PASS | Medium (RBAC Hardened) | 100% |
 | **Notifications** | ✅ PASS | Normal (Async/Sync Hybrid) | 100% |

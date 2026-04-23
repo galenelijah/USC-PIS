@@ -52,11 +52,11 @@ const RoleSelection = () => {
     setSuccess(null);
 
     try {
-      if (role === 'TEACHER' || role === 'STUDENT') {
+      if (role === 'FACULTY' || role === 'STUDENT') {
         // Self-service roles (Patient Roles)
         const response = await userManagementService.requestRole(role);
         
-        // If the backend already updated the user (TEACHER/STUDENT)
+        // If the backend already updated the user (FACULTY/STUDENT)
         if (response.role) {
           dispatch(updateUser({ ...user, role: response.role }));
           navigate('/profile-setup');
@@ -205,21 +205,21 @@ const RoleSelection = () => {
                     sx={{
                       p: 1,
                       borderRadius: 2,
-                      borderColor: role === 'TEACHER' ? '#800000' : 'divider',
-                      bgcolor: role === 'TEACHER' ? alpha('#800000', 0.05) : 'transparent',
+                      borderColor: role === 'FACULTY' ? '#800000' : 'divider',
+                      bgcolor: role === 'FACULTY' ? alpha('#800000', 0.05) : 'transparent',
                       transition: 'all 0.2s',
                       cursor: 'pointer',
                       '&:hover': { borderColor: '#800000' }
                     }}
-                    onClick={() => setRole('TEACHER')}
+                    onClick={() => setRole('FACULTY')}
                   >
                     <FormControlLabel 
-                      value="TEACHER" 
+                      value="FACULTY" 
                       control={<Radio sx={{ color: '#800000', '&.Mui-checked': { color: '#800000' } }} />} 
                       sx={{ width: '100%', m: 0, px: 1 }}
                       label={
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 1 }}>
-                          <BadgeIcon color={role === 'TEACHER' ? 'primary' : 'action'} />
+                          <BadgeIcon color={role === 'FACULTY' ? 'primary' : 'action'} />
                           <Box sx={{ textAlign: 'left' }}>
                             <Typography variant="subtitle2" fontWeight="bold">Faculty / Teacher</Typography>
                             <Typography variant="caption" color="text.secondary">USC instructors and academic staff</Typography>

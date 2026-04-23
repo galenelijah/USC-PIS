@@ -38,7 +38,7 @@ class PatientViewSet(viewsets.ModelViewSet):
         )
 
         # Filter based on user role
-        if user.role in [User.Role.STUDENT, User.Role.TEACHER]:
+        if user.role in [User.Role.STUDENT, User.Role.FACULTY]:
             # Patients (Students/Teachers) see only their own linked patient record
             queryset = queryset.filter(user=user)
         elif user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE]:
@@ -47,7 +47,7 @@ class PatientViewSet(viewsets.ModelViewSet):
             # This ensures that users whose role was changed from student to admin/staff 
             # no longer appear in the "Patients" list.
             queryset = queryset.filter(
-                Q(user__role__in=[User.Role.STUDENT, User.Role.TEACHER]) | 
+                Q(user__role__in=[User.Role.STUDENT, User.Role.FACULTY]) | 
                 Q(user__isnull=True)
             )
         else:
@@ -354,7 +354,7 @@ class MedicalRecordViewSet(viewsets.ModelViewSet):
             user = self.request.user
             queryset = MedicalRecord.objects.select_related('patient', 'created_by').all()
 
-            if user.role in [User.Role.STUDENT, User.Role.TEACHER]:
+            if user.role in [User.Role.STUDENT, User.Role.FACULTY]:
                 # Find the patient profile linked to the patient user
                 try:
                     patient = Patient.objects.get(user=user)
@@ -412,7 +412,7 @@ class MedicalRecordViewSet(viewsets.ModelViewSet):
                 }, status=status.HTTP_404_NOT_FOUND)
             
             # Check permissions
-            if user.role in [User.Role.STUDENT, User.Role.TEACHER]:
+            if user.role in [User.Role.STUDENT, User.Role.FACULTY]:
                 if not hasattr(user, 'patient_profile') or user.patient_profile != patient:
                     return Response({
                         'detail': 'Patients cannot create medical records for others'
@@ -480,7 +480,7 @@ class DentalRecordViewSet(viewsets.ModelViewSet):
             user = self.request.user
             queryset = DentalRecord.objects.select_related('patient', 'created_by').all()
 
-            if user.role in [User.Role.STUDENT, User.Role.TEACHER]:
+            if user.role in [User.Role.STUDENT, User.Role.FACULTY]:
                 # Find the patient profile linked to the patient user
                 try:
                     patient = Patient.objects.get(user=user)
@@ -555,7 +555,7 @@ class DentalRecordViewSet(viewsets.ModelViewSet):
                 }, status=status.HTTP_404_NOT_FOUND)
             
             # Check permissions
-            if user.role in [User.Role.STUDENT, User.Role.TEACHER]:
+            if user.role in [User.Role.STUDENT, User.Role.FACULTY]:
                 return Response({
                     'detail': 'Patients cannot create dental records'
                 }, status=status.HTTP_403_FORBIDDEN)
@@ -694,7 +694,7 @@ class ConsultationViewSet(viewsets.ModelViewSet):
         user = self.request.user
         queryset = Consultation.objects.select_related('patient', 'created_by').all()
 
-        if user.role in [User.Role.STUDENT, User.Role.TEACHER]:
+        if user.role in [User.Role.STUDENT, User.Role.FACULTY]:
             # Find the patient profile linked to the patient user
             try:
                 patient = Patient.objects.get(user=user)
@@ -728,7 +728,7 @@ def dashboard_stats(request):
         # Optimized queries with select_related and prefetch_related
         # Synchronize patient counts with the filtered patients list
         patient_base_queryset = Patient.objects.filter(
-            Q(user__role__in=[User.Role.STUDENT, User.Role.TEACHER]) | 
+            Q(user__role__in=[User.Role.STUDENT, User.Role.FACULTY]) | 
             Q(user__isnull=True)
         )
         total_patients = patient_base_queryset.count()
@@ -770,8 +770,8 @@ def dashboard_stats(request):
                 'dental_visits_by_month': list(dental_visits_by_month),
                 'pending_requests': pending_requests,
             })
-        elif user.role in [User.Role.STUDENT, User.Role.TEACHER]:
-            # Patient (Student/Teacher) dashboard - optimized for single patient
+        elif user.role in [User.Role.STUDENT, User.Role.FACULTY]:
+            # Patient (Student/Faculty) dashboard - optimized for single patient
             patient = getattr(user, 'patient_profile', None)
             
             # Self-healing: if setup is complete but patient profile is missing, try to create it
