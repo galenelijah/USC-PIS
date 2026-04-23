@@ -51,7 +51,7 @@ class Patient(models.Model):
 
 class MedicalRecord(models.Model):
     patient = models.ForeignKey(Patient, related_name='medical_records', on_delete=models.CASCADE)
-    visit_date = models.DateField()
+    visit_date = models.DateTimeField()
     diagnosis = models.TextField()
     treatment = models.TextField()
     notes = models.TextField(blank=True)
@@ -108,7 +108,7 @@ class DentalRecord(models.Model):
     ]
 
     patient = models.ForeignKey(Patient, related_name='dental_records', on_delete=models.CASCADE)
-    visit_date = models.DateField()
+    visit_date = models.DateTimeField()
     procedure_performed = models.CharField(max_length=20, choices=PROCEDURE_CHOICES)
     tooth_numbers = models.CharField(max_length=200, blank=True, help_text="Comma-separated tooth numbers (e.g., 11,12,21)")
     diagnosis = models.TextField(help_text="Dental diagnosis and findings")

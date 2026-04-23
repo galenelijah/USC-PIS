@@ -348,7 +348,7 @@ const MedicalHistoryPage = () => {
     try {
       const date = dayjs(dateString);
       return {
-        formatted: date.format('MMM DD, YYYY'),
+        formatted: date.format('MMM DD, YYYY hh:mm A'),
         relative: date.fromNow()
       };
     } catch {

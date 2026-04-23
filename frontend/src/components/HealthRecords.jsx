@@ -207,7 +207,7 @@ const HealthRecords = () => {
     setDialogMode('create');
     setCurrentRecord({
       patient: null,
-      visit_date: dayjs().format('YYYY-MM-DD'),
+      visit_date: dayjs().toISOString(),
       record_type: 'MEDICAL',
       chief_complaint: '',
       diagnosis: '',
@@ -237,7 +237,7 @@ const HealthRecords = () => {
     setDialogMode('create');
     setCurrentRecord({
       patient: null,
-      visit_date: dayjs().format('YYYY-MM-DD'),
+      visit_date: dayjs().toISOString(),
       record_type: 'MEDICAL',
       chief_complaint: template.chief_complaint,
       diagnosis: template.diagnosis,
@@ -305,7 +305,7 @@ const HealthRecords = () => {
         setDialogMode('create');
         setCurrentRecord({
           patient: record.patient,
-          visit_date: dayjs().add(2, 'week').format('YYYY-MM-DD'),
+          visit_date: dayjs().add(2, 'week').toISOString(),
           record_type: record.record_type,
           chief_complaint: `Follow-up for: ${record.diagnosis}`,
           diagnosis: '',

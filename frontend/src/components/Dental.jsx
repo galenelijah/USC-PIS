@@ -65,6 +65,7 @@ import {
   Description as FileIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
@@ -107,7 +108,7 @@ const Dental = () => {
   // Form state for new/edit record
   const [formData, setFormData] = useState({
     patient: '',
-    visit_date: dayjs().format('YYYY-MM-DD'),
+    visit_date: dayjs().toISOString(),
     procedure_performed: '',
     tooth_numbers: '',
     diagnosis: '',
@@ -207,7 +208,7 @@ const Dental = () => {
       setSelectedRecord(record);
       setFormData({
         ...record,
-        visit_date: dayjs(record.visit_date).format('YYYY-MM-DD'),
+        visit_date: dayjs(record.visit_date).toISOString(),
         next_appointment_recommended: record.next_appointment_recommended 
           ? dayjs(record.next_appointment_recommended).format('YYYY-MM-DD') 
           : null
@@ -217,7 +218,7 @@ const Dental = () => {
       setSelectedRecord(null);
       setFormData({
         patient: '',
-        visit_date: dayjs().format('YYYY-MM-DD'),
+        visit_date: dayjs().toISOString(),
         procedure_performed: '',
         tooth_numbers: '',
         diagnosis: '',
@@ -301,6 +302,7 @@ const Dental = () => {
     try {
       const submitData = {
         ...formData,
+        visit_date: dayjs(formData.visit_date).toISOString(),
         next_appointment_recommended: formData.next_appointment_recommended || null
       };
 
@@ -393,7 +395,7 @@ const Dental = () => {
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    return dayjs(dateString).format('MMM DD, YYYY');
+    return dayjs(dateString).format('MMM DD, YYYY hh:mm A');
   };
 
   const formatCurrency = (amount) => {
@@ -1014,10 +1016,10 @@ const Dental = () => {
                       />
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <DatePicker
-                        label="Visit Date"
+                      <DateTimePicker
+                        label="Visit Date & Time"
                         value={dayjs(formData.visit_date)}
-                        onChange={(date) => handleInputChange('visit_date', dayjs(date).format('YYYY-MM-DD'))}
+                        onChange={(date) => handleInputChange('visit_date', dayjs(date).toISOString())}
                         slotProps={{ textField: { fullWidth: true } }}
                       />
                     </Grid>

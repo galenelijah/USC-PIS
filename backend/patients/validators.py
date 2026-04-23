@@ -354,39 +354,43 @@ class MedicalRecordValidator:
     
     @staticmethod
     def _validate_visit_date(visit_date) -> List[str]:
-        """Validate visit date."""
+        """Validate visit date and time."""
         errors = []
         
         try:
             # Handle different date formats
             if isinstance(visit_date, str):
-                parsed_date = None
-                # Try common formats
-                for fmt in ['%Y-%m-%d', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%S.%fZ', '%Y-%m-%d %H:%M:%S']:
+                parsed_dt = None
+                # Try common formats including ISO with time
+                for fmt in ['%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%S.%fZ', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d']:
                     try:
-                        # Strip time if present for .date()
-                        val = visit_date.split('T')[0] if 'T' in visit_date else visit_date.split()[0]
-                        parsed_date = datetime.datetime.strptime(val, '%Y-%m-%d').date()
+                        parsed_dt = datetime.datetime.strptime(visit_date, fmt)
+                        if timezone.is_naive(parsed_dt):
+                            parsed_dt = timezone.make_aware(parsed_dt)
                         break
                     except (ValueError, IndexError):
                         continue
                 
-                if not parsed_date:
-                    errors.append("Visit date must be in YYYY-MM-DD format")
+                if not parsed_dt:
+                    errors.append("Visit date/time must be in a valid format (e.g., YYYY-MM-DD HH:MM)")
                     return errors
-                visit_date = parsed_date
+                visit_date = parsed_dt
+            elif isinstance(visit_date, datetime.datetime):
+                if timezone.is_naive(visit_date):
+                    visit_date = timezone.make_aware(visit_date)
             elif hasattr(visit_date, 'date'):
-                visit_date = visit_date.date()
-            elif not isinstance(visit_date, datetime.date):
-                errors.append("Invalid visit date format")
+                # Convert date to datetime at midnight
+                visit_date = timezone.make_aware(datetime.datetime.combine(visit_date, datetime.time.min))
+            elif not isinstance(visit_date, (datetime.date, datetime.datetime)):
+                errors.append("Invalid visit date/time format")
                 return errors
             
             # Date range validation
-            today = datetime.date.today()
+            now = timezone.now()
             
-            if visit_date > today:
-                errors.append("Visit date cannot be in the future")
-            elif visit_date < datetime.date(2000, 1, 1):
+            if visit_date > now:
+                errors.append("Visit date/time cannot be in the future")
+            elif visit_date.year < 2000:
                 errors.append("Visit date seems too old")
             
         except Exception as e:

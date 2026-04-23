@@ -22,6 +22,10 @@ import BMI_female_2 from "../assets/images/BMI_Visual/BMI_female_2.png";
 import BMI_female_3 from "../assets/images/BMI_Visual/BMI_female_3.png";
 import BMI_female_4 from "../assets/images/BMI_Visual/BMI_female_4.png";
 import BMI_female_5 from "../assets/images/BMI_Visual/BMI_female_5.png";
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import dayjs from 'dayjs';
 import ReadOnlyTextField from "./forms/ReadOnlyTextField";
 import { healthRecordsService, patientService, patientDocumentService } from '../services/api';
 import { useSelector } from 'react-redux';
@@ -104,7 +108,7 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
         resolver: yupResolver(medicalRecordSchema),
         defaultValues: {
             patient: '',
-            visit_date: formatDateForInput(new Date()),
+            visit_date: dayjs().toISOString(),
             diagnosis: '',
             treatment: '',
             notes: '',
@@ -188,7 +192,7 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
     const resetForm = () => {
         reset({
             patient: '',
-            visit_date: formatDateForInput(new Date()),
+            visit_date: dayjs().toISOString(),
             diagnosis: '',
             treatment: '',
             notes: '',
@@ -222,14 +226,10 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
             const response = await healthRecordsService.getById(medicalRecordId);
             const data = response.data;
 
-            // Format visit_date for input field (YYYY-MM-DD)
-            if (data.visit_date) {
-                data.visit_date = formatDateForInput(data.visit_date);
-            }
-
             // Ensure vital_signs and physical_examination exist with defensive checks
             const safeData = {
                 ...data,
+                // visit_date will be handled as ISO string by DateTimePicker
                 vital_signs: data.vital_signs || {
                     temperature: '',
                     blood_pressure: '',
@@ -299,17 +299,10 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
         setSuccess(false);
 
         try {
-            // Ensure visit_date is in YYYY-MM-DD format for backend
-            let formattedDate = data.visit_date;
-            if (data.visit_date instanceof Date) {
-                formattedDate = formatDateForInput(data.visit_date);
-            } else if (typeof data.visit_date === 'string' && data.visit_date.includes('T')) {
-                formattedDate = data.visit_date.split('T')[0];
-            }
-
+            // Keep the full ISO string for visit_date
             const payload = { 
                 ...data,
-                visit_date: formattedDate,
+                visit_date: dayjs(data.visit_date).toISOString(),
                 vital_signs: data.vital_signs || {},
                 physical_examination: data.physical_examination || {}
             };
@@ -525,25 +518,31 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
 
                             <Grid item xs={12} md={readOnly && selectedPatient ? 4 : 6}>
                                 {readOnly ? (
-                                    <DisplayField label="Visit Date" value={watch('visit_date')} />
+                                    <DisplayField label="Visit Date & Time" value={dayjs(watch('visit_date')).format('MMM DD, YYYY hh:mm A')} />
                                 ) : (
-                                    <Controller
-                                        name="visit_date"
-                                        control={control}
-                                        render={({ field }) => (
-                                            <TextField
-                                                {...field}
-                                                fullWidth
-                                                label="Visit Date"
-                                                type="date"
-                                                InputLabelProps={{ shrink: true }}
-                                                disabled={!canEdit}
-                                                required
-                                                error={!!errors.visit_date}
-                                                helperText={errors.visit_date?.message}
-                                            />
-                                        )}
-                                    />
+                                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                        <Controller
+                                            name="visit_date"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <DateTimePicker
+                                                    {...field}
+                                                    label="Visit Date & Time"
+                                                    value={dayjs(field.value)}
+                                                    onChange={(newValue) => field.onChange(newValue ? newValue.toISOString() : null)}
+                                                    slotProps={{ 
+                                                        textField: { 
+                                                            fullWidth: true,
+                                                            required: true,
+                                                            error: !!errors.visit_date,
+                                                            helperText: errors.visit_date?.message
+                                                        } 
+                                                    }}
+                                                    disabled={!canEdit}
+                                                />
+                                            )}
+                                        />
+                                    </LocalizationProvider>
                                 )}
                             </Grid>
                         </Grid>
