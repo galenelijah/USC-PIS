@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.db import transaction
 from django.http import StreamingHttpResponse, FileResponse
+from django.conf import settings
 import requests
 from .models import UploadedFile, PatientDocument
 from .serializers import UploadedFileSerializer, PatientDocumentSerializer
@@ -168,12 +169,31 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
             
         file_url = document.file.url
         
+        # Cloudinary Fix: If it's a PDF and doesn't end with .pdf, append it. 
+        # Cloudinary often requires the extension for 'raw' assets to resolve correctly.
+        if document.original_filename and document.original_filename.lower().endswith('.pdf'):
+            if not file_url.lower().endswith('.pdf'):
+                file_url = f"{file_url}.pdf"
+                
+        logger.info(f"Attempting secure download for document {document.id}. URL: {file_url}")
+        
         try:
             # Determine if we should proxy from external URL or serve local file
             if file_url.startswith('http'):
                 # Proxy from Cloudinary/S3
-                response = requests.get(file_url, stream=True, timeout=30)
-                response.raise_for_status()
+                logger.info(f"Proxying file from external storage: {file_url}")
+                # Use a browser-like User-Agent to avoid potential blocks
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                }
+                response = requests.get(file_url, stream=True, timeout=30, headers=headers)
+                
+                if response.status_code != 200:
+                    logger.error(f"External storage returned status {response.status_code} for {file_url}")
+                    return Response({
+                        'detail': f'Error retrieving file from storage (Status: {response.status_code})',
+                        'storage_url': file_url if settings.DEBUG else 'hidden'
+                    }, status=status.HTTP_502_BAD_GATEWAY)
                 
                 proxy_response = StreamingHttpResponse(
                     response.iter_content(chunk_size=8192),
