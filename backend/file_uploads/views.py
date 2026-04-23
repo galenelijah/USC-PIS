@@ -168,28 +168,38 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'File not found'}, status=status.HTTP_404_NOT_FOUND)
             
         file_url = document.file.url
+        is_pdf = document.original_filename and document.original_filename.lower().endswith('.pdf')
         
-        # Cloudinary Fix: If it's a PDF and doesn't end with .pdf, append it. 
-        # Cloudinary often requires the extension for 'raw' assets to resolve correctly.
-        if document.original_filename and document.original_filename.lower().endswith('.pdf'):
-            if not file_url.lower().endswith('.pdf'):
-                file_url = f"{file_url}.pdf"
-                
-        logger.info(f"Attempting secure download for document {document.id}. URL: {file_url}")
+        logger.info(f"Attempting secure download for document {document.id}. Original URL: {file_url}")
         
         try:
             # Determine if we should proxy from external URL or serve local file
             if file_url.startswith('http'):
                 # Proxy from Cloudinary/S3
-                logger.info(f"Proxying file from external storage: {file_url}")
-                # Use a browser-like User-Agent to avoid potential blocks
                 headers = {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
                 }
+                
+                # Try the original URL first
                 response = requests.get(file_url, stream=True, timeout=30, headers=headers)
+                
+                # If it's a PDF and we got a 404, try appending .pdf (common Cloudinary requirement for raw assets)
+                if response.status_code == 404 and is_pdf and not file_url.lower().endswith('.pdf'):
+                    alt_url = f"{file_url}.pdf"
+                    logger.info(f"Original URL 404ed, trying alternative PDF URL: {alt_url}")
+                    response = requests.get(alt_url, stream=True, timeout=30, headers=headers)
+                    if response.status_code == 200:
+                        file_url = alt_url
                 
                 if response.status_code != 200:
                     logger.error(f"External storage returned status {response.status_code} for {file_url}")
+                    # Log first 100 chars of response body for debugging
+                    try:
+                        error_body = response.content[:100].decode('utf-8', errors='ignore')
+                        logger.error(f"Storage error body: {error_body}")
+                    except:
+                        pass
+                        
                     return Response({
                         'detail': f'Error retrieving file from storage (Status: {response.status_code})',
                         'storage_url': file_url if settings.DEBUG else 'hidden'

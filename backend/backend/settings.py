@@ -323,7 +323,7 @@ if USE_CLOUDINARY:
             'API_SECRET': _c_secret,
             'SECURE': True,
             'MEDIA_TAG': 'usc-pis',
-            'RESOURCE_TYPES': ['image', 'raw', 'video'],
+            'RAW_ASSETS': ('.pdf', '.doc', '.docx', '.xls', '.xlsx', '.csv', '.txt', '.rtf'),
             'INVALID_VIDEO_ERROR_MESSAGE': 'Please upload a valid video file.',
             'EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS': (),
         }
