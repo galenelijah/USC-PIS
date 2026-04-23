@@ -166,32 +166,59 @@ const MedicalHistoryPage = () => {
       const dentData = getResults(dentResp);
       const docData = getResults(docResp);
 
-      const medical = medData.map(r => ({
-        ...r,
-        record_type: 'MEDICAL',
-        composite_id: `MEDICAL-${r.id}`
-      }));
+      // Create maps for quick lookup to group attachments
+      const medicalMap = {};
+      const dentalMap = {};
 
-      const dental = dentData.map(r => ({
-        ...r,
-        record_type: 'DENTAL',
-        composite_id: `DENTAL-${r.id}`,
-        treatment: r.treatment_performed || r.treatment_plan,
-        notes: r.clinical_notes,
-        procedure_performed: r.procedure_performed_display || r.procedure_performed,
-      }));
+      const medical = medData.map(r => {
+        const record = {
+          ...r,
+          record_type: 'MEDICAL',
+          composite_id: `MEDICAL-${r.id}`,
+          attachments: []
+        };
+        medicalMap[r.id] = record;
+        return record;
+      });
 
-      const documentsMapped = docData.map(d => ({
-        ...d,
-        record_type: 'ATTACHMENT',
-        composite_id: `DOC-${d.id}`,
-        visit_date: d.uploaded_at, // Use upload date as the event date
-        diagnosis: d.document_type_display,
-        treatment: d.description || 'No description provided',
-        patient_name: d.patient_name
-      }));
+      const dental = dentData.map(r => {
+        const record = {
+          ...r,
+          record_type: 'DENTAL',
+          composite_id: `DENTAL-${r.id}`,
+          treatment: r.treatment_performed || r.treatment_plan,
+          notes: r.clinical_notes,
+          procedure_performed: r.procedure_performed_display || r.procedure_performed,
+          attachments: []
+        };
+        dentalMap[r.id] = record;
+        return record;
+      });
 
-      let combined = [...medical, ...dental, ...documentsMapped];
+      const standaloneAttachments = [];
+
+      docData.forEach(d => {
+        const attachment = {
+          ...d,
+          record_type: 'ATTACHMENT',
+          composite_id: `DOC-${d.id}`,
+          visit_date: d.uploaded_at, // Use upload date as the event date
+          diagnosis: d.document_type_display,
+          treatment: d.description || 'No description provided',
+          patient_name: d.patient_name
+        };
+
+        // Group with records if linked
+        if (d.medical_record && medicalMap[d.medical_record]) {
+          medicalMap[d.medical_record].attachments.push(attachment);
+        } else if (d.dental_record && dentalMap[d.dental_record]) {
+          dentalMap[d.dental_record].attachments.push(attachment);
+        } else {
+          standaloneAttachments.push(attachment);
+        }
+      });
+
+      let combined = [...medical, ...dental, ...standaloneAttachments];
       
       // If user is a student/teacher, only show their records
       if (isStudent && user?.id) {
@@ -235,15 +262,24 @@ const MedicalHistoryPage = () => {
     // Filter by search term
     if (searchTerm.trim() !== '') {
       const lowerSearch = searchTerm.toLowerCase();
-      filtered = filtered.filter(record => 
-        (record.patient_name || '').toLowerCase().includes(lowerSearch) ||
-        (record.diagnosis || '').toLowerCase().includes(lowerSearch) ||
-        (record.treatment || '').toLowerCase().includes(lowerSearch) ||
-        (record.chief_complaint || '').toLowerCase().includes(lowerSearch) ||
-        (record.medications || '').toLowerCase().includes(lowerSearch) ||
-        (record.procedure_performed || '').toLowerCase().includes(lowerSearch) ||
-        (record.notes || '').toLowerCase().includes(lowerSearch)
-      );
+      filtered = filtered.filter(record => {
+        const matchesRecord = (record.patient_name || '').toLowerCase().includes(lowerSearch) ||
+          (record.diagnosis || '').toLowerCase().includes(lowerSearch) ||
+          (record.treatment || '').toLowerCase().includes(lowerSearch) ||
+          (record.chief_complaint || '').toLowerCase().includes(lowerSearch) ||
+          (record.medications || '').toLowerCase().includes(lowerSearch) ||
+          (record.procedure_performed || '').toLowerCase().includes(lowerSearch) ||
+          (record.notes || '').toLowerCase().includes(lowerSearch);
+        
+        // Also search in attachments if they exist
+        const matchesAttachments = record.attachments?.some(att => 
+          (att.original_filename || '').toLowerCase().includes(lowerSearch) ||
+          (att.description || '').toLowerCase().includes(lowerSearch) ||
+          (att.document_type_display || '').toLowerCase().includes(lowerSearch)
+        );
+
+        return matchesRecord || matchesAttachments;
+      });
     }
 
     // Filter by date range
@@ -797,55 +833,33 @@ const MedicalHistoryPage = () => {
             }}
           >
             <CardContent>
-              {/* Attachment specific UI */}
+              {/* Attachment specific UI (Standalone) */}
               {record.record_type === 'ATTACHMENT' ? (
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: getRecordColor(record.record_type), width: 40, height: 40 }}>
-                    <AttachmentIcon />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar sx={{ bgcolor: getRecordColor(record.record_type), width: 32, height: 32 }}>
+                    <AttachmentIcon sx={{ fontSize: 18 }} />
                   </Avatar>
-                  <Box sx={{ flex: 1 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                          <Typography variant="h6" sx={{ mb: 0 }}>
-                            {record.diagnosis} {/* This is document_type_display */}
-                          </Typography>
-                          <Chip label="FILE" size="small" sx={{ bgcolor: '#4caf50', color: 'white' }} />
-                        </Box>
-                        
-                        <Typography variant="body2" fontWeight="medium" color="text.primary" sx={{ mb: 1 }}>
-                          {record.patient_name}
+                  <Box sx={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                          {record.diagnosis}
                         </Typography>
-
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                          <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                          <Typography variant="body2" color="text.secondary">
-                            {formatDate(record.visit_date).formatted}
-                            <span style={{ marginLeft: 8, fontStyle: 'italic' }}>
-                              ({formatDate(record.visit_date).relative})
-                            </span>
-                          </Typography>
-                        </Box>
+                        <Chip label="FILE" size="small" sx={{ height: 18, fontSize: '0.65rem', bgcolor: '#4caf50', color: 'white' }} />
                       </Box>
-                      
-                      <Button
-                        variant="outlined"
-                        startIcon={<FileIcon />}
-                        size="small"
-                        onClick={() => window.open(record.file, '_blank')}
-                        sx={{ color: '#2e7d32', borderColor: '#2e7d32' }}
-                      >
-                        View Attachment
-                      </Button>
+                      <Typography variant="caption" color="text.secondary">
+                        {formatDate(record.visit_date).formatted} • {record.patient_name} • {record.original_filename}
+                      </Typography>
                     </Box>
-
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontStyle: 'italic' }}>
-                      {record.treatment} {/* This is description */}
-                    </Typography>
-                    
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                      File: {record.original_filename} ({(record.file_size / 1024).toFixed(1)} KB)
-                    </Typography>
+                    <Button
+                      variant="outlined"
+                      startIcon={<FileIcon />}
+                      size="small"
+                      onClick={() => window.open(record.download_url, '_blank')}
+                      sx={{ color: '#2e7d32', borderColor: '#2e7d32', height: 30, fontSize: '0.75rem' }}
+                    >
+                      View
+                    </Button>
                   </Box>
                 </Box>
               ) : (
@@ -967,6 +981,16 @@ const MedicalHistoryPage = () => {
                           variant="outlined"
                         />
                       )}
+                      {record.attachments && record.attachments.length > 0 && (
+                        <Chip 
+                          icon={<AttachmentIcon />} 
+                          label={`${record.attachments.length} File${record.attachments.length > 1 ? 's' : ''}`} 
+                          size="small" 
+                          variant="filled"
+                          color="success"
+                          sx={{ height: 24, fontSize: '0.75rem' }}
+                        />
+                      )}
                       {(record.notes?.toLowerCase().includes('allerg') || 
                         record.diagnosis?.toLowerCase().includes('allerg') ||
                         record.medications?.toLowerCase().includes('allerg')) && (
@@ -986,6 +1010,37 @@ const MedicalHistoryPage = () => {
                       {expandedRecord === record.composite_id ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                     </IconButton>
                   </Box>
+
+                  {/* Grouped Attachments (Mini-View) */}
+                  {record.attachments && record.attachments.length > 0 && (
+                    <Box sx={{ mt: 2, pt: 1, borderTop: '1px dashed #eee' }}>
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                        <Typography variant="caption" fontWeight="bold" color="text.secondary" sx={{ mr: 1 }}>
+                          ATTACHMENTS:
+                        </Typography>
+                        {record.attachments.map(att => (
+                          <Chip
+                            key={att.id}
+                            label={att.original_filename}
+                            size="small"
+                            variant="outlined"
+                            icon={<FileIcon style={{ fontSize: 14 }} />}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(att.download_url, '_blank');
+                            }}
+                            sx={{ 
+                              fontSize: '0.65rem', 
+                              height: 20,
+                              cursor: 'pointer',
+                              maxWidth: 200,
+                              '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' }
+                            }}
+                          />
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
 
                   <Collapse in={expandedRecord === record.composite_id}>
                     <Divider sx={{ my: 2 }} />
