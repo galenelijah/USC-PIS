@@ -30,7 +30,7 @@ import {
   AdminPanelSettings as UserManagementIcon,
   Insights as InsightsIcon,
   Assignment as AssignmentIcon,
-  CleanHands as DentalIcon,
+  MedicalServices as DentalIcon,
   Description as CertificateIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
