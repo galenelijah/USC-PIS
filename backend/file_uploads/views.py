@@ -205,13 +205,21 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
                             # We need to strip the version (v12345678/) and the extension
                             path_match = re.search(r'/upload/(?:v\d+/)?(.+)$', file_url)
                             if path_match:
+                                # Extract public_id from the path
                                 public_id = path_match.group(1)
                                 
                                 # Cloudinary signing quirk:
                                 # - For IMAGES: Strip the extension (e.g., 'sample.jpg' -> 'sample')
-                                # - For RAW: Keep the extension (e.g., 'sample.pdf' -> 'sample.pdf')
-                                if resource_type == 'image' and '.' in public_id:
-                                    public_id = public_id.rsplit('.', 1)[0]
+                                # - For RAW: MUST HAVE the extension (e.g., 'sample.pdf' -> 'sample.pdf')
+                                if resource_type == 'image':
+                                    if '.' in public_id:
+                                        public_id = public_id.rsplit('.', 1)[0]
+                                else:
+                                    # For raw assets, ensure the extension from original_filename is present
+                                    if '.' not in public_id and document.original_filename:
+                                        ext = os.path.splitext(document.original_filename)[1]
+                                        if ext:
+                                            public_id = f"{public_id}{ext}"
                                 
                                 logger.info(f"Generating signed URL for Cloudinary public_id: {public_id} ({resource_type})")
                                 signed_url = cloudinary.utils.cloudinary_url(
