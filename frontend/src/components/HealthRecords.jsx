@@ -207,7 +207,7 @@ const HealthRecords = () => {
     setDialogMode('create');
     setCurrentRecord({
       patient: null,
-      visit_date: dayjs().toISOString(),
+      visit_date: dayjs().format(),
       record_type: 'MEDICAL',
       chief_complaint: '',
       diagnosis: '',
@@ -237,7 +237,7 @@ const HealthRecords = () => {
     setDialogMode('create');
     setCurrentRecord({
       patient: null,
-      visit_date: dayjs().toISOString(),
+      visit_date: dayjs().format(),
       record_type: 'MEDICAL',
       chief_complaint: template.chief_complaint,
       diagnosis: template.diagnosis,
@@ -305,7 +305,7 @@ const HealthRecords = () => {
         setDialogMode('create');
         setCurrentRecord({
           patient: record.patient,
-          visit_date: dayjs().add(2, 'week').toISOString(),
+          visit_date: dayjs().add(2, 'week').format(),
           record_type: record.record_type,
           chief_complaint: `Follow-up for: ${record.diagnosis}`,
           diagnosis: '',
@@ -398,7 +398,7 @@ ${data.commonDiagnoses.map(d => `${d.diagnosis}: ${d.count} cases`).join('\n')}
 
 === DETAILED RECORDS ===
 ${filteredRecords.map(r => `
-Date: ${r.visit_date}
+Date: ${dayjs(r.visit_date).format('MMM DD, YYYY hh:mm A')}
 Patient: ${r.patient_name || `Patient ID: ${r.patient}`}
 Diagnosis: ${r.diagnosis || 'N/A'}
 Treatment: ${r.treatment || 'N/A'}
@@ -545,7 +545,7 @@ Treatment: ${r.treatment || 'N/A'}
 
     const exportData = filteredRecords.map(record => ({
       'Record ID': record.id,
-      'Visit Date': dayjs(record.visit_date).format('YYYY-MM-DD'),
+      'Visit Date': dayjs(record.visit_date).format('MMM DD, YYYY hh:mm A'),
       'Patient Name': record.patient_name || 'Unknown',
       'Patient ID': record.patient_id || 'N/A',
       'USC ID': record.patient_usc_id || 'N/A',
@@ -596,7 +596,7 @@ Treatment: ${r.treatment || 'N/A'}
 
     const exportData = filteredRecords.map(record => ({
       'ID': record.id,
-      'Visit Date': record.visit_date,
+      'Visit Date': dayjs(record.visit_date).format('MMM DD, YYYY hh:mm A'),
       'Patient': record.patient_name || 'Unknown',
       'Patient ID': record.patient_id || '',
       'USC ID': record.patient_usc_id || '',
@@ -1051,7 +1051,7 @@ Treatment: ${r.treatment || 'N/A'}
               {filteredRecords.length > 0 ? (
                 filteredRecords.map((record) => (
                   <TableRow key={record.id}>
-                    <TableCell>{record.visit_date}</TableCell>
+                    <TableCell>{dayjs(record.visit_date).format('MMM DD, YYYY hh:mm A')}</TableCell>
                     <TableCell>
                       <Typography variant="body2" fontWeight="medium">
                         {record.patient_name || `Patient ID: ${record.patient}`}

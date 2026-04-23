@@ -6,6 +6,7 @@ from django.utils import timezone
 from typing import Optional, List, Dict, Tuple
 import logging
 from difflib import SequenceMatcher
+from dateutil import parser as date_parser
 
 logger = logging.getLogger(__name__)
 
@@ -331,25 +332,18 @@ class MedicalRecordValidator:
             # Normalize the date in-place in the data dict to avoid type errors later
             if not date_errors:
                 try:
-                    # Re-parse or use the already validated date if possible
-                    # _validate_visit_date doesn't return the parsed date, so we re-parse
                     if isinstance(visit_date, str):
-                        for fmt in ['%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%S.%fZ', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d']:
-                            try:
-                                dt = datetime.datetime.strptime(visit_date, fmt)
-                                if timezone.is_naive(dt):
-                                    dt = timezone.make_aware(dt)
-                                data['visit_date'] = dt
-                                break
-                            except (ValueError, IndexError):
-                                continue
+                        dt = date_parser.parse(visit_date)
+                        if timezone.is_naive(dt):
+                            dt = timezone.make_aware(dt)
+                        data['visit_date'] = dt
                     elif isinstance(visit_date, datetime.datetime):
                         if timezone.is_naive(visit_date):
                             data['visit_date'] = timezone.make_aware(visit_date)
                     elif isinstance(visit_date, datetime.date):
                         data['visit_date'] = timezone.make_aware(datetime.datetime.combine(visit_date, datetime.time.min))
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.error(f"Normalization error: {e}")
         else:
             errors.append("Visit date is required")
         
@@ -391,21 +385,14 @@ class MedicalRecordValidator:
         try:
             # Handle different date formats
             if isinstance(visit_date, str):
-                parsed_dt = None
-                # Try common formats including ISO with time
-                for fmt in ['%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%S.%fZ', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d']:
-                    try:
-                        parsed_dt = datetime.datetime.strptime(visit_date, fmt)
-                        if timezone.is_naive(parsed_dt):
-                            parsed_dt = timezone.make_aware(parsed_dt)
-                        break
-                    except (ValueError, IndexError):
-                        continue
-                
-                if not parsed_dt:
+                try:
+                    parsed_dt = date_parser.parse(visit_date)
+                    if timezone.is_naive(parsed_dt):
+                        parsed_dt = timezone.make_aware(parsed_dt)
+                    visit_date = parsed_dt
+                except (ValueError, TypeError, OverflowError):
                     errors.append("Visit date/time must be in a valid format (e.g., YYYY-MM-DD HH:MM)")
                     return errors
-                visit_date = parsed_dt
             
             # Check for datetime first (since datetime is a subclass of date)
             if isinstance(visit_date, datetime.datetime):

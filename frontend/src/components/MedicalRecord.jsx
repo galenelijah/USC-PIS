@@ -108,7 +108,7 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
         resolver: yupResolver(medicalRecordSchema),
         defaultValues: {
             patient: '',
-            visit_date: dayjs().toISOString(),
+            visit_date: dayjs().format(),
             diagnosis: '',
             treatment: '',
             notes: '',
@@ -192,7 +192,7 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
     const resetForm = () => {
         reset({
             patient: '',
-            visit_date: dayjs().toISOString(),
+            visit_date: dayjs().format(),
             diagnosis: '',
             treatment: '',
             notes: '',
@@ -299,10 +299,10 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
         setSuccess(false);
 
         try {
-            // Keep the full ISO string for visit_date
+            // Keep the local format with offset
             const payload = { 
                 ...data,
-                visit_date: dayjs(data.visit_date).toISOString(),
+                visit_date: dayjs(data.visit_date).format(),
                 vital_signs: data.vital_signs || {},
                 physical_examination: data.physical_examination || {}
             };
@@ -529,7 +529,7 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                                                     {...field}
                                                     label="Visit Date & Time"
                                                     value={dayjs(field.value)}
-                                                    onChange={(newValue) => field.onChange(newValue ? newValue.toISOString() : null)}
+                                                    onChange={(newValue) => field.onChange(newValue ? newValue.format() : null)}
                                                     slotProps={{ 
                                                         textField: { 
                                                             fullWidth: true,

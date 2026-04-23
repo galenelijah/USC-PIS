@@ -108,7 +108,7 @@ const Dental = () => {
   // Form state for new/edit record
   const [formData, setFormData] = useState({
     patient: '',
-    visit_date: dayjs().toISOString(),
+    visit_date: dayjs().format(),
     procedure_performed: '',
     tooth_numbers: '',
     diagnosis: '',
@@ -208,7 +208,7 @@ const Dental = () => {
       setSelectedRecord(record);
       setFormData({
         ...record,
-        visit_date: dayjs(record.visit_date).toISOString(),
+        visit_date: dayjs(record.visit_date).format(),
         next_appointment_recommended: record.next_appointment_recommended 
           ? dayjs(record.next_appointment_recommended).format('YYYY-MM-DD') 
           : null
@@ -218,7 +218,7 @@ const Dental = () => {
       setSelectedRecord(null);
       setFormData({
         patient: '',
-        visit_date: dayjs().toISOString(),
+        visit_date: dayjs().format(),
         procedure_performed: '',
         tooth_numbers: '',
         diagnosis: '',
@@ -302,7 +302,7 @@ const Dental = () => {
     try {
       const submitData = {
         ...formData,
-        visit_date: dayjs(formData.visit_date).toISOString(),
+        visit_date: dayjs(formData.visit_date).format(),
         next_appointment_recommended: formData.next_appointment_recommended || null
       };
 
@@ -468,9 +468,9 @@ const Dental = () => {
         'Record ID': record.id,
         'Patient Information': record.patient_name || 'Unknown',
         'USC ID': record.patient_usc_id || '',
-        'Visit Date': record.visit_date,
+        'Visit Date': formatDate(record.visit_date),
         'Dental Procedure': record.procedure_performed_display || '',
-        'Tooth/Area': record.tooth_number || '',
+        'Tooth/Area': record.tooth_numbers || '',
         'Clinical Diagnosis': record.diagnosis || '',
         'Treatment Performed': record.treatment_performed || '',
         'Priority Level': getPriorityLabel(record.priority),
@@ -478,10 +478,10 @@ const Dental = () => {
         'Total Cost (₱)': record.cost || 0,
         'Insurance Coverage': record.insurance_covered ? 'Covered' : 'Not Covered',
         'Follow-up Required': record.follow_up_required ? 'Yes' : 'No',
-        'Follow-up Date': record.follow_up_date || '',
-        'Clinical Notes': record.notes || '',
-        'Record Created': record.created_at,
-        'Last Modified': record.updated_at
+        'Follow-up Date': record.follow_up_date ? formatDate(record.follow_up_date) : '',
+        'Clinical Notes': record.clinical_notes || '',
+        'Record Created': formatDate(record.created_at),
+        'Last Modified': formatDate(record.updated_at)
       }));
 
       // Convert to tab-separated values for better Excel compatibility
@@ -1019,7 +1019,7 @@ const Dental = () => {
                       <DateTimePicker
                         label="Visit Date & Time"
                         value={dayjs(formData.visit_date)}
-                        onChange={(date) => handleInputChange('visit_date', dayjs(date).toISOString())}
+                        onChange={(date) => handleInputChange('visit_date', dayjs(date).format())}
                         slotProps={{ textField: { fullWidth: true } }}
                       />
                     </Grid>
