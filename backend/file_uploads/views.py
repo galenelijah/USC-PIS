@@ -176,24 +176,58 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
             # Determine if we should proxy from external URL or serve local file
             if file_url.startswith('http'):
                 # Proxy from Cloudinary/S3
-                # IMPORTANT: We MUST NOT pass the user's Auth token to Cloudinary.
-                # Cloudinary will see an 'Authorization: Token xxx' header it doesn't recognize
-                # and return a 401 Unauthorized, even if the file is public.
                 external_headers = {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
                 }
                 
-                # Debug log to ensure no Auth token is leaking (only in logs, filtered for security)
-                logger.info(f"Storage request headers: { {k: '***' if 'auth' in k.lower() else v for k, v in external_headers.items()} }")
-                
-                # Try the original URL first with CLEAN headers (no Auth token)
-                # We use a fresh Session to ensure no headers leak from the incoming request
+                # Check if we are using Cloudinary to generate a signed URL
+                if settings.USE_CLOUDINARY:
+                    try:
+                        import cloudinary
+                        import cloudinary.utils
+                        
+                        # Extract the public_id from the URL
+                        # Example URL: http://res.cloudinary.com/cloud_name/raw/upload/v1/patient_documents/file.pdf
+                        # We need 'patient_documents/file' (without extension for images, with for raw)
+                        
+                        # A simpler way is to use the cloudinary library to generate a signed URL if we have the file field
+                        # However, since we're proxying, we just need the URL to be accessible to the backend.
+                        
+                        # If Cloudinary is returning 401, it might be because the asset is 'private' or 'authenticated'
+                        # We generate a signed URL that expires in 1 hour
+                        if 'res.cloudinary.com' in file_url:
+                            public_id = None
+                            # Try to extract public_id from the path
+                            # Matches anything after /upload/ (including version v123/)
+                            path_match = re.search(r'/upload/(?:v\d+/)?(.+)$', file_url)
+                            if path_match:
+                                public_id = path_match.group(1)
+                                # Remove extension for images, keep for raw (PDFs are usually raw)
+                                if is_pdf and public_id.endswith('.pdf'):
+                                    # For raw assets, the public_id includes the extension
+                                    resource_type = 'raw'
+                                else:
+                                    resource_type = 'image'
+                                
+                                logger.info(f"Generating signed URL for Cloudinary public_id: {public_id} ({resource_type})")
+                                signed_url = cloudinary.utils.cloudinary_url(
+                                    public_id, 
+                                    sign_url=True, 
+                                    resource_type=resource_type,
+                                    secure=True
+                                )[0]
+                                logger.info(f"Using signed URL for retrieval")
+                                file_url = signed_url
+                    except Exception as ce:
+                        logger.error(f"Failed to generate signed Cloudinary URL: {str(ce)}")
+
+                # Try the URL with CLEAN headers (no Auth token)
                 with requests.Session() as session:
-                    session.headers.clear()  # Force clear any default headers
+                    session.headers.clear()
                     response = session.get(file_url, stream=True, timeout=30, headers=external_headers)
                     
-                    # If it's a PDF and we got a 404, try appending .pdf (common Cloudinary requirement for raw assets)
-                    if response.status_code == 404 and is_pdf and not file_url.lower().endswith('.pdf'):
+                    # If it's a PDF and we got a 404, try appending .pdf
+                    if response.status_code == 404 and is_pdf and not file_url.lower().endswith('.pdf') and '?' not in file_url:
                         alt_url = f"{file_url}.pdf"
                         logger.info(f"Original URL 404ed, trying alternative PDF URL: {alt_url}")
                         response = session.get(alt_url, stream=True, timeout=30, headers=external_headers)
