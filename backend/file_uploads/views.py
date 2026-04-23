@@ -207,8 +207,10 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
                             if path_match:
                                 public_id = path_match.group(1)
                                 
-                                # Remove extension if present
-                                if '.' in public_id:
+                                # Cloudinary signing quirk:
+                                # - For IMAGES: Strip the extension (e.g., 'sample.jpg' -> 'sample')
+                                # - For RAW: Keep the extension (e.g., 'sample.pdf' -> 'sample.pdf')
+                                if resource_type == 'image' and '.' in public_id:
                                     public_id = public_id.rsplit('.', 1)[0]
                                 
                                 logger.info(f"Generating signed URL for Cloudinary public_id: {public_id} ({resource_type})")
