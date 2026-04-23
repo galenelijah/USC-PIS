@@ -23,71 +23,56 @@ class FileUploadViewSet(viewsets.ModelViewSet):
     queryset = UploadedFile.objects.all().order_by('-upload_date')
     serializer_class = UploadedFileSerializer
     permission_classes = [permissions.IsAuthenticated]
-    parser_classes = [parsers.MultiPartParser, parsers.FormParser] 
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser]
+
+    def get_queryset(self):
+        """Restrict to files uploaded by the user unless staff."""
+        user = self.request.user
+        if user.is_staff:
+            return UploadedFile.objects.all().order_by('-upload_date')
+        return UploadedFile.objects.filter(uploaded_by=user).order_by('-upload_date')
 
     def create(self, request, *args, **kwargs):
-        """Enhanced file upload with comprehensive security validation."""
+        """Enhanced secure file upload with validation."""
         try:
             if 'file' not in request.FILES:
-                return Response({
-                    'detail': 'No file provided',
-                    'error_code': 'NO_FILE'
-                }, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'detail': 'No file provided'}, status=status.HTTP_400_BAD_REQUEST)
             
             uploaded_file = request.FILES['file']
-            filename_errors = FilenameValidator.validate_filename(uploaded_file.name)
-            if filename_errors:
-                return Response({
-                    'detail': 'Invalid filename',
-                    'errors': filename_errors,
-                    'error_code': 'INVALID_FILENAME'
-                }, status=status.HTTP_400_BAD_REQUEST)
             
-            safe_filename = FilenameValidator.sanitize_filename(uploaded_file.name)
-            if safe_filename != uploaded_file.name:
-                uploaded_file.name = safe_filename
-            
+            # Security validation
             validation_errors = FileSecurityValidator.validate_file(uploaded_file)
             if validation_errors:
-                return Response({
-                    'detail': 'File validation failed',
-                    'errors': validation_errors,
-                    'error_code': 'VALIDATION_FAILED'
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
-            checksum = FileIntegrityChecker.generate_checksum(uploaded_file)
-            
+                return Response({'detail': 'File validation failed', 'errors': validation_errors}, 
+                                status=status.HTTP_400_BAD_REQUEST)
+
             with transaction.atomic():
                 serializer = self.get_serializer(data=request.data)
                 if serializer.is_valid():
-                    file_instance = serializer.save(
+                    # Check for duplicates
+                    existing_id = FileIntegrityChecker.check_duplicate_file(uploaded_file, request.user)
+                    if existing_id:
+                        return Response({
+                            'detail': 'File already uploaded',
+                            'file_id': existing_id
+                        }, status=status.HTTP_200_OK)
+
+                    instance = serializer.save(
                         uploaded_by=request.user,
-                        file=uploaded_file,
                         original_filename=uploaded_file.name,
                         file_size=uploaded_file.size,
-                        checksum=checksum
+                        content_type=uploaded_file.content_type
                     )
-                    return Response({
-                        'detail': 'File uploaded successfully',
-                        'file': UploadedFileSerializer(file_instance).data
-                    }, status=status.HTTP_201_CREATED)
-                else:
-                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            logger.error(f"File upload error: {str(e)}")
-            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    return Response(serializer.data, status=status.HTTP_201_CREATED)
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def get_queryset(self):
-        user = self.request.user
-        queryset = UploadedFile.objects.all().order_by('-upload_date')
-        if hasattr(user, 'role') and user.role in ['STUDENT', 'TEACHER']:
-            queryset = queryset.filter(uploaded_by=user)
-        return queryset
+        except Exception as e:
+            logger.error(f"Upload error: {str(e)}")
+            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class PatientDocumentViewSet(viewsets.ModelViewSet):
     """
-    API endpoint for managing patient-specific documents.
-    Only staff, doctors, and nurses can upload.
+    API endpoint for patient documents (consultations, records, etc.)
     """
     queryset = PatientDocument.objects.all().order_by('-uploaded_at')
     serializer_class = PatientDocumentSerializer
@@ -159,8 +144,8 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def download(self, request, pk=None):
         """
-        Securely download a document by proxying the request to the storage backend (e.g. Cloudinary).
-        Forces download with Content-Disposition header.
+        Securely download a document.
+        Uses the storage backend's open() method which handles authentication automatically.
         """
         document = self.get_object()
         
@@ -169,127 +154,23 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
         if not document.file:
             return Response({'detail': 'File not found'}, status=status.HTTP_404_NOT_FOUND)
             
-        file_url = document.file.url
-        is_pdf = document.original_filename and document.original_filename.lower().endswith('.pdf')
-        
-        logger.info(f"Attempting secure download for document {document.id}. Original URL: {file_url}")
-        
         try:
-            # Determine if we should proxy from external URL or serve local file
-            if file_url.startswith('http'):
-                # Proxy from Cloudinary/S3
-                external_headers = {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-                }
+            logger.info(f"Opening file for document {document.id} using storage backend")
+            
+            # Use Django's built-in file opening logic. 
+            # If using CloudinaryStorage, this will fetch the file using API credentials automatically.
+            # If using FileSystemStorage (local), it will read from local disk.
+            file_handle = document.file.open('rb')
+            
+            # Create the response using FileResponse which is optimized for streaming
+            proxy_response = FileResponse(
+                file_handle, 
+                content_type=document.content_type or 'application/octet-stream'
+            )
                 
-                # Check if we are using Cloudinary to generate a signed URL
-                if settings.USE_CLOUDINARY:
-                    try:
-                        import cloudinary
-                        import cloudinary.utils
-                        
-                        # Extract the public_id from the URL
-                        # Example URL: http://res.cloudinary.com/cloud_name/raw/upload/v1/patient_documents/file.pdf
-                        # We need 'patient_documents/file' (without extension for images, with for raw)
-                        
-                        # A simpler way is to use the cloudinary library to generate a signed URL if we have the file field
-                        # However, since we're proxying, we just need the URL to be accessible to the backend.
-                        
-                        # If Cloudinary is returning 401, it might be because the asset is 'private' or 'authenticated'
-                        # We generate a signed URL that expires in 1 hour
-                        if 'res.cloudinary.com' in file_url:
-                            public_id = None
-                            
-                            # Detect resource type strictly from the URL path.
-                            if '/raw/' in file_url:
-                                resource_type = 'raw'
-                            elif '/video/' in file_url:
-                                resource_type = 'video'
-                            else:
-                                resource_type = 'image'
-                            
-                            # Extract version if present (e.g., v12345678)
-                            version = None
-                            version_match = re.search(r'/v(\d+)/', file_url)
-                            if version_match:
-                                version = version_match.group(1)
-                            
-                            # Matches anything after /upload/ (or /private/, /authenticated/)
-                            path_match = re.search(r'/(?:upload|private|authenticated)/(?:v\d+/)?(.+)$', file_url)
-                            if path_match:
-                                # Extract public_id from the path
-                                public_id = path_match.group(1)
-                                fmt = None
-                                
-                                # Cloudinary signing quirk:
-                                # - For RAW: MUST HAVE the extension in the ID.
-                                # - For IMAGE: MUST NOT have the extension in the ID, but pass it as 'format'.
-                                if resource_type == 'image':
-                                    if '.' in public_id:
-                                        public_id, fmt = public_id.rsplit('.', 1)
-                                    elif is_pdf:
-                                        fmt = 'pdf'
-                                else:
-                                    # Raw resource - ensure extension is part of ID
-                                    if is_pdf and not public_id.lower().endswith('.pdf'):
-                                        public_id = f"{public_id}.pdf"
-                                
-                                logger.info(f"Generating signed URL. ID: {public_id}, Type: {resource_type}, Format: {fmt}, Version: {version}")
-                                signed_url = cloudinary.utils.cloudinary_url(
-                                    public_id, 
-                                    sign_url=True, 
-                                    resource_type=resource_type,
-                                    version=version,
-                                    format=fmt,
-                                    secure=True
-                                )[0]
-                                logger.info(f"Using signed URL for retrieval: {signed_url}")
-                                file_url = signed_url
-                    except Exception as ce:
-                        logger.error(f"Failed to generate signed Cloudinary URL: {str(ce)}")
-
-                # Try the URL with CLEAN headers (no Auth token)
-                with requests.Session() as session:
-                    session.headers.clear()
-                    response = session.get(file_url, stream=True, timeout=30, headers=external_headers)
-                    
-                    # If it's a PDF and we got a 404, try appending .pdf
-                    if response.status_code == 404 and is_pdf and not file_url.lower().endswith('.pdf') and '?' not in file_url:
-                        alt_url = f"{file_url}.pdf"
-                        logger.info(f"Original URL 404ed, trying alternative PDF URL: {alt_url}")
-                        response = session.get(alt_url, stream=True, timeout=30, headers=external_headers)
-                        if response.status_code == 200:
-                            file_url = alt_url
-                
-                if response.status_code != 200:
-                    logger.error(f"External storage returned status {response.status_code} for {file_url}")
-                    # Log first 100 chars of response body for debugging
-                    try:
-                        error_body = response.content[:100].decode('utf-8', errors='ignore')
-                        logger.error(f"Storage error body: {error_body}")
-                    except:
-                        pass
-                        
-                    return Response({
-                        'detail': f'Error retrieving file from storage (Status: {response.status_code})',
-                        'storage_url': file_url if settings.DEBUG else 'hidden'
-                    }, status=status.HTTP_502_BAD_GATEWAY)
-                
-                proxy_response = StreamingHttpResponse(
-                    response.iter_content(chunk_size=8192),
-                    content_type=document.content_type or response.headers.get('Content-Type', 'application/octet-stream')
-                )
-            else:
-                # Local storage
-                file_handle = document.file.open('rb')
-                proxy_response = FileResponse(
-                    file_handle, 
-                    content_type=document.content_type or 'application/octet-stream'
-                )
-                
-            # Set headers to force download
+            # Set headers to force download and name the file correctly
             filename = document.original_filename or f"document_{document.id}"
-            # Ensure filename is safe and has extension if missing
+            # Ensure filename has extension if missing
             if '.' not in filename and document.content_type:
                 import mimetypes
                 ext = mimetypes.guess_extension(document.content_type)
@@ -301,9 +182,6 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
             
             return proxy_response
             
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error fetching file from storage for document {document.id}: {str(e)}")
-            return Response({'detail': 'Error retrieving file from storage.'}, status=status.HTTP_502_BAD_GATEWAY)
         except Exception as e:
             logger.error(f"Download error for document {document.id}: {str(e)}")
             return Response({'detail': f'Error processing download: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
