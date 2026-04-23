@@ -201,7 +201,6 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
                             public_id = None
                             
                             # Detect resource type strictly from the URL path.
-                            # Cloudinary URLs follow: /<resource_type>/<type>/v<version>/<public_id>
                             if '/raw/' in file_url:
                                 resource_type = 'raw'
                             elif '/video/' in file_url:
@@ -209,30 +208,36 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
                             else:
                                 resource_type = 'image'
                             
-                            # Matches anything after /upload/ (including version v123/)
-                            path_match = re.search(r'/upload/(?:v\d+/)?(.+)$', file_url)
+                            # Extract version if present (e.g., v12345678)
+                            version = None
+                            version_match = re.search(r'/v(\d+)/', file_url)
+                            if version_match:
+                                version = version_match.group(1)
+                            
+                            # Matches anything after /upload/ (or /private/, /authenticated/)
+                            path_match = re.search(r'/(?:upload|private|authenticated)/(?:v\d+/)?(.+)$', file_url)
                             if path_match:
                                 # Extract public_id from the path
                                 public_id = path_match.group(1)
                                 
                                 # Cloudinary signing quirk:
-                                # - For IMAGES: Strip the extension (e.g., 'sample.jpg' -> 'sample')
-                                # - For RAW: MUST HAVE the extension (e.g., 'sample.pdf' -> 'sample.pdf')
-                                if resource_type == 'image':
+                                # - For true images (JPG/PNG): Strip the extension
+                                # - For PDFs/Docs: MUST HAVE the extension for the signature to match
+                                if is_pdf:
+                                    # Ensure extension is present
+                                    if not public_id.lower().endswith('.pdf'):
+                                        public_id = f"{public_id}.pdf"
+                                elif resource_type == 'image':
+                                    # Strip extension for standard images
                                     if '.' in public_id:
                                         public_id = public_id.rsplit('.', 1)[0]
-                                else:
-                                    # For raw assets, ensure the extension from original_filename is present
-                                    if '.' not in public_id and document.original_filename:
-                                        ext = os.path.splitext(document.original_filename)[1]
-                                        if ext:
-                                            public_id = f"{public_id}{ext}"
                                 
-                                logger.info(f"Generating signed URL for Cloudinary public_id: {public_id} ({resource_type})")
+                                logger.info(f"Generating signed URL. ID: {public_id}, Type: {resource_type}, Version: {version}")
                                 signed_url = cloudinary.utils.cloudinary_url(
                                     public_id, 
                                     sign_url=True, 
                                     resource_type=resource_type,
+                                    version=version,
                                     secure=True
                                 )[0]
                                 logger.info(f"Using signed URL for retrieval: {signed_url}")
