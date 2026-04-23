@@ -116,8 +116,7 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
     def download(self, request, pk=None):
         """
         Securely download a document.
-        Step 1: Try public access (no auth).
-        Step 2: Fallback to Signed URL if 401/403.
+        Fix: Enforces .pdf extension to avoid Cloudinary on-the-fly transformation triggers (401 errors).
         """
         document = self.get_object()
         if not document.file:
@@ -125,68 +124,57 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
             
         try:
             file_url = document.file.url
-            is_pdf = document.original_filename and document.original_filename.lower().endswith('.pdf')
+            is_pdf = (document.original_filename and document.original_filename.lower().endswith('.pdf')) or \
+                     (document.file.name and document.file.name.lower().endswith('.pdf'))
+            
+            # CRITICAL FIX: If it's a PDF, Cloudinary MUST have the .pdf extension in the URL
+            # otherwise it attempts an on-the-fly image transformation which triggers 401/403.
+            if is_pdf and '.pdf' not in file_url.lower() and '?' not in file_url:
+                file_url = f"{file_url}.pdf"
+                logger.info(f"Fixed PDF URL for document {document.id}: {file_url}")
+
             headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) USC-PIS/1.0'}
             
             with requests.Session() as session:
                 session.headers.clear()
                 
-                # Step 1: Try public retrieval first (NO AUTH)
-                # Providing an Auth header to Cloudinary CDN often causes 401s
-                logger.info(f"Step 1: Attempting public retrieval for {document.id}")
+                # Fetch the file. Most Cloudinary files in /upload/ are public but require extension matching.
                 response = session.get(file_url, stream=True, timeout=30, headers=headers)
                 
-                # Step 1.1: Extension quirk check
-                if response.status_code == 404 and is_pdf and '.pdf' not in file_url:
-                    logger.info("404 on original URL, trying public fallback with .pdf extension")
-                    response = session.get(f"{file_url}.pdf", stream=True, timeout=30, headers=headers)
-
-                # Step 2: Fallback to SIGNED URL if public access is restricted (401/403)
+                # Fallback: If still restricted, try a simple signed URL as a last resort
                 if response.status_code in [401, 403] and settings.USE_CLOUDINARY and 'res.cloudinary.com' in file_url:
-                    logger.info(f"Step 2: Public access restricted ({response.status_code}), attempting signed URL retrieval")
+                    logger.info(f"Public access restricted ({response.status_code}), trying basic signed URL")
                     import cloudinary.utils
-                    
-                    # Robust extraction of public_id, resource_type, and version
-                    res_type = 'raw' if '/raw/' in file_url else 'image'
-                    # Matches /<type>/v<version>/<public_id>
-                    match = re.search(r'/(?:upload|private|authenticated)/(?:v(\d+)/)?(.+)$', file_url)
-                    
+                    # Get public_id by splitting the URL (everything after /upload/v123/)
+                    match = re.search(r'/upload/(?:v\d+/)?(.+)$', file_url)
                     if match:
-                        version = match.group(1)
-                        public_id = match.group(2)
-                        fmt = None
-                        
-                        # Cloudinary signing quirk for 'image' resource types
-                        if res_type == 'image':
-                            if '.' in public_id:
-                                public_id, fmt = public_id.rsplit('.', 1)
-                            elif is_pdf:
-                                fmt = 'pdf'
-                        else:
-                            # Raw needs extension in the ID
-                            if is_pdf and not public_id.lower().endswith('.pdf'):
-                                public_id = f"{public_id}.pdf"
-                        
+                        public_id = match.group(1)
+                        # Remove extension for signing if it's an image resource type
+                        if '/image/' in file_url and '.' in public_id:
+                            public_id = public_id.rsplit('.', 1)[0]
+                            
+                        res_type = 'raw' if '/raw/' in file_url else 'image'
                         signed_url = cloudinary.utils.cloudinary_url(
-                            public_id, sign_url=True, resource_type=res_type,
-                            version=version, format=fmt, secure=True
+                            public_id, sign_url=True, resource_type=res_type, secure=True
                         )[0]
-                        
-                        logger.info(f"Fetching signed URL: {signed_url}")
                         response = session.get(signed_url, stream=True, timeout=30, headers=headers)
 
-                # Final validation
                 if response.status_code != 200:
-                    logger.error(f"Retrieval failed with status {response.status_code}")
+                    logger.error(f"Retrieval failed for document {document.id} with status {response.status_code}")
                     return Response({'detail': f'Storage error: {response.status_code}'}, status=status.HTTP_502_BAD_GATEWAY)
 
-                # Step 3: Stream the response
+                # Stream the response
                 proxy_response = StreamingHttpResponse(
                     response.iter_content(chunk_size=8192),
                     content_type=document.content_type or response.headers.get('Content-Type', 'application/octet-stream')
                 )
                 
             filename = document.original_filename or f"document_{document.id}"
+            # Ensure filename has extension if missing
+            if '.' not in filename and document.content_type:
+                ext = mimetypes.guess_extension(document.content_type)
+                if ext: filename += ext
+
             proxy_response['Content-Disposition'] = f'attachment; filename="{filename}"'
             proxy_response['Access-Control-Expose-Headers'] = 'Content-Disposition'
             return proxy_response
