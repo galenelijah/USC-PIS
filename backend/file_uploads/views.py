@@ -145,43 +145,79 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
     def download(self, request, pk=None):
         """
         Securely download a document.
-        Uses the storage backend's open() method which handles authentication automatically.
         """
         document = self.get_object()
-        
-        # Security: get_object() already handles queryset filtering based on user permissions
         
         if not document.file:
             return Response({'detail': 'File not found'}, status=status.HTTP_404_NOT_FOUND)
             
         try:
-            logger.info(f"Opening file for document {document.id} using storage backend")
+            file_url = document.file.url
+            is_pdf = document.original_filename and document.original_filename.lower().endswith('.pdf')
             
-            # Use Django's built-in file opening logic. 
-            # If using CloudinaryStorage, this will fetch the file using API credentials automatically.
-            # If using FileSystemStorage (local), it will read from local disk.
-            file_handle = document.file.open('rb')
-            
-            # Create the response using FileResponse which is optimized for streaming
-            proxy_response = FileResponse(
-                file_handle, 
-                content_type=document.content_type or 'application/octet-stream'
-            )
+            # If it's a Cloudinary URL, we need to handle signing correctly
+            if 'res.cloudinary.com' in file_url and settings.USE_CLOUDINARY:
+                import cloudinary.utils
                 
-            # Set headers to force download and name the file correctly
-            filename = document.original_filename or f"document_{document.id}"
-            # Ensure filename has extension if missing
-            if '.' not in filename and document.content_type:
-                import mimetypes
-                ext = mimetypes.guess_extension(document.content_type)
-                if ext:
-                    filename += ext
+                # Cloudinary is picky. If a PDF is in /image/, it needs image signing.
+                # If it's in /raw/, it needs raw signing.
+                res_type = 'raw' if '/raw/' in file_url else 'image'
+                
+                # Extract public_id and version
+                path_match = re.search(r'/(?:upload|private|authenticated)/(?:v(\d+)/)?(.+)$', file_url)
+                if path_match:
+                    version = path_match.group(1)
+                    public_id = path_match.group(2)
+                    fmt = None
                     
+                    # Extension logic for signing
+                    if res_type == 'image':
+                        if '.' in public_id:
+                            public_id, fmt = public_id.rsplit('.', 1)
+                        elif is_pdf:
+                            fmt = 'pdf'
+                    else:
+                        # Raw assets need the extension in the ID
+                        if is_pdf and not public_id.lower().endswith('.pdf'):
+                            public_id = f"{public_id}.pdf"
+                    
+                    logger.info(f"Generating signature: ID={public_id}, Type={res_type}, Fmt={fmt}, Ver={version}")
+                    file_url = cloudinary.utils.cloudinary_url(
+                        public_id, 
+                        sign_url=True, 
+                        resource_type=res_type,
+                        version=version,
+                        format=fmt,
+                        secure=True
+                    )[0]
+
+            # Fetch and stream
+            headers = {'User-Agent': 'Mozilla/5.0'}
+            # Use a clean session to avoid Auth token leakage
+            with requests.Session() as session:
+                session.headers.clear()
+                response = session.get(file_url, stream=True, timeout=30, headers=headers)
+                
+                # 404 Fallback for PDFs (adding .pdf)
+                if response.status_code == 404 and is_pdf and '.pdf' not in file_url:
+                    response = session.get(f"{file_url}.pdf", stream=True, timeout=30, headers=headers)
+                
+                if response.status_code != 200:
+                    return Response({
+                        'detail': f'Storage error: {response.status_code}',
+                        'url': 'hidden'
+                    }, status=status.HTTP_502_BAD_GATEWAY)
+
+                proxy_response = StreamingHttpResponse(
+                    response.iter_content(chunk_size=8192),
+                    content_type=document.content_type or response.headers.get('Content-Type', 'application/octet-stream')
+                )
+                
+            filename = document.original_filename or f"document_{document.id}"
             proxy_response['Content-Disposition'] = f'attachment; filename="{filename}"'
             proxy_response['Access-Control-Expose-Headers'] = 'Content-Disposition'
-            
             return proxy_response
             
         except Exception as e:
-            logger.error(f"Download error for document {document.id}: {str(e)}")
-            return Response({'detail': f'Error processing download: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error(f"Download error: {str(e)}")
+            return Response({'detail': f'Error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
