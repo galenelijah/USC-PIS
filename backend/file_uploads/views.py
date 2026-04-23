@@ -6,6 +6,7 @@ from django.db import transaction
 from django.http import StreamingHttpResponse, FileResponse
 from django.conf import settings
 import requests
+import re
 from .models import UploadedFile, PatientDocument
 from .serializers import UploadedFileSerializer, PatientDocumentSerializer
 from .validators import FileSecurityValidator, FileIntegrityChecker, FilenameValidator
@@ -197,21 +198,18 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
                         # We generate a signed URL that expires in 1 hour
                         if 'res.cloudinary.com' in file_url:
                             public_id = None
-                            # Try to extract public_id from the path
+                            # Detect resource type from URL if possible
+                            resource_type = 'raw' if is_pdf or '/raw/' in file_url else 'image'
+                            
                             # Matches anything after /upload/ (including version v123/)
+                            # We need to strip the version (v12345678/) and the extension
                             path_match = re.search(r'/upload/(?:v\d+/)?(.+)$', file_url)
                             if path_match:
-                                # Extract public_id and handle extension
                                 public_id = path_match.group(1)
                                 
-                                # Cloudinary signing quirk: The public_id used for signing 
-                                # usually should NOT include the extension, even for raw files.
-                                # Example: 'patient_documents/abc.pdf' -> public_id is 'patient_documents/abc'
+                                # Remove extension if present
                                 if '.' in public_id:
                                     public_id = public_id.rsplit('.', 1)[0]
-                                
-                                # PDFs are 'raw' resource type in Cloudinary
-                                resource_type = 'raw' if is_pdf else 'image'
                                 
                                 logger.info(f"Generating signed URL for Cloudinary public_id: {public_id} ({resource_type})")
                                 signed_url = cloudinary.utils.cloudinary_url(
@@ -220,7 +218,7 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
                                     resource_type=resource_type,
                                     secure=True
                                 )[0]
-                                logger.info(f"Using signed URL for retrieval")
+                                logger.info(f"Using signed URL for retrieval: {signed_url}")
                                 file_url = signed_url
                     except Exception as ce:
                         logger.error(f"Failed to generate signed Cloudinary URL: {str(ce)}")
