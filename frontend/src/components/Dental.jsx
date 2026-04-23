@@ -262,6 +262,34 @@ const Dental = () => {
     }
   };
 
+  const handleDownloadDocument = async (doc) => {
+    try {
+      const response = await patientDocumentService.downloadDocument(doc.id);
+      
+      // Create blob link to download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Get filename from document if possible, otherwise use original_filename
+      const filename = doc.original_filename || `document_${doc.id}`;
+      link.setAttribute('download', filename);
+      
+      // Append to html link element page
+      document.body.appendChild(link);
+      
+      // Start download
+      link.click();
+      
+      // Clean up and remove the link
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      alert('Failed to download document. Please try again.');
+    }
+  };
+
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
@@ -1394,8 +1422,13 @@ const Dental = () => {
                                 {doc.document_type_display}
                               </Typography>
                             </Box>
-                            <Button size="small" href={doc.view_url || doc.file} target="_blank" sx={{ ml: 'auto' }}>
-                              View
+                            <Button 
+                              size="small" 
+                              onClick={() => handleDownloadDocument(doc)} 
+                              sx={{ ml: 'auto' }}
+                              startIcon={<DownloadIcon />}
+                            >
+                              Download
                             </Button>
                           </Paper>
                         </Grid>

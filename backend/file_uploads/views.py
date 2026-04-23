@@ -1,7 +1,10 @@
 from django.shortcuts import render
 from rest_framework import viewsets, permissions, parsers, status
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from django.db import transaction
+from django.http import StreamingHttpResponse, FileResponse
+import requests
 from .models import UploadedFile, PatientDocument
 from .serializers import UploadedFileSerializer, PatientDocumentSerializer
 from .validators import FileSecurityValidator, FileIntegrityChecker, FilenameValidator
@@ -149,3 +152,58 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(dental_record_id=dental_record)
             
         return queryset
+
+    @action(detail=True, methods=['get'])
+    def download(self, request, pk=None):
+        """
+        Securely download a document by proxying the request to the storage backend (e.g. Cloudinary).
+        Forces download with Content-Disposition header.
+        """
+        document = self.get_object()
+        
+        # Security: get_object() already handles queryset filtering based on user permissions
+        
+        if not document.file:
+            return Response({'detail': 'File not found'}, status=status.HTTP_404_NOT_FOUND)
+            
+        file_url = document.file.url
+        
+        try:
+            # Determine if we should proxy from external URL or serve local file
+            if file_url.startswith('http'):
+                # Proxy from Cloudinary/S3
+                response = requests.get(file_url, stream=True, timeout=30)
+                response.raise_for_status()
+                
+                proxy_response = StreamingHttpResponse(
+                    response.iter_content(chunk_size=8192),
+                    content_type=document.content_type or response.headers.get('Content-Type', 'application/octet-stream')
+                )
+            else:
+                # Local storage
+                file_handle = document.file.open('rb')
+                proxy_response = FileResponse(
+                    file_handle, 
+                    content_type=document.content_type or 'application/octet-stream'
+                )
+                
+            # Set headers to force download
+            filename = document.original_filename or f"document_{document.id}"
+            # Ensure filename is safe and has extension if missing
+            if '.' not in filename and document.content_type:
+                import mimetypes
+                ext = mimetypes.guess_extension(document.content_type)
+                if ext:
+                    filename += ext
+                    
+            proxy_response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            proxy_response['Access-Control-Expose-Headers'] = 'Content-Disposition'
+            
+            return proxy_response
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error fetching file from storage for document {document.id}: {str(e)}")
+            return Response({'detail': 'Error retrieving file from storage.'}, status=status.HTTP_502_BAD_GATEWAY)
+        except Exception as e:
+            logger.error(f"Download error for document {document.id}: {str(e)}")
+            return Response({'detail': f'Error processing download: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

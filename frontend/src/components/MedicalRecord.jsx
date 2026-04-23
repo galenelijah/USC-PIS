@@ -7,6 +7,7 @@ import {
     Favorite as FavoriteIcon,
     MedicalServices as MedicalServicesIcon,
     Assignment as AssignmentIcon,
+    GetApp as DownloadIcon,
 } from "@mui/icons-material";
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -69,6 +70,24 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
     // Attachments state
     const [attachments, setAttachments] = useState([]);
     const [openUploadDialog, setOpenUploadDialog] = useState(false);
+
+    const handleDownloadDocument = async (doc) => {
+        try {
+            const response = await patientDocumentService.downloadDocument(doc.id);
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            const filename = doc.original_filename || `document_${doc.id}`;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Error downloading document:', error);
+            alert('Failed to download document. Please try again.');
+        }
+    };
 
     const user = useSelector(state => state.auth.user);
     const isStaffOrMedical = user?.role && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
@@ -675,8 +694,13 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                                                                 {doc.document_type_display}
                                                             </Typography>
                                                         </Box>
-                                                        <Button size="small" href={doc.view_url || doc.file} target="_blank" sx={{ ml: 'auto' }}>
-                                                            View
+                                                        <Button 
+                                                            size="small" 
+                                                            onClick={() => handleDownloadDocument(doc)} 
+                                                            sx={{ ml: 'auto' }}
+                                                            startIcon={<DownloadIcon />}
+                                                        >
+                                                            Download
                                                         </Button>
                                                     </Paper>
                                                 </Grid>

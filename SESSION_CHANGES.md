@@ -183,10 +183,25 @@ This entry documents the stabilization of the File Upload System and fixes for M
 - `frontend/src/components/MedicalHistoryPage.jsx`
   - Fixed a critical "map is not a function" crash by adding robust array validation and fallbacks for all clinical record streams.
 - `backend/backend/settings.py` & `backend/backend/middleware.py`
-  - Hardened and fixed Content Security Policy (CSP) to allow loading/embedding PDFs and other media from Cloudinary.
-  - Adjusted `X-Frame-Options` to `SAMEORIGIN` to support PDF viewing while maintaining protection against clickjacking.
+  - Hardened and synchronized Content Security Policy (CSP) to allow loading and embedding PDFs/media from Cloudinary using `blob:` and `data:` sources.
+  - Adjusted `X_FRAME_OPTIONS` to `SAMEORIGIN` to support secure PDF viewing.
+  - Configured `CLOUDINARY_STORAGE` with `RESOURCE_TYPES` to ensure non-image files are handled correctly.
+- `backend/file_uploads/serializers.py`
+  - Implemented a new `view_url` field in `PatientDocumentSerializer` that automatically appends `.pdf` extensions to Cloudinary URLs, fixing browser rendering issues.
+- `frontend/src/components/MedicalRecord.jsx` & `frontend/src/components/Dental.jsx`
+  - Streamlined record creation by moving uploads to a post-save workflow, preventing race conditions.
+  - Fixed a critical record-linking bug by ensuring the parent record ID is correctly passed to the upload dialog.
+  - Updated all "View" buttons to use the new browser-safe `view_url`.
 
 ## Documentation
+- Created `FILE_UPLOAD_SYSTEM_STATUS.md` as the definitive guide for the cloud storage architecture.
+- Updated `CAMPAIGN_IMAGE_UPLOAD_FIX.md` for Cloudinary-exclusive requirements.
+- Updated `4-22-2026_SYSTEM_STATUS_REPORT.md` and `4-22-2026_SESSION_SUMMARY.md`.
+
+## Rationale
+- **Stability**: The "Save then Attach" workflow removes complex race conditions that previously led to data loss.
+- **Security**: The refined CSP allows modern PDF features while blocking external clickjacking.
+- **UX**: Consolidating clinical files into a single "Document Archive" simplifies the staff workflow and prevents data duplication.
 - Created `FILE_UPLOAD_SYSTEM_STATUS.md` as a comprehensive guide to the current storage architecture.
 - Updated `CAMPAIGN_IMAGE_UPLOAD_FIX.md` to emphasize Cloudinary-exclusive requirements.
 - Archived outdated campaign fix notes to `docs/history/`.

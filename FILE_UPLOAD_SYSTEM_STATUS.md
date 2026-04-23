@@ -3,59 +3,45 @@
 **Last Updated: April 22, 2026**
 
 ## **Overview**
-The USC-PIS file upload system has been stabilized and optimized for production deployment on Heroku using Cloudinary for permanent storage. This document summarizes the recent fixes and the current architecture.
+The USC-PIS file upload system has been fully stabilized and optimized for production deployment on Heroku. The system follows a **Cloud-First Persistence** model, using Cloudinary as the exclusive storage provider for all clinical and administrative media.
 
-## **Recent Fixes (April 22, 2026)**
+## **Architecture & Security**
 
-### 1. **Persistent Campaign Media**
-- **Issue**: Campaign creation was failing or skipping images when Cloudinary wasn't perfectly configured.
-- **Fix**: Re-aligned the `HealthCampaignCreateUpdateSerializer` to use standard Django storage patterns. 
-- **Persistence**: Explicitly removed local storage fallbacks for campaigns to prevent data loss on Heroku's ephemeral filesystem. All campaign media now goes directly to **Cloudinary**.
+### **1. Storage Layer (Cloudinary)**
+- **Exclusive Provider**: All files (Campaign Images, X-rays, Scanned Documents, PDFs) are stored on Cloudinary.
+- **Heroku Integration**: Standard local storage fallbacks have been removed to ensure files are never saved to Heroku's ephemeral disk (which wipes files daily).
+- **Resource Types**: The system is explicitly configured in `settings.py` to handle `image`, `raw`, and `video` formats.
 
-### 2. **Patient Document API Correction**
-- **Issue**: The frontend was hitting `/api/file-uploads/patient-documents/`, but the backend was listening on `/api/files/patient-documents/`.
-- **Fix**: Synchronized the frontend `patientDocumentService` to use the correct backend route.
-- **Result**: Patient document uploads are now fully functional and correctly linked to patient profiles.
+### **2. Security Layer (CSP)**
+- **Content Security Policy**: Hardened to allow only trusted sources.
+- **PDF Compatibility**: Explicitly allows `blob:`, `data:`, and `https://res.cloudinary.com` to support modern browser PDF rendering.
+- **Protection**: `X_FRAME_OPTIONS` is set to `SAMEORIGIN`, preventing external clickjacking while allowing the app to display its own Cloudinary-hosted documents in frames/previews.
 
-### 3. **Expanded Professional File Support**
-- **Issue**: Security validation was too restrictive, blocking common professional files like Excel and PowerPoint.
-- **Fix**: Updated `FileSecurityValidator` to allow the following formats:
-    - **Documents**: `.pdf`, `.doc`, `.docx`, `.txt`, `.rtf`, `.odt`
-    - **Spreadsheets**: `.xls`, `.xlsx`, `.csv`, `.ods`
-    - **Presentations**: `.ppt`, `.pptx`, `.odp`
-    - **Images**: `.jpg`, `.jpeg`, `.png`, `.gif`, `.bmp`, `.webp`
-- **Security**: Added robust MIME type detection and consistency checks to ensure only safe files are processed.
+### **3. Validation Layer**
+- **Signature Detection**: The `FileSecurityValidator` uses binary header checking (`%PDF`) to identify PDFs, providing a more robust check than simple extension matching.
+- **MIME Expansion**: Full support for professional formats including `.xlsx`, `.pptx`, `.docx`, and various PDF variants.
 
-## **System Architecture**
+## **Clinical Workflows**
 
-### **Storage Backend (Cloudinary)**
-- **Configuration**: Managed in `backend/backend/settings.py` via the `STORAGES` dictionary.
-- **Scope**: All user-uploaded content (Campaign images, Patient documents, Health Info images) is stored externally on Cloudinary.
-- **Heroku Compatibility**: This architecture is mandatory for Heroku, as any file saved to the local Heroku disk is deleted within 24 hours.
+### **The "Save then Attach" Workflow**
+To prevent data race conditions and ensure 100% database integrity, the clinical forms (Medical/Dental) follow a two-step process:
+1.  **Step 1**: Create and save the clinical record (Diagnosis, Treatment, etc.).
+2.  **Step 2**: Attach supporting documents using the **Upload** icon in the record list or the **Document Archive**.
 
-### **Validation Layer**
-- **Location**: `backend/file_uploads/validators.py`
-- **Functions**: 
-    - Filename sanitization (removes dangerous characters).
-    - File size limits (default 25MB, images 10MB).
-    - Content-type verification (checks actual file bytes, not just extensions).
-    - Dangerous extension blocking (`.exe`, `.sh`, `.php`, etc.).
+### **Centralized Document Archive**
+- **Location**: `/health-insights` (Document Archive tab).
+- **Function**: A unified repository for all patient documents across all clinical visits. 
+- **Linking**: Every upload is automatically linked to its specific Medical or Dental record via **Migration 0004**.
 
-## **Maintenance & Troubleshooting**
+## **Technical Reference**
 
-### **Verifying Cloudinary Connection**
-If images stop loading:
-1. Check Heroku Config Vars: `USE_CLOUDINARY` must be `True`.
-2. Verify API Credentials: `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` must match your Cloudinary dashboard.
+| Feature | Logic Location |
+| :--- | :--- |
+| **Storage Config** | `backend/backend/settings.py` |
+| **Security Headers** | `backend/backend/middleware.py` |
+| **File Logic** | `backend/file_uploads/validators.py` |
+| **PDF URL Fix** | `backend/file_uploads/serializers.py` (`view_url`) |
+| **Linking Logic** | `frontend/src/components/HealthRecords.jsx` & `Dental.jsx` |
 
-### **Restoring Broken References**
-If deployment causes existing image references to break, run:
-```bash
-heroku run python manage.py restore_campaign_images
-```
-
-## **File Reference Summary**
-- **Backend Settings**: `backend/backend/settings.py`
-- **Validators**: `backend/file_uploads/validators.py`
-- **Campaign Logic**: `backend/health_info/serializers.py`
-- **Frontend Service**: `frontend/src/services/api.js`
+---
+*Generated for USC-PIS System Stabilization*

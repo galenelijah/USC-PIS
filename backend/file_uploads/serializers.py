@@ -42,12 +42,14 @@ class PatientDocumentSerializer(serializers.ModelSerializer):
     uploaded_by_name = serializers.SerializerMethodField()
     patient_name = serializers.SerializerMethodField()
     document_type_display = serializers.CharField(source='get_document_type_display', read_only=True)
-    view_url = serializers.SerializerMethodField()
+    download_url = serializers.SerializerMethodField()
+    # File is write-only to prevent leaking direct Cloudinary URLs in GET responses
+    file = serializers.FileField(write_only=True)
 
     class Meta:
         model = PatientDocument
         fields = [
-            'id', 'patient', 'patient_name', 'file', 'view_url', 'original_filename',
+            'id', 'patient', 'patient_name', 'file', 'download_url', 'original_filename',
             'document_type', 'document_type_display', 'other_type',
             'description', 'uploaded_by', 'uploaded_by_name',
             'uploaded_at', 'file_size', 'content_type',
@@ -56,21 +58,13 @@ class PatientDocumentSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'uploaded_by', 'uploaded_at', 'content_type',
             'file_size', 'original_filename', 'uploaded_by_name',
-            'patient_name', 'document_type_display', 'view_url'
+            'patient_name', 'document_type_display', 'download_url'
         ]
 
-    def get_view_url(self, obj):
-        if not obj.file:
+    def get_download_url(self, obj):
+        if not obj.id:
             return None
-            
-        url = obj.file.url
-        # If it's a PDF and doesn't end with .pdf, append it (needed for Cloudinary 'raw' assets)
-        if obj.original_filename and obj.original_filename.lower().endswith('.pdf'):
-            if not url.lower().endswith('.pdf'):
-                # Cloudinary URLs might have versioning /v12345/
-                # We append .pdf to help the browser recognize the type
-                return f"{url}.pdf"
-        return url
+        return f"/api/files/patient-documents/{obj.id}/download/"
 
     def get_uploaded_by_name(self, obj):
         if obj.uploaded_by:

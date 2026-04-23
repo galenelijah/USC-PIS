@@ -45,6 +45,7 @@ import {
   Assignment as DiagnosisIcon,
   Description as NotesIcon,
   Print as PrintIcon,
+  Download as DownloadIcon,
   GetApp as ExportIcon,
   Favorite as VitalIcon,
   Edit as EditIcon,
@@ -93,6 +94,24 @@ const MedicalHistoryPage = () => {
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingDocs, setLoadingDocs] = useState(false);
+
+  const handleDownloadDocument = async (doc) => {
+    try {
+      const response = await patientDocumentService.downloadDocument(doc.id);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const filename = doc.original_filename || `document_${doc.id}`;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      alert('Failed to download document. Please try again.');
+    }
+  };
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -1461,15 +1480,14 @@ const MedicalHistoryPage = () => {
                           </Typography>
                         </TableCell>
                         <TableCell align="right">
-                          <Button 
-                            size="small" 
+                          <Button
+                            size="small"
                             variant="outlined"
-                            startIcon={<FileIcon />} 
-                            onClick={() => window.open(doc.view_url || doc.file, '_blank')}
+                            startIcon={<DownloadIcon />}
+                            onClick={() => handleDownloadDocument(doc)}
                           >
-                            View
-                          </Button>
-                        </TableCell>
+                            Download
+                          </Button>                        </TableCell>
                       </TableRow>
                     ))
                   ) : (

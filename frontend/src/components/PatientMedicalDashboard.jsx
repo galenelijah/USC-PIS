@@ -26,8 +26,10 @@ import {
   Badge,
   AttachFile as AttachmentIcon,
   FileOpen as FileIcon,
+  GetApp as DownloadIcon,
 } from "@mui/icons-material";
 import { useSelector } from 'react-redux';
+import dayjs from 'dayjs';
 import { selectCurrentUser } from '../features/authentication/authSlice';
 import { 
   getSexLabel, 
@@ -58,6 +60,24 @@ const PatientMedicalDashboard = () => {
   const [medicalRecords, setMedicalRecords] = useState([]);
   const [latestVitalSigns, setLatestVitalSigns] = useState({});
   const [documents, setDocuments] = useState([]);
+
+  const handleDownloadDocument = async (doc) => {
+    try {
+      const response = await patientDocumentService.downloadDocument(doc.id);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const filename = doc.original_filename || `document_${doc.id}`;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      alert('Failed to download document. Please try again.');
+    }
+  };
 
   // Fetch medical records to get vital signs
   useEffect(() => {
@@ -638,9 +658,10 @@ const PatientMedicalDashboard = () => {
                         <Button 
                           size="small" 
                           variant="outlined"
-                          onClick={() => window.open(doc.file, '_blank')}
+                          onClick={() => handleDownloadDocument(doc)}
+                          startIcon={<DownloadIcon />}
                         >
-                          View
+                          Download
                         </Button>
                       </Paper>
                     </Grid>

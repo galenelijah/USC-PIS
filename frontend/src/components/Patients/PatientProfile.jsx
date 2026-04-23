@@ -42,7 +42,8 @@ import {
   Close as CloseIcon,
   Badge,
   School,
-  Public
+  Public,
+  GetApp as DownloadIcon
 } from "@mui/icons-material";
 import { 
   getSexLabel, 
@@ -179,6 +180,24 @@ const PatientProfile = ({ patient: partialPatient, onBack }) => {
   const closeDialog = () => {
     setDialogOpen(false);
     setSelectedRecord(null);
+  };
+
+  const handleDownloadDocument = async (doc) => {
+    try {
+      const response = await patientDocumentService.downloadDocument(doc.id);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const filename = doc.original_filename || `document_${doc.id}`;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      alert('Failed to download document. Please try again.');
+    }
   };
 
   const getRecordSummary = (record) => {
@@ -632,11 +651,10 @@ const PatientProfile = ({ patient: partialPatient, onBack }) => {
                         variant="contained" 
                         color="primary" 
                         fullWidth 
-                        href={selectedRecord.file} 
-                        target="_blank"
-                        startIcon={<Public />}
+                        onClick={() => handleDownloadDocument(selectedRecord)} 
+                        startIcon={<DownloadIcon />}
                       >
-                        View / Download Document
+                        Download Document
                       </Button>
                     </Box>
                   </>

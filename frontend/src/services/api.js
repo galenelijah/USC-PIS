@@ -1929,6 +1929,13 @@ export const patientDocumentService = {
   // Get document details
   getDocumentDetails: (id) => {
     return api.get(`/files/patient-documents/${id}/`);
+  },
+
+  // Download document (Secure proxy)
+  downloadDocument: (id) => {
+    return api.get(`/files/patient-documents/${id}/download/`, {
+      responseType: 'blob'
+    });
   }
 };
 
