@@ -109,6 +109,7 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
         defaultValues: {
             patient: '',
             visit_date: dayjs().format(),
+            concern: '',
             diagnosis: '',
             treatment: '',
             notes: '',
@@ -193,6 +194,7 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
         reset({
             patient: '',
             visit_date: dayjs().format(),
+            concern: '',
             diagnosis: '',
             treatment: '',
             notes: '',
@@ -730,12 +732,12 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                         <Divider sx={{ mb: 3 }} />
                         <Grid container spacing={3}>
                             {[
+                                { name: 'concern', label: "Student's Concern / Reason for Visit", rows: 3, required: true },
                                 { name: 'diagnosis', label: 'Diagnosis', rows: 4, required: true },
                                 { name: 'treatment', label: 'Treatment Plan', rows: 4, required: false },
                                 { name: 'notes', label: 'Additional Notes', rows: 3, required: false }
                             ].map((f) => (
-                                <Grid item xs={12} key={f.name}>
-                                    {readOnly ? (
+                                <Grid item xs={12} key={f.name}>                                    {readOnly ? (
                                         <DisplayField label={f.label} value={watch(f.name)} multiline rows={f.rows} />
                                     ) : (
                                         <Controller

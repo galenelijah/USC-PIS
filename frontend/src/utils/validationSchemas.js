@@ -149,6 +149,7 @@ export const registerSchema = yup.object().shape({
 export const medicalRecordSchema = yup.object().shape({
   patient: commonValidation.requiredText('Patient selection'),
   visit_date: yup.date().required('Visit date is required').nullable().typeError('Invalid date format'),
+  concern: commonValidation.requiredText("Student's concern"),
   diagnosis: commonValidation.requiredText('Diagnosis'),
   treatment: yup.string().nullable(),
   notes: yup.string().nullable(),

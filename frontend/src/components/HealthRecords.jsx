@@ -550,6 +550,7 @@ Treatment: ${r.treatment || 'N/A'}
       'Patient ID': record.patient_id || 'N/A',
       'USC ID': record.patient_usc_id || 'N/A',
       'Clinical Diagnosis': record.diagnosis || 'No diagnosis',
+      'Concern': record.concern || 'Not specified',
       'Treatment': record.treatment || 'No treatment',
       'Clinical Notes': record.notes || 'No additional notes',
       'Created Date': dayjs(record.created_at).format('YYYY-MM-DD HH:mm'),
@@ -601,6 +602,7 @@ Treatment: ${r.treatment || 'N/A'}
       'Patient ID': record.patient_id || '',
       'USC ID': record.patient_usc_id || '',
       'Diagnosis': record.diagnosis || '',
+      'Concern': record.concern || '',
       'Treatment': record.treatment || '',
       'Notes': record.notes || '',
       'Created': record.created_at,
@@ -876,17 +878,9 @@ Treatment: ${r.treatment || 'N/A'}
               size="small"
             >
               Generate Reports
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<LaunchIcon />}
-              onClick={() => window.open('/patient-dashboard', '_blank')}
-              size="small"
-            >
-              Patient Dashboard
-            </Button>
-            
-            {/* Export Actions */}
+              </Button>
+
+              {/* Export Actions */}
             <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
               <Button
                 variant="outlined"
@@ -988,25 +982,10 @@ Treatment: ${r.treatment || 'N/A'}
               Generate Report
             </Button>
             <Button
-              variant="outlined"
-              startIcon={<TemplateIcon />}
-              onClick={() => setOpenTemplateDialog(true)}
-              sx={{ 
-                borderColor: '#667eea',
-                color: '#667eea',
-                '&:hover': {
-                  borderColor: '#5a6fd8',
-                  backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                }
-              }}
-            >
-              Use Template
-            </Button>
-            <Button
               variant="contained"
               startIcon={<AddIcon />}
               onClick={handleOpenCreateDialog}
-              sx={{ 
+              sx={{
                 background: 'linear-gradient(45deg, #667eea 30%, #764ba2 90%)',
                 '&:hover': {
                   background: 'linear-gradient(45deg, #5a6fd8 30%, #6a4190 90%)',
@@ -1014,8 +993,7 @@ Treatment: ${r.treatment || 'N/A'}
               }}
             >
               New Clinical Record
-            </Button>
-          </Box>
+            </Button>          </Box>
         )}
       </Box>
 
@@ -1042,6 +1020,7 @@ Treatment: ${r.treatment || 'N/A'}
               <TableCell>Date</TableCell>
               <TableCell>Patient</TableCell>
               <TableCell>ID Number</TableCell>
+              <TableCell>Concern</TableCell>
               <TableCell>Diagnosis</TableCell>
               <TableCell>Treatment</TableCell>
               <TableCell align="right">Actions</TableCell>
@@ -1063,6 +1042,7 @@ Treatment: ${r.treatment || 'N/A'}
                       </Typography>
                     </TableCell>
                     
+                    <TableCell>{record.concern || 'N/A'}</TableCell>
                     <TableCell>{record.diagnosis || 'No diagnosis'}</TableCell>
                     <TableCell>{record.treatment || 'No treatment'}</TableCell>
                     <TableCell align="right">

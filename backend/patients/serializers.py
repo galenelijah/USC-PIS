@@ -8,7 +8,7 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = MedicalRecord
-        fields = ['id', 'patient', 'patient_name', 'patient_usc_id', 'visit_date', 'diagnosis', 'treatment', 'notes', 'vital_signs', 'physical_examination', 'created_at', 'updated_at', 'created_by']
+        fields = ['id', 'patient', 'patient_name', 'patient_usc_id', 'visit_date', 'concern', 'diagnosis', 'treatment', 'notes', 'vital_signs', 'physical_examination', 'created_at', 'updated_at', 'created_by']
         read_only_fields = ['created_at', 'updated_at', 'created_by', 'patient_name', 'patient_usc_id']
     
     def get_patient_name(self, obj):

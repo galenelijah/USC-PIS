@@ -54,6 +54,7 @@ class Patient(models.Model):
 class MedicalRecord(models.Model):
     patient = models.ForeignKey(Patient, related_name='medical_records', on_delete=models.CASCADE)
     visit_date = models.DateTimeField()
+    concern = models.TextField(help_text="Reason for visit / Chief complaint", default="")
     diagnosis = models.TextField()
     treatment = models.TextField()
     notes = models.TextField(blank=True)

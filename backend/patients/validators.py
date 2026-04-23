@@ -347,6 +347,15 @@ class MedicalRecordValidator:
         else:
             errors.append("Visit date is required")
         
+        # Concern / Reason for visit validation
+        concern = data.get('concern', '').strip()
+        if not concern:
+            errors.append("Student's concern / reason for visit is required")
+        elif len(concern) < 3:
+            errors.append("Concern must be at least 3 characters")
+        elif len(concern) > 1000:
+            errors.append("Concern cannot exceed 1000 characters")
+
         # Diagnosis validation
         diagnosis = data.get('diagnosis', '').strip()
         if not diagnosis:

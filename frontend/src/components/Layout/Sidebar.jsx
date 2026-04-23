@@ -28,15 +28,14 @@ import {
   Assessment as ReportsIcon,
   Email as EmailIcon,
   AdminPanelSettings as UserManagementIcon,
+  Insights as InsightsIcon,
+  Assignment as AssignmentIcon,
+  CleanHands as DentalIcon,
+  Description as CertificateIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout, logoutUser } from '../../features/authentication/authSlice';
-
-// Custom Dental Icon Component
-const DentalIcon = () => (
-  <LocalHospitalIcon />
-);
 
 const drawerWidth = 240;
 
@@ -93,17 +92,17 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
   const patientItems = [
     { text: 'Patients', icon: <PeopleIcon />, path: '/patients', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'] },
     { text: 'Patient Medical Dashboard', icon: <MedicalInformationIcon />, path: '/patient-dashboard' },
-    { text: 'Health Insights & History', icon: <LocalHospitalIcon />, path: '/health-insights', description: 'Visual health timeline, trends, and chronological history of all medical events' },
+    { text: 'Health Insights & History', icon: <InsightsIcon />, path: '/health-insights', description: 'Visual health timeline, trends, and chronological history of all medical events' },
     {
       text: ['STUDENT', 'TEACHER'].includes(user?.role) ? 'My Health Records' : 'Medical Records (Manage)',
-      icon: <LocalHospitalIcon />,
+      icon: <AssignmentIcon />,
       path: '/health-records',
       description: ['STUDENT', 'TEACHER'].includes(user?.role)
         ? 'Detailed visit logs, clinic records, and specific medical documents'
         : 'Create and manage specific medical visit records and documentation'
     },
     { text: 'Dental Consultations', icon: <DentalIcon />, path: '/dental-records', description: 'Manage dental consultations and oral health assessments' },
-    { text: 'Medical Certificates', icon: <MedicalInformationIcon />, path: '/medical-certificates', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE', 'STUDENT'] },
+    { text: 'Medical Certificates', icon: <CertificateIcon />, path: '/medical-certificates', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE', 'STUDENT'] },
   ];
 
   const infoItems = [
