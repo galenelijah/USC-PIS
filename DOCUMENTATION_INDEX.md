@@ -150,7 +150,14 @@ USC-PIS/
 - [x] **Verification Tools**: Automated checking and validation
 - [x] **Management Commands**: Administrative utilities ready
 
-### 📈 Latest Updates (Sept 9, 2025)
+### 📈 Latest Updates (April 24, 2026)
+- **Full Stabilization**: Resolved critical UI crashes in patient profiles by implementing polymorphic API response handling.
+- **Privacy Hardening**: Standardized clinical record views to prevent unauthorized document access from summary timelines.
+- **Medical Certificates**: Aligned digital certificates with official USC Form ACA-HSD-04F, consolidating clinical remarks and making non-critical fields optional.
+- **Document Management**: Enabled full file lifecycle (Upload, Download, Delete) directly within clinical consultation views for medical staff.
+- **Search Logic**: Enhanced search engine to handle complex multi-word statuses (e.g., "not fit") and full patient names.
+
+### Previous Updates (Sept 9, 2025)
 - Student Campaigns: `/campaigns` now routes students to a polished card view with a one-click full-page preview at `/campaigns/:id`.
 - Content Rendering: Campaign content renders as HTML when present; plain text is formatted for readability.
 - Icons/Manifest: Replaced Vite icon with a neutral favicon; manifest updated to `favicon.svg` and `/static/` paths.

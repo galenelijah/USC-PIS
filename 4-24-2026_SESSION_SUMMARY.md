@@ -32,10 +32,16 @@ The primary focus of this session was to resolve a critical UI crash on the pati
     - Ensured labels remain intuitive (keeping "Purpose/Requirement" while removing the strict requirement for drafts).
 - **Impact:** Aligned the digital certificate process with the official USC Clinic Template (Form ACA-HSD-04F), reducing data entry friction for medical staff.
 
-### **6. Medical Certificate List Privacy**
+### **6. Medical Certificate List Privacy & Search**
 - **File:** `frontend/src/components/MedicalCertificates/MedicalCertificateList.jsx`
-- **Change:** Removed the `fitness_reason` preview from both the desktop table and mobile card views.
-- **Impact:** Users are now required to click the "View" button to see the detailed reason for a "Not Fit" or rejected status, improving privacy in the general list view.
+- **Privacy:** Removed the `fitness_reason` preview from list views; users must click "View" to see rejection reasons.
+- **Search:** Enhanced the search engine to handle multi-word statuses (e.g., finding "not_fit" records when searching for "not fit").
+
+### **7. Critical Bug Fixes & Build Stability**
+- **Build Resolution:** Fixed a `pre-receive hook declined` error by resolving malformed JSX (missing `</Box>`) and duplicate `DeleteIcon` imports in `Dental.jsx`.
+- **Reference Errors:** Resolved `IconButton` and `Tooltip` definition errors in `MedicalRecord.jsx` and replaced undefined `isMedicalStaff` variables with established `canEdit` logic.
+- **Logic Refactoring:** Fixed a crash during dental file deletion by extracting nested logic into a reusable `fetchRecordAttachments` function.
+- **Secure Downloads:** Updated the "Unified History" in `MedicalHistoryPage.jsx` to use secure backend-proxied downloads for grouped attachment chips, preventing raw JSON views.
 
 ## **Technical Challenges Overcome**
 - **API Response Consistency:** Addressed the inconsistency between paginated and non-paginated ViewSets by implementing defensive data extraction logic in the frontend.

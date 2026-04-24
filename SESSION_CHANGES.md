@@ -1,5 +1,49 @@
 ---
 
+# Session Changes (2026-04-24)
+
+This entry documents system stabilization, privacy hardening, and administrative streamlining.
+
+## Key Accomplishments
+- **Stabilization & Crash Prevention**:
+  - Resolved a critical UI crash on the patient profile page by implementing a defensive `getResults` helper that handles both direct arrays and paginated API responses.
+  - Disabled pagination for `PatientDocumentViewSet` in the backend for consistency across clinical record endpoints.
+- **Document Management Lifecycle**:
+  - Implemented **In-Record Deletion** for attachments directly within Medical and Dental consultation views, allowing staff to manage files without leaving the clinical context.
+  - Fixed a `ReferenceError` in the Dental component by extracting attachment refreshing into a reusable `fetchRecordAttachments` function.
+- **Privacy & Security**:
+  - Made document records in the "Health Insights" timeline non-interactive to prevent unauthorized viewing from the summary view.
+  - Transitioned all clinical attachments to use **Secure Backend-Proxied Downloads**, ensuring files are never exposed via public CDN links.
+- **Medical Certificate Workflow (USC Alignment)**:
+  - Consolidated "Recommendations" and "Additional Notes" into a single, optional **"Remarks / Recommendations"** field to match official USC Clinic forms (Form ACA-HSD-04F).
+  - Standardized on **"Purpose/Requirement"** terminology across the system.
+  - Removed "Not Fit" reason previews from the general list view to enhance patient privacy.
+  - Improved search logic to handle spaces and underscores interchangeably (e.g., finding "not_fit" by searching "not fit").
+- **UI Simplification**:
+  - Removed the redundant "Email Campaigns" tab from the Email Administration page.
+
+## Modified Files
+- `backend/file_uploads/views.py`: Disabled pagination for patient documents.
+- `backend/medical_certificates/models.py`: Made core fields optional for draft flexibility.
+- `frontend/src/components/Patients/PatientProfile.jsx`: Added defensive data handling and deletion UI.
+- `frontend/src/components/MedicalRecord.jsx`: Enabled attachment deletion and fixed missing MUI imports.
+- `frontend/src/components/Dental.jsx`: Fixed malformed JSX, duplicate imports, and extracted refresh logic.
+- `frontend/src/components/MedicalHistoryPage.jsx`: Secured grouped attachment downloads and hardened privacy.
+- `frontend/src/components/MedicalCertificates/MedicalCertificateList.jsx`: Enhanced search engine and privacy filters.
+- `frontend/src/components/EmailAdministration.jsx`: Simplified tab structure and refresh logic.
+
+## Rationale
+- **Stability**: Defensive frontend patterns prevent white-screen crashes caused by API response variations.
+- **Efficiency**: Staff can now perform all document management tasks (Upload, Download, Delete) from a single view.
+- **Compliance**: Aligning the digital medical certificate with the physical clinic form reduces training overhead and ensures data consistency.
+
+## Verify Quickly
+- **Patient Profile**: Click on any patient and verify the profile loads without errors.
+- **Deletion**: Open a medical record, delete an attachment, and confirm it disappears immediately from the list.
+- **Search**: Search for "not fit" in the medical certificates page and verify that rejected records are found.
+
+---
+
 # Session Changes (2026-04-11)
 
 This entry documents the final system integrity audit, architectural hardening, and manuscript preparation.

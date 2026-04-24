@@ -4,17 +4,18 @@
 [![Version](https://img.shields.io/badge/Version-April%202026-blue)]()
 [![Users](https://img.shields.io/badge/Active%20Users-12-green)]()
 
-## 🆕 Latest Updates (April 9, 2026)
+## 🆕 Latest Updates (April 24, 2026)
 
 ### **✅ Major System Achievements**
+- **✅ Full System Stabilization**: Resolved all critical UI crashes across patient profiles and dashboards.
+- **✅ Privacy & Hardened Security**: Restricted clinical document viewing from general summary timelines and transitioned to **Secure Backend-Proxied Downloads**.
+- **✅ In-Record Document Management**: Staff can now **Delete** clinical attachments directly within the Medical and Dental record views.
+- **✅ Simplified Email Administration**: Streamlined the admin interface by consolidating health communications into the primary Campaigns system.
 - **✅ Advanced Patient Filtering**: Staff can now filter patients by Academic Year, Semester, Program, and Role using a new collapsible filter bar.
-- **✅ Professional Medical Certificates**: Implemented the **USC Clinic Template (Form ACA-HSD-04F)** with a polished landscape layout and automated course name mapping.
-- **✅ Purpose-Driven Workflow**: Standardized all certificate forms to use **"Purpose/Requirement"** instead of "Diagnosis" for administrative clarity.
-- **✅ Automated Data Mapping**: The system now automatically retrieves a student's full program name (e.g., "Bachelor of Science in Computer Engineering") for all official documents.
-- **✅ Reporting Grade A+**: Finalized the reporting engine with high-precision data segmentation and professionally branded PDF exports.
+- **✅ Professional Medical Certificates**: Aligned with **USC Clinic Form ACA-HSD-04F**, consolidating clinical remarks and removing sensitive previews from list views.
 
-### **🎯 SYSTEM STATUS (February 2026)**
-**All core infrastructure and data integrity issues resolved - System ready for Pilot Testing.**
+### **🎯 SYSTEM STATUS (April 2026)**
+**Full system stabilization and security hardening completed - System ready for production audit.**
 
 ### **🚀 Next Development Phase - Pilot Testing**
 
@@ -580,85 +581,24 @@ This page provides the complete medical and dental history view.
 4. Click "Upload File".
 5. A success message will appear, and the file will be added to the "Uploaded Files" list below.
 
-### Managing Uploaded Files
-1. Navigate to the "File Uploads" page from the sidebar.
-2. The list shows all files uploaded.
-3. Click the document icon (<DescriptionIcon />) next to a file name to open the file in a new tab.
-4. Click the delete icon (<DeleteIcon />) next to a file to permanently remove it. You will be asked for confirmation.
+### Managing Clinical & Patient Files
+1. **Clinical Attachments**: Navigate to any Medical or Dental record and click "Details" or "View".
+2. **Secure Management**:
+    - **Download**: Files are streamed securely via an authenticated backend proxy.
+    - **Delete**: Authorized staff can permanently remove attachments directly from the record view (requires confirmation).
+3. **Document Archive**: Use the `/health-insights` tab to access a global history of all patient-linked files.
+4. **General Uploads**: For non-clinical files, use the "File Uploads" sidebar menu.
 
-## Form Validation Guide
-
-USC-PIS features comprehensive form validation to ensure data accuracy and provide clear guidance when filling out forms. Understanding these validation rules will help you complete forms successfully.
-
-### General Validation Rules (Standardized Sept 2025)
-
-#### **Required Fields**
-- Fields marked with an asterisk (*) are required
-- You cannot submit a form with empty required fields
-- Error message: "[Field name] is required"
-
-#### **Email Validation**
-- Must be a valid email format (example@domain.com)
-- USC emails should follow the @usc.edu.ph pattern
-- Error messages:
-  - "Email address is required"
-  - "Please enter a valid email address"
-
-#### **Password Requirements**
-- **Login**: Any valid password
-- **Registration/Password Change**: Strong password required
-  - Minimum 8 characters
-  - Must contain at least one uppercase letter
-  - Must contain at least one lowercase letter  
-  - Must contain at least one number
-  - Must contain at least one special character (@$!%*?&)
-- **Password Confirmation**: Must match the original password
-- Error messages:
-  - "Password is required"
-  - "Password must be at least 8 characters long"
-  - "Password must contain at least one uppercase letter, lowercase letter, number, and special character"
-  - "Passwords do not match"
-
-#### **Phone Number Validation**
-- Must be numbers only, 7–15 digits
-- Error messages:
-  - "Phone number is required"
-  - "Phone number must be 7-15 digits (numbers only)"
-
-#### **USC ID Number Validation (Student)**
-- Must contain at least 5 digits
-- Error messages:
-  - "ID Number is required"
-  - "ID Number must contain at least 5 digits"
-
-### Form-Specific Validation
-
-#### **Medical Records Form**
-- **Patient Selection**: Required for medical staff
-- **Visit Date**: Required, must be a valid date
-- **Diagnosis**: Required, cannot be empty after trimming whitespace
-- **Vital Signs** (all optional but validated when provided):
-  - Temperature: Must be a positive number
-  - Pulse Rate: Must be a positive whole number
-  - Respiratory Rate: Must be a positive whole number
-  - Height/Weight/BMI: Must be positive numbers
-- **Physical Examination**: All fields optional
-
-#### **Medical Certificate Form** (Polished April 2026)
-- **Patient Search & Selection**: Use the new smart search interface
-  - Type patient name, email, USC ID, or ID number
-  - Select from real-time filtered results with professional patient cards
-  - Confirm selection in the green confirmation panel
-- **Template**: Required selection from available certificate templates (e.g., **USC Clinic Template ACA-HSD-04F**)
-- **Purpose/Requirement**: Required, detailed explanation of why the certificate is needed (e.g., Tour, Off-Campus Activity).
-- **Recommendations**: Required, cannot be empty
-- **Valid From Date**: Required, use the date picker
-- **Valid Until Date**: Required, must be after the "Valid From" date
-- **Additional Notes**: Optional
-- **Doctor-Only Fields** (when creating as a doctor):
-  - **Medical Fitness Status**: Choose "Fit" or "Not Fit"
-  - **Approval Status**: Set to "Approved" or "Rejected"
-  - **Fitness Reason**: Required detailed explanation when selecting "Not Fit"
+#### **Medical Certificate Form** (Aligned April 2026)
+- **Patient Search & Selection**: Use the professional smart search interface.
+- **Template**: Required selection (e.g., **USC Clinic Template ACA-HSD-04F**).
+- **Purpose/Requirement**: Optional, for administrative context (e.g., "Tour Request").
+- **Remarks / Recommendations**: Optional, consolidated field for clinical notes and advice.
+- **Valid From/Until Date**: Required validity period.
+- **Doctor-Only Fields**:
+  - **Medical Fitness Status**: "Fit" or "Not Fit".
+  - **Approval Status**: "Approved" or "Rejected".
+  - **Fitness Reason**: Required for "Not Fit" status (Details hidden from public list view).
 
 #### **Feedback Form**
 - **Rating**: Required, must select 1-5 stars

@@ -1,43 +1,45 @@
 # Current System Status
 
-**Last Updated:** April 22, 2026
+**Last Updated:** April 24, 2026
 
 ## System Overview
-The USC-PIS has successfully completed its **Patient Records Stabilization & Document Management** phase. The system now supports secure external document uploads for patients, unified date-range filtering across all record types, and has resolved critical UI bugs in the Health Insights timeline.
+The USC-PIS has achieved **Full System Stabilization & Privacy Hardening**. The system now features a robust patient profile interface, secure backend-proxied document management, and an optimized medical certificate workflow aligned with official USC Clinic standards.
 
 ## Core Modules Status
 
-### 1. Patient Document Management (New - April 2026)
-*   **Status:** Operational
-*   **Features:** Secure upload of external files (X-Rays, Lab Results, Prescriptions) by clinic staff.
-*   **Access Control:** Only non-student roles can upload; Patients (Students/Facultys) can view their own documents.
+### 1. Clinical Document Management (Hardened - April 2026)
+*   **Status:** Operational & Secure
+*   **Security:** Transitioned from public Cloudinary links to **Secure Backend-Proxied Downloads**. Files are streamed through authenticated Django views, ensuring zero public exposure.
+*   **Features:** Integrated **In-Record Deletion** for attachments directly within Medical and Dental views.
+*   **Privacy:** Documents in the "Health Insights" timeline are now non-interactive to maintain a focused summary view.
 
 ### 2. Medical & Dental Consultations
-*   **Status:** Stable & Enhanced
-*   **Terminology:** "Dental Records" renamed to **"Dental Consultations"** to better reflect the clinic's primary role as a diagnostic and assessment facility.
-*   **Filtering:** Comprehensive **Date Range Filters** (From/To) added to Medical History, Health Records, and Dental Consultations.
-*   **Reliability:** Implemented `composite_id` tracking for timeline records to eliminate duplication bugs caused by overlapping database sequences.
+*   **Status:** Stable & Feature-Complete
+*   **UI Stabilization:** Fixed critical `.map()` crashes by implementing defensive API response handling in the frontend.
+*   **Attachment Handling:** Unified file list refreshing ensures clinical records always show the latest attachments after uploads or deletions.
 
-### 3. Reports & Analytics
-*   **Status:** Stable / Standardized
-*   **Features:** Multi-format export, custom branding, and interactive **Analytics Dashboard**.
+### 3. Medical Certificates (Aligned)
+*   **Status:** Operational
+*   **Terminology:** Standardized on **"Purpose/Requirement"** to match administrative needs.
+*   **Workflow:** Consolidated "Recommendations" into a single optional **"Remarks / Recommendations"** field, mirroring official USC Form ACA-HSD-04F.
+*   **Privacy:** Removed clinical reasons from the general list view; sensitive data is now strictly "click-to-view."
 
 ### 4. Authentication & Roles
-*   **Status:** Stable & Hardened
+*   **Status:** Stable
 *   **Roles Supported:** Admin, Doctor, Nurse, Staff, Dentist, Student, Faculty.
 
-### 5. Communication & Notifications
-*   **Status:** Operational & Standardized
-*   **Delivery:** Verified via Gmail API OAuth 2.0.
+### 5. Communication & Administration
+*   **Status:** Streamlined
+*   **Email Admin:** Simplified interface by removing redundant campaign tabs and focusing on routing and logs.
 
 ### 6. Deployment
 *   **Status:** Operational
 *   **Platform:** Heroku
-*   **Build:** Passing and Optimized.
+*   **Build:** Passing and Optimized for Production.
 
 ## Known Issues
 *   **Appointment Scheduling:** Feature currently disabled and removed from system communications.
 
 ## Upcoming Roadmap
-1.  **Mobile View Optimization:** Enhancing the new document timeline for smaller screens.
-2.  **Scale Monitoring:** Performance tuning for high-volume file storage.
+1.  **Mobile View Refinement:** Continuous polishing of the new clinical action buttons on smaller screens.
+2.  **Audit Readiness:** Final review of manuscript documentation for thesis submission.
