@@ -52,7 +52,7 @@ jobs:
         SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
       run: |
         cd backend
-        python manage.py test tests_unit_v2.py
+        python manage.py test tests_unit_v2
 
     - name: Run Integration Tests (IT-01 to IT-03)
       env:
@@ -61,7 +61,7 @@ jobs:
         SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
       run: |
         cd backend
-        python manage.py test tests_integration_v2.py
+        python manage.py test tests_integration_v2
 
     - name: Run Performance Benchmarks (PT-01 to PT-03)
       env:
@@ -70,7 +70,7 @@ jobs:
         SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
       run: |
         cd backend
-        python manage.py test tests_performance_v2.py
+        python manage.py test tests_performance_v2
 
   deploy:
     needs: test
