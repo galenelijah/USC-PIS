@@ -1450,7 +1450,7 @@ const Dental = () => {
                               >
                                 <DownloadIcon fontSize="small" />
                               </IconButton>
-                              {isMedicalStaff && (
+                              {canEdit && (
                                 <IconButton 
                                   size="small" 
                                   onClick={() => handleDeleteAttachment(doc.id)}

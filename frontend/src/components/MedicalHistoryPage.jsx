@@ -1055,7 +1055,7 @@ const MedicalHistoryPage = () => {
                             icon={<FileIcon style={{ fontSize: 14 }} />}
                             onClick={(e) => {
                               e.stopPropagation();
-                              window.open(att.download_url, '_blank');
+                              handleDownloadDocument(att);
                             }}
                             sx={{ 
                               fontSize: '0.65rem', 
