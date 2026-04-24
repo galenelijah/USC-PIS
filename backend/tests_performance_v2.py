@@ -1,5 +1,6 @@
 import time
 from django.test import TestCase, Client
+from django.urls import reverse
 from authentication.models import User
 from patients.models import Patient
 from medical_certificates.models import MedicalCertificate, CertificateTemplate
@@ -23,8 +24,9 @@ class USCPISPerformanceBenchmarks(TestCase):
 
     def test_pt01_report_latency(self):
         """PT-01: Measure PDF generation latency (Target <1000ms)."""
+        url = reverse('medicalcertificate-render-pdf', args=[self.cert.id])
         start_time = time.time()
-        response = self.client.get(f'/api/medical-certificates/certificates/{self.cert.id}/render_pdf/')
+        response = self.client.get(url, follow=True)
         end_time = time.time()
         
         latency_ms = (end_time - start_time) * 1000
@@ -37,7 +39,7 @@ class USCPISPerformanceBenchmarks(TestCase):
         
         def make_request():
             client = Client()
-            return client.get('/')
+            return client.get('/', follow=True)
 
         start_time = time.time()
         with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
