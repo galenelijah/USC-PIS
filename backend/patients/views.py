@@ -10,7 +10,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from .models import Patient, MedicalRecord, Consultation, DentalRecord
 from .serializers import PatientSerializer, MedicalRecordSerializer, ConsultationSerializer, DentalRecordSerializer
 from authentication.models import User
-from .permissions import MedicalRecordPermission
+from .permissions import MedicalRecordPermission, IsStaffUser
 from .validators import (
     patient_validator, duplicate_detector, record_validator, consistency_checker
 )
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 class PatientViewSet(viewsets.ModelViewSet):
     serializer_class = PatientSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsStaffUser] # Restrict access to staff only
     pagination_class = None  # Disable pagination to return data as array
     
     def get_queryset(self):

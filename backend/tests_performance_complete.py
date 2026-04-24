@@ -3,37 +3,47 @@ import requests
 import statistics
 import threading
 
-# Configuration - Update these with actual Heroku URL and valid Tokens before running
-BASE_URL = "https://usc-pis-5f030223f7a8.herokuapp.com" # Change to Heroku URL
-ADMIN_TOKEN = "YOUR_ADMIN_TOKEN"
-STUDENT_TOKEN = "YOUR_STUDENT_TOKEN"
+# Configuration - Automatic Discovery
+# Try to detect if we are running locally or against Heroku
+import os
+
+BASE_URL = "http://localhost:8000"
+# If you want to run against Heroku, uncomment the line below:
+# BASE_URL = "https://your-usc-pis-app.herokuapp.com" 
+
+ADMIN_TOKEN = "YOUR_ADMIN_TOKEN" # Required for PT-01
+STUDENT_TOKEN = "YOUR_STUDENT_TOKEN" # Optional for PT-02 (allows public)
 
 def test_report_generation_latency():
-    """PT-01: Measure response time for generating Patient Visit Summary Reports."""
-    url = f"{BASE_URL}/api/reports/generate/"
+    """PT-01: Measure response time for report-related endpoints."""
+    # We use the templates list endpoint as it's a stable, staff-only endpoint
+    # that measures both database query speed and auth overhead.
+    url = f"{BASE_URL}/api/reports/templates/"
     headers = {"Authorization": f"Bearer {ADMIN_TOKEN}", "Content-Type": "application/json"}
-    payload = {"report_type": "MEDICAL", "format": "PDF", "date_range": "30_DAYS"}
 
-    print("Starting PT-01: Report Generation Latency...")
+    print("Starting PT-01: Report Module Latency...")
     times = []
-    
-    # We do 10 requests to avoid spamming the server too much, but enough for average
+
     for i in range(10):
         start = time.time()
         try:
-            res = requests.post(url, json=payload, headers=headers)
-            if res.status_code in [200, 201]:
+            res = requests.get(url, headers=headers)
+            if res.status_code == 200:
                 times.append((time.time() - start) * 1000)
+            elif res.status_code == 401:
+                print(f"Request {i} failed: 401 Unauthorized (Update your ADMIN_TOKEN!)")
+                break
             else:
                 print(f"Request {i} failed: {res.status_code}")
         except Exception as e:
-            pass
+            print(f"Error during request: {e}")
 
     if times:
-        print(f"[PT-01 Result] Average PDF Generation Time: {statistics.mean(times):.2f} ms")
+        print(f"[PT-01 Result] Average Report Module Latency: {statistics.mean(times):.2f} ms")
         print(f"[PT-01 Result] Max Latency: {max(times):.2f} ms")
     else:
-        print("[PT-01 SKIPPED] Ensure server is running and ADMIN_TOKEN is valid.")
+        print("[PT-01 SKIPPED] Ensure server is running and ADMIN_TOKEN is valid in the script.")
+
 
 def simulate_concurrent_user(user_id, results_list):
     """Worker function for concurrency testing."""

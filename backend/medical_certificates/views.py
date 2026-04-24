@@ -51,7 +51,7 @@ class CertificateTemplateViewSet(viewsets.ModelViewSet):
 class MedicalCertificateViewSet(viewsets.ModelViewSet):
     queryset = MedicalCertificate.objects.all()
     serializer_class = MedicalCertificateSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsStaffOrMedicalPersonnel]
     pagination_class = None  # Disable pagination to return data as array
 
     def get_queryset(self):

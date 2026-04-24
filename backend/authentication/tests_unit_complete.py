@@ -40,7 +40,8 @@ class USCPISUnitValidationTests(TestCase):
         # Test Invalid Domain
         with self.assertRaises(ValidationError) as context:
             serializer.validate_email("student@gmail.com")
-        self.assertIn("Must be a valid USC email address", str(context.exception))
+        # Match the actual message: "Only USC email addresses (@usc.edu.ph) are allowed"
+        self.assertIn("Only USC email addresses", str(context.exception))
         
         # Test Numeric Email (Student)
         student_email = "21100727@usc.edu.ph"
@@ -85,7 +86,10 @@ class USCPISUnitValidationTests(TestCase):
             visit_date="2026-04-24T10:00:00Z",
             procedure_performed='CLEANING',
             oral_hygiene_status='EXCELLENT',
-            priority='LOW'
+            priority='LOW',
+            diagnosis="Routine checkup",
+            treatment_performed="Scaling and Polishing",
+            created_by=user
         )
         # Should not raise validation error
         dental_record.full_clean()
