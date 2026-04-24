@@ -58,14 +58,14 @@ class USCPISAdvancedIntegrationTests(TestCase):
         )
         
         # Doctor assesses fitness
-        response = self.client.post(f'/api/medical-certificates/{cert.id}/assess_fitness/', data={
+        response = self.client.post(f'/api/medical-certificates/certificates/{cert.id}/assess_fitness/', data={
             "fitness_status": "fit",
             "fitness_reason": "Recovering well"
         }, content_type='application/json')
         self.assertEqual(response.status_code, 200)
         
         # 3. Verify PDF generation
-        response = self.client.get(f'/api/medical-certificates/{cert.id}/render_pdf/')
+        response = self.client.get(f'/api/medical-certificates/certificates/{cert.id}/render_pdf/')
         # If pisa is not installed, it returns 200 with fallback message in DEBUG
         self.assertEqual(response.status_code, 200)
         
@@ -79,7 +79,7 @@ class USCPISAdvancedIntegrationTests(TestCase):
         feedback_data = {
             "patient": self.patient.id,
             "rating": 5,
-            "comment": "Excellent service!",
+            "comments": "Excellent service!",
             "category": "MEDICAL"
         }
         # In our system, feedback might be linked to a visit. 
@@ -87,8 +87,7 @@ class USCPISAdvancedIntegrationTests(TestCase):
         Feedback.objects.create(
             patient=self.patient,
             rating=5,
-            comment="Great",
-            service_type="MEDICAL"
+            comments="Great"
         )
         
         # Admin checks dashboard analytics
@@ -104,7 +103,7 @@ class USCPISAdvancedIntegrationTests(TestCase):
         self.client.login(email="21100727@usc.edu.ph", password="password")
         
         # Attempt to access medical certificates list (Staff/Doctor only)
-        response = self.client.get('/api/medical-certificates/')
+        response = self.client.get('/api/medical-certificates/certificates/')
         # Students can see THEIR OWN certificates, so we check a doctor-specific action
         
         # Create a certificate not belonging to the student
@@ -116,13 +115,13 @@ class USCPISAdvancedIntegrationTests(TestCase):
         )
         
         # Student tries to assess fitness (Doctor only)
-        response = self.client.post(f'/api/medical-certificates/{other_cert.id}/assess_fitness/', data={
+        response = self.client.post(f'/api/medical-certificates/certificates/{other_cert.id}/assess_fitness/', data={
             "fitness_status": "fit"
         }, content_type='application/json')
         self.assertEqual(response.status_code, 403)
         
         # Student tries to access all patients
-        response = self.client.get('/api/patients/')
+        response = self.client.get('/api/patients/patients/')
         # If student, it should only return their own record, or 403 if they try to access others
         # Based on Functional Spec 1.1: "Student/Faculty: Filters by user=self.request.user"
         data = response.json()

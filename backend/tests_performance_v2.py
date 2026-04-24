@@ -24,7 +24,7 @@ class USCPISPerformanceBenchmarks(TestCase):
     def test_pt01_report_latency(self):
         """PT-01: Measure PDF generation latency (Target <1000ms)."""
         start_time = time.time()
-        response = self.client.get(f'/api/medical-certificates/{self.cert.id}/render_pdf/')
+        response = self.client.get(f'/api/medical-certificates/certificates/{self.cert.id}/render_pdf/')
         end_time = time.time()
         
         latency_ms = (end_time - start_time) * 1000
