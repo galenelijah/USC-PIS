@@ -11,7 +11,7 @@ class USCPISPerformanceBenchmarks(TestCase):
 
     def setUp(self):
         self.client = Client()
-        self.doctor = User.objects.create_user(email="doctor@usc.edu.ph", password="password", role=User.Role.DOCTOR)
+        self.doctor = User.objects.create_user(email="doctor@usc.edu.ph", password="password", role=User.Role.DOCTOR, is_verified=True)
         self.patient = Patient.objects.create(
             first_name="Perf", last_name="Test", date_of_birth="2000-01-01", gender="M", email="perf@usc.edu.ph"
         )

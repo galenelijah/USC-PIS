@@ -11,11 +11,11 @@ class USCPISAdvancedIntegrationTests(TestCase):
 
     def setUp(self):
         self.client = Client()
-        # Create roles
-        self.nurse = User.objects.create_user(email="nurse@usc.edu.ph", password="password", role=User.Role.NURSE)
-        self.doctor = User.objects.create_user(email="doctor@usc.edu.ph", password="password", role=User.Role.DOCTOR)
-        self.staff = User.objects.create_user(email="staff@usc.edu.ph", password="password", role=User.Role.STAFF)
-        self.student = User.objects.create_user(email="21100727@usc.edu.ph", password="password", role=User.Role.STUDENT)
+        # Create roles (marked as verified)
+        self.nurse = User.objects.create_user(email="nurse@usc.edu.ph", password="password", role=User.Role.NURSE, is_verified=True)
+        self.doctor = User.objects.create_user(email="doctor@usc.edu.ph", password="password", role=User.Role.DOCTOR, is_verified=True)
+        self.staff = User.objects.create_user(email="staff@usc.edu.ph", password="password", role=User.Role.STAFF, is_verified=True)
+        self.student = User.objects.create_user(email="21100727@usc.edu.ph", password="password", role=User.Role.STUDENT, is_verified=True)
         
         # Create patient linked to student
         self.patient = Patient.objects.create(

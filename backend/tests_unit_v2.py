@@ -16,7 +16,8 @@ class USCPISAdvancedUnitTests(TestCase):
             password="Password123!",
             role=User.Role.DOCTOR,
             first_name="Lead",
-            last_name="Auditor"
+            last_name="Auditor",
+            is_verified=True
         )
 
     def test_ut01_pgcrypto_sql_audit(self):
