@@ -100,7 +100,9 @@ class USCPISAdvancedUnitTests(TestCase):
             request.user = self.test_user
             view = PatientViewSet()
             # Wrap the WSGIRequest in a DRF Request to provide query_params
-            view.request = Request(request)
+            drf_request = Request(request)
+            drf_request.user = self.test_user
+            view.request = drf_request
             queryset = view.get_queryset()
             self.assertEqual(queryset.filter(user__year_level=yl).count(), 1)
         
