@@ -5,12 +5,27 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 from datetime import timedelta
-from .models import MedicalRecord, DentalRecord
-from utils.email_service import EmailService
-from notifications.models import Notification
-import logging
+from .models import MedicalRecord, DentalRecord, Patient
+from django.conf import settings
+from django.db import connection
 
-logger = logging.getLogger(__name__)
+@receiver(post_save, sender=Patient)
+def encrypt_patient_fields(sender, instance, **kwargs):
+    key = getattr(settings, 'PGP_ENCRYPTION_KEY', None)
+    if not key: return
+    with connection.cursor() as cursor:
+        if instance.first_name:
+            cursor.execute("UPDATE patients_patient SET first_name_enc = pgp_sym_encrypt(%s, %s)::bytea WHERE id=%s", [instance.first_name, key, instance.id])
+        if instance.last_name:
+            cursor.execute("UPDATE patients_patient SET last_name_enc = pgp_sym_encrypt(%s, %s)::bytea WHERE id=%s", [instance.last_name, key, instance.id])
+
+@receiver(post_save, sender=MedicalRecord)
+def encrypt_medical_record_fields(sender, instance, **kwargs):
+    key = getattr(settings, 'PGP_ENCRYPTION_KEY', None)
+    if not key: return
+    if instance.diagnosis:
+        with connection.cursor() as cursor:
+            cursor.execute("UPDATE patients_medicalrecord SET diagnosis_enc = pgp_sym_encrypt(%s, %s)::bytea WHERE id=%s", [instance.diagnosis, key, instance.id])
 
 @receiver(post_save, sender=MedicalRecord)
 def schedule_feedback_email_medical(sender, instance, created, **kwargs):

@@ -12,6 +12,7 @@ SENSITIVE_FIELDS = [
     'medications',
     'allergies',
     'emergency_contact_number',
+    'blood_type',
 ]
 
 

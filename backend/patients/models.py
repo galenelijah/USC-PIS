@@ -28,6 +28,11 @@ class Patient(models.Model):
     email = models.EmailField(unique=True)
     phone_number = models.CharField(max_length=20)
     address = models.TextField()
+    
+    # Encrypted fields
+    first_name_enc = models.BinaryField(null=True, blank=True, editable=False)
+    last_name_enc = models.BinaryField(null=True, blank=True, editable=False)
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
@@ -57,6 +62,7 @@ class MedicalRecord(models.Model):
     concern = models.TextField(help_text="Reason for visit / Chief complaint", default="")
     diagnosis = models.TextField()
     treatment = models.TextField()
+    diagnosis_enc = models.BinaryField(null=True, blank=True, editable=False)
     notes = models.TextField(blank=True)
     vital_signs = models.JSONField(default=dict, blank=True, help_text="Vital signs data (temperature, blood pressure, etc.)")
     physical_examination = models.JSONField(default=dict, blank=True, help_text="Physical examination findings")

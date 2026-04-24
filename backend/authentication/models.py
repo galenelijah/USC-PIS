@@ -62,6 +62,7 @@ class User(AbstractUser):
     address_permanent = models.CharField(max_length=300, null=True, blank=True)
     address_present = models.CharField(max_length=300, null=True, blank=True)
     phone = models.CharField(max_length=20, null=True, blank=True)
+    blood_type = models.CharField(max_length=10, null=True, blank=True)
 
     # Physical Information
     weight = models.CharField(max_length=10, null=True, blank=True)  # in kg
@@ -90,6 +91,7 @@ class User(AbstractUser):
     existing_medical_condition_enc = models.BinaryField(null=True, blank=True, editable=False)
     medications_enc = models.BinaryField(null=True, blank=True, editable=False)
     allergies_enc = models.BinaryField(null=True, blank=True, editable=False)
+    blood_type_enc = models.BinaryField(null=True, blank=True, editable=False)
 
     # Department and Contact (for staff)
     department = models.CharField(max_length=100, null=True, blank=True)
