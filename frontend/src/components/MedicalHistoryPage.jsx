@@ -241,8 +241,9 @@ const MedicalHistoryPage = () => {
         }
       });
 
-      // Unified history only shows clinical records (medical/dental) and standalone files
-      let combined = [...medical, ...dental, ...standaloneAttachments];
+      // Unified history only shows actual clinical records (medical/dental)
+      // Standalone files are now only visible in the Document Archive tab
+      let combined = [...medical, ...dental];
       
       // Sort by visit_date (primary) and created_at (secondary) to ensure consistent chronological order
       combined = combined.sort((a, b) => {
@@ -354,9 +355,6 @@ const MedicalHistoryPage = () => {
   const getRecordIcon = (recordType) => {
     switch (recordType) {
       case 'DENTAL': return <DentalIcon />;
-      case 'ATTACHMENT': return <AttachmentIcon />;
-      case 'CONSULTATION': return <DiagnosisIcon />;
-      case 'CERTIFICATE': return <CertificateIcon />;
       default: return <MedicalIcon />;
     }
   };
@@ -364,9 +362,6 @@ const MedicalHistoryPage = () => {
   const getRecordColor = (recordType) => {
     switch (recordType) {
       case 'DENTAL': return '#f093fb';
-      case 'ATTACHMENT': return '#4caf50';
-      case 'CONSULTATION': return '#ff9a9e';
-      case 'CERTIFICATE': return '#a18cd1';
       default: return '#667eea';
     }
   };
@@ -869,43 +864,22 @@ const MedicalHistoryPage = () => {
             }}
           >
             <CardContent>
-              {/* Attachment specific UI (Standalone) */}
-              {record.record_type === 'ATTACHMENT' ? (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: getRecordColor(record.record_type), width: 32, height: 32 }}>
-                    <AttachmentIcon sx={{ fontSize: 18 }} />
-                  </Avatar>
-                  <Box sx={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                          {record.diagnosis}
-                        </Typography>
-                        <Chip label="FILE" size="small" sx={{ height: 18, fontSize: '0.65rem', bgcolor: '#9e9e9e', color: 'white' }} />
-                      </Box>
-                      <Typography variant="caption" color="text.secondary">
-                        {formatDate(record.visit_date).formatted} • {record.patient_name} • {record.original_filename}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Box>
-              ) : (
-                /* Medical/Dental UI (existing) */
-                <>
-                  {/* Allergy/Medication Alerts */}
-                  {(record.notes?.toLowerCase().includes('allerg') || 
-                    record.diagnosis?.toLowerCase().includes('allerg') ||
-                    record.medications?.toLowerCase().includes('allerg')) && (
-                    <Alert 
-                      severity="warning" 
-                      sx={{ mb: 2, borderColor: '#ff9800', backgroundColor: '#fff8e1' }}
-                      icon={<WarningIcon />}
-                    >
-                      <Typography variant="body2" fontWeight="bold">
-                        ⚠️ ALLERGY DOCUMENTED
-                      </Typography>
-                    </Alert>
-                  )}
+              {/* Medical/Dental UI */}
+              <>
+                {/* Allergy/Medication Alerts */}
+                {(record.notes?.toLowerCase().includes('allerg') || 
+                  record.diagnosis?.toLowerCase().includes('allerg') ||
+                  record.medications?.toLowerCase().includes('allerg')) && (
+                  <Alert 
+                    severity="warning" 
+                    sx={{ mb: 2, borderColor: '#ff9800', backgroundColor: '#fff8e1' }}
+                    icon={<WarningIcon />}
+                  >
+                    <Typography variant="body2" fontWeight="bold">
+                      ⚠️ ALLERGY DOCUMENTED
+                    </Typography>
+                  </Alert>
+                )}
                   
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                     <Box sx={{ flex: 1 }}>
