@@ -25,3 +25,8 @@ Notes
 - **Automated Context**: The PDF generator now automatically pulls the student's **Full Course Name** and **Year Level** from their profile, along with a dynamic **Fit/Unfit** status indicator.
 - **Branding & Signatures**: Added USC logo to the header and a dedicated signature line for the School Physician on the right side of the document.
 - **Database Seeding**: Added `seed_tours_template` management command to maintain template consistency across environments.
+- **Field Consolidation & Optionality**:
+    - **Optional Fields**: Both `diagnosis` (Purpose/Requirement) and `recommendations` are now optional in the database and UI, allowing for flexible draft creation.
+    - **UI Consolidation**: The "Recommendations" and "Additional Notes" fields have been merged into a single **"Remarks / Recommendations"** text area in the form and detail views.
+    - **Privacy Enhancements**: The `fitness_reason` (reason for "Not Fit" status) has been removed from the general list view (table and cards) to ensure privacy; it is now only visible within the authenticated "View Detail" dialog.
+- **Search Enhancements**: Improved the certificate search logic to handle spaces and underscores interchangeably (e.g., searching "not fit" will find "not_fit" records) and enabled searching by full patient name and approval status.

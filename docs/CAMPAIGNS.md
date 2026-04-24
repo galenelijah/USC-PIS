@@ -22,6 +22,10 @@ Base: `/api/health-info/campaigns/`
 - Analytics: `GET /api/health-info/campaigns/analytics/`
 - Featured: `GET /api/health-info/campaigns/featured/`
 
+## Admin Interface
+- **Consolidated Management:** As of April 24, 2026, the dedicated "Email Campaigns" tab has been removed from the Email Administration page to prevent redundancy. All health-related campaigns and public notifications are managed through the primary Campaigns system.
+- **Role-Based Access:** Creation and modification remain restricted to staff roles.
+
 ## Data Model — Required Fields
 Required to create:
 - `title` (string)

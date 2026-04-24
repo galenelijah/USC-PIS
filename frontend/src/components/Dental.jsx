@@ -45,7 +45,6 @@ import {
 import {
   Add as AddIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon,
   Visibility as ViewIcon,
   Search as SearchIcon,
   FilterList as FilterIcon,
@@ -1441,6 +1440,7 @@ const Dental = () => {
                               <Typography variant="caption" color="text.secondary" display="block">
                                 {doc.document_type_display}
                               </Typography>
+                            </Box>
                             <Box sx={{ ml: 'auto', display: 'flex', gap: 0.5 }}>
                               <IconButton 
                                 size="small" 
