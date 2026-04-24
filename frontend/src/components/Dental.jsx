@@ -249,10 +249,8 @@ const Dental = () => {
     setTabValue(0);
   };
 
-  const handleViewRecord = async (record) => {
-    setSelectedRecord(record);
-    setViewDialogOpen(true);
-    // Fetch attachments for this dental record
+  const fetchRecordAttachments = async (record) => {
+    if (!record) return;
     try {
       const res = await patientDocumentService.getAllDocuments({ dental_record: record.id });
       const data = res.data?.results || res.data || [];
@@ -261,6 +259,13 @@ const Dental = () => {
       console.error('Error fetching dental attachments:', err);
       setAttachments([]);
     }
+  };
+
+  const handleViewRecord = async (record) => {
+    setSelectedRecord(record);
+    setViewDialogOpen(true);
+    // Fetch attachments for this dental record
+    await fetchRecordAttachments(record);
   };
 
   const handleDownloadDocument = async (doc) => {
