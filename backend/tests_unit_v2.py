@@ -52,23 +52,19 @@ class USCPISAdvancedUnitTests(TestCase):
                 self.assertIsNotNone(illness_enc)
                 self.assertIsInstance(illness_enc, (bytes, memoryview))
                 
-                # Check Patient name encryption (if implemented)
-                try:
-                    cursor.execute("SELECT first_name_enc FROM patients_patient WHERE id = %s", [patient.id])
-                    name_enc = cursor.fetchone()[0]
-                    self.assertIsNotNone(name_enc)
-                except Exception:
-                    print("[UT-01 WARN] Patient name encryption not yet implemented in schema.")
+                # Check Patient name encryption
+                cursor.execute("SELECT first_name_enc FROM patients_patient WHERE id = %s", [patient.id])
+                name_enc = cursor.fetchone()[0]
+                self.assertIsNotNone(name_enc, "Patient first_name_enc is null")
+                self.assertIsInstance(name_enc, (bytes, memoryview))
 
-                # Check MedicalRecord diagnosis encryption (if implemented)
-                try:
-                    cursor.execute("SELECT diagnosis_enc FROM patients_medicalrecord WHERE id = %s", [medical_record.id])
-                    diag_enc = cursor.fetchone()[0]
-                    self.assertIsNotNone(diag_enc)
-                except Exception:
-                    print("[UT-01 WARN] Diagnosis encryption not yet implemented in schema.")
+                # Check MedicalRecord diagnosis encryption
+                cursor.execute("SELECT diagnosis_enc FROM patients_medicalrecord WHERE id = %s", [medical_record.id])
+                diag_enc = cursor.fetchone()[0]
+                self.assertIsNotNone(diag_enc, "MedicalRecord diagnosis_enc is null")
+                self.assertIsInstance(diag_enc, (bytes, memoryview))
             
-            print("[UT-01 PASS] pgcrypto audit completed.")
+            print("[UT-01 PASS] pgcrypto audit completed for User, Patient, and MedicalRecord.")
         else:
             self.skipTest("Not using PostgreSQL. pgcrypto audit requires PostgreSQL.")
 
