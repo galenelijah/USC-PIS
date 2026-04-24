@@ -98,7 +98,7 @@ class USCPISAdvancedUnitTests(TestCase):
             request = factory.get(f'/api/patients/?year_level={yl}')
             request.user = self.test_user
             view = PatientViewSet()
-            view.request = request
+            view.request = view.initialize_request(request)
             queryset = view.get_queryset()
             self.assertEqual(queryset.filter(user__year_level=yl).count(), 1)
         
