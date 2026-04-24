@@ -725,7 +725,7 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                                                             >
                                                                 <DownloadIcon fontSize="small" />
                                                             </IconButton>
-                                                            {canEdit && (
+                                                            {isStaffOrMedical && (
                                                                 <IconButton 
                                                                     size="small" 
                                                                     onClick={() => handleDeleteAttachment(doc.id)} 

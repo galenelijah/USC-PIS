@@ -17,7 +17,7 @@ The primary focus of this session was to resolve a critical UI crash on the pati
 ### **3. Enhanced Document Management (Secure Deletion)**
 - **Feature:** Added a "Delete" button for attachments directly within the clinical record views (Medical and Dental).
 - **Files:** `PatientProfile.jsx`, `MedicalRecord.jsx`, `Dental.jsx`.
-- **Logic:** Integrated `patientDocumentService.deleteDocument` with a confirmation prompt. Restricted visibility of the delete button to authorized staff/medical roles to maintain data integrity.
+- **Logic:** Integrated `patientDocumentService.deleteDocument` with a confirmation prompt. Restricted visibility of the delete button to authorized staff/medical roles to maintain data integrity. Deletion is now enabled even when viewing records in "read-only" mode (e.g., on the Health Records page), ensuring medical staff can manage files at all times.
 
 ### **4. Health Insights Privacy & Security**
 - **File:** `frontend/src/components/MedicalHistoryPage.jsx`
