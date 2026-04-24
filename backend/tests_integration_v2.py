@@ -32,16 +32,6 @@ class USCPISAdvancedIntegrationTests(TestCase):
         """IT-01: Full Clinical Pipeline (Nurse -> Doctor -> Staff)."""
         # 1. Nurse records vitals (as MedicalRecord)
         self.client.login(email="nurse@usc.edu.ph", password="password")
-        # URL for medical records: /api/patients/medical-records/
-        url_records = reverse('medicalrecord-list')
-        vitals_data = {
-            "patient": self.patient.id,
-            "visit_date": "2026-04-25T10:00:00Z",
-            "concern": "Fever and cough",
-            "diagnosis": "Pending assessment",
-            "treatment": "Triage",
-            "vital_signs": {"temp": "38.5", "bp": "120/80"}
-        }
         # In this integration test, we skip the POST for vitals and go straight to Doctor
         
         # 2. Doctor diagnosis and assessment
@@ -57,7 +47,6 @@ class USCPISAdvancedIntegrationTests(TestCase):
         )
         
         # Doctor assesses fitness
-        # URL: /api/medical-certificates/certificates/{id}/assess_fitness/
         url_assess = reverse('medicalcertificate-assess-fitness', args=[cert.id])
         response = self.client.post(url_assess, data={
             "fitness_status": "fit",
@@ -66,7 +55,6 @@ class USCPISAdvancedIntegrationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         
         # 3. Verify PDF generation
-        # URL: /api/medical-certificates/certificates/{id}/render_pdf/
         url_pdf = reverse('medicalcertificate-render-pdf', args=[cert.id])
         response = self.client.get(url_pdf, follow=True)
         self.assertEqual(response.status_code, 200)
@@ -77,7 +65,6 @@ class USCPISAdvancedIntegrationTests(TestCase):
         """IT-02: Feedback Analytics real-time aggregation."""
         # Student submits feedback
         self.client.login(email="21100727@usc.edu.ph", password="password")
-        # Simplified model creation as API might have complex constraints
         Feedback.objects.create(
             patient=self.patient,
             rating=5,
@@ -86,7 +73,6 @@ class USCPISAdvancedIntegrationTests(TestCase):
         
         # Admin checks dashboard analytics
         self.client.login(email="doctor@usc.edu.ph", password="password")
-        # No specific endpoint check yet, just verifying record persistence
         self.assertTrue(Feedback.objects.filter(patient=self.patient).exists())
         
         print("[IT-02 PASS] Feedback analytics flow verified.")
@@ -95,29 +81,33 @@ class USCPISAdvancedIntegrationTests(TestCase):
         """IT-03: RBAC stress test - Student accessing Doctor endpoints."""
         self.client.login(email="21100727@usc.edu.ph", password="password")
         
-        # Create a certificate not belonging to the student
-        other_user = User.objects.create_user(email="other@usc.edu.ph", password="password")
+        # 1. Accessing OWN certificate (Role Check - Should be 403 Forbidden)
+        # Create a certificate for the student
+        my_cert = MedicalCertificate.objects.create(
+            patient=self.patient, template=self.template, diagnosis="My Cert", 
+            valid_from="2026-04-25", valid_until="2026-04-28", issued_by=self.doctor
+        )
+        url_my_assess = reverse('medicalcertificate-assess-fitness', args=[my_cert.id])
+        response = self.client.post(url_my_assess, data={"fitness_status": "fit"}, content_type='application/json', follow=True)
+        # Student is not a DOCTOR, so they get 403
+        self.assertEqual(response.status_code, 403)
+        
+        # 2. Accessing OTHER certificate (QuerySet Filtering - Should be 404 Not Found)
+        other_user = User.objects.create_user(email="other@usc.edu.ph", password="password", is_verified=True)
         other_patient = Patient.objects.create(user=other_user, first_name="Other", last_name="Patient", date_of_birth="2000-01-01", gender="F", email="other@usc.edu.ph")
         other_cert = MedicalCertificate.objects.create(
             patient=other_patient, template=self.template, diagnosis="Secret", 
             valid_from="2026-04-25", valid_until="2026-04-28", issued_by=self.doctor
         )
+        url_other_assess = reverse('medicalcertificate-assess-fitness', args=[other_cert.id])
+        response = self.client.post(url_other_assess, data={"fitness_status": "fit"}, content_type='application/json', follow=True)
+        # Student cannot see other patient's records in queryset
+        self.assertEqual(response.status_code, 404)
         
-        # Student tries to assess fitness (Doctor only)
-        # URL: /api/medical-certificates/certificates/{id}/assess_fitness/
-        url_assess = reverse('medicalcertificate-assess-fitness', args=[other_cert.id])
-        response = self.client.post(url_assess, data={"fitness_status": "fit"}, content_type='application/json', follow=True)
-        # Since we use follow=True, we check the final status. 
-        # But if it's a 403, it shouldn't redirect usually.
-        self.assertEqual(response.status_code, 403)
-        
-        # Student tries to access all patients
-        # URL: /api/patients/patients/
+        # 3. Accessing Restricted List (Permission Class Check - Should be 403 Forbidden)
         url_patients = reverse('patient-list')
         response = self.client.get(url_patients, follow=True)
-        # Students see only their own record via get_queryset filtering
-        data = response.json()
-        if isinstance(data, list):
-            self.assertTrue(len(data) <= 1, f"Student saw {len(data)} patient records!")
+        # IsStaffUser blocks students from list action
+        self.assertEqual(response.status_code, 403)
         
-        print("[IT-03 PASS] RBAC stress test completed with 100% Forbidden on unauthorized paths.")
+        print("[IT-03 PASS] RBAC stress test completed with correct Forbidden/NotFound responses.")
