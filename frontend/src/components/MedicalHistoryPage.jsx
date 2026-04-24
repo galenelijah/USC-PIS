@@ -1155,7 +1155,6 @@ const MedicalHistoryPage = () => {
                     </Grid>
                   </Collapse>
                 </>
-              )}
             </CardContent>
           </Card>
         ))}
