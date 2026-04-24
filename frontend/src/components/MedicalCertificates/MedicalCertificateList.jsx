@@ -94,15 +94,6 @@ const CertificateCard = ({ certificate, onView, onEdit, onDelete, userRole }) =>
         </Box>
       </Box>
       
-      {certificate.fitness_reason && certificate.fitness_status === 'not_fit' && (
-        <Box className="mobile-table-row">
-          <Typography className="mobile-table-label">Reason:</Typography>
-          <Typography className="mobile-table-value" sx={{ fontSize: '0.75rem' }}>
-            {certificate.fitness_reason.substring(0, 100)}...
-          </Typography>
-        </Box>
-      )}
-      
       <Box className="mobile-actions">
         <Button
           variant="outlined"
@@ -205,13 +196,25 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole, refreshTri
 
   const filteredCertificates = certificates
     .filter((cert) => statusFilter === 'all' || cert.approval_status === statusFilter)
-    .filter((cert) => 
-      searchQuery === '' ||
-      cert.patient_details?.first_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cert.patient_details?.last_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cert.diagnosis?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cert.fitness_status?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    .filter((cert) => {
+      if (searchQuery === '') return true;
+      
+      const query = searchQuery.toLowerCase().trim();
+      const patientName = `${cert.patient_details?.first_name || ''} ${cert.patient_details?.last_name || ''}`.toLowerCase();
+      
+      // Normalize statuses for better searching (e.g., "not_fit" becomes "not fit")
+      const fitnessStatus = (cert.fitness_status || '').toLowerCase().replace('_', ' ');
+      const approvalStatus = (cert.approval_status || '').toLowerCase().replace('_', ' ');
+      const diagnosis = (cert.diagnosis || '').toLowerCase();
+      
+      return (
+        patientName.includes(query) ||
+        diagnosis.includes(query) ||
+        fitnessStatus.includes(query) ||
+        approvalStatus.includes(query) ||
+        (cert.fitness_status || '').toLowerCase().includes(query) // still check raw value
+      );
+    });
 
   if (loading) {
     return <Typography>Loading certificates...</Typography>;
@@ -301,11 +304,6 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole, refreshTri
                       size="small"
                       variant={certificate.fitness_status === 'not_fit' ? 'filled' : 'outlined'}
                     />
-                    {certificate.fitness_reason && certificate.fitness_status === 'not_fit' && (
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                        {certificate.fitness_reason.substring(0, 50)}...
-                      </Typography>
-                    )}
                   </TableCell>
                   <TableCell>
                     <Chip

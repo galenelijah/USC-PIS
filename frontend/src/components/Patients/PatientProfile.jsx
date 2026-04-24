@@ -43,7 +43,9 @@ import {
   Badge,
   School,
   Public,
-  GetApp as DownloadIcon
+  GetApp as DownloadIcon,
+  Delete as DeleteIcon,
+  DeleteSweep as DeleteSweepIcon
 } from "@mui/icons-material";
 import { 
   getSexLabel, 
@@ -78,61 +80,87 @@ const PatientProfile = ({ patient: partialPatient, onBack }) => {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchPatientFullData = async () => {
-      if (!partialPatient?.id) return;
-      
-      try {
-        setLoading(true);
-        setError(null);
+  const fetchPatientFullData = async () => {
+    if (!partialPatient?.id) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
 
-        // Fetch full patient details first
-        const patientResp = await patientService.getById(partialPatient.id);
-        if (patientResp?.data) {
-          setPatient(patientResp.data);
-        }
-
-        // Fetch all related history with patient filtering
-        const [medicalResp, consultationResp, dentalResp, documentResp] = await Promise.all([
-          healthRecordsService.getAll({ patient: partialPatient.id }).catch(() => ({ data: [] })),
-          consultationService.getAll({ patient: partialPatient.id }).catch(() => ({ data: [] })),
-          dentalRecordService.getAll({ patient: partialPatient.id }).catch(() => ({ data: [] })),
-          patientDocumentService.getPatientDocuments(partialPatient.id).catch(() => ({ data: [] }))
-        ]);
-        
-        // Merge and tag records
-        const medical = (medicalResp?.data || []).map(r => ({ ...r, type: 'Medical', date: r.visit_date }));
-        const consultations = (consultationResp?.data || []).map(r => ({ ...r, type: 'Consultation', date: r.date_time }));
-        const dental = (dentalResp?.data || []).map(r => ({ ...r, type: 'Dental', date: r.visit_date }));
-        const docs = (documentResp?.data || []).map(r => ({ ...r, type: 'Document', date: r.uploaded_at }));
-
-        setDocuments(docs);
-
-        const allHistory = [...medical, ...consultations, ...dental, ...docs].sort((a, b) => 
-          new Date(b.date) - new Date(a.date)
-        );
-        
-        setHistory(allHistory);
-        
-        // Find latest vitals from medical records
-        const recordsWithVitalSigns = medical
-          .filter(r => r.vital_signs && Object.keys(r.vital_signs).length > 0)
-          .sort((a, b) => new Date(b.visit_date) - new Date(a.visit_date));
-        
-        if (recordsWithVitalSigns.length > 0) {
-          setLatestVitalSigns(recordsWithVitalSigns[0].vital_signs);
-        }
-      } catch (err) {
-        console.error('Error fetching patient profile data:', err);
-        const errorMsg = err.response?.data?.detail || err.message || 'Failed to load full patient profile';
-        setError(`${errorMsg} (Status: ${err.response?.status || 'Unknown'})`);
-      } finally {
-        setLoading(false);
+      // Fetch full patient details first
+      const patientResp = await patientService.getById(partialPatient.id);
+      if (patientResp?.data) {
+        setPatient(patientResp.data);
       }
-    };
 
+      // Fetch all related history with patient filtering
+      const [medicalResp, consultationResp, dentalResp, documentResp] = await Promise.all([
+        healthRecordsService.getAll({ patient: partialPatient.id }).catch(() => ({ data: [] })),
+        consultationService.getAll({ patient: partialPatient.id }).catch(() => ({ data: [] })),
+        dentalRecordService.getAll({ patient: partialPatient.id }).catch(() => ({ data: [] })),
+        patientDocumentService.getPatientDocuments(partialPatient.id).catch(() => ({ data: [] }))
+      ]);
+      
+      // Helper to extract array from possibly paginated response
+      const getResults = (resp) => {
+        if (!resp) return [];
+        if (Array.isArray(resp.data)) return resp.data;
+        if (resp.data && Array.isArray(resp.data.results)) return resp.data.results;
+        return [];
+      };
+      
+      // Merge and tag records
+      const medical = getResults(medicalResp).map(r => ({ ...r, type: 'Medical', date: r.visit_date }));
+      const consultations = getResults(consultationResp).map(r => ({ ...r, type: 'Consultation', date: r.date_time }));
+      const dental = getResults(dentalResp).map(r => ({ ...r, type: 'Dental', date: r.visit_date }));
+      const docs = getResults(documentResp).map(r => ({ ...r, type: 'Document', date: r.uploaded_at }));
+
+      setDocuments(docs);
+
+      const allHistory = [...medical, ...consultations, ...dental, ...docs].sort((a, b) => 
+        new Date(b.date) - new Date(a.date)
+      );
+      
+      setHistory(allHistory);
+      
+      // Find latest vitals from medical records
+      const recordsWithVitalSigns = medical
+        .filter(r => r.vital_signs && Object.keys(r.vital_signs).length > 0)
+        .sort((a, b) => new Date(b.visit_date) - new Date(a.visit_date));
+      
+      if (recordsWithVitalSigns.length > 0) {
+        setLatestVitalSigns(recordsWithVitalSigns[0].vital_signs);
+      }
+    } catch (err) {
+      console.error('Error fetching patient profile data:', err);
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to load full patient profile';
+      setError(`${errorMsg} (Status: ${err.response?.status || 'Unknown'})`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchPatientFullData();
   }, [partialPatient.id]);
+
+  const handleDeleteDocument = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this document? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await patientDocumentService.deleteDocument(id);
+      closeDialog();
+      await fetchPatientFullData();
+    } catch (err) {
+      console.error("Error deleting document:", err);
+      alert("Failed to delete document. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Helper Functions
   const formatVitalSign = (value, unit = '') => {
@@ -540,14 +568,29 @@ const PatientProfile = ({ patient: partialPatient, onBack }) => {
                             {getRecordSummary(record)}
                           </TableCell>
                           <TableCell align="right">
-                            <Button 
-                              size="small" 
-                              variant="text"
-                              startIcon={<Description />}
-                              onClick={() => handleViewRecord(record)}
-                            >
-                              Details
-                            </Button>
+                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
+                              <Button 
+                                size="small" 
+                                variant="text"
+                                startIcon={<Description />}
+                                onClick={() => handleViewRecord(record)}
+                              >
+                                Details
+                              </Button>
+                              {record.type === 'Document' && (
+                                <IconButton 
+                                  size="small" 
+                                  color="error"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteDocument(record.id);
+                                  }}
+                                  title="Delete Document"
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              )}
+                            </Box>
                           </TableCell>
                         </TableRow>
                       ))
@@ -646,7 +689,7 @@ const PatientProfile = ({ patient: partialPatient, onBack }) => {
                       <Typography variant="caption" color="textSecondary">Description</Typography>
                       <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{selectedRecord.description || 'No description provided'}</Typography>
                     </Box>
-                    <Box sx={{ mt: 2 }}>
+                    <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
                       <Button 
                         variant="contained" 
                         color="primary" 
@@ -654,7 +697,16 @@ const PatientProfile = ({ patient: partialPatient, onBack }) => {
                         onClick={() => handleDownloadDocument(selectedRecord)} 
                         startIcon={<DownloadIcon />}
                       >
-                        Download Document
+                        Download
+                      </Button>
+                      <Button 
+                        variant="outlined" 
+                        color="error" 
+                        fullWidth 
+                        onClick={() => handleDeleteDocument(selectedRecord.id)} 
+                        startIcon={<DeleteIcon />}
+                      >
+                        Delete
                       </Button>
                     </Box>
                   </>

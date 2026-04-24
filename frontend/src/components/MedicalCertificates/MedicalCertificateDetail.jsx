@@ -199,32 +199,25 @@ const MedicalCertificateDetail = ({
             </Typography>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12}>
             <Typography variant="subtitle2" color="text.secondary">
               Purpose/Requirement
             </Typography>
-            <Typography variant="body1">
-              {certificate.diagnosis}
+            <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+              {certificate.diagnosis || 'No purpose/requirement recorded'}
             </Typography>
           </Grid>
 
-          <Grid item xs={12}>
-            <Typography variant="subtitle2" color="text.secondary">
-              Diagnosis
-            </Typography>
-            <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-              {certificate.diagnosis}
-            </Typography>
-          </Grid>
-
-          <Grid item xs={12}>
-            <Typography variant="subtitle2" color="text.secondary">
-              Recommendations
-            </Typography>
-            <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-              {certificate.recommendations}
-            </Typography>
-          </Grid>
+          {certificate.additional_notes && (
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Remarks / Recommendations
+              </Typography>
+              <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                {certificate.additional_notes}
+              </Typography>
+            </Grid>
+          )}
 
           <Grid item xs={12} md={6}>
             <Typography variant="subtitle2" color="text.secondary">
@@ -277,17 +270,6 @@ const MedicalCertificateDetail = ({
                   {certificate.fitness_reason}
                 </Typography>
               </Paper>
-            </Grid>
-          )}
-
-          {certificate.additional_notes && (
-            <Grid item xs={12}>
-              <Typography variant="subtitle2" color="text.secondary">
-                Additional Notes
-              </Typography>
-              <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                {certificate.additional_notes}
-              </Typography>
             </Grid>
           )}
 

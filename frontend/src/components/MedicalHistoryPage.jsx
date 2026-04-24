@@ -882,21 +882,12 @@ const MedicalHistoryPage = () => {
                         <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
                           {record.diagnosis}
                         </Typography>
-                        <Chip label="FILE" size="small" sx={{ height: 18, fontSize: '0.65rem', bgcolor: '#4caf50', color: 'white' }} />
+                        <Chip label="FILE" size="small" sx={{ height: 18, fontSize: '0.65rem', bgcolor: '#9e9e9e', color: 'white' }} />
                       </Box>
                       <Typography variant="caption" color="text.secondary">
                         {formatDate(record.visit_date).formatted} • {record.patient_name} • {record.original_filename}
                       </Typography>
                     </Box>
-                    <Button
-                      variant="outlined"
-                      startIcon={<FileIcon />}
-                      size="small"
-                      onClick={() => window.open(record.download_url, '_blank')}
-                      sx={{ color: '#2e7d32', borderColor: '#2e7d32', height: 30, fontSize: '0.75rem' }}
-                    >
-                      View
-                    </Button>
                   </Box>
                 </Box>
               ) : (

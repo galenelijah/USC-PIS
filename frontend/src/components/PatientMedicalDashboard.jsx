@@ -91,25 +91,31 @@ const PatientMedicalDashboard = () => {
           patientDocumentService.getPatientDocuments(currentUser.id).catch(() => ({ data: [] }))
         ]);
         
-        if (medResp?.data && Array.isArray(medResp.data)) {
-          setMedicalRecords(medResp.data);
-          
-          // Find the most recent medical record with vital signs
-          const recordsWithVitalSigns = medResp.data.filter(record => 
-            record.vital_signs && Object.keys(record.vital_signs).length > 0
-          );
-          
-          if (recordsWithVitalSigns.length > 0) {
-            // Sort by visit date (most recent first) and get the latest vital signs
-            const sortedRecords = recordsWithVitalSigns.sort((a, b) => 
-              new Date(b.visit_date) - new Date(a.visit_date)
-            );
-            setLatestVitalSigns(sortedRecords[0].vital_signs);
-          }
-        }
+        // Helper to extract array from possibly paginated response
+        const getResults = (resp) => {
+          if (!resp) return [];
+          if (Array.isArray(resp.data)) return resp.data;
+          if (resp.data && Array.isArray(resp.data.results)) return resp.data.results;
+          return [];
+        };
 
-        if (docResp?.data && Array.isArray(docResp.data)) {
-          setDocuments(docResp.data);
+        const medData = getResults(medResp);
+        const docData = getResults(docResp);
+        
+        setMedicalRecords(medData);
+        setDocuments(docData);
+          
+        // Find the most recent medical record with vital signs
+        const recordsWithVitalSigns = medData.filter(record => 
+          record.vital_signs && Object.keys(record.vital_signs).length > 0
+        );
+        
+        if (recordsWithVitalSigns.length > 0) {
+          // Sort by visit date (most recent first) and get the latest vital signs
+          const sortedRecords = recordsWithVitalSigns.sort((a, b) => 
+            new Date(b.visit_date) - new Date(a.visit_date)
+          );
+          setLatestVitalSigns(sortedRecords[0].vital_signs);
         }
       } catch (err) {
         console.error('Error fetching dashboard data:', err);

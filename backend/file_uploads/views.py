@@ -69,6 +69,7 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
     serializer_class = PatientDocumentSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [parsers.MultiPartParser, parsers.FormParser]
+    pagination_class = None  # Disable pagination to return data as array
 
     def create(self, request, *args, **kwargs):
         if hasattr(request.user, 'role') and request.user.role in ['STUDENT', 'FACULTY']:

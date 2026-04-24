@@ -33,8 +33,8 @@ class MedicalCertificate(models.Model):
     template = models.ForeignKey(CertificateTemplate, on_delete=models.PROTECT)
     
     # Certificate Data
-    diagnosis = models.TextField()
-    recommendations = models.TextField()
+    diagnosis = models.TextField(blank=True)
+    recommendations = models.TextField(blank=True)
     valid_from = models.DateField()
     valid_until = models.DateField()
     additional_notes = models.TextField(blank=True)

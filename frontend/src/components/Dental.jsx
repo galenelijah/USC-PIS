@@ -62,7 +62,8 @@ import {
   TableChart as ExcelIcon,
   InsertDriveFile as CsvIcon,
   Assessment as ReportIcon,
-  Description as FileIcon
+  Description as FileIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
@@ -288,6 +289,23 @@ const Dental = () => {
     } catch (error) {
       console.error('Error downloading document:', error);
       alert('Failed to download document. Please try again.');
+    }
+  };
+
+  const handleDeleteAttachment = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this attachment? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await patientDocumentService.deleteDocument(id);
+      await fetchRecordAttachments(selectedRecord);
+    } catch (err) {
+      console.error("Error deleting attachment:", err);
+      alert("Failed to delete attachment. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1423,15 +1441,26 @@ const Dental = () => {
                               <Typography variant="caption" color="text.secondary" display="block">
                                 {doc.document_type_display}
                               </Typography>
+                            <Box sx={{ ml: 'auto', display: 'flex', gap: 0.5 }}>
+                              <IconButton 
+                                size="small" 
+                                onClick={() => handleDownloadDocument(doc)}
+                                title="Download"
+                                color="primary"
+                              >
+                                <DownloadIcon fontSize="small" />
+                              </IconButton>
+                              {isMedicalStaff && (
+                                <IconButton 
+                                  size="small" 
+                                  onClick={() => handleDeleteAttachment(doc.id)}
+                                  title="Delete"
+                                  color="error"
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              )}
                             </Box>
-                            <Button 
-                              size="small" 
-                              onClick={() => handleDownloadDocument(doc)} 
-                              sx={{ ml: 'auto' }}
-                              startIcon={<DownloadIcon />}
-                            >
-                              Download
-                            </Button>
                           </Paper>
                         </Grid>
                       ))}

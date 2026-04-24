@@ -188,8 +188,6 @@ const EmailAdministration = () => {
     } else if (activeTab === 3) {
       fetchStaffAccess();
     } else if (activeTab === 4) {
-      fetchCampaigns();
-    } else if (activeTab === 5) {
       fetchLogs();
     }
   }, [activeTab]);
@@ -592,8 +590,7 @@ const EmailAdministration = () => {
               else if (activeTab === 1) fetchTemplates();
               else if (activeTab === 2) fetchNotifications();
               else if (activeTab === 3) fetchStaffAccess();
-              else if (activeTab === 4) fetchCampaigns();
-              else if (activeTab === 5) fetchLogs();
+              else if (activeTab === 4) fetchLogs();
             }}
             disabled={loading || configLoading || staffLoading}
           >
@@ -611,7 +608,6 @@ const EmailAdministration = () => {
         <Tab icon={<DescriptionIcon />} iconPosition="start" label="Email Templates" />
         <Tab icon={<NotificationsIcon />} iconPosition="start" label="Sent Notifications" />
         <Tab icon={<StaffIcon />} iconPosition="start" label="Staff Access" />
-        <Tab icon={<CampaignIcon />} iconPosition="start" label="Email Campaigns" />
         <Tab icon={<HistoryIcon />} iconPosition="start" label="System Logs" />
       </Tabs>
 
@@ -1130,65 +1126,6 @@ const EmailAdministration = () => {
       )}
 
       {activeTab === 4 && (
-        <Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h6" fontWeight="bold">
-              Email Campaigns
-            </Typography>
-            <Button variant="contained" startIcon={<AddIcon />} disabled>New Campaign</Button>
-          </Box>
-
-          <Grid container spacing={3}>
-            {loading ? (
-              <Grid item xs={12} sx={{ textAlign: 'center', py: 5 }}>
-                <CircularProgress />
-              </Grid>
-            ) : campaigns.length === 0 ? (
-              <Grid item xs={12}>
-                <Paper sx={{ p: 5, textAlign: 'center', bgcolor: 'grey.50' }}>
-                  <CampaignIcon sx={{ fontSize: 60, color: 'grey.400', mb: 2 }} />
-                  <Typography variant="h6" color="text.secondary">No campaigns found</Typography>
-                </Paper>
-              </Grid>
-            ) : campaigns.map((campaign) => (
-              <Grid item xs={12} md={6} key={campaign.id}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="subtitle1" fontWeight="bold">{campaign.name}</Typography>
-                      <Chip 
-                        label={campaign.status} 
-                        size="small" 
-                        color={campaign.status === 'ACTIVE' ? 'success' : campaign.status === 'COMPLETED' ? 'primary' : 'default'} 
-                      />
-                    </Box>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Type: {campaign.campaign_type_display} | Audience: {campaign.audience_type}
-                    </Typography>
-                    <Divider sx={{ my: 1 }} />
-                    <Grid container spacing={1}>
-                      <Grid item xs={4}>
-                        <Typography variant="caption" color="text.secondary">Sent</Typography>
-                        <Typography variant="body2" fontWeight="bold">{campaign.sent_count || 0}</Typography>
-                      </Grid>
-                      <Grid item xs={4}>
-                        <Typography variant="caption" color="text.secondary">Read</Typography>
-                        <Typography variant="body2" fontWeight="bold">{campaign.read_count || 0}</Typography>
-                      </Grid>
-                      <Grid item xs={4}>
-                        <Typography variant="caption" color="text.secondary">Failed</Typography>
-                        <Typography variant="body2" fontWeight="bold">{campaign.failed_count || 0}</Typography>
-                      </Grid>
-                    </Grid>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
-      )}
-
-      {activeTab === 5 && (
         <Box>
           <Typography variant="h6" fontWeight="bold" gutterBottom>
             System Activity Logs

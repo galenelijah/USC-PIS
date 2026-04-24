@@ -179,8 +179,8 @@ export const medicalRecordSchema = yup.object().shape({
 const baseMedicalCertificateSchema = {
   patient: commonValidation.requiredText('Patient selection'),
   template: commonValidation.requiredText('Template selection'),
-  diagnosis: commonValidation.requiredText('Diagnosis'),
-  recommendations: commonValidation.requiredText('Recommendations'),
+  diagnosis: commonValidation.optionalText,
+  recommendations: commonValidation.optionalText,
   valid_from: commonValidation.pastDate('Valid from date'),
   valid_until: yup
     .date()

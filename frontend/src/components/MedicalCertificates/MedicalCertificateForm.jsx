@@ -413,31 +413,11 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
                   {...field}
                   fullWidth
                   multiline
-                  rows={4}
-                  label="Purpose/Requirement *"
+                  rows={3}
+                  label="Purpose/Requirement"
                   placeholder="Enter the purpose or requirement for this medical certificate (e.g., Tour, Off-Campus Activity)..."
                   error={!!errors.diagnosis}
                   helperText={errors.diagnosis?.message}
-                />
-              )}
-            />
-          </Grid>
-
-          {/* Recommendations */}
-          <Grid item xs={12}>
-            <Controller
-              name="recommendations"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  multiline
-                  rows={4}
-                  label="Recommendations *"
-                  placeholder="Enter medical recommendations, restrictions, or treatment plans..."
-                  error={!!errors.recommendations}
-                  helperText={errors.recommendations?.message}
                 />
               )}
             />
@@ -595,7 +575,7 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
             </Grid>
           )}
 
-          {/* Additional Notes */}
+          {/* Remarks/Recommendations */}
           <Grid item xs={12}>
             <Controller
               name="additional_notes"
@@ -606,8 +586,8 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
                   fullWidth
                   multiline
                   rows={3}
-                  label="Additional Notes"
-                  placeholder="Any additional information or special instructions..."
+                  label="Remarks / Recommendations"
+                  placeholder="Any additional medical recommendations, restrictions, or special instructions..."
                   error={!!errors.additional_notes}
                   helperText={errors.additional_notes?.message}
                 />

@@ -32,7 +32,11 @@ import { useSelector } from 'react-redux';
 import { extractErrorMessage, extractFieldErrors } from '../utils/errorUtils';
 import { formatDateForInput } from '../utils/dateUtils';
 import PatientDocumentUpload from './PatientDocumentUpload';
-import { Description as FileIcon, CloudUpload as UploadIcon } from '@mui/icons-material';
+import { 
+    Description as FileIcon, 
+    CloudUpload as UploadIcon,
+    Delete as DeleteIcon
+} from '@mui/icons-material';
 
 const defaultUserData = {
     height: "",
@@ -90,6 +94,23 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
         } catch (error) {
             console.error('Error downloading document:', error);
             alert('Failed to download document. Please try again.');
+        }
+    };
+
+    const handleDeleteAttachment = async (id) => {
+        if (!window.confirm("Are you sure you want to delete this attachment? This action cannot be undone.")) {
+            return;
+        }
+
+        try {
+            setLoading(true);
+            await patientDocumentService.deleteDocument(id);
+            await fetchAttachments();
+        } catch (err) {
+            console.error("Error deleting attachment:", err);
+            alert("Failed to delete attachment. Please try again.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -695,14 +716,26 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                                                                 {doc.document_type_display}
                                                             </Typography>
                                                         </Box>
-                                                        <Button 
-                                                            size="small" 
-                                                            onClick={() => handleDownloadDocument(doc)} 
-                                                            sx={{ ml: 'auto' }}
-                                                            startIcon={<DownloadIcon />}
-                                                        >
-                                                            Download
-                                                        </Button>
+                                                        <Box sx={{ ml: 'auto', display: 'flex', gap: 0.5 }}>
+                                                            <IconButton 
+                                                                size="small" 
+                                                                onClick={() => handleDownloadDocument(doc)} 
+                                                                title="Download"
+                                                                color="primary"
+                                                            >
+                                                                <DownloadIcon fontSize="small" />
+                                                            </IconButton>
+                                                            {canEdit && (
+                                                                <IconButton 
+                                                                    size="small" 
+                                                                    onClick={() => handleDeleteAttachment(doc.id)} 
+                                                                    title="Delete"
+                                                                    color="error"
+                                                                >
+                                                                    <DeleteIcon fontSize="small" />
+                                                                </IconButton>
+                                                            )}
+                                                        </Box>
                                                     </Paper>
                                                 </Grid>
                                             ))}
