@@ -64,7 +64,13 @@ import { Autocomplete } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { healthRecordsService, patientService, patientDocumentService } from '../services/api';
+import { 
+  healthRecordsService, 
+  patientService, 
+  patientDocumentService,
+  consultationService,
+  medicalCertificateService 
+} from '../services/api';
 import { dentalRecordService } from '../services/api';
 import { useSelector } from 'react-redux';
 import dayjs from 'dayjs';
@@ -159,8 +165,8 @@ const MedicalHistoryPage = () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch medical, dental, and document data
-      const [medResp, dentResp, docResp] = await Promise.all([
+      // Fetch medical, dental, consultations, certificates, and document data
+      const [medResp, dentResp, docResp, consultResp, certResp] = await Promise.all([
         healthRecordsService.getAll().catch(err => {
           console.error('Error fetching medical records:', err);
           return { data: [] };
@@ -171,6 +177,14 @@ const MedicalHistoryPage = () => {
         }),
         patientDocumentService.getAllDocuments().catch(err => {
           console.error('Error fetching documents:', err);
+          return { data: [] };
+        }),
+        consultationService.getAll().catch(err => {
+          console.error('Error fetching consultations:', err);
+          return { data: [] };
+        }),
+        medicalCertificateService.getAll().catch(err => {
+          console.error('Error fetching certificates:', err);
           return { data: [] };
         })
       ]);
@@ -184,6 +198,8 @@ const MedicalHistoryPage = () => {
       const medData = getResults(medResp);
       const dentData = getResults(dentResp);
       const docData = getResults(docResp);
+      const consultData = getResults(consultResp);
+      const certData = getResults(certResp);
 
       // Create maps for quick lookup to group attachments
       const medMap = {};
@@ -214,6 +230,28 @@ const MedicalHistoryPage = () => {
         return record;
       });
 
+      const consultations = consultData.map(c => ({
+        ...c,
+        record_type: 'CONSULTATION',
+        composite_id: `CONSULT-${c.id}`,
+        visit_date: c.date_time,
+        diagnosis: c.chief_complaints,
+        treatment: c.treatment_plan,
+        notes: c.remarks,
+        attachments: []
+      }));
+
+      const certificates = certData.map(cert => ({
+        ...cert,
+        record_type: 'CERTIFICATE',
+        composite_id: `CERT-${cert.id}`,
+        visit_date: cert.created_at,
+        diagnosis: cert.diagnosis || 'Medical Certificate',
+        treatment: `Valid until: ${cert.valid_until}`,
+        notes: cert.recommendations,
+        attachments: []
+      }));
+
       const standaloneAttachments = [];
 
       docData.forEach(d => {
@@ -237,17 +275,8 @@ const MedicalHistoryPage = () => {
         }
       });
 
-      // Unified history only shows actual records (medical/dental)
-      // Attachments are shown within their respective record cards
-      let combined = [...medical, ...dental];
-      
-      // If user is a student/teacher, only show their records
-      if (isStudent && user?.id) {
-        combined = combined.filter(record => {
-          const patientId = record.patient?.id || record.patient;
-          return String(patientId) === String(user.id);
-        });
-      }
+      // Unified history shows all record types including standalone attachments
+      let combined = [...medical, ...dental, ...consultations, ...certificates, ...standaloneAttachments];
       
       // Sort by visit_date (primary) and created_at (secondary) to ensure consistent chronological order
       combined = combined.sort((a, b) => {
@@ -360,6 +389,8 @@ const MedicalHistoryPage = () => {
     switch (recordType) {
       case 'DENTAL': return <DentalIcon />;
       case 'ATTACHMENT': return <AttachmentIcon />;
+      case 'CONSULTATION': return <DiagnosisIcon />;
+      case 'CERTIFICATE': return <CertificateIcon />;
       default: return <MedicalIcon />;
     }
   };
@@ -368,6 +399,8 @@ const MedicalHistoryPage = () => {
     switch (recordType) {
       case 'DENTAL': return '#f093fb';
       case 'ATTACHMENT': return '#4caf50';
+      case 'CONSULTATION': return '#ff9a9e';
+      case 'CERTIFICATE': return '#a18cd1';
       default: return '#667eea';
     }
   };
