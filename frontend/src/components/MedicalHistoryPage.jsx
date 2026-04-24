@@ -67,9 +67,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { 
   healthRecordsService, 
   patientService, 
-  patientDocumentService,
-  consultationService,
-  medicalCertificateService 
+  patientDocumentService 
 } from '../services/api';
 import { dentalRecordService } from '../services/api';
 import { useSelector } from 'react-redux';
@@ -165,8 +163,8 @@ const MedicalHistoryPage = () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch medical, dental, consultations, certificates, and document data
-      const [medResp, dentResp, docResp, consultResp, certResp] = await Promise.all([
+      // Fetch medical, dental, and document data
+      const [medResp, dentResp, docResp] = await Promise.all([
         healthRecordsService.getAll().catch(err => {
           console.error('Error fetching medical records:', err);
           return { data: [] };
@@ -177,14 +175,6 @@ const MedicalHistoryPage = () => {
         }),
         patientDocumentService.getAllDocuments().catch(err => {
           console.error('Error fetching documents:', err);
-          return { data: [] };
-        }),
-        consultationService.getAll().catch(err => {
-          console.error('Error fetching consultations:', err);
-          return { data: [] };
-        }),
-        medicalCertificateService.getAll().catch(err => {
-          console.error('Error fetching certificates:', err);
           return { data: [] };
         })
       ]);
@@ -198,8 +188,6 @@ const MedicalHistoryPage = () => {
       const medData = getResults(medResp);
       const dentData = getResults(dentResp);
       const docData = getResults(docResp);
-      const consultData = getResults(consultResp);
-      const certData = getResults(certResp);
 
       // Create maps for quick lookup to group attachments
       const medMap = {};
@@ -230,28 +218,6 @@ const MedicalHistoryPage = () => {
         return record;
       });
 
-      const consultations = consultData.map(c => ({
-        ...c,
-        record_type: 'CONSULTATION',
-        composite_id: `CONSULT-${c.id}`,
-        visit_date: c.date_time,
-        diagnosis: c.chief_complaints,
-        treatment: c.treatment_plan,
-        notes: c.remarks,
-        attachments: []
-      }));
-
-      const certificates = certData.map(cert => ({
-        ...cert,
-        record_type: 'CERTIFICATE',
-        composite_id: `CERT-${cert.id}`,
-        visit_date: cert.created_at,
-        diagnosis: cert.diagnosis || 'Medical Certificate',
-        treatment: `Valid until: ${cert.valid_until}`,
-        notes: cert.recommendations,
-        attachments: []
-      }));
-
       const standaloneAttachments = [];
 
       docData.forEach(d => {
@@ -275,8 +241,8 @@ const MedicalHistoryPage = () => {
         }
       });
 
-      // Unified history shows all record types including standalone attachments
-      let combined = [...medical, ...dental, ...consultations, ...certificates, ...standaloneAttachments];
+      // Unified history only shows clinical records (medical/dental) and standalone files
+      let combined = [...medical, ...dental, ...standaloneAttachments];
       
       // Sort by visit_date (primary) and created_at (secondary) to ensure consistent chronological order
       combined = combined.sort((a, b) => {
