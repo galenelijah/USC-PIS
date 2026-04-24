@@ -92,13 +92,15 @@ class USCPISAdvancedUnitTests(TestCase):
         # Mocking the query params
         from patients.views import PatientViewSet
         from rest_framework.test import APIRequestFactory
+        from rest_framework.request import Request
         
         factory = APIRequestFactory()
         for yl in year_levels:
             request = factory.get(f'/api/patients/?year_level={yl}')
             request.user = self.test_user
             view = PatientViewSet()
-            view.request = view.initialize_request(request)
+            # Wrap the WSGIRequest in a DRF Request to provide query_params
+            view.request = Request(request)
             queryset = view.get_queryset()
             self.assertEqual(queryset.filter(user__year_level=yl).count(), 1)
         
