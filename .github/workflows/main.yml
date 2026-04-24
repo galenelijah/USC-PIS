@@ -105,5 +105,4 @@ jobs:
         heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
         heroku_app_name: "usc-pis"
         heroku_email: "sgalenelijah@gmail.com"
-        # Adding this to ensure it doesn't try to create a new app
-        just_deploy: true
+        dontautocreate: true
