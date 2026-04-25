@@ -63,6 +63,7 @@ import { campaignService } from '../services/api';
 import ImageUpload from './common/ImageUpload';
 import InfoTooltip from './utils/InfoTooltip';
 import InlineContentRenderer from './common/InlineContentRenderer';
+import UniversalViewer from './common/UniversalViewer';
 
 const UniversalCampaigns = () => {
   const navigate = useNavigate();
@@ -70,6 +71,48 @@ const UniversalCampaigns = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  
+  const handleDownload = (url, filename = 'pubmat_material') => {
+    if (!url) return;
+    
+    // For Cloudinary URLs, we can force a download by adding fl_attachment
+    let downloadUrl = url;
+    if (url.includes('res.cloudinary.com')) {
+      if (url.includes('/upload/')) {
+        downloadUrl = url.replace('/upload/', '/upload/fl_attachment/');
+      } else if (url.includes('/raw/upload/')) {
+        downloadUrl = url.replace('/raw/upload/', '/raw/upload/fl_attachment/');
+      }
+    }
+    
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    // Attempt to set download attribute
+    const ext = url.split('.').pop().split('?')[0] || 'file';
+    link.setAttribute('download', `${filename}.${ext}`);
+    link.setAttribute('target', '_blank');
+    link.setAttribute('rel', 'noopener noreferrer');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const isPdf = (url) => {
+    if (!url || typeof url !== 'string') return false;
+    return /\.pdf(\?|$)/i.test(url);
+  };
+
+  // Viewer state
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerUrl, setViewerUrl] = useState('');
+  const [viewerTitle, setViewerTitle] = useState('');
+
+  const openViewer = (url, title = 'Document Preview') => {
+    setViewerUrl(url);
+    setViewerTitle(title);
+    setViewerOpen(true);
+  };
+
   const [bookmarkedCampaigns, setBookmarkedCampaigns] = useState(new Set());
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
   const [feedback, setFeedback] = useState({ rating: 0, comment: '' });
@@ -303,14 +346,22 @@ const UniversalCampaigns = () => {
 
       const formData = new FormData();
       
-      // Add form fields (excluding file fields)
+      // Add form fields with cleaning
       Object.keys(campaignForm).forEach(key => {
-        if (campaignForm[key] && !key.endsWith('File')) {
-          formData.append(key, campaignForm[key]);
+        let value = campaignForm[key];
+        
+        // Clean strings
+        if (typeof value === 'string') {
+          value = value.trim();
+        }
+        
+        // Only append if it has a meaningful value
+        if (value !== '' && value !== null && value !== undefined && !key.endsWith('File')) {
+          formData.append(key, value);
         }
       });
 
-      // Add specific image files with their proper field names (only if they have content)
+      // Add specific image files
       if (campaignForm.bannerFile && campaignForm.bannerFile.size > 0) {
         formData.append('banner_image', campaignForm.bannerFile);
       }
@@ -743,9 +794,15 @@ const UniversalCampaigns = () => {
                               transition: 'transform 0.2s',
                               '&:hover': { transform: 'scale(1.02)' }
                             }}
-                            onClick={() => window.open(imageUrl, '_blank')}
+                            onClick={() => {
+                              if (isPdf(imageUrl)) {
+                                handleDownload(imageUrl, `${selectedCampaign.title}_pubmat`);
+                              } else {
+                                window.open(imageUrl, '_blank');
+                              }
+                            }}
                           >
-                            {isPdf ? (
+                            {isPdf(imageUrl) ? (
                               <Box
                                 sx={{
                                   display: 'flex',
@@ -764,7 +821,15 @@ const UniversalCampaigns = () => {
                                 <Typography variant="caption" color="primary" fontWeight="bold">
                                   PDF Document
                                 </Typography>
-                                <Button size="extrasmall" variant="text" startIcon={<DownloadIcon />}>
+                                <Button 
+                                  size="extrasmall" 
+                                  variant="text" 
+                                  startIcon={<DownloadIcon />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDownload(imageUrl, `${selectedCampaign.title}_pubmat`);
+                                  }}
+                                >
                                   Download
                                 </Button>
                               </Box>
@@ -1322,6 +1387,15 @@ const UniversalCampaigns = () => {
         autoHideDuration={4000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         message={snackbar.message}
+      />
+
+      {/* Universal File Viewer */}
+      <UniversalViewer
+        open={viewerOpen}
+        onClose={() => setViewerOpen(false)}
+        url={viewerUrl}
+        title={viewerTitle}
+        filename={viewerTitle.replace(/\s+/g, '_').toLowerCase()}
       />
     </Container>
   );

@@ -303,6 +303,20 @@ class HealthCampaignCreateUpdateSerializer(serializers.ModelSerializer):
         model = HealthCampaign
         exclude = ('created_at', 'updated_at', 'created_by', 'last_modified_by', 'view_count', 'engagement_count')
     
+    def validate_external_link(self, value):
+        """Clean and validate external link"""
+        if not value or str(value).strip() == "":
+            return ""
+        
+        # Clean the URL
+        cleaned_url = str(value).strip()
+        
+        # Add https:// if protocol is missing
+        if not cleaned_url.startswith(('http://', 'https://')):
+            cleaned_url = f"https://{cleaned_url}"
+            
+        return cleaned_url
+
     def validate(self, data):
         """Validate campaign data with enhanced error handling"""
         import logging

@@ -38,10 +38,15 @@ Required to create:
 Optional but recommended:
 - `summary`, `objectives`, `target_audience`, `call_to_action`, `priority`, `tags`, `external_link`, `contact_info`.
 
-Images (optional):
+Images & Materials (optional):
 - `banner_image` (image/*)
 - `thumbnail_image` (image/*)
-- `pubmat_image` (image/* or PDF)
+- `pubmat_image` (image/* or application/pdf)
+
+## PubMat Material Handling
+- **PDF Support:** The system automatically detects if a PubMat material is a PDF file.
+- **Specialized Rendering:** PDFs are displayed as stylized download cards with a dedicated "Download PubMat" button, ensuring high-fidelity access to print materials.
+- **Automatic Governing:** The "Status" field has been removed. Campaign visibility is now purely governed by the `start_date` and `end_date`.
 
 ## Image Handling (Cloudinary)
 - Controlled in serializer: campaign is created/updated first, then images are attached only if Cloudinary is configured.

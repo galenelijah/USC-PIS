@@ -64,6 +64,7 @@ import { useSelector } from 'react-redux';
 import { campaignService } from '../services/api';
 import ContentViewer from './common/ContentViewer';
 import InlineContentRenderer from './common/InlineContentRenderer';
+import UniversalViewer from './common/UniversalViewer';
 import InfoTooltip from './utils/InfoTooltip';
 import { extractErrorMessage, extractFieldErrors } from '../utils/errorUtils';
 
@@ -82,6 +83,11 @@ const CampaignsPage = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [fieldErrors, setFieldErrors] = useState({});
   const [editLoading, setEditLoading] = useState(false);
+
+  // Viewer state
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerUrl, setViewerUrl] = useState('');
+  const [viewerTitle, setViewerTitle] = useState('');
   
   // Form state
   const [campaignForm, setCampaignForm] = useState({
@@ -297,10 +303,18 @@ const CampaignsPage = () => {
 
       const formData = new FormData();
       
-      // Add form fields
+      // Add form fields with cleaning
       Object.keys(campaignForm).forEach(key => {
-        if (campaignForm[key]) {
-          formData.append(key, campaignForm[key]);
+        let value = campaignForm[key];
+        
+        // Clean strings
+        if (typeof value === 'string') {
+          value = value.trim();
+        }
+        
+        // Only append if it has a meaningful value
+        if (value !== '' && value !== null && value !== undefined) {
+          formData.append(key, value);
         }
       });
 
@@ -362,10 +376,20 @@ const CampaignsPage = () => {
     try {
       const formData = new FormData();
       
-      // Add form fields (include all fields, even empty ones for required fields)
+      // Add form fields with cleaning
       Object.keys(campaignForm).forEach(key => {
-        if (campaignForm[key] !== null && campaignForm[key] !== undefined) {
-          formData.append(key, campaignForm[key]);
+        let value = campaignForm[key];
+        
+        // Clean strings
+        if (typeof value === 'string') {
+          value = value.trim();
+        }
+        
+        // Only append if it has a value (except for optional fields we might want to clear)
+        if (value !== null && value !== undefined) {
+          // For URL fields or optional text fields, allow empty string to clear it
+          // but trim it first.
+          formData.append(key, value);
         }
       });
 
@@ -511,6 +535,42 @@ const CampaignsPage = () => {
     const startDate = new Date(campaign.start_date);
     const endDate = new Date(campaign.end_date);
     return now >= startDate && now <= endDate;
+  };
+
+  const handleDownload = (url, filename = 'pubmat_material') => {
+    if (!url) return;
+    
+    // For Cloudinary URLs, we can force a download by adding fl_attachment
+    let downloadUrl = url;
+    if (url.includes('res.cloudinary.com')) {
+      if (url.includes('/upload/')) {
+        downloadUrl = url.replace('/upload/', '/upload/fl_attachment/');
+      } else if (url.includes('/raw/upload/')) {
+        downloadUrl = url.replace('/raw/upload/', '/raw/upload/fl_attachment/');
+      }
+    }
+    
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    // Attempt to set download attribute
+    const ext = url.split('.').pop().split('?')[0] || 'file';
+    link.setAttribute('download', `${filename}.${ext}`);
+    link.setAttribute('target', '_blank');
+    link.setAttribute('rel', 'noopener noreferrer');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const openViewer = (url, title = 'Document Preview') => {
+    setViewerUrl(url);
+    setViewerTitle(title);
+    setViewerOpen(true);
+  };
+
+  const isPdf = (url) => {
+    if (!url || typeof url !== 'string') return false;
+    return /\.pdf(\?|$)/i.test(url);
   };
 
   return (
@@ -2293,7 +2353,7 @@ const CampaignsPage = () => {
                                           objectFit: 'cover',
                                           cursor: 'pointer'
                                         }}
-                                        onClick={() => window.open(selectedCampaign.banner_image_url, '_blank')}
+                                        onClick={() => openViewer(selectedCampaign.banner_image_url, `${selectedCampaign.title} - Banner`)}
                                       />
                                       <Box
                                         sx={{
@@ -2344,7 +2404,7 @@ const CampaignsPage = () => {
                                           objectFit: 'cover',
                                           cursor: 'pointer'
                                         }}
-                                        onClick={() => window.open(selectedCampaign.thumbnail_image_url, '_blank')}
+                                        onClick={() => openViewer(selectedCampaign.thumbnail_image_url, `${selectedCampaign.title} - Thumbnail`)}
                                       />
                                       <Box
                                         sx={{
@@ -2377,7 +2437,7 @@ const CampaignsPage = () => {
                                       Public material for printing & distribution
                                     </Typography>
                                     
-                                    {selectedCampaign.pubmat_image_url.toLowerCase().endsWith('.pdf') ? (
+                                    {isPdf(selectedCampaign.pubmat_image_url) ? (
                                       <Box 
                                         sx={{ 
                                           p: 4, 
@@ -2390,20 +2450,36 @@ const CampaignsPage = () => {
                                           cursor: 'pointer',
                                           '&:hover': { backgroundColor: '#e3f2fd' }
                                         }}
-                                        onClick={() => window.open(selectedCampaign.pubmat_image_url, '_blank')}
+                                        onClick={() => openViewer(selectedCampaign.pubmat_image_url, `${selectedCampaign.title} - PubMat PDF`)}
                                       >
                                         <PdfIcon sx={{ fontSize: 60, color: '#d32f2f', mb: 2 }} />
                                         <Typography variant="h6" color="primary" fontWeight="bold">
                                           PDF Document
                                         </Typography>
-                                        <Button 
-                                          variant="contained" 
-                                          color="primary" 
-                                          startIcon={<DownloadIcon />}
-                                          sx={{ mt: 2 }}
-                                        >
-                                          Download PubMat
-                                        </Button>
+                                        <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                                          <Button 
+                                            variant="outlined" 
+                                            color="primary" 
+                                            startIcon={<VisibilityIcon />}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              openViewer(selectedCampaign.pubmat_image_url, `${selectedCampaign.title} - PubMat PDF`);
+                                            }}
+                                          >
+                                            Preview
+                                          </Button>
+                                          <Button 
+                                            variant="contained" 
+                                            color="primary" 
+                                            startIcon={<DownloadIcon />}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDownload(selectedCampaign.pubmat_image_url, `${selectedCampaign.title}_pubmat`);
+                                            }}
+                                          >
+                                            Download
+                                          </Button>
+                                        </Box>
                                       </Box>
                                     ) : (
                                       <Box 
@@ -2415,6 +2491,7 @@ const CampaignsPage = () => {
                                           transition: 'transform 0.2s',
                                           '&:hover': { transform: 'scale(1.02)' }
                                         }}
+                                        onClick={() => openViewer(selectedCampaign.pubmat_image_url, `${selectedCampaign.title} - PubMat Image`)}
                                       >
                                         <img
                                           src={selectedCampaign.pubmat_image_url}
@@ -2425,7 +2502,6 @@ const CampaignsPage = () => {
                                             objectFit: 'cover',
                                             cursor: 'pointer'
                                           }}
-                                          onClick={() => window.open(selectedCampaign.pubmat_image_url, '_blank')}
                                         />
                                         <Box
                                           sx={{
@@ -2439,7 +2515,7 @@ const CampaignsPage = () => {
                                           }}
                                         >
                                           <Typography variant="caption" color="white" fontWeight="bold">
-                                            📸 View Full Size
+                                            🔍 Click to View
                                           </Typography>
                                         </Box>
                                       </Box>
@@ -2581,6 +2657,15 @@ const CampaignsPage = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Universal File Viewer */}
+      <UniversalViewer
+        open={viewerOpen}
+        onClose={() => setViewerOpen(false)}
+        url={viewerUrl}
+        title={viewerTitle}
+        filename={viewerTitle.replace(/\s+/g, '_').toLowerCase()}
+      />
     </Container>
   );
 };

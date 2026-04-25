@@ -33,11 +33,13 @@ This document describes every automatic email/notification in USC‑PIS, what tr
   - Code: `patients/signals.schedule_feedback_email_medical`
   - Template: `emails/feedback_request.html`
   - Recipient: patient with a linked user account
+  - **Reminder:** A follow-up notification is automatically sent after 24 hours if feedback is still pending.
 - Feedback Requests (Dental)
   - Trigger: DentalRecord created (Django signal)
   - Code: `patients/signals.schedule_feedback_email_dental`
   - Template: `emails/feedback_request.html` (generic)
   - Recipient: patient with a linked user account
+  - **Reminder:** A follow-up notification is automatically sent after 24 hours if feedback is still pending.
 - System Notifications (General)
   - Trigger: created via `NotificationService.create_notification` or using a template via `create_from_template`
   - Email body: generated HTML (service‑rendered), not the email templates directory

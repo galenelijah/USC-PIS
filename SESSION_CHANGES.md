@@ -9,21 +9,26 @@ This session focused on backend stability, dental system simplification, and UI 
   - Resolved a critical 500 error in medical record creation by restoring missing imports (`EmailService`, `Notification`) and initializing the `logger` in `backend/patients/signals.py`.
   - Fixed a `ReferenceError: Button is not defined` on the Patient Medical Dashboard by adding the missing MUI component import.
   - Fixed a `ReferenceError: filterStatus is not defined` on the Campaigns page by removing stale references to the deleted status field.
+  - Resolved `TypeError: h.getMyDentalRecords is not a function` by adding the missing API service method.
+  - Fixed student dashboard counts and corrected profile status logic.
 - **Dental Consultation Simplification**:
   - Refactored `DentalRecord` to focus on consultations and referrals.
   - Added mandatory **"Concern / Reason for Visit"** and optional **"Referral To"** fields.
   - Made "Diagnosis" and "Treatment Performed" optional to support rapid consultation logging.
   - Standardized the `Consultation` model by adding a `concern` field for consistency with medical records.
-  - Generated and applied manual migration (`0012_simplify_dental_and_consultation.py`) to sync database schema.
+  - Applied defensive manual migration (`0012_simplify_dental_and_consultation.py`) to sync database schema.
 - **Campaign System Refinement**:
   - **Removed Status Field**: Completely removed the redundant `status` field (Draft, Active, etc.) from campaigns. They are now governed purely by their active date range.
   - **PDF Material Support**: Implemented specialized rendering for PubMat materials. The system now detects PDF files and provides a stylized download card instead of a broken image preview.
-  - Generated and applied manual migration (`0013_remove_healthcampaign_status.py`) for backend schema cleanup.
+  - Applied defensive manual migration (`0013_remove_healthcampaign_status.py`) for backend schema cleanup.
 - **Student Feedback Integration**:
   - **Dental Feedback**: Integrated dental visits into the automated feedback system. Students now receive feedback requests and reminders for dental consultations.
   - **Enhanced Notifications**: Added a **24-hour reminder** system for pending feedback on all clinical visits.
   - **Consolidated UI**: Updated the Feedback Selector to display a chronological list of both medical and dental visits.
-  - Generated manual migration (`0004_add_dental_feedback.py`) to support the new feedback relations.
+  - Applied defensive manual migration (`0004_add_dental_feedback.py`) using idempotent SQL to handle existing table structures.
+- **Role-Based Access Control (RBAC) Hardening**:
+  - Restricted `/patient-dashboard` and `/health-insights` access to **STUDENT** and **FACULTY** roles only.
+  - Implemented automatic redirects for staff members attempting to access personal patient views.
 - **Admin UI Streamlining**:
   - Hidden the "Upload & Restore" and "Tables" sections in Database Monitor to focus on system health.
   - Hidden the "Email Templates" tab in Email Administration to simplify core routing management.
