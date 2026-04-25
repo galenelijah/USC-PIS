@@ -45,13 +45,14 @@ class Migration(migrations.Migration):
                 ),
             ],
             database_operations=[
-                # Drop old constraints defensively
+                # Drop old constraints/indexes defensively
                 migrations.RunSQL(
-                    sql="ALTER TABLE feedback_feedback DROP CONSTRAINT IF EXISTS unique_feedback_per_visit;",
-                    reverse_sql=""
-                ),
-                migrations.RunSQL(
-                    sql="ALTER TABLE feedback_feedback DROP CONSTRAINT IF EXISTS unique_general_feedback;",
+                    sql="""
+                    ALTER TABLE feedback_feedback DROP CONSTRAINT IF EXISTS unique_feedback_per_visit;
+                    DROP INDEX IF EXISTS unique_feedback_per_visit;
+                    ALTER TABLE feedback_feedback DROP CONSTRAINT IF EXISTS unique_general_feedback;
+                    DROP INDEX IF EXISTS unique_general_feedback;
+                    """,
                     reverse_sql=""
                 ),
                 # Add column, index, and new constraints using a single DO block for transactional safety
@@ -67,35 +68,42 @@ class Migration(migrations.Migration):
                             REFERENCES patients_dentalrecord(id) ON DELETE SET NULL;
                         END IF;
 
-                        -- Add index if not exists
+                        -- Add regular index if not exists
                         IF NOT EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace 
                                        WHERE c.relname = 'feedback_fe_patient_2c8f8b_idx') THEN
                             CREATE INDEX feedback_fe_patient_2c8f8b_idx ON feedback_feedback (patient_id, dental_record_id);
                         END IF;
 
-                        -- Add constraints if not exist
-                        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'unique_feedback_per_medical_visit') THEN
-                            ALTER TABLE feedback_feedback ADD CONSTRAINT unique_feedback_per_medical_visit 
-                            UNIQUE (patient_id, medical_record_id) WHERE (medical_record_id IS NOT NULL);
+                        -- Partial Unique Constraints in Django/Postgres are UNIQUE INDEXES
+                        
+                        -- unique_feedback_per_medical_visit
+                        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'unique_feedback_per_medical_visit') THEN
+                            CREATE UNIQUE INDEX unique_feedback_per_medical_visit 
+                            ON feedback_feedback (patient_id, medical_record_id) 
+                            WHERE (medical_record_id IS NOT NULL);
                         END IF;
 
-                        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'unique_feedback_per_dental_visit') THEN
-                            ALTER TABLE feedback_feedback ADD CONSTRAINT unique_feedback_per_dental_visit 
-                            UNIQUE (patient_id, dental_record_id) WHERE (dental_record_id IS NOT NULL);
+                        -- unique_feedback_per_dental_visit
+                        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'unique_feedback_per_dental_visit') THEN
+                            CREATE UNIQUE INDEX unique_feedback_per_dental_visit 
+                            ON feedback_feedback (patient_id, dental_record_id) 
+                            WHERE (dental_record_id IS NOT NULL);
                         END IF;
 
-                        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'unique_general_feedback') THEN
-                            ALTER TABLE feedback_feedback ADD CONSTRAINT unique_general_feedback 
-                            UNIQUE (patient_id) WHERE (medical_record_id IS NULL AND dental_record_id IS NULL);
+                        -- unique_general_feedback (now requires both record fields to be null)
+                        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'unique_general_feedback') THEN
+                            CREATE UNIQUE INDEX unique_general_feedback 
+                            ON feedback_feedback (patient_id) 
+                            WHERE (medical_record_id IS NULL AND dental_record_id IS NULL);
                         END IF;
                     END $$;
                     """,
                     reverse_sql="""
                     ALTER TABLE feedback_feedback DROP COLUMN IF EXISTS dental_record_id;
                     DROP INDEX IF EXISTS feedback_fe_patient_2c8f8b_idx;
-                    ALTER TABLE feedback_feedback DROP CONSTRAINT IF EXISTS unique_feedback_per_medical_visit;
-                    ALTER TABLE feedback_feedback DROP CONSTRAINT IF EXISTS unique_feedback_per_dental_visit;
-                    ALTER TABLE feedback_feedback DROP CONSTRAINT IF EXISTS unique_general_feedback;
+                    DROP INDEX IF EXISTS unique_feedback_per_medical_visit;
+                    DROP INDEX IF EXISTS unique_feedback_per_dental_visit;
+                    DROP INDEX IF EXISTS unique_general_feedback;
                     """
                 ),
             ]
