@@ -501,8 +501,8 @@ const CampaignsPage = () => {
     }
   };
 
-  const getPriorityInfo = (priority) => {
-
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString();
   };
 
@@ -510,7 +510,7 @@ const CampaignsPage = () => {
     const now = new Date();
     const startDate = new Date(campaign.start_date);
     const endDate = new Date(campaign.end_date);
-    return campaign.status === 'ACTIVE' && now >= startDate && now <= endDate;
+    return now >= startDate && now <= endDate;
   };
 
   return (
@@ -690,6 +690,7 @@ const CampaignsPage = () => {
 
             const typeInfo = getCampaignTypeInfo(campaign.campaign_type || 'GENERAL');
             const priorityInfo = getPriorityInfo(campaign.priority || 'MEDIUM');
+            const active = isActive(campaign);
             
             return (
               <Grid item xs={12} sm={6} md={4} key={campaign.id}>
@@ -711,7 +712,7 @@ const CampaignsPage = () => {
                     '&:hover': {
                       transform: 'translateY(-8px)',
                       boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
-                      borderColor: statusInfo.color === 'primary' ? 'primary.main' : `${statusInfo.color}.main`,
+                      borderColor: active ? 'primary.main' : 'divider',
                     },
                     '&::before': {
                       content: '""',
@@ -720,9 +721,9 @@ const CampaignsPage = () => {
                       left: 0,
                       right: 0,
                       height: '4px',
-                      background: statusInfo.color === 'primary' ? 
+                      background: active ? 
                         'linear-gradient(90deg, #1976d2, #42a5f5)' :
-                        `linear-gradient(90deg, var(--mui-palette-${statusInfo.color}-main), var(--mui-palette-${statusInfo.color}-light))`,
+                        'linear-gradient(90deg, #bdbdbd, #e0e0e0)',
                       zIndex: 1,
                     }
                   }}
@@ -899,11 +900,19 @@ const CampaignsPage = () => {
                         textTransform: 'none',
                         fontWeight: 'bold',
                         py: 1.5,
-                        background: `linear-gradient(45deg, ${statusInfo.color === 'primary' ? '#1976d2' : `var(--mui-palette-${statusInfo.color}-main)`} 30%, ${statusInfo.color === 'primary' ? '#42a5f5' : `var(--mui-palette-${statusInfo.color}-light)`} 90%)`,
-                        boxShadow: `0 4px 12px ${statusInfo.color === 'primary' ? 'rgba(25, 118, 210, 0.3)' : `rgba(var(--mui-palette-${statusInfo.color}-main-rgb), 0.3)`}`,
+                        background: active ? 
+                          'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)' :
+                          'linear-gradient(45deg, #757575 30%, #9e9e9e 90%)',
+                        boxShadow: active ? 
+                          '0 4px 12px rgba(25, 118, 210, 0.3)' :
+                          '0 4px 12px rgba(0, 0, 0, 0.2)',
                         '&:hover': {
-                          background: `linear-gradient(45deg, ${statusInfo.color === 'primary' ? '#1565c0' : `var(--mui-palette-${statusInfo.color}-dark)`} 30%, ${statusInfo.color === 'primary' ? '#1976d2' : `var(--mui-palette-${statusInfo.color}-main)`} 90%)`,
-                          boxShadow: `0 6px 20px ${statusInfo.color === 'primary' ? 'rgba(25, 118, 210, 0.4)' : `rgba(var(--mui-palette-${statusInfo.color}-main-rgb), 0.4)`}`,
+                          background: active ?
+                            'linear-gradient(45deg, #1565c0 30%, #1976d2 90%)' :
+                            'linear-gradient(45deg, #616161 30%, #757575 90%)',
+                          boxShadow: active ?
+                            '0 6px 20px rgba(25, 118, 210, 0.4)' :
+                            '0 6px 20px rgba(0, 0, 0, 0.3)',
                           transform: 'translateY(-1px)'
                         }
                       }}
