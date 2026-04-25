@@ -10,17 +10,36 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='healthcampaign',
-            name='status',
-        ),
-        migrations.RemoveIndex(
-            model_name='healthcampaign',
-            name='health_info_status_307538_idx',
-        ),
-        migrations.RemoveIndex(
-            model_name='healthcampaign',
-            name='health_info_campaig_ba74f3_idx',
+        # Use SeparateDatabaseAndState for defensive removal
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.RemoveField(
+                    model_name='healthcampaign',
+                    name='status',
+                ),
+                migrations.RemoveIndex(
+                    model_name='healthcampaign',
+                    name='health_info_status_307538_idx',
+                ),
+                migrations.RemoveIndex(
+                    model_name='healthcampaign',
+                    name='health_info_campaig_ba74f3_idx',
+                ),
+            ],
+            database_operations=[
+                migrations.RunSQL(
+                    sql="ALTER TABLE health_info_healthcampaign DROP COLUMN IF EXISTS status;",
+                    reverse_sql="ALTER TABLE health_info_healthcampaign ADD COLUMN status varchar(15) DEFAULT 'DRAFT';"
+                ),
+                migrations.RunSQL(
+                    sql="DROP INDEX IF EXISTS health_info_status_307538_idx;",
+                    reverse_sql=""
+                ),
+                migrations.RunSQL(
+                    sql="DROP INDEX IF EXISTS health_info_campaig_ba74f3_idx;",
+                    reverse_sql=""
+                ),
+            ]
         ),
         migrations.AddIndex(
             model_name='healthcampaign',

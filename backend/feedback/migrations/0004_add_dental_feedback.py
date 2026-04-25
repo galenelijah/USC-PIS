@@ -12,19 +12,53 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveConstraint(
-            model_name='feedback',
-            name='unique_feedback_per_visit',
+        # Use SeparateDatabaseAndState to handle the case where the column already exists
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.RemoveConstraint(
+                    model_name='feedback',
+                    name='unique_feedback_per_visit',
+                ),
+                migrations.RemoveConstraint(
+                    model_name='feedback',
+                    name='unique_general_feedback',
+                ),
+                migrations.AddField(
+                    model_name='feedback',
+                    name='dental_record',
+                    field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='feedbacks', to='patients.dentalrecord'),
+                ),
+            ],
+            # If the column exists, we skip these DB operations
+            # We use RunSQL with IF NOT EXISTS logic for the column
+            database_operations=[
+                # Constraints might or might not exist depending on if they were successfully removed
+                migrations.RunSQL(
+                    sql="ALTER TABLE feedback_feedback DROP CONSTRAINT IF EXISTS unique_feedback_per_visit;",
+                    reverse_sql=""
+                ),
+                migrations.RunSQL(
+                    sql="ALTER TABLE feedback_feedback DROP CONSTRAINT IF EXISTS unique_general_feedback;",
+                    reverse_sql=""
+                ),
+                # Add column only if it doesn't exist
+                migrations.RunSQL(
+                    sql="""
+                    DO $$ 
+                    BEGIN 
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                       WHERE table_name='feedback_feedback' 
+                                       AND column_name='dental_record_id') THEN
+                            ALTER TABLE feedback_feedback ADD COLUMN dental_record_id integer 
+                            REFERENCES patients_dentalrecord(id) ON DELETE SET NULL;
+                        END IF;
+                    END $$;
+                    """,
+                    reverse_sql="ALTER TABLE feedback_feedback DROP COLUMN IF EXISTS dental_record_id;"
+                ),
+            ]
         ),
-        migrations.RemoveConstraint(
-            model_name='feedback',
-            name='unique_general_feedback',
-        ),
-        migrations.AddField(
-            model_name='feedback',
-            name='dental_record',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='feedbacks', to='patients.dentalrecord'),
-        ),
+        # Indexes and new constraints
         migrations.AddIndex(
             model_name='feedback',
             index=models.Index(fields=['patient', 'dental_record'], name='feedback_fe_patient_2c8f8b_idx'),

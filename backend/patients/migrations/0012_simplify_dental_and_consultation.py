@@ -10,15 +10,48 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='dentalrecord',
-            name='concern',
-            field=models.TextField(blank=True, help_text="Student's concern / reason for visit"),
-        ),
-        migrations.AddField(
-            model_name='dentalrecord',
-            name='referral_to',
-            field=models.TextField(blank=True, help_text='Referral to other clinic or specialist'),
+        # Use SeparateDatabaseAndState for defensive field additions
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AddField(
+                    model_name='dentalrecord',
+                    name='concern',
+                    field=models.TextField(blank=True, help_text="Student's concern / reason for visit"),
+                ),
+                migrations.AddField(
+                    model_name='dentalrecord',
+                    name='referral_to',
+                    field=models.TextField(blank=True, help_text='Referral to other clinic or specialist'),
+                ),
+                migrations.AddField(
+                    model_name='consultation',
+                    name='concern',
+                    field=models.TextField(blank=True, help_text="Student's concern / reason for visit"),
+                ),
+            ],
+            database_operations=[
+                migrations.RunSQL(
+                    sql="""
+                    DO $$ 
+                    BEGIN 
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='patients_dentalrecord' AND column_name='concern') THEN
+                            ALTER TABLE patients_dentalrecord ADD COLUMN concern text DEFAULT '';
+                        END IF;
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='patients_dentalrecord' AND column_name='referral_to') THEN
+                            ALTER TABLE patients_dentalrecord ADD COLUMN referral_to text DEFAULT '';
+                        END IF;
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='patients_consultation' AND column_name='concern') THEN
+                            ALTER TABLE patients_consultation ADD COLUMN concern text DEFAULT '';
+                        END IF;
+                    END $$;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE patients_dentalrecord DROP COLUMN IF EXISTS concern;
+                    ALTER TABLE patients_dentalrecord DROP COLUMN IF EXISTS referral_to;
+                    ALTER TABLE patients_consultation DROP COLUMN IF EXISTS concern;
+                    """
+                ),
+            ]
         ),
         migrations.AlterField(
             model_name='dentalrecord',
@@ -34,11 +67,6 @@ class Migration(migrations.Migration):
             model_name='dentalrecord',
             name='treatment_performed',
             field=models.TextField(blank=True, help_text='Treatment performed during this visit'),
-        ),
-        migrations.AddField(
-            model_name='consultation',
-            name='concern',
-            field=models.TextField(blank=True, help_text="Student's concern / reason for visit"),
         ),
         migrations.AlterField(
             model_name='consultation',
