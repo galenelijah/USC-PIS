@@ -25,7 +25,8 @@ The USC-PIS has reached **Full Maturity & Operational Stability**. The system is
 ### 4. Health Campaigns (Streamlined)
 *   **Status:** Operational
 *   **Clarity:** Removed redundant "status" tracking; campaigns are automatically governed by their date ranges.
-*   **PubMat:** Robust support for high-quality PDF print materials with direct download functionality.
+*   **Material Policy:** Restricted to **high-resolution images** (JPG, PNG, WebP) for new PubMat uploads to ensure perfect rendering.
+*   **Legacy Support:** Existing PDF materials are accessible via a secure "Direct Download" mechanism.
 
 ### 5. Administrative Tools (Focused)
 *   **Status:** Streamlined

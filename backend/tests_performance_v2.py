@@ -86,3 +86,32 @@ class USCPISPerformanceBenchmarks(TestCase):
         print(f"[PT-03] Baseline Save: {baseline_avg:.2f}ms | Encrypted Save: {enc_avg:.2f}ms | Overhead: {overhead:.2f}ms")
         
         print("[PT-03 PASS] Encryption overhead measured.")
+
+    def test_pt04_search_query_latency(self):
+        """PT-04: Measure Search Query Latency (Target <500ms)."""
+        # 1. Create 100 mock patients
+        patients = []
+        for i in range(100):
+            patients.append(Patient(
+                first_name=f"Patient{i}",
+                last_name="Test",
+                date_of_birth="2000-01-01",
+                gender="M",
+                email=f"p{i}@usc.edu.ph"
+            ))
+        Patient.objects.bulk_create(patients)
+        
+        # 2. Measure search time
+        url = reverse('patient-list') + "?search=Patient99"
+        start_time = time.time()
+        response = self.client.get(url)
+        end_time = time.time()
+        
+        latency_ms = (end_time - start_time) * 1000
+        print(f"[PT-04] Search Query Latency (100 records): {latency_ms:.2f}ms")
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertLess(latency_ms, 500, "Search latency exceeded 500ms")
+        self.assertEqual(len(response.json()), 1)
+        
+        print("[PT-04 PASS] Search query efficiency verified.")

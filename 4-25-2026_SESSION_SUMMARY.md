@@ -63,15 +63,16 @@ The primary focus of this session was **"The Final Audit"**:
 - **UX**: Consolidated all clinical visits into a single, unified "Leave Feedback" portal for students.
 
 ### **3. Content Distribution Hardening**
-- **Improvement**: Added native support for **PDF PubMats** in Health Campaigns.
-- **Fix**: The system now detects PDF files and provides a high-fidelity download interface, preventing the "broken image" issues caused by browser-level rendering limits for large document files.
+- **Improvement**: Implemented a **Universal File Viewer** for interactive image previews.
+- **Policy**: Restricted new PubMat uploads to **high-resolution images only** (JPG, PNG, WebP) to ensure 100% rendering reliability.
+- **Fix**: Migrated legacy PDF materials to a secure **Direct Download** mechanism, matching the behavior of clinical attachments and preventing iframe rendering issues.
 
 ### **4. Critical Stability & UI Fixes**
 - **Signal Handling**: Fixed a 500 error in Medical Record creation caused by missing imports in the automated email handler.
 - **UI Logic**: Resolved `ReferenceError` crashes on the Dashboard (missing Button) and Campaigns page (undefined filterStatus).
 - **Service Integration**: Fixed a `TypeError` in the feedback page by adding `getMyDentalRecords` to the API service layer.
 - **RBAC Hardening**: Restricted access to personal medical dashboards (`/patient-dashboard`, `/health-insights`) to Student/Faculty roles only, ensuring staff members use the management interfaces.
-- **Dashboard Polish**: Corrected record counts for students and simplified the profile status card by removing percentage noise.
+- **Dashboard Polish**: Corrected record counts (Medical vs. Consultation) for students and simplified the profile status card by removing percentage noise and expanding missing field visibility.
 - **Redundancy Removal**: Eliminated the redundant "Status" field from campaigns, migrating logic to an automated "Active vs. Inactive" calculation based on date ranges.
 
 ## **Final Verification Summary**

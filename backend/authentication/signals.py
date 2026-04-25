@@ -18,6 +18,8 @@ SENSITIVE_FIELDS = [
 
 @receiver(post_save, sender=User)
 def encrypt_sensitive_user_fields(sender, instance: User, **kwargs):
+    if connection.vendor != 'postgresql':
+        return
     key = getattr(settings, 'PGP_ENCRYPTION_KEY', None)
     if not key:
         return

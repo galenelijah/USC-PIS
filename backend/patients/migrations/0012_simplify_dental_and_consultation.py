@@ -2,6 +2,39 @@
 
 from django.db import migrations, models
 
+def simplify_database_logic(apps, schema_editor):
+    vendor = schema_editor.connection.vendor
+    
+    if vendor == 'postgresql':
+        schema_editor.execute("""
+            DO $$ 
+            BEGIN 
+                IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='patients_dentalrecord') THEN
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='patients_dentalrecord' AND column_name='concern') THEN
+                        ALTER TABLE patients_dentalrecord ADD COLUMN concern text DEFAULT '';
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='patients_dentalrecord' AND column_name='referral_to') THEN
+                        ALTER TABLE patients_dentalrecord ADD COLUMN referral_to text DEFAULT '';
+                    END IF;
+                END IF;
+                IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='patients_consultation') THEN
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='patients_consultation' AND column_name='concern') THEN
+                        ALTER TABLE patients_consultation ADD COLUMN concern text DEFAULT '';
+                    END IF;
+                END IF;
+            END $$;
+        """)
+    elif vendor == 'sqlite':
+        # SQLite: Add columns if they don't exist (defensive)
+        try:
+            schema_editor.execute("ALTER TABLE patients_dentalrecord ADD COLUMN concern text DEFAULT '';")
+        except Exception: pass
+        try:
+            schema_editor.execute("ALTER TABLE patients_dentalrecord ADD COLUMN referral_to text DEFAULT '';")
+        except Exception: pass
+        try:
+            schema_editor.execute("ALTER TABLE patients_consultation ADD COLUMN concern text DEFAULT '';")
+        except Exception: pass
 
 class Migration(migrations.Migration):
 
@@ -30,27 +63,7 @@ class Migration(migrations.Migration):
                 ),
             ],
             database_operations=[
-                migrations.RunSQL(
-                    sql="""
-                    DO $$ 
-                    BEGIN 
-                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='patients_dentalrecord' AND column_name='concern') THEN
-                            ALTER TABLE patients_dentalrecord ADD COLUMN concern text DEFAULT '';
-                        END IF;
-                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='patients_dentalrecord' AND column_name='referral_to') THEN
-                            ALTER TABLE patients_dentalrecord ADD COLUMN referral_to text DEFAULT '';
-                        END IF;
-                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='patients_consultation' AND column_name='concern') THEN
-                            ALTER TABLE patients_consultation ADD COLUMN concern text DEFAULT '';
-                        END IF;
-                    END $$;
-                    """,
-                    reverse_sql="""
-                    ALTER TABLE patients_dentalrecord DROP COLUMN IF EXISTS concern;
-                    ALTER TABLE patients_dentalrecord DROP COLUMN IF EXISTS referral_to;
-                    ALTER TABLE patients_consultation DROP COLUMN IF EXISTS concern;
-                    """
-                ),
+                migrations.RunPython(simplify_database_logic, migrations.RunPython.noop),
             ]
         ),
         migrations.AlterField(

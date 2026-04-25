@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 @receiver(post_save, sender=Patient)
 def encrypt_patient_fields(sender, instance, **kwargs):
+    if connection.vendor != 'postgresql': return
     key = getattr(settings, 'PGP_ENCRYPTION_KEY', None)
     if not key: return
     with connection.cursor() as cursor:
@@ -29,6 +30,7 @@ def encrypt_patient_fields(sender, instance, **kwargs):
 
 @receiver(post_save, sender=MedicalRecord)
 def encrypt_medical_record_fields(sender, instance, **kwargs):
+    if connection.vendor != 'postgresql': return
     key = getattr(settings, 'PGP_ENCRYPTION_KEY', None)
     if not key: return
     if instance.diagnosis:

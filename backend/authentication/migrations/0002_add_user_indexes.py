@@ -1,5 +1,10 @@
 from django.db import migrations, models
 
+def run_sql_if_postgres(sql):
+    def wrapped(apps, schema_editor):
+        if schema_editor.connection.vendor == 'postgresql':
+            schema_editor.execute(sql)
+    return wrapped
 
 class Migration(migrations.Migration):
 
@@ -9,26 +14,14 @@ class Migration(migrations.Migration):
 
     operations = [
         # Index for user role lookups
-        migrations.RunSQL(
-            "CREATE INDEX IF NOT EXISTS idx_user_role ON authentication_user(role);",
-            reverse_sql="DROP INDEX IF EXISTS idx_user_role;"
-        ),
+        migrations.RunPython(run_sql_if_postgres("CREATE INDEX IF NOT EXISTS idx_user_role ON authentication_user(role);")),
         
         # Index for user email lookups (already unique, but helps with searches)
-        migrations.RunSQL(
-            "CREATE INDEX IF NOT EXISTS idx_user_email ON authentication_user(email);",
-            reverse_sql="DROP INDEX IF EXISTS idx_user_email;"
-        ),
+        migrations.RunPython(run_sql_if_postgres("CREATE INDEX IF NOT EXISTS idx_user_email ON authentication_user(email);")),
         
         # Index for user created_at for chronological queries
-        migrations.RunSQL(
-            "CREATE INDEX IF NOT EXISTS idx_user_created_at ON authentication_user(created_at);",
-            reverse_sql="DROP INDEX IF EXISTS idx_user_created_at;"
-        ),
+        migrations.RunPython(run_sql_if_postgres("CREATE INDEX IF NOT EXISTS idx_user_created_at ON authentication_user(created_at);")),
         
         # Index for user active status and role combination
-        migrations.RunSQL(
-            "CREATE INDEX IF NOT EXISTS idx_user_active_role ON authentication_user(is_active, role);",
-            reverse_sql="DROP INDEX IF EXISTS idx_user_active_role;"
-        ),
+        migrations.RunPython(run_sql_if_postgres("CREATE INDEX IF NOT EXISTS idx_user_active_role ON authentication_user(is_active, role);")),
     ]

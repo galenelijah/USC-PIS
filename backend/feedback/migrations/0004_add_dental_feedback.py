@@ -3,6 +3,62 @@
 from django.db import migrations, models
 import django.db.models.deletion
 
+def dental_feedback_db_logic(apps, schema_editor):
+    vendor = schema_editor.connection.vendor
+    
+    if vendor == 'postgresql':
+        # Drop old constraints/indexes defensively
+        schema_editor.execute("""
+            ALTER TABLE feedback_feedback DROP CONSTRAINT IF EXISTS unique_feedback_per_visit;
+            DROP INDEX IF EXISTS unique_feedback_per_visit;
+            ALTER TABLE feedback_feedback DROP CONSTRAINT IF EXISTS unique_general_feedback;
+            DROP INDEX IF EXISTS unique_general_feedback;
+        """)
+        
+        # Add column, index, and new constraints using a single DO block for transactional safety
+        schema_editor.execute("""
+            DO $$ 
+            BEGIN 
+                -- Add column if not exists
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                               WHERE table_name='feedback_feedback' 
+                               AND column_name='dental_record_id') THEN
+                    ALTER TABLE feedback_feedback ADD COLUMN dental_record_id integer 
+                    REFERENCES patients_dentalrecord(id) ON DELETE SET NULL;
+                END IF;
+
+                -- Add regular index if not exists
+                IF NOT EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace 
+                               WHERE c.relname = 'feedback_fe_patient_2c8f8b_idx') THEN
+                    CREATE INDEX feedback_fe_patient_2c8f8b_idx ON feedback_feedback (patient_id, dental_record_id);
+                END IF;
+
+                -- unique_feedback_per_medical_visit
+                IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'unique_feedback_per_medical_visit') THEN
+                    CREATE UNIQUE INDEX unique_feedback_per_medical_visit 
+                    ON feedback_feedback (patient_id, medical_record_id) 
+                    WHERE (medical_record_id IS NOT NULL);
+                END IF;
+
+                -- unique_feedback_per_dental_visit
+                IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'unique_feedback_per_dental_visit') THEN
+                    CREATE UNIQUE INDEX unique_feedback_per_dental_visit 
+                    ON feedback_feedback (patient_id, dental_record_id) 
+                    WHERE (dental_record_id IS NOT NULL);
+                END IF;
+
+                -- unique_general_feedback (now requires both record fields to be null)
+                IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'unique_general_feedback') THEN
+                    CREATE UNIQUE INDEX unique_general_feedback 
+                    ON feedback_feedback (patient_id) 
+                    WHERE (medical_record_id IS NULL AND dental_record_id IS NULL);
+                END IF;
+            END $$;
+        """)
+    elif vendor == 'sqlite':
+        try:
+            schema_editor.execute("ALTER TABLE feedback_feedback ADD COLUMN dental_record_id integer REFERENCES patients_dentalrecord(id) ON DELETE SET NULL;")
+        except Exception: pass
 
 class Migration(migrations.Migration):
 
@@ -22,6 +78,7 @@ class Migration(migrations.Migration):
                     model_name='feedback',
                     name='unique_general_feedback',
                 ),
+                # Add Field
                 migrations.AddField(
                     model_name='feedback',
                     name='dental_record',
@@ -45,67 +102,7 @@ class Migration(migrations.Migration):
                 ),
             ],
             database_operations=[
-                # Drop old constraints/indexes defensively
-                migrations.RunSQL(
-                    sql="""
-                    ALTER TABLE feedback_feedback DROP CONSTRAINT IF EXISTS unique_feedback_per_visit;
-                    DROP INDEX IF EXISTS unique_feedback_per_visit;
-                    ALTER TABLE feedback_feedback DROP CONSTRAINT IF EXISTS unique_general_feedback;
-                    DROP INDEX IF EXISTS unique_general_feedback;
-                    """,
-                    reverse_sql=""
-                ),
-                # Add column, index, and new constraints using a single DO block for transactional safety
-                migrations.RunSQL(
-                    sql="""
-                    DO $$ 
-                    BEGIN 
-                        -- Add column if not exists
-                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                                       WHERE table_name='feedback_feedback' 
-                                       AND column_name='dental_record_id') THEN
-                            ALTER TABLE feedback_feedback ADD COLUMN dental_record_id integer 
-                            REFERENCES patients_dentalrecord(id) ON DELETE SET NULL;
-                        END IF;
-
-                        -- Add regular index if not exists
-                        IF NOT EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace 
-                                       WHERE c.relname = 'feedback_fe_patient_2c8f8b_idx') THEN
-                            CREATE INDEX feedback_fe_patient_2c8f8b_idx ON feedback_feedback (patient_id, dental_record_id);
-                        END IF;
-
-                        -- Partial Unique Constraints in Django/Postgres are UNIQUE INDEXES
-                        
-                        -- unique_feedback_per_medical_visit
-                        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'unique_feedback_per_medical_visit') THEN
-                            CREATE UNIQUE INDEX unique_feedback_per_medical_visit 
-                            ON feedback_feedback (patient_id, medical_record_id) 
-                            WHERE (medical_record_id IS NOT NULL);
-                        END IF;
-
-                        -- unique_feedback_per_dental_visit
-                        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'unique_feedback_per_dental_visit') THEN
-                            CREATE UNIQUE INDEX unique_feedback_per_dental_visit 
-                            ON feedback_feedback (patient_id, dental_record_id) 
-                            WHERE (dental_record_id IS NOT NULL);
-                        END IF;
-
-                        -- unique_general_feedback (now requires both record fields to be null)
-                        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'unique_general_feedback') THEN
-                            CREATE UNIQUE INDEX unique_general_feedback 
-                            ON feedback_feedback (patient_id) 
-                            WHERE (medical_record_id IS NULL AND dental_record_id IS NULL);
-                        END IF;
-                    END $$;
-                    """,
-                    reverse_sql="""
-                    ALTER TABLE feedback_feedback DROP COLUMN IF EXISTS dental_record_id;
-                    DROP INDEX IF EXISTS feedback_fe_patient_2c8f8b_idx;
-                    DROP INDEX IF EXISTS unique_feedback_per_medical_visit;
-                    DROP INDEX IF EXISTS unique_feedback_per_dental_visit;
-                    DROP INDEX IF EXISTS unique_general_feedback;
-                    """
-                ),
+                migrations.RunPython(dental_feedback_db_logic, migrations.RunPython.noop),
             ]
         ),
     ]

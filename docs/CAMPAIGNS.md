@@ -41,11 +41,13 @@ Optional but recommended:
 Images & Materials (optional):
 - `banner_image` (image/*)
 - `thumbnail_image` (image/*)
-- `pubmat_image` (image/* or application/pdf)
+- `pubmat_image` (image/*: JPG, PNG, WebP, GIF)
 
 ## PubMat Material Handling
-- **PDF Support:** The system automatically detects if a PubMat material is a PDF file.
-- **Specialized Rendering:** PDFs are displayed as stylized download cards with a dedicated "Download PubMat" button, ensuring high-fidelity access to print materials.
+- **Image-Only Policy:** As of April 25, 2026, the system exclusively accepts image files (JPG, PNG, WebP, GIF) for new PubMat materials. PDF support for new uploads has been removed to ensure consistent visual rendering.
+- **Legacy PDF Support:** Existing campaigns with PDF materials are still supported via a direct download mechanism.
+- **Direct Download for PDFs:** For legacy materials in PDF format, the system provides a "Click-to-Download" card that saves the file directly to the user's device, matching the secure behavior of clinical record attachments.
+- **Interactive Image Viewing:** Image-based PubMats open in a high-quality interactive viewer, allowing users to zoom and inspect materials within the app.
 - **Automatic Governing:** The "Status" field has been removed. Campaign visibility is now purely governed by the `start_date` and `end_date`.
 
 ## Image Handling (Cloudinary)

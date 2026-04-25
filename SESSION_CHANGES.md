@@ -2,57 +2,51 @@
 
 # Session Changes (2026-04-25)
 
-This session focused on backend stability, dental system simplification, and UI refinement for clinical feedback.
+This session achieved the final clinical workflow refinements, standardized student feedback, and hardened the content distribution system.
 
 ## Key Accomplishments
-- **Backend Stability & Bug Fixes**:
-  - Resolved a critical 500 error in medical record creation by restoring missing imports (`EmailService`, `Notification`) and initializing the `logger` in `backend/patients/signals.py`.
-  - Fixed a `ReferenceError: Button is not defined` on the Patient Medical Dashboard by adding the missing MUI component import.
-  - Fixed a `ReferenceError: filterStatus is not defined` on the Campaigns page by removing stale references to the deleted status field.
-  - Resolved `TypeError: h.getMyDentalRecords is not a function` by adding the missing API service method.
-  - Fixed student dashboard counts and corrected profile status logic.
+- **Backend Stability & Final Bug Fixes**:
+  - Resolved a critical 500 error in medical record creation by restoring missing signal imports and initializing the logger.
+  - Fixed multiple `ReferenceError` crashes (Button, filterStatus) across the Dashboard and Campaigns pages.
+  - Resolved `TypeError` for missing API service methods by adding `getMyDentalRecords`.
+  - Fixed student dashboard counts (Medical vs. Consultation) and corrected profile status card logic.
+  - Hardened database migrations with idempotent SQL and `SeparateDatabaseAndState` to prevent deployment crashes on Heroku.
 - **Dental Consultation Simplification**:
-  - Refactored `DentalRecord` to focus on consultations and referrals.
-  - Added mandatory **"Concern / Reason for Visit"** and optional **"Referral To"** fields.
-  - Made "Diagnosis" and "Treatment Performed" optional to support rapid consultation logging.
-  - Standardized the `Consultation` model by adding a `concern` field for consistency with medical records.
-  - Applied defensive manual migration (`0012_simplify_dental_and_consultation.py`) to sync database schema.
-- **Campaign System Refinement**:
-  - **Removed Status Field**: Completely removed the redundant `status` field (Draft, Active, etc.) from campaigns. They are now governed purely by their active date range.
-  - **PDF Material Support**: Implemented specialized rendering for PubMat materials. The system now detects PDF files and provides a stylized download card instead of a broken image preview.
-  - Applied defensive manual migration (`0013_remove_healthcampaign_status.py`) for backend schema cleanup.
-- **Student Feedback Integration**:
-  - **Dental Feedback**: Integrated dental visits into the automated feedback system. Students now receive feedback requests and reminders for dental consultations.
-  - **Enhanced Notifications**: Added a **24-hour reminder** system for pending feedback on all clinical visits.
-  - **Consolidated UI**: Updated the Feedback Selector to display a chronological list of both medical and dental visits.
-  - Applied defensive manual migration (`0004_add_dental_feedback.py`) using idempotent SQL to handle existing table structures.
-- **Role-Based Access Control (RBAC) Hardening**:
-  - Restricted `/patient-dashboard` and `/health-insights` access to **STUDENT** and **FACULTY** roles only.
-  - Implemented automatic redirects for staff members attempting to access personal patient views.
-- **Admin UI Streamlining**:
-  - Hidden the "Upload & Restore" and "Tables" sections in Database Monitor to focus on system health.
-  - Hidden the "Email Templates" tab in Email Administration to simplify core routing management.
+  - Re-engineered `DentalRecord` to focus on rapid-entry consultations and referrals.
+  - Standardized the **"Concern / Reason for Visit"** field across all clinical record types for patient consistency.
+  - Made diagnosis and treatment fields optional to support quick clinical checks.
+- **Campaign System & Content Distribution**:
+  - **Removed Redundant Status**: Eliminated the "Draft/Active" field; visibility is now automated based on campaign date ranges.
+  - **Universal File Viewer**: Implemented a modern interactive viewer for images and PDF documents.
+  - **Refined Material Policy**: Restricted new PubMat uploads to **high-resolution images only** (JPG, PNG, WebP) to ensure perfect rendering.
+  - **Legacy PDF Support**: Maintained a secure "Click-to-Download" behavior for existing PDF materials, matching the clinical attachment workflow.
+- **Integrated Feedback Ecosystem**:
+  - Standardized automated feedback requests for both Medical and Dental departments.
+  - Implemented a **24-hour automated reminder** system for pending student feedback.
+- **Security & RBAC Hardening**:
+  - Restricted personal medical dashboards and health insights to **Student/Faculty** roles only.
+  - Implemented automatic redirects for administrative staff attempting to access personal patient views.
 
 ## Modified Files
-- `backend/patients/signals.py`: Fixed imports and added feedback reminder logic.
-- `backend/patients/models.py`, `serializers.py`, `views.py`: Refactored Dental/Consultation models.
-- `backend/health_info/models.py`, `serializers.py`, `views.py`, `admin.py`: Removed campaign status field.
-- `backend/feedback/models.py`, `serializers.py`, `views.py`: Integrated dental feedback.
-- `frontend/src/components/Dental.jsx`: Added concern field and simplified form logic.
-- `frontend/src/components/CampaignsPage.jsx`, `StudentCampaigns.jsx`: Implemented PDF PubMat handling and removed status UI.
-- `frontend/src/components/DatabaseMonitor.jsx`, `EmailAdministration.jsx`: Simplified admin interfaces.
-- `frontend/src/components/FeedbackSelector.jsx`, `FeedbackForm.jsx`: Updated for dual-department support.
-- `frontend/src/components/PatientMedicalDashboard.jsx`: Fixed missing Button import.
+- `backend/patients/signals.py`, `models.py`, `views.py`: Refactored Clinical/Feedback logic.
+- `backend/health_info/models.py`, `serializers.py`, `views.py`, `admin.py`: Streamlined campaigns.
+- `backend/feedback/models.py`, `serializers.py`, `views.py`: Expanded feedback system.
+- `frontend/src/services/api.js`: Unified clinical and feedback service layers.
+- `frontend/src/components/common/UniversalViewer.jsx`: New interactive document viewer.
+- `frontend/src/components/Dental.jsx`, `CampaignsPage.jsx`, `StudentCampaigns.jsx`: Refined UI workflows.
+- `frontend/src/components/Dashboard.jsx`: Corrected role-based counts and status cards.
+- `frontend/src/App.jsx` & `Sidebar.jsx`: Hardened RBAC and navigation.
 
 ## Rationale
-- **Clinical Efficiency**: Simplifying the dental form reduces charting time for dentists while capturing the essential student concern.
-- **UX Clarity**: Removing "status" from campaigns simplifies the staff workflow and prevents "Active" campaigns from being hidden if the status wasn't manually updated.
-- **Patient Engagement**: Standardizing feedback across both medical and dental departments provides a complete picture of student satisfaction.
+- **Efficiency**: Streamlining dental charting and removing redundant campaign states reduces clicks and cognitive load for staff.
+- **Reliability**: Moving to an image-only PubMat policy and download-only PDFs ensures no broken previews or rendering artifacts.
+- **Consistency**: Standardizing feedback and terminology ensures students have a predictable experience regardless of the department they visit.
 
 ## Verify Quickly
-- **Dental**: Create a dental record and verify only "Concern" is required alongside basic info.
-- **Campaigns**: Upload a PDF as a PubMat and verify it shows a "Download" card.
-- **Feedback**: As a student, verify that a recent dental visit appears in the feedback list.
+- **Dental**: Verify only "Concern" is required for a new consultation.
+- **Campaigns**: Verify new PubMats only accept images, and existing PDFs trigger a direct download.
+- **Dashboard**: Verify staff no longer see "Patient Medical Dashboard" in the sidebar.
+- **Feedback**: Confirm dental visits appear in the student feedback list.
 
 ---
 

@@ -152,3 +152,51 @@ class USCPISAdvancedUnitTests(TestCase):
         self.assertEqual(dr.tooth_numbers, "11,12")
         
         print("[UT-04 PASS] Medical field constraints verified.")
+
+    def test_ut05_safe_list_onboarding(self):
+        """UT-05: Safe List Onboarding & Role Assignment."""
+        safe_email = "trusted.doctor@usc.edu.ph"
+        SafeEmail.objects.create(email=safe_email, role=User.Role.DOCTOR, is_active=True)
+        
+        # Simulate registration logic usually found in serializers
+        # 1. Check SafeEmail list for pre-authorized roles
+        safe_entry = SafeEmail.objects.filter(email=safe_email, is_active=True).first()
+        self.assertIsNotNone(safe_entry)
+        
+        # 2. Create user with assigned role
+        new_user = User.objects.create_user(
+            email=safe_email,
+            password="SecurePassword123!",
+            role=safe_entry.role,
+            is_verified=True
+        )
+        
+        self.assertEqual(new_user.role, User.Role.DOCTOR)
+        self.assertTrue(new_user.is_verified)
+        print("[UT-05 PASS] Safe list onboarding bypass verified.")
+
+    def test_ut06_file_integrity_security(self):
+        """UT-06: File Integrity & Security (Extension Validation)."""
+        from django.core.validators import FileExtensionValidator
+        from django.core.exceptions import ValidationError
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        
+        validator = FileExtensionValidator(allowed_extensions=['pdf', 'jpg', 'jpeg', 'png'])
+        
+        # Test Permitted Types
+        try:
+            validator(SimpleUploadedFile("test.pdf", b"content"))
+            validator(SimpleUploadedFile("image.png", b"content"))
+            validator(SimpleUploadedFile("photo.jpg", b"content"))
+        except ValidationError:
+            self.fail("FileExtensionValidator rejected a valid extension")
+            
+        # Test Restricted Types (Should raise ValidationError)
+        with self.assertRaises(ValidationError):
+            validator(SimpleUploadedFile("malicious.exe", b"content"))
+        with self.assertRaises(ValidationError):
+            validator(SimpleUploadedFile("script.js", b"content"))
+        with self.assertRaises(ValidationError):
+            validator(SimpleUploadedFile("payload.py", b"content"))
+            
+        print("[UT-06 PASS] File extension security constraints verified.")

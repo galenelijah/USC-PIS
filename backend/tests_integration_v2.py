@@ -1,13 +1,16 @@
 from django.test import TestCase, Client
 from django.urls import reverse
+from django.utils import timezone
+from datetime import timedelta
 from authentication.models import User
 from patients.models import Patient, MedicalRecord
+from health_info.models import HealthCampaign
 from medical_certificates.models import MedicalCertificate, CertificateTemplate
 from feedback.models import Feedback
 import json
 
 class USCPISAdvancedIntegrationTests(TestCase):
-    """IT-01 to IT-03: End-to-End Integration Testing Suite v2.0"""
+    """IT-01 to IT-05: End-to-End Integration Testing Suite v2.0"""
 
     def setUp(self):
         self.client = Client()
@@ -111,3 +114,55 @@ class USCPISAdvancedIntegrationTests(TestCase):
         self.assertEqual(response.status_code, 403)
         
         print("[IT-03 PASS] RBAC stress test completed with correct Forbidden/NotFound responses.")
+
+    def test_it04_academic_year_sorting(self):
+        """IT-04: Academic Year Level Sorting & Filtering (D6 Retooling)."""
+        # Create 5 mock patients with different year levels
+        year_levels = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year']
+        for i, yl in enumerate(year_levels):
+            u = User.objects.create_user(email=f"student{i}@usc.edu.ph", password="password", role=User.Role.STUDENT, year_level=yl)
+            Patient.objects.create(user=u, first_name=f"Student", last_name=f"{yl}", date_of_birth="2000-01-01", gender="M", email=u.email)
+            
+        self.client.login(email="nurse@usc.edu.ph", password="password")
+        
+        # Test filtering for "4th Year"
+        url = reverse('patient-list') + "?year_level=4th Year"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        
+        # In our view, year_level_filter = self.request.query_params.get('year_level', None)
+        # queryset = queryset.filter(user__year_level=year_level_filter)
+        data = response.json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['year_level'], '4th Year')
+        
+        print("[IT-04 PASS] Academic year filtering verified.")
+
+    def test_it05_campaign_dissemination(self):
+        """IT-05: Health Campaign Dissemination (Admin -> Student)."""
+        # 1. Admin creates a campaign
+        self.client.login(email="doctor@usc.edu.ph", password="password")
+        campaign = HealthCampaign.objects.create(
+            title="Vaccination Drive 2026",
+            description="Get your shots at the clinic.",
+            campaign_type="VACCINATION",
+            priority="URGENT",
+            content="Full details about the vaccination drive.",
+            summary="Vaccination Drive",
+            start_date=timezone.now().date(),
+            end_date=timezone.now().date() + timedelta(days=30)
+        )
+        
+        # 2. Student views campaign list
+        self.client.login(email="21100727@usc.edu.ph", password="password")
+        url = reverse('healthcampaign-list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        
+        # Check if the campaign is in the list
+        data = response.json()
+        results = data.get('results', data) # Handle both paginated and non-paginated
+        titles = [c['title'] for c in results]
+        self.assertIn("Vaccination Drive 2026", titles)
+        
+        print("[IT-05 PASS] Health campaign dissemination verified.")
