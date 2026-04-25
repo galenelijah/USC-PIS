@@ -89,8 +89,8 @@ const Dashboard = memo(({ user }) => {
       console.log('Fetching dashboard data for user role:', user?.role);
       const [dashboardResponse, campaignsResponse, latestCampaignsResponse, healthInfoResponse] = await Promise.all([
         authService.getDashboardStats(),
-        campaignService.getCampaigns({ status: 'ACTIVE', limit: 5 }).catch(() => ({ data: [] })), // Get active campaigns for featured
-        campaignService.getCampaigns({ limit: 10, ordering: '-created_at' }).catch(() => ({ data: [] })), // Get latest campaigns including all statuses
+        campaignService.getCampaigns({ active: 'true', limit: 5 }).catch(() => ({ data: [] })), // Get active campaigns for featured
+        campaignService.getCampaigns({ limit: 10, ordering: '-created_at' }).catch(() => ({ data: [] })), // Get latest campaigns
         healthInfoService.getRecent(5).catch(() => ({ data: [] }))
       ]);
       

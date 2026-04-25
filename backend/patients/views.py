@@ -760,7 +760,9 @@ def dashboard_stats(request):
             return Response({
                 'total_patients': total_patients,
                 'total_records': total_records,
+                'total_medical_records': total_records,
                 'total_dental_records': total_dental_records,
+                'total_consultations': total_dental_records + Consultation.objects.count(),
                 'recent_patients': PatientSerializer(recent_patients, many=True).data,
                 'visits_by_month': list(visits_by_month),
                 'dental_visits_by_month': list(dental_visits_by_month),

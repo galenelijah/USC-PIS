@@ -298,6 +298,7 @@ class HealthCampaignDetailSerializer(serializers.ModelSerializer):
 
 class HealthCampaignCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer for creating and updating campaigns"""
+    external_link = serializers.CharField(required=False, allow_blank=True)
     
     class Meta:
         model = HealthCampaign
@@ -306,7 +307,7 @@ class HealthCampaignCreateUpdateSerializer(serializers.ModelSerializer):
     def validate_external_link(self, value):
         """Clean and validate external link"""
         if not value or str(value).strip() == "":
-            return ""
+            return None
         
         # Clean the URL
         cleaned_url = str(value).strip()

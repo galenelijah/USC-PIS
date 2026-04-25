@@ -531,6 +531,7 @@ const CampaignsPage = () => {
   };
 
   const isActive = (campaign) => {
+    if (!campaign?.start_date || !campaign?.end_date) return false;
     const now = new Date();
     const startDate = new Date(campaign.start_date);
     const endDate = new Date(campaign.end_date);

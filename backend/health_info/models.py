@@ -272,9 +272,9 @@ class HealthCampaign(models.Model):
     engagement_count = models.PositiveIntegerField(default=0, help_text="Clicks, interactions, etc.")
     
     # Meta Information
-    tags = models.CharField(max_length=500, blank=True, help_text="Comma-separated tags")
-    external_link = models.URLField(blank=True, help_text="External link for more information")
-    contact_info = models.CharField(max_length=300, blank=True, help_text="Contact information for inquiries")
+    tags = models.CharField(max_length=500, blank=True, null=True, help_text="Comma-separated tags")
+    external_link = models.URLField(blank=True, null=True, help_text="External link for more information")
+    contact_info = models.CharField(max_length=300, blank=True, null=True, help_text="Contact information for inquiries")
     
     # Audit
     created_at = models.DateTimeField(auto_now_add=True)
