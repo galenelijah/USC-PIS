@@ -12,7 +12,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Use SeparateDatabaseAndState to handle the case where the column already exists
         migrations.SeparateDatabaseAndState(
             state_operations=[
                 migrations.RemoveConstraint(
@@ -28,11 +27,25 @@ class Migration(migrations.Migration):
                     name='dental_record',
                     field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='feedbacks', to='patients.dentalrecord'),
                 ),
+                migrations.AddIndex(
+                    model_name='feedback',
+                    index=models.Index(fields=['patient', 'dental_record'], name='feedback_fe_patient_2c8f8b_idx'),
+                ),
+                migrations.AddConstraint(
+                    model_name='feedback',
+                    constraint=models.UniqueConstraint(condition=models.Q(('medical_record__isnull', False)), fields=('patient', 'medical_record'), name='unique_feedback_per_medical_visit'),
+                ),
+                migrations.AddConstraint(
+                    model_name='feedback',
+                    constraint=models.UniqueConstraint(condition=models.Q(('dental_record__isnull', False)), fields=('patient', 'dental_record'), name='unique_feedback_per_dental_visit'),
+                ),
+                migrations.AddConstraint(
+                    model_name='feedback',
+                    constraint=models.UniqueConstraint(condition=models.Q(('medical_record__isnull', True), ('dental_record__isnull', True)), fields=('patient',), name='unique_general_feedback'),
+                ),
             ],
-            # If the column exists, we skip these DB operations
-            # We use RunSQL with IF NOT EXISTS logic for the column
             database_operations=[
-                # Constraints might or might not exist depending on if they were successfully removed
+                # Drop old constraints defensively
                 migrations.RunSQL(
                     sql="ALTER TABLE feedback_feedback DROP CONSTRAINT IF EXISTS unique_feedback_per_visit;",
                     reverse_sql=""
@@ -41,38 +54,50 @@ class Migration(migrations.Migration):
                     sql="ALTER TABLE feedback_feedback DROP CONSTRAINT IF EXISTS unique_general_feedback;",
                     reverse_sql=""
                 ),
-                # Add column only if it doesn't exist
+                # Add column, index, and new constraints using a single DO block for transactional safety
                 migrations.RunSQL(
                     sql="""
                     DO $$ 
                     BEGIN 
+                        -- Add column if not exists
                         IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
                                        WHERE table_name='feedback_feedback' 
                                        AND column_name='dental_record_id') THEN
                             ALTER TABLE feedback_feedback ADD COLUMN dental_record_id integer 
                             REFERENCES patients_dentalrecord(id) ON DELETE SET NULL;
                         END IF;
+
+                        -- Add index if not exists
+                        IF NOT EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace 
+                                       WHERE c.relname = 'feedback_fe_patient_2c8f8b_idx') THEN
+                            CREATE INDEX feedback_fe_patient_2c8f8b_idx ON feedback_feedback (patient_id, dental_record_id);
+                        END IF;
+
+                        -- Add constraints if not exist
+                        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'unique_feedback_per_medical_visit') THEN
+                            ALTER TABLE feedback_feedback ADD CONSTRAINT unique_feedback_per_medical_visit 
+                            UNIQUE (patient_id, medical_record_id) WHERE (medical_record_id IS NOT NULL);
+                        END IF;
+
+                        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'unique_feedback_per_dental_visit') THEN
+                            ALTER TABLE feedback_feedback ADD CONSTRAINT unique_feedback_per_dental_visit 
+                            UNIQUE (patient_id, dental_record_id) WHERE (dental_record_id IS NOT NULL);
+                        END IF;
+
+                        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'unique_general_feedback') THEN
+                            ALTER TABLE feedback_feedback ADD CONSTRAINT unique_general_feedback 
+                            UNIQUE (patient_id) WHERE (medical_record_id IS NULL AND dental_record_id IS NULL);
+                        END IF;
                     END $$;
                     """,
-                    reverse_sql="ALTER TABLE feedback_feedback DROP COLUMN IF EXISTS dental_record_id;"
+                    reverse_sql="""
+                    ALTER TABLE feedback_feedback DROP COLUMN IF EXISTS dental_record_id;
+                    DROP INDEX IF EXISTS feedback_fe_patient_2c8f8b_idx;
+                    ALTER TABLE feedback_feedback DROP CONSTRAINT IF EXISTS unique_feedback_per_medical_visit;
+                    ALTER TABLE feedback_feedback DROP CONSTRAINT IF EXISTS unique_feedback_per_dental_visit;
+                    ALTER TABLE feedback_feedback DROP CONSTRAINT IF EXISTS unique_general_feedback;
+                    """
                 ),
             ]
-        ),
-        # Indexes and new constraints
-        migrations.AddIndex(
-            model_name='feedback',
-            index=models.Index(fields=['patient', 'dental_record'], name='feedback_fe_patient_2c8f8b_idx'),
-        ),
-        migrations.AddConstraint(
-            model_name='feedback',
-            constraint=models.UniqueConstraint(condition=models.Q(('medical_record__isnull', False)), fields=('patient', 'medical_record'), name='unique_feedback_per_medical_visit'),
-        ),
-        migrations.AddConstraint(
-            model_name='feedback',
-            constraint=models.UniqueConstraint(condition=models.Q(('dental_record__isnull', False)), fields=('patient', 'dental_record'), name='unique_feedback_per_dental_visit'),
-        ),
-        migrations.AddConstraint(
-            model_name='feedback',
-            constraint=models.UniqueConstraint(condition=models.Q(('medical_record__isnull', True), ('dental_record__isnull', True)), fields=('patient',), name='unique_general_feedback'),
         ),
     ]
