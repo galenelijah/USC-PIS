@@ -1,6 +1,7 @@
 """
 Django signals for automated email notifications after medical visits
 """
+import logging
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -8,6 +9,13 @@ from datetime import timedelta
 from .models import MedicalRecord, DentalRecord, Patient
 from django.conf import settings
 from django.db import connection
+
+# Import from other apps
+from utils.email_service import EmailService
+from notifications.models import Notification
+
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 @receiver(post_save, sender=Patient)
 def encrypt_patient_fields(sender, instance, **kwargs):

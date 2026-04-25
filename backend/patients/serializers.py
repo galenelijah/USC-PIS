@@ -26,11 +26,11 @@ class DentalRecordSerializer(serializers.ModelSerializer):
     class Meta:
         model = DentalRecord
         fields = [
-            'id', 'patient', 'patient_name', 'visit_date', 'procedure_performed', 
+            'id', 'patient', 'patient_name', 'visit_date', 'concern', 'procedure_performed', 
             'procedure_performed_display', 'tooth_numbers', 'affected_teeth_display',
-            'diagnosis', 'treatment_performed', 'treatment_plan', 'oral_hygiene_status',
-            'gum_condition', 'tooth_chart', 'clinical_notes', 'pain_level',
-            'anesthesia_used', 'anesthesia_type', 'materials_used',
+            'diagnosis', 'treatment_performed', 'treatment_plan', 'referral_to',
+            'oral_hygiene_status', 'gum_condition', 'tooth_chart', 'clinical_notes', 
+            'pain_level', 'anesthesia_used', 'anesthesia_type', 'materials_used',
             'next_appointment_recommended', 'home_care_instructions', 'priority',
             'xray_images', 'photos', 'documents', 'cost', 'insurance_covered',
             'created_at', 'updated_at', 'created_by'
@@ -70,7 +70,7 @@ class ConsultationSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Consultation
-        fields = ['id', 'patient', 'patient_name', 'patient_usc_id', 'date_time', 'chief_complaints', 'treatment_plan', 'remarks', 'created_at', 'updated_at', 'created_by']
+        fields = ['id', 'patient', 'patient_name', 'patient_usc_id', 'date_time', 'concern', 'chief_complaints', 'treatment_plan', 'remarks', 'created_at', 'updated_at', 'created_by']
         read_only_fields = ['created_at', 'updated_at', 'created_by', 'patient_name', 'patient_usc_id']
     
     def get_patient_name(self, obj):

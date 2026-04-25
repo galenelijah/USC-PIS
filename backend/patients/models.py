@@ -87,6 +87,8 @@ class MedicalRecord(models.Model):
 
 class DentalRecord(models.Model):
     PROCEDURE_CHOICES = [
+        ('CONSULTATION', 'Dental Consultation'),
+        ('REFERRAL', 'Referral'),
         ('CLEANING', 'Dental Cleaning'),
         ('FILLING', 'Dental Filling'),
         ('EXTRACTION', 'Tooth Extraction'),
@@ -100,7 +102,6 @@ class DentalRecord(models.Model):
         ('FLUORIDE', 'Fluoride Treatment'),
         ('SEALANT', 'Dental Sealant'),
         ('WHITENING', 'Teeth Whitening'),
-        ('CONSULTATION', 'Dental Consultation'),
         ('XRAY', 'Dental X-Ray'),
         ('OTHER', 'Other Procedure'),
     ]
@@ -127,13 +128,15 @@ class DentalRecord(models.Model):
 
     patient = models.ForeignKey(Patient, related_name='dental_records', on_delete=models.CASCADE)
     visit_date = models.DateTimeField()
-    procedure_performed = models.CharField(max_length=20, choices=PROCEDURE_CHOICES)
+    concern = models.TextField(blank=True, help_text="Student's concern / reason for visit")
+    procedure_performed = models.CharField(max_length=20, choices=PROCEDURE_CHOICES, default='CONSULTATION')
     tooth_numbers = models.CharField(max_length=200, blank=True, help_text="Comma-separated tooth numbers (e.g., 11,12,21)")
-    diagnosis = models.TextField(help_text="Dental diagnosis and findings")
-    treatment_performed = models.TextField(help_text="Treatment performed during this visit")
+    diagnosis = models.TextField(blank=True, help_text="Dental diagnosis and findings")
+    treatment_performed = models.TextField(blank=True, help_text="Treatment performed during this visit")
     treatment_plan = models.TextField(blank=True, help_text="Future treatment plan")
+    referral_to = models.TextField(blank=True, help_text="Referral to other clinic or specialist")
     
-    # Detailed dental examination data
+    # Detailed dental examination data (now optional)
     oral_hygiene_status = models.CharField(
         max_length=50, 
         choices=[
@@ -214,7 +217,8 @@ class DentalRecord(models.Model):
 class Consultation(models.Model):
     patient = models.ForeignKey(Patient, related_name='consultations', on_delete=models.CASCADE)
     date_time = models.DateTimeField()
-    chief_complaints = models.TextField()
+    concern = models.TextField(blank=True, help_text="Student's concern / reason for visit")
+    chief_complaints = models.TextField(blank=True)  # Kept for backward compatibility
     treatment_plan = models.TextField()
     remarks = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -223,6 +227,14 @@ class Consultation(models.Model):
 
     class Meta:
         ordering = ['-date_time']
+
+    def save(self, *args, **kwargs):
+        # Sync concern and chief_complaints for backward compatibility
+        if self.concern and not self.chief_complaints:
+            self.chief_complaints = self.concern
+        elif self.chief_complaints and not self.concern:
+            self.concern = self.chief_complaints
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.patient} - {self.date_time}"

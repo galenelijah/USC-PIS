@@ -568,12 +568,8 @@ class DentalRecordViewSet(viewsets.ModelViewSet):
             validation_errors = record_validator.validate_medical_record(request.data)
             if validation_errors:
                 # Filter out medical-specific field errors if they are not relevant to dental
-                relevant_errors = [e for e in validation_errors if 'Diagnosis' not in e and 'Treatment' not in e]
-                # Re-validate dental specific fields
-                if not request.data.get('diagnosis'):
-                    relevant_errors.append("Diagnosis is required")
-                if not request.data.get('treatment_performed'):
-                    relevant_errors.append("Treatment performed is required")
+                # For dental, concern, diagnosis and treatment are now optional for minimal consultation/referral
+                relevant_errors = [e for e in validation_errors if 'Diagnosis' not in e and 'Treatment' not in e and 'concern' not in e.lower()]
                 
                 if relevant_errors:
                     return Response({
