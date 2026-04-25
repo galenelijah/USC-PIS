@@ -798,7 +798,7 @@ const UniversalCampaigns = () => {
                               if (isPdf(imageUrl)) {
                                 handleDownload(imageUrl, `${selectedCampaign.title}_pubmat`);
                               } else {
-                                window.open(imageUrl, '_blank');
+                                openViewer(imageUrl, image.caption || `${selectedCampaign.title} - Image`);
                               }
                             }}
                           >
@@ -825,10 +825,6 @@ const UniversalCampaigns = () => {
                                   size="extrasmall" 
                                   variant="text" 
                                   startIcon={<DownloadIcon />}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDownload(imageUrl, `${selectedCampaign.title}_pubmat`);
-                                  }}
                                 >
                                   Download
                                 </Button>

@@ -2354,7 +2354,13 @@ const CampaignsPage = () => {
                                           objectFit: 'cover',
                                           cursor: 'pointer'
                                         }}
-                                        onClick={() => openViewer(selectedCampaign.banner_image_url, `${selectedCampaign.title} - Banner`)}
+                                        onClick={() => {
+                                          if (isPdf(selectedCampaign.banner_image_url)) {
+                                            handleDownload(selectedCampaign.banner_image_url, `${selectedCampaign.title}_banner`);
+                                          } else {
+                                            openViewer(selectedCampaign.banner_image_url, `${selectedCampaign.title} - Banner`);
+                                          }
+                                        }}
                                       />
                                       <Box
                                         sx={{
@@ -2405,7 +2411,13 @@ const CampaignsPage = () => {
                                           objectFit: 'cover',
                                           cursor: 'pointer'
                                         }}
-                                        onClick={() => openViewer(selectedCampaign.thumbnail_image_url, `${selectedCampaign.title} - Thumbnail`)}
+                                        onClick={() => {
+                                          if (isPdf(selectedCampaign.thumbnail_image_url)) {
+                                            handleDownload(selectedCampaign.thumbnail_image_url, `${selectedCampaign.title}_thumbnail`);
+                                          } else {
+                                            openViewer(selectedCampaign.thumbnail_image_url, `${selectedCampaign.title} - Thumbnail`);
+                                          }
+                                        }}
                                       />
                                       <Box
                                         sx={{
@@ -2451,36 +2463,22 @@ const CampaignsPage = () => {
                                           cursor: 'pointer',
                                           '&:hover': { backgroundColor: '#e3f2fd' }
                                         }}
-                                        onClick={() => openViewer(selectedCampaign.pubmat_image_url, `${selectedCampaign.title} - PubMat PDF`)}
+                                        onClick={() => handleDownload(selectedCampaign.pubmat_image_url, `${selectedCampaign.title}_pubmat`)}
                                       >
                                         <PdfIcon sx={{ fontSize: 60, color: '#d32f2f', mb: 2 }} />
                                         <Typography variant="h6" color="primary" fontWeight="bold">
                                           PDF Document
                                         </Typography>
-                                        <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
-                                          <Button 
-                                            variant="outlined" 
-                                            color="primary" 
-                                            startIcon={<VisibilityIcon />}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              openViewer(selectedCampaign.pubmat_image_url, `${selectedCampaign.title} - PubMat PDF`);
-                                            }}
-                                          >
-                                            Preview
-                                          </Button>
-                                          <Button 
-                                            variant="contained" 
-                                            color="primary" 
-                                            startIcon={<DownloadIcon />}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleDownload(selectedCampaign.pubmat_image_url, `${selectedCampaign.title}_pubmat`);
-                                            }}
-                                          >
-                                            Download
-                                          </Button>
-                                        </Box>
+                                        <Typography variant="body2" sx={{ mb: 2 }}>
+                                          Click to download material
+                                        </Typography>
+                                        <Button 
+                                          variant="contained" 
+                                          color="primary" 
+                                          startIcon={<DownloadIcon />}
+                                        >
+                                          Download PubMat
+                                        </Button>
                                       </Box>
                                     ) : (
                                       <Box 

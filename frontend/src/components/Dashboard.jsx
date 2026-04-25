@@ -921,18 +921,6 @@ const Dashboard = memo(({ user }) => {
                               }}
                             />
                           )}
-                          {campaign.status && (
-                            <Chip
-                              size="small"
-                              label={campaign.status === 'ACTIVE' ? 'Current' : 'Completed'}
-                              sx={{ 
-                                fontSize: '0.75rem', 
-                                height: 22,
-                                bgcolor: campaign.status === 'ACTIVE' ? 'success.main' : 'grey.500',
-                                color: 'white'
-                              }}
-                            />
-                          )}
                         </Box>
                       </Box>
                     </Box>

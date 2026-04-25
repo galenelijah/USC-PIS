@@ -209,17 +209,20 @@ const PublicCampaignPreview = () => {
                               border: '1px dashed #1976d2',
                               '&:hover': { backgroundColor: '#e3f2fd' }
                             }}
-                            onClick={() => openViewer(url, `${campaign.title} - Material ${idx+1}`)}
+                            onClick={() => {
+                              if (pdf) {
+                                handleDownload(url, `${campaign.title}_material_${idx+1}`);
+                              } else {
+                                openViewer(url, img.caption || `${campaign.title} - Image ${idx+1}`);
+                              }
+                            }}
                           >
                             <PdfIcon sx={{ fontSize: 40, color: '#d32f2f', mb: 1 }} />
                             <Typography variant="caption" display="block" fontWeight="bold">
                               PDF DOCUMENT
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', mt: 1 }}>
-                              <Button size="small" onClick={(e) => { e.stopPropagation(); openViewer(url, `${campaign.title} - Material ${idx+1}`); }}>
-                                Preview
-                              </Button>
-                              <Button size="small" startIcon={<DownloadIcon />} onClick={(e) => { e.stopPropagation(); handleDownload(url, `${campaign.title}_material_${idx+1}`); }}>
+                              <Button size="small" startIcon={<DownloadIcon />}>
                                 Download
                               </Button>
                             </Box>
