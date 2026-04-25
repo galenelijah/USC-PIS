@@ -246,9 +246,9 @@ class HealthCampaign(models.Model):
     )
     pubmat_image = models.FileField(
         upload_to=pubmat_upload_path,
-        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'pdf'])],
+        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'webp', 'gif'])],
         null=True, blank=True,
-        help_text="PubMat (Public Material) for printing and distribution - supports PDF"
+        help_text="PubMat (Public Material) for printing and distribution (Images only)"
     )
     thumbnail_image = models.ImageField(
         upload_to=campaign_image_upload_path,

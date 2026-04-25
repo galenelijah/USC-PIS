@@ -1324,7 +1324,7 @@ const UniversalCampaigns = () => {
                       <input
                         type="file"
                         hidden
-                        accept="image/*,application/pdf"
+                        accept="image/*"
                         onChange={(e) => {
                           const file = e.target.files[0];
                           if (file && file.size > 0) {

@@ -1336,7 +1336,7 @@ const CampaignsPage = () => {
                   <input
                     type="file"
                     hidden
-                    accept="image/*,application/pdf"
+                    accept="image/*"
                     onChange={(e) => {
                       const file = e.target.files[0];
                       console.log('Raw file input for pubmat:', file ? { name: file.name, size: file.size, type: file.type, lastModified: file.lastModified } : null);
@@ -1696,7 +1696,7 @@ const CampaignsPage = () => {
                   <input
                     type="file"
                     hidden
-                    accept="image/*,application/pdf"
+                    accept="image/*"
                     onChange={(e) => {
                       const file = e.target.files[0];
                       console.log('Raw file input for pubmat:', file ? { name: file.name, size: file.size, type: file.type, lastModified: file.lastModified } : null);
@@ -2354,13 +2354,7 @@ const CampaignsPage = () => {
                                           objectFit: 'cover',
                                           cursor: 'pointer'
                                         }}
-                                        onClick={() => {
-                                          if (isPdf(selectedCampaign.banner_image_url)) {
-                                            handleDownload(selectedCampaign.banner_image_url, `${selectedCampaign.title}_banner`);
-                                          } else {
-                                            openViewer(selectedCampaign.banner_image_url, `${selectedCampaign.title} - Banner`);
-                                          }
-                                        }}
+                                        onClick={() => openViewer(selectedCampaign.banner_image_url, `${selectedCampaign.title} - Banner`)}
                                       />
                                       <Box
                                         sx={{
@@ -2411,13 +2405,7 @@ const CampaignsPage = () => {
                                           objectFit: 'cover',
                                           cursor: 'pointer'
                                         }}
-                                        onClick={() => {
-                                          if (isPdf(selectedCampaign.thumbnail_image_url)) {
-                                            handleDownload(selectedCampaign.thumbnail_image_url, `${selectedCampaign.title}_thumbnail`);
-                                          } else {
-                                            openViewer(selectedCampaign.thumbnail_image_url, `${selectedCampaign.title} - Thumbnail`);
-                                          }
-                                        }}
+                                        onClick={() => openViewer(selectedCampaign.thumbnail_image_url, `${selectedCampaign.title} - Thumbnail`)}
                                       />
                                       <Box
                                         sx={{
