@@ -91,8 +91,8 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
 
   const patientItems = [
     { text: 'Patients', icon: <PeopleIcon />, path: '/patients', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'] },
-    { text: 'Patient Medical Dashboard', icon: <MedicalInformationIcon />, path: '/patient-dashboard' },
-    { text: 'Health Insights & History', icon: <InsightsIcon />, path: '/health-insights', description: 'Visual health timeline, trends, and chronological history of all medical events' },
+    { text: 'Patient Medical Dashboard', icon: <MedicalInformationIcon />, path: '/patient-dashboard', requiredRole: ['STUDENT', 'FACULTY'] },
+    { text: 'Health Insights & History', icon: <InsightsIcon />, path: '/health-insights', description: 'Visual health timeline, trends, and chronological history of all medical events', requiredRole: ['STUDENT', 'FACULTY'] },
     {
       text: ['STUDENT', 'FACULTY'].includes(user?.role) ? 'My Health Records' : 'Medical Records (Manage)',
       icon: <AssignmentIcon />,

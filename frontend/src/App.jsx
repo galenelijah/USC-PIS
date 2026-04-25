@@ -627,7 +627,11 @@ const App = () => {
                 <RequireProfileSetup>
                 <Layout>
                   <Suspense fallback={<PageLoader />}>
-                    <MedicalHistoryPage />
+                    {userRoles.isPatientRole ? (
+                      <MedicalHistoryPage />
+                    ) : (
+                      <Navigate to="/home" replace />
+                    )}
                   </Suspense>
                 </Layout>
                 </RequireProfileSetup>
@@ -666,7 +670,11 @@ const App = () => {
                 <RequireProfileSetup>
                 <Layout>
                   <Suspense fallback={<PageLoader />}>
-                    <PatientMedicalDashboard />
+                    {userRoles.isPatientRole ? (
+                      <PatientMedicalDashboard />
+                    ) : (
+                      <Navigate to="/home" replace />
+                    )}
                   </Suspense>
                 </Layout>
                 </RequireProfileSetup>

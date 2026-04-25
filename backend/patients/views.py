@@ -789,7 +789,11 @@ def dashboard_stats(request):
             logger.info(f"Calculated profile completion for {user.email}: {profile_completion}%")
             
             if patient:
-                # Get patient's recent records
+                # Get patient's records and counts
+                medical_count = MedicalRecord.objects.filter(patient=patient).count()
+                dental_count = DentalRecord.objects.filter(patient=patient).count()
+                consultation_count = Consultation.objects.filter(patient=patient).count()
+                
                 recent_medical_record = MedicalRecord.objects.filter(
                     patient=patient
                 ).order_by('-visit_date').first()
@@ -799,6 +803,9 @@ def dashboard_stats(request):
                 ).order_by('-visit_date').first()
                 
                 return Response({
+                    'total_medical_records': medical_count,
+                    'total_dental_records': dental_count,
+                    'total_consultations': dental_count + consultation_count,
                     'recent_medical_record': recent_medical_record.diagnosis if recent_medical_record else None,
                     'recent_dental_record': recent_dental_record.diagnosis if recent_dental_record else None,
                     'profile_completion': profile_completion,
@@ -808,6 +815,9 @@ def dashboard_stats(request):
             else:
                 logger.warning(f"Student {user.email} still has no patient profile record after attempt")
                 return Response({
+                    'total_medical_records': 0,
+                    'total_dental_records': 0,
+                    'total_consultations': 0,
                     'recent_medical_record': None,
                     'recent_dental_record': None,
                     'profile_completion': profile_completion, 

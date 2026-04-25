@@ -58,6 +58,9 @@ const Dashboard = memo(({ user }) => {
   const [stats, setStats] = useState({
     totalPatients: 0,
     totalRecords: 0,
+    totalMedicalRecords: 0,
+    totalDentalRecords: 0,
+    totalConsultations: 0,
     recentPatients: [],
     visitsByMonth: [],
     pendingRequests: 0,
@@ -108,6 +111,9 @@ const Dashboard = memo(({ user }) => {
       setStats({
         totalPatients: dashboardResponse.data.total_patients || 0,
         totalRecords: dashboardResponse.data.total_records || 0,
+        totalMedicalRecords: dashboardResponse.data.total_medical_records || 0,
+        totalDentalRecords: dashboardResponse.data.total_dental_records || 0,
+        totalConsultations: dashboardResponse.data.total_consultations || 0,
         recentPatients: Array.isArray(dashboardResponse.data.recent_patients) ? dashboardResponse.data.recent_patients : [],
         visitsByMonth: Array.isArray(dashboardResponse.data.visits_by_month) ? dashboardResponse.data.visits_by_month : [],
         pendingRequests: dashboardResponse.data.pending_requests || 0,
@@ -735,7 +741,7 @@ const Dashboard = memo(({ user }) => {
       <Grid item xs={12} md={4}>
         <StatCard
           title="Medical Records"
-          value={stats.totalRecords}
+          value={stats.totalMedicalRecords}
           icon={<HospitalIcon />}
           color="#4caf50"
         />
@@ -743,7 +749,7 @@ const Dashboard = memo(({ user }) => {
       <Grid item xs={12} md={4}>
         <StatCard
           title="Consultations"
-          value={stats.visitsByMonth.length}
+          value={stats.totalConsultations}
           icon={<MedicationIcon />}
           color="#2196f3"
         />
@@ -768,44 +774,42 @@ const Dashboard = memo(({ user }) => {
           <CardContent sx={{ flexGrow: 1, p: 3, display: 'flex', flexDirection: 'column' }}>
             {stats.missingFields && stats.missingFields.length > 0 ? (
               <>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Missing information:
+                <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 2 }}>
+                  Missing information to complete your profile:
                 </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
-                  {stats.missingFields.slice(0, 6).map((field, idx) => (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 3 }}>
+                  {stats.missingFields.slice(0, 10).map((field, idx) => (
                     <Chip 
                       key={idx} 
                       label={field} 
                       size="small" 
                       sx={{ 
-                        fontSize: '0.7rem', 
-                        height: 20,
+                        fontSize: '0.75rem', 
+                        height: 24,
                         bgcolor: alpha('#ff9800', 0.1),
                         color: '#e65100',
                         border: '1px solid',
-                        borderColor: alpha('#ff9800', 0.2)
+                        borderColor: alpha('#ff9800', 0.2),
+                        fontWeight: 'bold'
                       }} 
                     />
                   ))}
-                  {stats.missingFields.length > 6 && (
+                  {stats.missingFields.length > 10 && (
                     <Typography variant="caption" sx={{ mt: 0.5, ml: 0.5, color: 'text.secondary' }}>
-                      +{stats.missingFields.length - 6} more
+                      +{stats.missingFields.length - 10} more
                     </Typography>
                   )}
                 </Box>
-                <Typography variant="h4" fontWeight="bold" color="warning.main" sx={{ mb: 1 }}>
-                  {stats.profileCompletion}%
-                </Typography>
                 <Button 
                   component={Link}
                   to="/profile-setup"
-                  variant="outlined" 
+                  variant="contained" 
                   color="warning" 
-                  size="small"
+                  size="medium"
                   fullWidth
-                  sx={{ mt: 'auto', borderRadius: 2 }}
+                  sx={{ mt: 'auto', borderRadius: 2, fontWeight: 'bold' }}
                 >
-                  Complete Profile
+                  Complete My Profile
                 </Button>
               </>
             ) : (
