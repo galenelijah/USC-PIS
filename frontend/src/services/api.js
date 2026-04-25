@@ -788,6 +788,14 @@ export const patientService = {
       throw error;
     }
   },
+  getMyDentalRecords: async () => {
+    try {
+      return await api.get('/patients/dental-records/');
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
 };
 
 export const healthInfoService = {
