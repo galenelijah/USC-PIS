@@ -182,12 +182,10 @@ const EmailAdministration = () => {
       fetchEmailData();
       fetchConfigs();
     } else if (activeTab === 1) {
-      fetchTemplates();
-    } else if (activeTab === 2) {
       fetchNotifications();
-    } else if (activeTab === 3) {
+    } else if (activeTab === 2) {
       fetchStaffAccess();
-    } else if (activeTab === 4) {
+    } else if (activeTab === 3) {
       fetchLogs();
     }
   }, [activeTab]);
@@ -587,10 +585,9 @@ const EmailAdministration = () => {
             startIcon={<RefreshIcon />} 
             onClick={() => {
               if (activeTab === 0) { fetchEmailData(); fetchConfigs(); }
-              else if (activeTab === 1) fetchTemplates();
-              else if (activeTab === 2) fetchNotifications();
-              else if (activeTab === 3) fetchStaffAccess();
-              else if (activeTab === 4) fetchLogs();
+              else if (activeTab === 1) fetchNotifications();
+              else if (activeTab === 2) fetchStaffAccess();
+              else if (activeTab === 3) fetchLogs();
             }}
             disabled={loading || configLoading || staffLoading}
           >
@@ -605,7 +602,6 @@ const EmailAdministration = () => {
         sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
       >
         <Tab icon={<SettingsIcon />} iconPosition="start" label="Routing & Status" />
-        <Tab icon={<DescriptionIcon />} iconPosition="start" label="Email Templates" />
         <Tab icon={<NotificationsIcon />} iconPosition="start" label="Sent Notifications" />
         <Tab icon={<StaffIcon />} iconPosition="start" label="Staff Access" />
         <Tab icon={<HistoryIcon />} iconPosition="start" label="System Logs" />
@@ -827,141 +823,6 @@ const EmailAdministration = () => {
         <Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <Typography variant="h6" fontWeight="bold">
-              Notification & Email Templates
-            </Typography>
-            <Button 
-              variant="contained" 
-              startIcon={<AddIcon />} 
-              onClick={() => openTemplateDialog()}
-            >
-              Create New Template
-            </Button>
-          </Box>
-
-          <Grid container spacing={3}>
-            {loading ? (
-              <Grid item xs={12} sx={{ textAlign: 'center', py: 5 }}>
-                <CircularProgress />
-              </Grid>
-            ) : allTemplates.length === 0 ? (
-              <Grid item xs={12}>
-                <Paper sx={{ p: 5, textAlign: 'center', bgcolor: 'grey.50' }}>
-                  <DescriptionIcon sx={{ fontSize: 60, color: 'grey.400', mb: 2 }} />
-                  <Typography variant="h6" color="text.secondary">No templates found</Typography>
-                  <Typography variant="body2" color="text.disabled">Create your first template to get started</Typography>
-                </Paper>
-              </Grid>
-            ) : allTemplates.map((template) => (
-              <Grid item xs={12} md={6} lg={4} key={template.id}>
-                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="subtitle1" fontWeight="bold" noWrap sx={{ maxWidth: '70%' }}>
-                        {template.name}
-                      </Typography>
-                      <Chip 
-                        label={template.template_type_display} 
-                        size="small" 
-                        color="primary" 
-                        variant="outlined" 
-                      />
-                    </Box>
-                    <Typography variant="body2" color="text.secondary" gutterBottom sx={{ 
-                      display: '-webkit-box',
-                      WebkitLineClamp: 1,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden'
-                    }}>
-                      Subject: {template.subject_template}
-                    </Typography>
-                    <Divider sx={{ my: 1.5 }} />
-                    <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mb: 1 }}>
-                      BODY PREVIEW:
-                    </Typography>
-                    <Typography variant="body2" sx={{ 
-                      bgcolor: 'grey.50', 
-                      p: 1.5, 
-                      borderRadius: 1,
-                      fontFamily: 'monospace',
-                      fontSize: '0.75rem',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 4,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                      minHeight: 80
-                    }}>
-                      {template.body_template}
-                    </Typography>
-                  </CardContent>
-                  <Divider />
-                  <Box sx={{ p: 1, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                    <Tooltip title="Edit Template">
-                      <IconButton size="small" onClick={() => openTemplateDialog(template)}>
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete Template">
-                      <IconButton size="small" color="error" onClick={() => handleDeleteTemplate(template.id)}>
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-
-          {staticTemplates.length > 0 && (
-            <Box sx={{ mt: 5 }}>
-              <Divider sx={{ mb: 4 }} />
-              <Typography variant="h6" fontWeight="bold" gutterBottom>
-                System Static HTML Templates (File-based)
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                These templates are defined as static HTML files in the backend and are used for core system functions.
-              </Typography>
-              
-              <Grid container spacing={3}>
-                {staticTemplates.map((template) => (
-                  <Grid item xs={12} md={4} key={template.id}>
-                    <Card variant="outlined" sx={{ bgcolor: 'grey.50', height: '100%' }}>
-                      <CardContent>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                          <DescriptionIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                          <Typography variant="subtitle1" fontWeight="bold" noWrap sx={{ maxWidth: '100%' }}>
-                            {template.name}
-                          </Typography>
-                        </Box>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                          File: {template.file_name}
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Chip 
-                            label={`${(template.size / 1024).toFixed(1)} KB`} 
-                            size="small" 
-                            variant="outlined" 
-                          />
-                          <Chip 
-                            label="READ-ONLY" 
-                            size="small" 
-                            color="default"
-                            variant="filled"
-                          />
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
-            </Box>
-          )}
-        </Box>
-      )}
-
-      {activeTab === 2 && (
-        <Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h6" fontWeight="bold">
               Sent Notifications History
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
@@ -1026,7 +887,7 @@ const EmailAdministration = () => {
         </Box>
       )}
 
-      {activeTab === 3 && (
+      {activeTab === 2 && (
         <Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <Box>
@@ -1125,7 +986,7 @@ const EmailAdministration = () => {
         </Box>
       )}
 
-      {activeTab === 4 && (
+      {activeTab === 3 && (
         <Box>
           <Typography variant="h6" fontWeight="bold" gutterBottom>
             System Activity Logs

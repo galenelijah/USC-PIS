@@ -56,7 +56,9 @@ import {
   Warning as WarningIcon,
   CheckCircle as CheckCircleIcon,
   FilterList as FilterIcon,
-  Search as SearchIcon
+  Search as SearchIcon,
+  PictureAsPdf as PdfIcon,
+  GetApp as DownloadIcon
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { campaignService } from '../services/api';
@@ -95,8 +97,7 @@ const CampaignsPage = () => {
     contact_info: '',
     external_link: '',
     start_date: '',
-    end_date: '',
-    status: 'DRAFT'
+    end_date: ''
   });
   
   // File uploads
@@ -107,9 +108,7 @@ const CampaignsPage = () => {
   // Filters and search
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('ALL');
-  const [filterStatus, setFilterStatus] = useState('ALL');
   const [anchorEl, setAnchorEl] = useState(null);
-  const [menuCampaign, setMenuCampaign] = useState(null);
 
   const user = useSelector(state => state.auth.user);
   const isNonStudent = user && !['STUDENT', 'PATIENT'].includes(user.role);
@@ -138,22 +137,13 @@ const CampaignsPage = () => {
     { value: 'URGENT', label: 'Urgent', color: 'error' }
   ];
 
-  const STATUS_OPTIONS = [
-    { value: 'DRAFT', label: 'Draft', color: 'default' },
-    { value: 'SCHEDULED', label: 'Scheduled', color: 'info' },
-    { value: 'ACTIVE', label: 'Active', color: 'success' },
-    { value: 'PAUSED', label: 'Paused', color: 'warning' },
-    { value: 'COMPLETED', label: 'Completed', color: 'secondary' },
-    { value: 'ARCHIVED', label: 'Archived', color: 'default' }
-  ];
-
   useEffect(() => {
     fetchCampaigns();
   }, []);
 
   useEffect(() => {
     filterCampaigns();
-  }, [campaigns, searchTerm, filterType, filterStatus]);
+  }, [campaigns, searchTerm, filterType]);
 
   const fetchCampaigns = async () => {
     try {
@@ -217,11 +207,6 @@ const CampaignsPage = () => {
       filtered = filtered.filter(campaign => campaign?.campaign_type === filterType);
     }
 
-    // Status filter
-    if (filterStatus !== 'ALL') {
-      filtered = filtered.filter(campaign => campaign?.status === filterStatus);
-    }
-
     setFilteredCampaigns(filtered);
   };
 
@@ -247,8 +232,7 @@ const CampaignsPage = () => {
       external_link: '',
       tags: '',
       start_date: '',
-      end_date: '',
-      status: 'DRAFT'
+      end_date: ''
     });
     setBannerFile(null);
     setThumbnailFile(null);
@@ -449,8 +433,7 @@ const CampaignsPage = () => {
         external_link: data.external_link || '',
         tags: data.tags || '',
         start_date: data.start_date ? String(data.start_date).split('T')[0] : '',
-        end_date: data.end_date ? String(data.end_date).split('T')[0] : '',
-        status: data.status || 'DRAFT'
+        end_date: data.end_date ? String(data.end_date).split('T')[0] : ''
       });
       setSelectedCampaign(data);
       setFieldErrors({});
@@ -518,16 +501,8 @@ const CampaignsPage = () => {
     }
   };
 
-  const getStatusInfo = (status) => {
-    try {
-      return STATUS_OPTIONS.find(s => s.value === status) || STATUS_OPTIONS[0];
-    } catch (error) {
-      console.error('Error in getStatusInfo:', error);
-      return { value: 'DRAFT', label: 'Draft', color: 'default' };
-    }
-  };
+  const getPriorityInfo = (priority) => {
 
-  const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString();
   };
 
@@ -580,7 +555,7 @@ const CampaignsPage = () => {
               }}
             />
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} md={4}>
             <FormControl fullWidth>
               <InputLabel>Campaign Type</InputLabel>
               <Select
@@ -597,24 +572,7 @@ const CampaignsPage = () => {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={filterStatus}
-                label="Status"
-                onChange={(e) => setFilterStatus(e.target.value)}
-              >
-                <MenuItem value="ALL">All Statuses</MenuItem>
-                {STATUS_OPTIONS.map(status => (
-                  <MenuItem key={status.value} value={status.value}>
-                    {status.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={2}>
+          <Grid item xs={12} md={4}>
             <Box display="flex" alignItems="center">
               <FilterIcon sx={{ mr: 1, color: 'text.secondary' }} />
               <Typography variant="body2" color="text.secondary">
@@ -731,7 +689,6 @@ const CampaignsPage = () => {
             }
 
             const typeInfo = getCampaignTypeInfo(campaign.campaign_type || 'GENERAL');
-            const statusInfo = getStatusInfo(campaign.status || 'DRAFT');
             const priorityInfo = getPriorityInfo(campaign.priority || 'MEDIUM');
             
             return (
@@ -802,36 +759,6 @@ const CampaignsPage = () => {
                       </Box>
                     )}
                     
-                    {/* Status Badge Overlay */}
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        top: 16,
-                        right: 16,
-                        zIndex: 2
-                      }}
-                    >
-                      <Chip 
-                        label={statusInfo.label}
-                        color={statusInfo.color}
-                        size="small"
-                        variant="filled"
-                        sx={{
-                          fontWeight: 'bold',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                          backdropFilter: 'blur(10px)',
-                          ...(isActive(campaign) && {
-                            animation: 'pulse 2s infinite',
-                            '@keyframes pulse': {
-                              '0%': { boxShadow: '0 2px 8px rgba(0,0,0,0.2)' },
-                              '50%': { boxShadow: `0 4px 20px ${statusInfo.color === 'primary' ? 'rgba(25, 118, 210, 0.4)' : `rgba(var(--mui-palette-${statusInfo.color}-main-rgb), 0.4)`}` },
-                              '100%': { boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }
-                            }
-                          })
-                        }}
-                      />
-                    </Box>
-
                     {/* Priority Badge */}
                     {campaign.priority !== 'MEDIUM' && (
                       <Box
@@ -1120,7 +1047,7 @@ const CampaignsPage = () => {
                 Campaign Details
               </Typography>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={12}>
               <FormControl fullWidth>
                 <InputLabel>Priority</InputLabel>
                 <Select
@@ -1131,22 +1058,6 @@ const CampaignsPage = () => {
                   {PRIORITY_LEVELS.map(priority => (
                     <MenuItem key={priority.value} value={priority.value}>
                       {priority.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={campaignForm.status}
-                  label="Status"
-                  onChange={(e) => setCampaignForm({...campaignForm, status: e.target.value})}
-                >
-                  {STATUS_OPTIONS.map(status => (
-                    <MenuItem key={status.value} value={status.value}>
-                      {status.label}
                     </MenuItem>
                   ))}
                 </Select>
@@ -1483,7 +1394,7 @@ const CampaignsPage = () => {
                 Campaign Details
               </Typography>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={12}>
               <FormControl fullWidth>
                 <InputLabel>Priority</InputLabel>
                 <Select
@@ -1494,22 +1405,6 @@ const CampaignsPage = () => {
                   {PRIORITY_LEVELS.map(priority => (
                     <MenuItem key={priority.value} value={priority.value}>
                       {priority.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={campaignForm.status}
-                  label="Status"
-                  onChange={(e) => setCampaignForm({...campaignForm, status: e.target.value})}
-                >
-                  {STATUS_OPTIONS.map(status => (
-                    <MenuItem key={status.value} value={status.value}>
-                      {status.label}
                     </MenuItem>
                   ))}
                 </Select>
@@ -1793,11 +1688,6 @@ const CampaignsPage = () => {
                     {selectedCampaign.title}
                   </Typography>
                   <Box display="flex" gap={1} mt={1}>
-                    <Chip 
-                      label={getStatusInfo(selectedCampaign.status).label}
-                      color={getStatusInfo(selectedCampaign.status).color}
-                      size="small"
-                    />
                     <Chip 
                       label={getCampaignTypeInfo(selectedCampaign.campaign_type).label}
                       color={getCampaignTypeInfo(selectedCampaign.campaign_type).color}
@@ -2149,11 +2039,6 @@ const CampaignsPage = () => {
                             </Typography>
                           </Box>
                           <Box display="flex" gap={1}>
-                            <Chip 
-                              label={getStatusInfo(selectedCampaign.status).label}
-                              color={selectedCampaign.status === 'ACTIVE' ? 'success' : 'default'}
-                              size="small"
-                            />
                             {selectedCampaign.priority !== 'MEDIUM' && (
                               <Chip
                                 label={getPriorityInfo(selectedCampaign.priority).label}
@@ -2482,43 +2367,74 @@ const CampaignsPage = () => {
                                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                                       Public material for printing & distribution
                                     </Typography>
-                                    <Box 
-                                      sx={{ 
-                                        position: 'relative',
-                                        borderRadius: 3,
-                                        overflow: 'hidden',
-                                        boxShadow: 3,
-                                        transition: 'transform 0.2s',
-                                        '&:hover': { transform: 'scale(1.02)' }
-                                      }}
-                                    >
-                                      <img
-                                        src={selectedCampaign.pubmat_image_url}
-                                        alt="Campaign PubMat"
-                                        style={{
-                                          width: '100%',
-                                          height: 220,
-                                          objectFit: 'cover',
-                                          cursor: 'pointer'
+                                    
+                                    {selectedCampaign.pubmat_image_url.toLowerCase().endsWith('.pdf') ? (
+                                      <Box 
+                                        sx={{ 
+                                          p: 4, 
+                                          border: '2px dashed #1976d2', 
+                                          borderRadius: 3, 
+                                          display: 'flex', 
+                                          flexDirection: 'column', 
+                                          alignItems: 'center',
+                                          backgroundColor: '#f0f7ff',
+                                          cursor: 'pointer',
+                                          '&:hover': { backgroundColor: '#e3f2fd' }
                                         }}
                                         onClick={() => window.open(selectedCampaign.pubmat_image_url, '_blank')}
-                                      />
-                                      <Box
-                                        sx={{
-                                          position: 'absolute',
-                                          bottom: 8,
-                                          right: 8,
-                                          backgroundColor: 'rgba(0,0,0,0.7)',
-                                          borderRadius: 1,
-                                          px: 2,
-                                          py: 1
+                                      >
+                                        <PdfIcon sx={{ fontSize: 60, color: '#d32f2f', mb: 2 }} />
+                                        <Typography variant="h6" color="primary" fontWeight="bold">
+                                          PDF Document
+                                        </Typography>
+                                        <Button 
+                                          variant="contained" 
+                                          color="primary" 
+                                          startIcon={<DownloadIcon />}
+                                          sx={{ mt: 2 }}
+                                        >
+                                          Download PubMat
+                                        </Button>
+                                      </Box>
+                                    ) : (
+                                      <Box 
+                                        sx={{ 
+                                          position: 'relative',
+                                          borderRadius: 3,
+                                          overflow: 'hidden',
+                                          boxShadow: 3,
+                                          transition: 'transform 0.2s',
+                                          '&:hover': { transform: 'scale(1.02)' }
                                         }}
                                       >
-                                        <Typography variant="caption" color="white" fontWeight="bold">
-                                          📸 View Full Size
-                                        </Typography>
+                                        <img
+                                          src={selectedCampaign.pubmat_image_url}
+                                          alt="Campaign PubMat"
+                                          style={{
+                                            width: '100%',
+                                            height: 220,
+                                            objectFit: 'cover',
+                                            cursor: 'pointer'
+                                          }}
+                                          onClick={() => window.open(selectedCampaign.pubmat_image_url, '_blank')}
+                                        />
+                                        <Box
+                                          sx={{
+                                            position: 'absolute',
+                                            bottom: 8,
+                                            right: 8,
+                                            backgroundColor: 'rgba(0,0,0,0.7)',
+                                            borderRadius: 1,
+                                            px: 2,
+                                            py: 1
+                                          }}
+                                        >
+                                          <Typography variant="caption" color="white" fontWeight="bold">
+                                            📸 View Full Size
+                                          </Typography>
+                                        </Box>
                                       </Box>
-                                    </Box>
+                                    )}
                                   </Box>
                                 </Grid>
                               )}

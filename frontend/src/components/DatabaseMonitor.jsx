@@ -487,11 +487,6 @@ const DatabaseMonitor = () => {
                         label="Backup History" 
                         iconPosition="start"
                     />
-                    <Tab 
-                        icon={<FileUpload />} 
-                        label="Upload & Restore" 
-                        iconPosition="start"
-                    />
                 </Tabs>
             </Box>
 
@@ -518,30 +513,6 @@ const DatabaseMonitor = () => {
                             </Box>
                             <Typography variant="body1">Database Size: {dbData?.checks?.storage?.size || 'Unknown'}</Typography>
                             <Typography variant="body1">Active Connections: {dbData?.checks?.connection?.active_connections || 'Unknown'}</Typography>
-                        </Paper>
-
-                        <Paper sx={{ p: 2 }}>
-                            <Typography variant="h6" gutterBottom>Tables</Typography>
-                            <TableContainer>
-                                <Table>
-                                    <TableHead>
-                                        <TableRow>
-                                            <TableCell>Table Name</TableCell>
-                                            <TableCell align="right">Columns</TableCell>
-                                            <TableCell align="right">Rows</TableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {dbData?.tables?.map((table, index) => (
-                                            <TableRow key={index}>
-                                                <TableCell component="th" scope="row">{table.name}</TableCell>
-                                                <TableCell align="right">{table.columns}</TableCell>
-                                                <TableCell align="right">{table.rows}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </TableContainer>
                         </Paper>
                     </>
                 )}

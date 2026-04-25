@@ -25,12 +25,12 @@ class CampaignFeedbackInline(admin.TabularInline):
 @admin.register(HealthCampaign)
 class HealthCampaignAdmin(admin.ModelAdmin):
     list_display = [
-        'title', 'campaign_type', 'status_badge', 'priority_badge', 
+        'title', 'campaign_type', 'priority_badge', 
         'start_date', 'end_date', 'view_count', 'engagement_count',
         'is_featured_display', 'created_by'
     ]
     list_filter = [
-        'campaign_type', 'status', 'priority', 'start_date', 'end_date', 'created_at'
+        'campaign_type', 'priority', 'start_date', 'end_date', 'created_at'
     ]
     search_fields = ['title', 'description', 'content', 'tags']
     readonly_fields = [
@@ -42,7 +42,7 @@ class HealthCampaignAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('title', 'description', 'summary', 'campaign_type', 'status', 'priority')
+            'fields': ('title', 'description', 'summary', 'campaign_type', 'priority')
         }),
         ('Content', {
             'fields': ('content', 'objectives', 'call_to_action', 'target_audience')
@@ -70,23 +70,6 @@ class HealthCampaignAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         })
     )
-    
-    def status_badge(self, obj):
-        colors = {
-            'DRAFT': '#6c757d',
-            'SCHEDULED': '#007bff',
-            'ACTIVE': '#28a745',
-            'PAUSED': '#ffc107',
-            'COMPLETED': '#17a2b8',
-            'ARCHIVED': '#6c757d'
-        }
-        color = colors.get(obj.status, '#6c757d')
-        return format_html(
-            '<span style="background-color: {}; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px; font-weight: bold;">{}</span>',
-            color,
-            obj.get_status_display()
-        )
-    status_badge.short_description = 'Status'
     
     def priority_badge(self, obj):
         colors = {
@@ -142,22 +125,7 @@ class HealthCampaignAdmin(admin.ModelAdmin):
         obj.last_modified_by = request.user
         super().save_model(request, obj, form, change)
     
-    actions = ['activate_campaigns', 'pause_campaigns', 'complete_campaigns', 'feature_campaigns']
-    
-    def activate_campaigns(self, request, queryset):
-        updated = queryset.update(status='ACTIVE')
-        self.message_user(request, f'{updated} campaigns activated.')
-    activate_campaigns.short_description = "Activate selected campaigns"
-    
-    def pause_campaigns(self, request, queryset):
-        updated = queryset.update(status='PAUSED')
-        self.message_user(request, f'{updated} campaigns paused.')
-    pause_campaigns.short_description = "Pause selected campaigns"
-    
-    def complete_campaigns(self, request, queryset):
-        updated = queryset.update(status='COMPLETED')
-        self.message_user(request, f'{updated} campaigns marked as completed.')
-    complete_campaigns.short_description = "Mark selected campaigns as completed"
+    actions = ['feature_campaigns']
     
     def feature_campaigns(self, request, queryset):
         # Feature for 30 days from now

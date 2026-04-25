@@ -211,15 +211,6 @@ class HealthCampaign(models.Model):
         ('CUSTOM', 'Custom Campaign'),
     ]
     
-    STATUS_CHOICES = [
-        ('DRAFT', 'Draft'),
-        ('SCHEDULED', 'Scheduled'),
-        ('ACTIVE', 'Active'),
-        ('PAUSED', 'Paused'),
-        ('COMPLETED', 'Completed'),
-        ('ARCHIVED', 'Archived'),
-    ]
-    
     PRIORITY_LEVELS = [
         ('LOW', 'Low'),
         ('MEDIUM', 'Medium'),
@@ -231,7 +222,6 @@ class HealthCampaign(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
     campaign_type = models.CharField(max_length=20, choices=CAMPAIGN_TYPES)
-    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='DRAFT')
     priority = models.CharField(max_length=10, choices=PRIORITY_LEVELS, default='MEDIUM')
     
     # Template reference
@@ -295,13 +285,13 @@ class HealthCampaign(models.Model):
     class Meta:
         ordering = ['-created_at']
         indexes = [
-            models.Index(fields=['status', 'start_date']),
-            models.Index(fields=['campaign_type', 'status']),
+            models.Index(fields=['start_date']),
+            models.Index(fields=['campaign_type']),
             models.Index(fields=['featured_until']),
         ]
     
     def __str__(self):
-        return f"{self.title} ({self.get_status_display()})"
+        return self.title
     
     @property
     def is_active(self):

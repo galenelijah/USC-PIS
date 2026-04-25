@@ -102,7 +102,7 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
     pagination_class = CampaignPagination
     parser_classes = [MultiPartParser, FormParser, JSONParser]  # Add back JSONParser like health info
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['campaign_type', 'status', 'priority']
+    filterset_fields = ['campaign_type', 'priority']
     search_fields = ['title', 'description', 'content', 'tags']
     ordering_fields = ['created_at', 'start_date', 'view_count', 'engagement_count']
     ordering = ['-created_at']
@@ -126,8 +126,7 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
         if featured == 'true':
             now = timezone.now()
             queryset = queryset.filter(
-                featured_until__gte=now,
-                status='ACTIVE',
+                Q(featured_until__gte=now) | Q(featured_until__isnull=True),
                 start_date__lte=now,
                 end_date__gte=now
             )
@@ -136,7 +135,6 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
         if active == 'true':
             now = timezone.now()
             queryset = queryset.filter(
-                status='ACTIVE',
                 start_date__lte=now,
                 end_date__gte=now
             )
@@ -178,9 +176,8 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
     
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
-        # Increment view count for active campaigns
-        if instance.status == 'ACTIVE':
-            instance.increment_view_count()
+        # Always track views
+        instance.increment_view_count()
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
     
@@ -188,19 +185,15 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
     def view(self, request, pk=None):
         """Explicitly track a view"""
         instance = self.get_object()
-        if instance.status == 'ACTIVE':
-            instance.increment_view_count()
-            return Response({'status': 'view tracked', 'view_count': instance.view_count})
-        return Response({'status': 'ignored', 'reason': 'Campaign not active'}, status=status.HTTP_200_OK)
+        instance.increment_view_count()
+        return Response({'status': 'view tracked', 'view_count': instance.view_count})
     
     @action(detail=True, methods=['post'])
     def engage(self, request, pk=None):
         """Track engagement (clicks, interactions)"""
         campaign = self.get_object()
-        if campaign.status == 'ACTIVE':
-            campaign.increment_engagement()
-            return Response({'status': 'engagement tracked'})
-        return Response({'error': 'Campaign not active'}, status=status.HTTP_400_BAD_REQUEST)
+        campaign.increment_engagement()
+        return Response({'status': 'engagement tracked'})
     
     @action(detail=True, methods=['get'])
     def resources(self, request, pk=None):
@@ -265,9 +258,6 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
         
         # Basic stats
         total_campaigns = HealthCampaign.objects.count()
-        active_campaigns = HealthCampaign.objects.filter(status='ACTIVE').count()
-        completed_campaigns = HealthCampaign.objects.filter(status='COMPLETED').count()
-        draft_campaigns = HealthCampaign.objects.filter(status='DRAFT').count()
         
         # Engagement stats
         total_views = HealthCampaign.objects.aggregate(Sum('view_count'))['view_count__sum'] or 0
@@ -315,9 +305,6 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
         
         analytics_data = {
             'total_campaigns': total_campaigns,
-            'active_campaigns': active_campaigns,
-            'completed_campaigns': completed_campaigns,
-            'draft_campaigns': draft_campaigns,
             'total_views': total_views,
             'total_engagement': total_engagement,
             'average_rating': round(average_rating, 1),
@@ -331,11 +318,10 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def featured(self, request):
-        """Get currently featured campaigns - show active campaigns regardless of end date"""
+        """Get currently featured campaigns"""
         now = timezone.now()
         featured_campaigns = HealthCampaign.objects.filter(
             Q(featured_until__gte=now) | Q(featured_until__isnull=True),
-            status='ACTIVE',
             start_date__lte=now
         ).order_by('-priority', '-created_at')[:5]
         

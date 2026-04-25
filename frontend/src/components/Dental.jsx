@@ -109,11 +109,13 @@ const Dental = () => {
   const [formData, setFormData] = useState({
     patient: '',
     visit_date: dayjs().format(),
+    concern: '',
     procedure_performed: '',
     tooth_numbers: '',
     diagnosis: '',
     treatment_performed: '',
     treatment_plan: '',
+    referral_to: '',
     oral_hygiene_status: '',
     gum_condition: '',
     clinical_notes: '',
@@ -219,11 +221,13 @@ const Dental = () => {
       setFormData({
         patient: '',
         visit_date: dayjs().format(),
+        concern: '',
         procedure_performed: '',
         tooth_numbers: '',
         diagnosis: '',
         treatment_performed: '',
         treatment_plan: '',
+        referral_to: '',
         oral_hygiene_status: '',
         gum_condition: '',
         clinical_notes: '',
@@ -390,6 +394,7 @@ const Dental = () => {
     const searchMatch = 
       (record.patient_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (record.diagnosis || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (record.concern || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (record.procedure_performed_display || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     // Date Range Match
@@ -438,10 +443,12 @@ const Dental = () => {
       'Patient Name': record.patient_name || 'Unknown',
       'USC ID': record.patient_usc_id || 'N/A',
       'Visit Date': formatDate(record.visit_date),
+      'Concern': record.concern || 'N/A',
       'Procedure': record.procedure_performed_display || 'N/A',
       'Tooth Number': record.tooth_number || 'N/A',
       'Diagnosis': record.diagnosis || 'N/A',
       'Treatment': record.treatment_performed || 'N/A',
+      'Referral To': record.referral_to || 'N/A',
       'Priority': getPriorityLabel(record.priority),
       'Pain Level': record.pain_level || 'N/A',
       'Cost': formatCurrency(record.cost),
@@ -491,6 +498,7 @@ const Dental = () => {
         'Patient Information': record.patient_name || 'Unknown',
         'USC ID': record.patient_usc_id || '',
         'Visit Date': formatDate(record.visit_date),
+        'Concern/Reason': record.concern || '',
         'Dental Procedure': record.procedure_performed_display || '',
         'Tooth/Area': record.tooth_numbers || '',
         'Clinical Diagnosis': record.diagnosis || '',
@@ -612,6 +620,10 @@ const Dental = () => {
                     <span class="field-value">${record.patient_usc_id || 'N/A'}</span>
                   </div>
                   <div class="field">
+                    <span class="field-label">Concern:</span>
+                    <span class="field-value">${record.concern || 'N/A'}</span>
+                  </div>
+                  <div class="field">
                     <span class="field-label">Procedure:</span>
                     <span class="field-value">${record.procedure_performed_display || 'N/A'}</span>
                   </div>
@@ -629,6 +641,10 @@ const Dental = () => {
                   </div>
                 </div>
                 <div>
+                  <div class="field">
+                    <span class="field-label">Referral To:</span>
+                    <span class="field-value">${record.referral_to || 'N/A'}</span>
+                  </div>
                   <div class="field">
                     <span class="field-label">Pain Level:</span>
                     <span class="field-value">${record.pain_level || 'N/A'}/10</span>
@@ -1046,6 +1062,18 @@ const Dental = () => {
                       />
                     </Grid>
                     <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Concern / Reason for Visit"
+                        value={formData.concern}
+                        onChange={(e) => handleInputChange('concern', e.target.value)}
+                        multiline
+                        rows={2}
+                        required
+                        placeholder="What is the student's concern or reason for the visit?"
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
                       <Alert severity="info">
                         Supporting documents (X-rays, dental charts) can be added after you save this record.
                       </Alert>
@@ -1084,7 +1112,7 @@ const Dental = () => {
                         onChange={(e) => handleInputChange('diagnosis', e.target.value)}
                         multiline
                         rows={3}
-                        required
+                        placeholder="Optional for consultations"
                       />
                     </Grid>
                     <Grid item xs={12}>
@@ -1095,7 +1123,7 @@ const Dental = () => {
                         onChange={(e) => handleInputChange('treatment_performed', e.target.value)}
                         multiline
                         rows={3}
-                        required
+                        placeholder="Optional for consultations"
                       />
                     </Grid>
                   </Grid>
@@ -1263,7 +1291,7 @@ const Dental = () => {
             <Button 
               onClick={handleSubmit} 
               variant="contained"
-              disabled={!formData.patient || !formData.procedure_performed || !formData.diagnosis || !formData.treatment_performed}
+              disabled={!formData.patient || !formData.procedure_performed || !formData.concern}
             >
               {isEditing ? 'Update' : 'Create'}
             </Button>
@@ -1306,6 +1334,14 @@ const Dental = () => {
                       {formatDate(selectedRecord.visit_date)}
                     </Typography>
                   </Grid>
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Concern / Reason for Visit
+                    </Typography>
+                    <Typography variant="body1" gutterBottom>
+                      {selectedRecord.concern || 'N/A'}
+                    </Typography>
+                  </Grid>
                   <Grid item xs={12} sm={6}>
                     <Typography variant="subtitle2" color="text.secondary">
                       Procedure
@@ -1345,6 +1381,16 @@ const Dental = () => {
                       </Typography>
                       <Typography variant="body1" gutterBottom>
                         {selectedRecord.treatment_plan}
+                      </Typography>
+                    </Grid>
+                  )}
+                  {selectedRecord.referral_to && (
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Referral To
+                      </Typography>
+                      <Typography variant="body1" gutterBottom>
+                        {selectedRecord.referral_to}
                       </Typography>
                     </Grid>
                   )}

@@ -62,23 +62,25 @@ def schedule_feedback_email_dental(sender, instance, created, **kwargs):
     """Immediately send feedback email and in-app notification for dental visits."""
     if created and instance.patient and hasattr(instance.patient, 'user') and instance.patient.user:
         try:
-            # Send immediate email for dental visit
+            # Send immediate feedback email using the generic method
             EmailService.send_feedback_request_for_visit(
                 patient=instance.patient,
                 visit_date=instance.visit_date,
-                visit_type='Dental Visit'
+                visit_type='Dental Consultation'
             )
+            # Create in-app notification
             Notification.objects.create(
                 recipient=instance.patient.user,
                 patient=instance.patient,
                 notification_type='FOLLOW_UP',
-                title='Feedback Required',
-                message='Please provide feedback for your recent dental visit.',
+                title='Dental Feedback Required',
+                message='Please provide feedback for your recent dental consultation.',
                 priority='MEDIUM',
                 delivery_method='IN_APP',
-                action_url='https://usc-pis-5f030223f7a8.herokuapp.com/feedback',
+                action_url=f'https://usc-pis-5f030223f7a8.herokuapp.com/feedback?visit_id={instance.id}&type=dental',
                 action_text='Leave Feedback'
             )
+            logger.info(f"Feedback requested for dental record {instance.id}")
         except Exception as e:
             logger.error(f"Error scheduling feedback email for dental record {instance.id}: {e}")
 

@@ -54,7 +54,9 @@ import {
   Edit as EditIcon,
   Save as SaveIcon,
   Image as ImageIcon,
-  CloudUpload as UploadIcon
+  CloudUpload as UploadIcon,
+  PictureAsPdf as PdfIcon,
+  GetApp as DownloadIcon
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { campaignService } from '../services/api';
@@ -87,7 +89,6 @@ const UniversalCampaigns = () => {
     tags: '',
     start_date: '',
     end_date: '',
-    status: 'ACTIVE',
     bannerFile: null,
     thumbnailFile: null,
     pubmatFile: null
@@ -368,8 +369,8 @@ const UniversalCampaigns = () => {
       tags: '',
       start_date: '',
       end_date: '',
-      status: 'ACTIVE',
       bannerFile: null,
+
       thumbnailFile: null,
       pubmatFile: null
     });
@@ -421,11 +422,6 @@ const UniversalCampaigns = () => {
         </Typography>
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
           <Chip icon={<SchoolIcon />} label={`${campaigns.length} Total Campaigns`} color="primary" />
-          <Chip 
-            icon={<HealthIcon />} 
-            label={`${campaigns.filter(c => c.status === 'ACTIVE').length} Active`} 
-            color="success" 
-          />
           <Chip icon={<PeopleIcon />} label="For Everyone" color="secondary" />
           {user && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role) && (
             <Chip icon={<EditIcon />} label="Can Create" color="warning" />
@@ -589,12 +585,6 @@ const UniversalCampaigns = () => {
                     {campaign.priority === 'HIGH' && (
                       <Chip size="small" label="Priority" color="error" />
                     )}
-                    <Chip 
-                      size="small" 
-                      label={campaign.status || 'ACTIVE'} 
-                      color={campaign.status === 'ACTIVE' ? 'success' : 'default'}
-                      variant={campaign.status === 'ACTIVE' ? 'filled' : 'outlined'}
-                    />
                   </Box>
                 </Box>
               </Box>
@@ -736,73 +726,106 @@ const UniversalCampaigns = () => {
                     Campaign Images & PubMats
                   </Typography>
                   <Grid container spacing={2}>
-                    {selectedCampaign.images.map((image, index) => (
-                      <Grid item xs={12} sm={6} md={4} key={image.id || index}>
-                        <Paper
-                          sx={{
-                            p: 1,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            cursor: 'pointer',
-                            transition: 'transform 0.2s',
-                            '&:hover': { transform: 'scale(1.02)' }
-                          }}
-                          onClick={() => window.open(image.url, '_blank')}
-                        >
-                          <img
-                            src={image.url || image}
-                            alt={image.caption || `Campaign image ${index + 1}`}
-                            style={{
-                              width: '100%',
-                              height: '150px',
-                              objectFit: 'cover',
-                              borderRadius: '8px',
-                              marginBottom: '8px'
-                            }}
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.nextSibling.style.display = 'flex';
-                            }}
-                          />
-                          <Box
+                    {selectedCampaign.images.map((image, index) => {
+                      const imageUrl = image.url || image;
+                      const isPdf = typeof imageUrl === 'string' && imageUrl.toLowerCase().endsWith('.pdf');
+                      const isPubmat = image.type === 'pubmat';
+
+                      return (
+                        <Grid item xs={12} sm={6} md={4} key={image.id || index}>
+                          <Paper
                             sx={{
-                              display: 'none',
+                              p: 1,
+                              display: 'flex',
                               flexDirection: 'column',
                               alignItems: 'center',
-                              justifyContent: 'center',
-                              height: '150px',
-                              width: '100%',
-                              backgroundColor: 'grey.100',
-                              borderRadius: '8px',
-                              mb: 1
+                              cursor: 'pointer',
+                              transition: 'transform 0.2s',
+                              '&:hover': { transform: 'scale(1.02)' }
                             }}
+                            onClick={() => window.open(imageUrl, '_blank')}
                           >
-                            <ImageIcon sx={{ fontSize: 40, color: 'grey.400', mb: 1 }} />
-                            <Typography variant="caption" color="text.secondary">
-                              Image not available
-                            </Typography>
-                          </Box>
-                          <Box sx={{ textAlign: 'center', width: '100%' }}>
-                            <Chip
-                              size="small"
-                              label={image.type || 'Image'}
-                              color={
-                                image.type === 'banner' ? 'primary' :
-                                image.type === 'pubmat' ? 'secondary' :
-                                image.type === 'thumbnail' ? 'info' : 'default'
-                              }
-                              sx={{ mb: 0.5 }}
-                            />
-                            {image.caption && (
-                              <Typography variant="caption" display="block" color="text.secondary">
-                                {image.caption}
-                              </Typography>
+                            {isPdf ? (
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  height: '150px',
+                                  width: '100%',
+                                  backgroundColor: '#f0f7ff',
+                                  borderRadius: '8px',
+                                  mb: 1,
+                                  border: '1px dashed #1976d2'
+                                }}
+                              >
+                                <PdfIcon sx={{ fontSize: 50, color: '#d32f2f', mb: 1 }} />
+                                <Typography variant="caption" color="primary" fontWeight="bold">
+                                  PDF Document
+                                </Typography>
+                                <Button size="extrasmall" variant="text" startIcon={<DownloadIcon />}>
+                                  Download
+                                </Button>
+                              </Box>
+                            ) : (
+                              <>
+                                <img
+                                  src={imageUrl}
+                                  alt={image.caption || `Campaign image ${index + 1}`}
+                                  style={{
+                                    width: '100%',
+                                    height: '150px',
+                                    objectFit: 'cover',
+                                    borderRadius: '8px',
+                                    marginBottom: '8px'
+                                  }}
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    e.target.nextSibling.style.display = 'flex';
+                                  }}
+                                />
+                                <Box
+                                  sx={{
+                                    display: 'none',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    height: '150px',
+                                    width: '100%',
+                                    backgroundColor: 'grey.100',
+                                    borderRadius: '8px',
+                                    mb: 1
+                                  }}
+                                >
+                                  <ImageIcon sx={{ fontSize: 40, color: 'grey.400', mb: 1 }} />
+                                  <Typography variant="caption" color="text.secondary">
+                                    Image not available
+                                  </Typography>
+                                </Box>
+                              </>
                             )}
-                          </Box>
-                        </Paper>
-                      </Grid>
-                    ))}
+                            <Box sx={{ textAlign: 'center', width: '100%' }}>
+                              <Chip
+                                size="small"
+                                label={image.type || 'Image'}
+                                color={
+                                  image.type === 'banner' ? 'primary' :
+                                  image.type === 'pubmat' ? 'secondary' :
+                                  image.type === 'thumbnail' ? 'info' : 'default'
+                                }
+                                sx={{ mb: 0.5 }}
+                              />
+                              {image.caption && (
+                                <Typography variant="caption" display="block" color="text.secondary">
+                                  {image.caption}
+                                </Typography>
+                              )}
+                            </Box>
+                          </Paper>
+                        </Grid>
+                      );
+                    })}
                   </Grid>
                   <Divider sx={{ mt: 3, mb: 2 }} />
                 </Box>

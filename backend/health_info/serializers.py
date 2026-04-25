@@ -68,7 +68,7 @@ class HealthCampaignListSerializer(serializers.ModelSerializer):
     class Meta:
         model = HealthCampaign
         fields = [
-            'id', 'title', 'summary', 'description', 'content', 'campaign_type', 'status', 'priority',
+            'id', 'title', 'summary', 'description', 'content', 'campaign_type', 'priority',
             'start_date', 'end_date', 'featured_until', 'view_count', 'engagement_count',
             'created_at', 'updated_at', 'created_by_name', 'banner_image_url', 
             'thumbnail_image_url', 'images', 'is_active', 'is_featured', 'resource_count',
@@ -462,13 +462,10 @@ class CampaignFeedbackSerializer(serializers.ModelSerializer):
 class CampaignAnalyticsSerializer(serializers.Serializer):
     """Serializer for campaign analytics data"""
     total_campaigns = serializers.IntegerField()
-    active_campaigns = serializers.IntegerField()
-    completed_campaigns = serializers.IntegerField()
-    draft_campaigns = serializers.IntegerField()
     total_views = serializers.IntegerField()
     total_engagement = serializers.IntegerField()
     average_rating = serializers.FloatField()
     top_campaigns = HealthCampaignListSerializer(many=True)
     campaign_types_distribution = serializers.DictField()
     monthly_stats = serializers.ListField()
-    engagement_trends = serializers.ListField() 
+    engagement_trends = serializers.ListField()
