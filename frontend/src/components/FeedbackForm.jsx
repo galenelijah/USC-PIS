@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
+import { useLocation } from 'react-router-dom';
 import { feedbackSchema } from '../utils/validationSchemas';
 import { feedbackService } from '../services/api';
 
@@ -27,6 +28,10 @@ const FeedbackForm = ({ medicalRecordId, onSubmitted }) => {
   const [error, setError] = useState('');
   const [hasExistingFeedback, setHasExistingFeedback] = useState(false);
   const [checkingExisting, setCheckingExisting] = useState(true);
+  
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const type = queryParams.get('type') || 'medical';
   
   const { handleSubmit, control, formState: { errors }, reset } = useForm({
     resolver: yupResolver(feedbackSchema),
@@ -43,7 +48,7 @@ const FeedbackForm = ({ medicalRecordId, onSubmitted }) => {
     const checkExistingFeedback = async () => {
       try {
         setCheckingExisting(true);
-        const response = await feedbackService.checkExisting(medicalRecordId);
+        const response = await feedbackService.checkExisting(medicalRecordId, type);
         setHasExistingFeedback(response.data.has_feedback);
       } catch (err) {
         console.error('Error checking existing feedback:', err);
@@ -55,16 +60,25 @@ const FeedbackForm = ({ medicalRecordId, onSubmitted }) => {
     };
 
     checkExistingFeedback();
-  }, [medicalRecordId]);
+  }, [medicalRecordId, type]);
 
   const onSubmit = async (data) => {
     setSubmitting(true);
     setError('');
     try {
-      await feedbackService.submitFeedback({
-        medical_record: medicalRecordId !== 'general' ? medicalRecordId : null,
+      const submissionData = {
         ...data
-      });
+      };
+      
+      if (medicalRecordId !== 'general') {
+        if (type === 'dental') {
+          submissionData.dental_record = medicalRecordId;
+        } else {
+          submissionData.medical_record = medicalRecordId;
+        }
+      }
+
+      await feedbackService.submitFeedback(submissionData);
       setSuccess(true);
       reset();
       if (onSubmitted) onSubmitted();
@@ -101,7 +115,7 @@ const FeedbackForm = ({ medicalRecordId, onSubmitted }) => {
           Feedback Already Submitted
         </Typography>
         <Typography variant="body1" color="textSecondary">
-          You have already provided feedback for this medical record. Thank you for your input!
+          You have already provided feedback for this {type === 'dental' ? 'dental' : 'medical'} record. Thank you for your input!
         </Typography>
       </Paper>
     );
@@ -110,7 +124,7 @@ const FeedbackForm = ({ medicalRecordId, onSubmitted }) => {
   return (
     <Paper sx={{ p: 3 }}>
       <Typography variant="h6" gutterBottom color="primary">
-        Share Your Feedback
+        Share Your {type === 'dental' ? 'Dental' : 'Medical'} Visit Feedback
       </Typography>
       <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
         Your feedback helps us improve our services. All fields marked with * are required.

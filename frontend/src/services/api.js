@@ -919,9 +919,9 @@ export const healthRecordsService = {
 };
 
 export const feedbackService = {
-  submitFeedback: async ({ medical_record, rating, comments, courteous, recommend, improvement }) => {
+  submitFeedback: async (data) => {
     try {
-      return await api.post('/feedback/', { medical_record, rating, comments, courteous, recommend, improvement });
+      return await api.post('/feedback/', data);
     } catch (error) {
       handleApiError(error);
       throw error;
@@ -942,22 +942,27 @@ export const feedbackService = {
       handleApiError(error);
     }
   },
-  create: async (data) => {
+  checkExisting: async (id, type = 'medical') => {
     try {
-      return await api.post('/feedback/', data);
-    } catch (error) {
-      handleApiError(error);
-    }
-  },
-  checkExisting: async (medicalRecordId) => {
-    try {
-      const params = medicalRecordId && medicalRecordId !== 'general' 
-        ? { medical_record_id: medicalRecordId }
-        : {};
+      let params = {};
+      if (id && id !== 'general') {
+        if (type === 'dental') {
+          params = { dental_record_id: id };
+        } else {
+          params = { medical_record_id: id };
+        }
+      }
       return await api.get('/feedback/check-existing/', { params });
     } catch (error) {
       handleApiError(error);
       throw error;
+    }
+  },
+  getPendingStatus: async () => {
+    try {
+      return await api.get('/feedback/pending/');
+    } catch (error) {
+      handleApiError(error);
     }
   },
 };

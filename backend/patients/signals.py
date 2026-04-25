@@ -42,20 +42,35 @@ def schedule_feedback_email_medical(sender, instance, created, **kwargs):
         try:
             # Send immediate feedback email
             EmailService.send_feedback_request_email(instance)
-            # Create in-app notification
+            
+            # Create immediate in-app notification
             Notification.objects.create(
                 recipient=instance.patient.user,
                 patient=instance.patient,
                 notification_type='FOLLOW_UP',
-                title='Feedback Required',
-                message='Please provide feedback for your recent medical visit.',
+                title='Medical Feedback Required',
+                message=f'Please provide feedback for your recent medical visit on {instance.visit_date.strftime("%Y-%m-%d")}.',
                 priority='MEDIUM',
                 delivery_method='IN_APP',
-                action_url='https://usc-pis-5f030223f7a8.herokuapp.com/feedback',
+                action_url=f'https://usc-pis-5f030223f7a8.herokuapp.com/feedback/{instance.id}?type=medical',
+                action_text='Leave Feedback'
+            )
+            
+            # Schedule a reminder in 24 hours
+            Notification.objects.create(
+                recipient=instance.patient.user,
+                patient=instance.patient,
+                notification_type='FOLLOW_UP',
+                title='Reminder: Medical Feedback',
+                message='We haven\'t heard from you yet! Please share your thoughts about your recent medical visit.',
+                priority='LOW',
+                delivery_method='BOTH',
+                scheduled_at=timezone.now() + timedelta(days=1),
+                action_url=f'https://usc-pis-5f030223f7a8.herokuapp.com/feedback/{instance.id}?type=medical',
                 action_text='Leave Feedback'
             )
         except Exception as e:
-            logger.error(f"Error scheduling feedback email for medical record {instance.id}: {e}")
+            logger.error(f"Error scheduling feedback for medical record {instance.id}: {e}")
 
 @receiver(post_save, sender=DentalRecord)
 def schedule_feedback_email_dental(sender, instance, created, **kwargs):
@@ -68,21 +83,36 @@ def schedule_feedback_email_dental(sender, instance, created, **kwargs):
                 visit_date=instance.visit_date,
                 visit_type='Dental Consultation'
             )
-            # Create in-app notification
+            
+            # Create immediate in-app notification
             Notification.objects.create(
                 recipient=instance.patient.user,
                 patient=instance.patient,
                 notification_type='FOLLOW_UP',
                 title='Dental Feedback Required',
-                message='Please provide feedback for your recent dental consultation.',
+                message=f'Please provide feedback for your recent dental consultation on {instance.visit_date.strftime("%Y-%m-%d")}.',
                 priority='MEDIUM',
                 delivery_method='IN_APP',
-                action_url=f'https://usc-pis-5f030223f7a8.herokuapp.com/feedback?visit_id={instance.id}&type=dental',
+                action_url=f'https://usc-pis-5f030223f7a8.herokuapp.com/feedback/{instance.id}?type=dental',
                 action_text='Leave Feedback'
             )
-            logger.info(f"Feedback requested for dental record {instance.id}")
+            
+            # Schedule a reminder in 24 hours
+            Notification.objects.create(
+                recipient=instance.patient.user,
+                patient=instance.patient,
+                notification_type='DENTAL_REMINDER',
+                title='Reminder: Dental Feedback',
+                message='Your smile matters to us! Please share your feedback about your recent dental consultation.',
+                priority='LOW',
+                delivery_method='BOTH',
+                scheduled_at=timezone.now() + timedelta(days=1),
+                action_url=f'https://usc-pis-5f030223f7a8.herokuapp.com/feedback/{instance.id}?type=dental',
+                action_text='Leave Feedback'
+            )
+            logger.info(f"Feedback and reminder scheduled for dental record {instance.id}")
         except Exception as e:
-            logger.error(f"Error scheduling feedback email for dental record {instance.id}: {e}")
+            logger.error(f"Error scheduling feedback for dental record {instance.id}: {e}")
 
 def send_immediate_feedback_email(medical_record):
     """

@@ -59,6 +59,7 @@ class FeedbackViewSet(viewsets.ModelViewSet):
         user = self.request.user
         patient = None
         medical_record = serializer.validated_data.get('medical_record')
+        dental_record = serializer.validated_data.get('dental_record')
 
         # 1. Try to get patient directly linked to the user
         try:
@@ -119,11 +120,21 @@ class FeedbackViewSet(viewsets.ModelViewSet):
             if existing_feedback:
                 print(f"Duplicate feedback attempt for medical record {medical_record.id} by patient {patient.id}")
                 raise PermissionDenied("You have already submitted feedback for this medical visit.")
-        else:
-            # Check for existing general feedback (where medical_record is null)
+        elif dental_record:
+            # Check for existing feedback on this specific dental record
             existing_feedback = Feedback.objects.filter(
                 patient=patient,
-                medical_record__isnull=True
+                dental_record=dental_record
+            ).first()
+            if existing_feedback:
+                print(f"Duplicate feedback attempt for dental record {dental_record.id} by patient {patient.id}")
+                raise PermissionDenied("You have already submitted feedback for this dental visit.")
+        else:
+            # Check for existing general feedback (where both medical and dental record are null)
+            existing_feedback = Feedback.objects.filter(
+                patient=patient,
+                medical_record__isnull=True,
+                dental_record__isnull=True
             ).first()
             if existing_feedback:
                 print(f"Duplicate general feedback attempt by patient {patient.id}")
@@ -140,11 +151,12 @@ class FeedbackViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated], url_path='check-existing')
     def check_existing(self, request):
         """
-        Check if the current user has already submitted feedback for a specific medical record or general feedback.
-        Query parameter: medical_record_id (optional, if not provided, checks for general feedback)
+        Check if the current user has already submitted feedback for a specific medical/dental record or general feedback.
+        Query parameter: medical_record_id or dental_record_id (optional)
         """
         user = request.user
         medical_record_id = request.query_params.get('medical_record_id')
+        dental_record_id = request.query_params.get('dental_record_id')
         
         try:
             # Get patient for current user
@@ -159,11 +171,18 @@ class FeedbackViewSet(viewsets.ModelViewSet):
                 patient=patient,
                 medical_record_id=medical_record_id
             ).exists()
-        else:
-            # Check for general feedback (medical_record is null)
+        elif dental_record_id:
+            # Check for specific dental record feedback
             existing_feedback = Feedback.objects.filter(
                 patient=patient,
-                medical_record__isnull=True
+                dental_record_id=dental_record_id
+            ).exists()
+        else:
+            # Check for general feedback (both null)
+            existing_feedback = Feedback.objects.filter(
+                patient=patient,
+                medical_record__isnull=True,
+                dental_record__isnull=True
             ).exists()
 
         return Response({'has_feedback': existing_feedback})
@@ -184,11 +203,12 @@ class FeedbackViewSet(viewsets.ModelViewSet):
             if not Feedback.objects.filter(patient=patient, medical_record=mr).exists():
                 medical_pending += 1
 
-        # Dental: count recent visits (no direct link to Feedback model). If any dental visits exist in last 14 days, require feedback.
-        recent_dental_count = DentalRecord.objects.filter(patient=patient).order_by('-visit_date')[:5].count()
-        # If there is at least one recent dental visit, consider it pending until the user submits general feedback
-        has_general_feedback = Feedback.objects.filter(patient=patient, medical_record__isnull=True).exists()
-        dental_pending = recent_dental_count if recent_dental_count and not has_general_feedback else 0
+        # Dental: count visits in last 14 days without feedback
+        recent_dental = DentalRecord.objects.filter(patient=patient).order_by('-visit_date')[:5]
+        dental_pending = 0
+        for dr in recent_dental:
+            if not Feedback.objects.filter(patient=patient, dental_record=dr).exists():
+                dental_pending += 1
 
         return Response({
             'has_pending': (medical_pending + dental_pending) > 0,

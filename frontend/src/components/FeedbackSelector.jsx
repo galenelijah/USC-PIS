@@ -14,13 +14,26 @@ const FeedbackSelector = () => {
       setLoading(true);
       setError('');
       try {
-        // Fetch the current patient's medical records using the new service method
-        const response = await patientService.getMyMedicalRecords();
-        // Ensure response.data is always an array
-        setRecords(Array.isArray(response?.data) ? response.data : []);
+        // Fetch the current patient's medical and dental records
+        const [medicalResponse, dentalResponse] = await Promise.all([
+          patientService.getMyMedicalRecords(),
+          patientService.getMyDentalRecords()
+        ]);
+        
+        const medicalRecords = (Array.isArray(medicalResponse?.data) ? medicalResponse.data : []).map(r => ({ ...r, type: 'medical' }));
+        const dentalRecords = (Array.isArray(dentalResponse?.data) ? dentalResponse.data : []).map(r => ({ ...r, type: 'dental' }));
+        
+        // Combine and sort by date (visit_date or created_at)
+        const combined = [...medicalRecords, ...dentalRecords].sort((a, b) => {
+          const dateA = new Date(a.visit_date || a.created_at);
+          const dateB = new Date(b.visit_date || b.created_at);
+          return dateB - dateA;
+        });
+        
+        setRecords(combined);
       } catch (err) {
-        console.error("Error fetching user medical records:", err);
-        setError('Failed to load medical records for feedback selection.');
+        console.error("Error fetching user records for feedback:", err);
+        setError('Failed to load recent visits for feedback selection.');
         setRecords([]);
       } finally {
         setLoading(false);
@@ -60,15 +73,15 @@ const FeedbackSelector = () => {
             </ListItem>
           )}
           {records.map((rec) => (
-            <ListItem key={rec.id} divider>
+            <ListItem key={`${rec.type}-${rec.id}`} divider>
               <ListItemText
-                primary={`Visit on ${rec.created_at ? new Date(rec.created_at).toLocaleDateString() : 'Unknown date'}`}
-                secondary={rec.diagnosis ? `Diagnosis: ${rec.diagnosis}` : ''}
+                primary={`${rec.type === 'dental' ? 'Dental' : 'Medical'} visit on ${new Date(rec.visit_date || rec.created_at).toLocaleDateString()}`}
+                secondary={rec.type === 'dental' ? (rec.procedure_performed_display || 'Consultation') : (rec.diagnosis ? `Diagnosis: ${rec.diagnosis}` : '')}
               />
               <Button
                 variant="contained"
                 color="primary"
-                onClick={() => navigate(`/feedback/${rec.id}`)}
+                onClick={() => navigate(`/feedback/${rec.id}?type=${rec.type}`)}
               >
                 Leave Feedback
               </Button>

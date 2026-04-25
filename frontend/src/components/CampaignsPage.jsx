@@ -642,7 +642,7 @@ const CampaignsPage = () => {
             No campaigns found
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 400, mx: 'auto' }}>
-            {searchTerm || filterType !== 'ALL' || filterStatus !== 'ALL'
+            {searchTerm || filterType !== 'ALL'
               ? 'Try adjusting your search or filter criteria to find the campaigns you\'re looking for.'
               : 'Start creating engaging health campaigns to connect with your community and promote wellness.'
             }
