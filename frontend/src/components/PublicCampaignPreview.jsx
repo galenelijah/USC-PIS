@@ -65,6 +65,11 @@ const PublicCampaignPreview = () => {
     setViewerOpen(true);
   };
 
+  const handleEngagement = (id) => {
+    if (!id) return;
+    campaignService.trackEngagement(id).catch(err => console.error('Failed to track engagement:', err));
+  };
+
   const handleDownload = (url, filename = 'pubmat_material') => {
     if (!url) return;
     
@@ -96,6 +101,8 @@ const PublicCampaignPreview = () => {
 
   useEffect(() => {
     const load = async () => {
+      // Track the view explicitly
+      campaignService.trackView(id);
       try {
         const resp = await campaignService.getCampaign(id);
         setCampaign(resp?.data || null);
@@ -181,8 +188,22 @@ const PublicCampaignPreview = () => {
               {campaign.target_audience && (
                 <>
                   <Typography variant="subtitle2" color="text.secondary" gutterBottom>Target Audience</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{campaign.target_audience}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium', mb: 2 }}>{campaign.target_audience}</Typography>
                 </>
+              )}
+
+              {campaign.external_link && (
+                <Button
+                  variant="contained"
+                  fullWidth
+                  href={campaign.external_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => handleEngagement(campaign.id)}
+                  sx={{ mt: 1, fontWeight: 'bold' }}
+                >
+                  Visit Official Website
+                </Button>
               )}
             </Paper>
 
@@ -210,6 +231,7 @@ const PublicCampaignPreview = () => {
                               '&:hover': { backgroundColor: '#e3f2fd' }
                             }}
                             onClick={() => {
+                              handleEngagement(campaign.id);
                               if (pdf) {
                                 handleDownload(url, `${campaign.title}_material_${idx+1}`);
                               } else {
@@ -241,7 +263,10 @@ const PublicCampaignPreview = () => {
                               transition: 'transform 0.2s',
                               '&:hover': { transform: 'scale(1.02)' }
                             }}
-                            onClick={() => openViewer(url, img.caption || `${campaign.title} - Image ${idx+1}`)}
+                            onClick={() => {
+                              handleEngagement(campaign.id);
+                              openViewer(url, img.caption || `${campaign.title} - Image ${idx+1}`);
+                            }}
                             onError={(e) => { e.currentTarget.style.display = 'none'; }}
                           />
                         )}

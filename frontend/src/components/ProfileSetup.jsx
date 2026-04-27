@@ -1055,7 +1055,7 @@ const ProfileSetup = () => {
                     <Grid item xs={12} sm={6}>
                       <MyTextField
                         key={`${stepKey}-id_number`}
-                        label="Student ID Number"
+                        label="USC ID Number"
                         name="id_number"
                         control={control}
                         required
@@ -1367,7 +1367,7 @@ const ProfileSetup = () => {
             </Typography>
             <Typography variant="body1" sx={{ opacity: 0.9 }}>
               {isStudent 
-                ? "Please fill in your information to set up your USC-PIS student account"
+                ? "Please fill in your information to set up your USC-PIS account"
                 : `Please fill in your ${userRole?.toLowerCase()} profile information`
               }
             </Typography>

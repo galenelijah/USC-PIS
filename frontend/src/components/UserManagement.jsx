@@ -679,7 +679,7 @@ const UserManagement = () => {
           </Grid>
           
           <Grid item xs={12} md={8}>
-            <Paper sx={{ p: 0, overflow: 'hidden' }}>
+            <Paper sx={{ p: 0, overflowX: 'auto' }}>
               <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'grey.50' }}>
                 <Typography variant="h6" fontWeight="bold">
                   Authorized Safe List

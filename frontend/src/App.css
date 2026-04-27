@@ -177,9 +177,20 @@
   display: none;
 }
 
-@media (max-width: 768px) {
+/* Ensure all MUI TableContainers are scrollable on small screens */
+.MuiTableContainer-root {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 899px) {
   .desktop-table {
     display: none;
+  }
+  
+  /* For tables that don't have a card view, ensure they don't shrink too much */
+  .MuiTable-root:not(.no-mobile-scroll) {
+    min-width: 800px !important;
   }
   
   .mobile-table-card {

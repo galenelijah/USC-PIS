@@ -113,7 +113,7 @@ const ConsultationHistory = () => {
   };
   
   return (
-    <Box sx={{ width: '100%', overflow: 'hidden' }}>
+    <Box sx={{ width: '100%', overflowX: 'auto' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h6" gutterBottom component="div" sx={{ fontWeight: 'bold' }}>
           Consultation History

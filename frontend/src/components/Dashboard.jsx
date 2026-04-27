@@ -873,22 +873,31 @@ const Dashboard = memo(({ user }) => {
             <Grid container spacing={3}>
               {stats.latestCampaigns.slice(0, 4).map((campaign, index) => (
                 <Grid item xs={12} md={6} key={campaign.id || index}>
-                  <Box sx={{ 
-                    p: 3, 
-                    borderRadius: 3, 
-                    bgcolor: 'grey.50',
-                    border: '1px solid',
-                    borderColor: 'grey.200',
-                    transition: 'all 0.3s ease',
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    '&:hover': {
-                      bgcolor: 'grey.100',
-                      transform: 'translateY(-2px)',
-                      boxShadow: 2
-                    }
-                  }}>
+                  <Box 
+                    onClick={() => {
+                      if (campaign.id) {
+                        campaignService.trackEngagement(campaign.id);
+                        navigate(`/campaigns/${campaign.id}`);
+                      }
+                    }}
+                    sx={{ 
+                      p: 3, 
+                      borderRadius: 3, 
+                      bgcolor: 'grey.50',
+                      border: '1px solid',
+                      borderColor: 'grey.200',
+                      transition: 'all 0.3s ease',
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        bgcolor: 'grey.100',
+                        transform: 'translateY(-2px)',
+                        boxShadow: 2
+                      }
+                    }}
+                  >
                     <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
                       <Avatar sx={{ 
                         width: 48, 

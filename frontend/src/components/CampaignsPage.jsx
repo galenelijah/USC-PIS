@@ -478,6 +478,8 @@ const CampaignsPage = () => {
   };
 
   const openViewDialog = async (campaign) => {
+    // Track the view explicitly
+    campaignService.trackView(campaign.id);
     try {
       const resp = await campaignService.getCampaign(campaign.id);
       setSelectedCampaign(resp?.data || campaign);
@@ -495,6 +497,11 @@ const CampaignsPage = () => {
       setSelectedCampaign(campaign);
     }
     setPublicPreviewOpen(true);
+  };
+
+  const handleEngagement = (id) => {
+    if (!id) return;
+    campaignService.trackEngagement(id).catch(err => console.error('Failed to track engagement:', err));
   };
 
   const handleMenuOpen = (event, campaign) => {
@@ -756,11 +763,10 @@ const CampaignsPage = () => {
             
             return (
               <Grid item xs={12} sm={6} md={4} key={campaign.id}>
-                <Card 
-                  onClick={() => openViewDialog(campaign)}
-                  sx={{ 
-                    borderRadius: 4,
-                    height: '100%',
+                <Card
+                  onClick={() => { handleEngagement(campaign.id); openViewDialog(campaign); }}
+                  sx={{
+                    borderRadius: 4,                    height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
                     transition: 'all 0.3s ease',
@@ -955,7 +961,7 @@ const CampaignsPage = () => {
                     <Button
                       variant="contained"
                       fullWidth
-                      onClick={() => openViewDialog(campaign)}
+                      onClick={(e) => { e.stopPropagation(); handleEngagement(campaign.id); openViewDialog(campaign); }}
                       startIcon={<VisibilityIcon />}
                       sx={{
                         borderRadius: 3,
@@ -2290,6 +2296,7 @@ const CampaignsPage = () => {
                                         href={selectedCampaign.external_link}
                                         target="_blank"
                                         rel="noopener noreferrer"
+                                        onClick={() => handleEngagement(selectedCampaign.id)}
                                       >
                                         🔗 Visit Website
                                       </Button>

@@ -62,7 +62,7 @@ const AdminFeedbackList = () => {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {!loading && !error && (
-        <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+        <Paper sx={{ width: '100%', overflowX: 'auto' }}>
           <TableContainer>
             <Table stickyHeader aria-label="sticky feedback table">
               <TableHead>

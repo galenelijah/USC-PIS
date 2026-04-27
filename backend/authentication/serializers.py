@@ -103,11 +103,12 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         
         # 3. Email has text (contains non-digits), so it is Staff or Faculty
         # If the user specifically chose a role (FACULTY or STAFF), respect it
-        if role_preference in [User.Role.FACULTY, User.Role.STAFF]:
+        if role_preference in [User.Role.FACULTY, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE]:
             return role_preference
             
-        # Default to FACULTY for text-based emails if no preference given
-        return User.Role.FACULTY
+        # Return STUDENT as base role for all new registrations without preference
+        # This triggers role-selection for text-based emails in the frontend
+        return User.Role.STUDENT
     
     def validate_password(self, value):
         """Validate password with enhanced security checks."""
