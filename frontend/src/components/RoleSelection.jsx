@@ -91,6 +91,9 @@ const RoleSelection = () => {
 
   const isProfessionalRole = (r) => ['DOCTOR', 'DENTIST', 'NURSE', 'STAFF'].includes(r);
 
+  const emailUsername = user?.email?.split('@')[0] || '';
+  const isNumericEmail = /^\d+$/.test(emailUsername);
+
   return (
     <Box
       sx={{
@@ -132,16 +135,18 @@ const RoleSelection = () => {
           </Box>
           
           <Typography variant="h4" fontWeight="bold" color="#800000" gutterBottom>
-            Identify Your Role
+            {isNumericEmail ? "Confirm Your Status" : "Identify Your Role"}
           </Typography>
           
           <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-            Welcome to the USC-PIS. Please confirm your status to ensure proper access to clinical services.
+            {isNumericEmail 
+              ? "Your account is identified as a USC Student based on your email. Please confirm to continue."
+              : "Welcome to the USC-PIS. Please select your role as a Faculty or Staff member."}
           </Typography>
 
           {user?.requested_role && (
             <Alert severity="warning" sx={{ mb: 3, borderRadius: 2, textAlign: 'left' }}>
-              Your request for the <strong>{user.requested_role}</strong> role is currently pending administrative approval. You can still browse as a student while you wait.
+              Your request for the <strong>{user.requested_role}</strong> role is currently pending administrative approval.
             </Alert>
           )}
 
@@ -166,108 +171,116 @@ const RoleSelection = () => {
                   sx={{ gap: 1 }}
                 >
                   <Typography variant="overline" color="text.secondary" align="left" sx={{ ml: 1, mt: 1 }}>
-                    Patient Roles (Self-Selection)
+                    {isNumericEmail ? "Student Role" : "Faculty/Staff Roles"}
                   </Typography>
 
-                  {/* Student Role */}
-                  <Paper
-                    variant="outlined"
-                    sx={{
-                      p: 1,
-                      borderRadius: 2,
-                      borderColor: role === 'STUDENT' ? '#800000' : 'divider',
-                      bgcolor: role === 'STUDENT' ? alpha('#800000', 0.05) : 'transparent',
-                      transition: 'all 0.2s',
-                      cursor: 'pointer',
-                      '&:hover': { borderColor: '#800000' }
-                    }}
-                    onClick={() => setRole('STUDENT')}
-                  >
-                    <FormControlLabel 
-                      value="STUDENT" 
-                      control={<Radio sx={{ color: '#800000', '&.Mui-checked': { color: '#800000' } }} />} 
-                      sx={{ width: '100%', m: 0, px: 1 }}
-                      label={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 1 }}>
-                          <SchoolIcon color={role === 'STUDENT' ? 'primary' : 'action'} />
-                          <Box sx={{ textAlign: 'left' }}>
-                            <Typography variant="subtitle2" fontWeight="bold">USC Student</Typography>
-                            <Typography variant="caption" color="text.secondary">Access health records and certificates</Typography>
-                          </Box>
-                        </Box>
-                      } 
-                    />
-                  </Paper>
-
-                  {/* Teacher Role */}
-                  <Paper
-                    variant="outlined"
-                    sx={{
-                      p: 1,
-                      borderRadius: 2,
-                      borderColor: role === 'FACULTY' ? '#800000' : 'divider',
-                      bgcolor: role === 'FACULTY' ? alpha('#800000', 0.05) : 'transparent',
-                      transition: 'all 0.2s',
-                      cursor: 'pointer',
-                      '&:hover': { borderColor: '#800000' }
-                    }}
-                    onClick={() => setRole('FACULTY')}
-                  >
-                    <FormControlLabel 
-                      value="FACULTY" 
-                      control={<Radio sx={{ color: '#800000', '&.Mui-checked': { color: '#800000' } }} />} 
-                      sx={{ width: '100%', m: 0, px: 1 }}
-                      label={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 1 }}>
-                          <BadgeIcon color={role === 'FACULTY' ? 'primary' : 'action'} />
-                          <Box sx={{ textAlign: 'left' }}>
-                            <Typography variant="subtitle2" fontWeight="bold">Faculty / Teacher</Typography>
-                            <Typography variant="caption" color="text.secondary">USC instructors and academic staff</Typography>
-                          </Box>
-                        </Box>
-                      } 
-                    />
-                  </Paper>
-
-                  <Divider sx={{ my: 1 }}>
-                    <Typography variant="caption" color="text.secondary">ADMINISTRATIVE GATE</Typography>
-                  </Divider>
-
-                  {/* Generalized Clinic Staff Role */}
-                  <Paper
-                    variant="outlined"
-                    sx={{
-                      p: 2,
-                      borderRadius: 2,
-                      borderColor: isProfessionalRole(role) ? '#800000' : 'divider',
-                      bgcolor: isProfessionalRole(role) ? alpha('#800000', 0.05) : 'transparent',
-                      transition: 'all 0.2s',
-                      cursor: 'pointer',
-                      '&:hover': { borderColor: '#800000' }
-                    }}
-                    onClick={() => setRole('STAFF')}
-                  >
-                    <FormControlLabel 
-                      value="STAFF" 
-                      control={<Radio sx={{ color: '#800000', '&.Mui-checked': { color: '#800000' } }} />} 
-                      sx={{ width: '100%', m: 0, px: 1 }}
-                      label={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 1 }}>
-                          <DoctorIcon color={isProfessionalRole(role) ? 'primary' : 'action'} />
-                          <Box sx={{ textAlign: 'left' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <Typography variant="subtitle2" fontWeight="bold">Clinic Staff / Medical Professional</Typography>
-                              <LockIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
+                  {/* Student Role - Only for numeric emails */}
+                  {isNumericEmail && (
+                    <Paper
+                      variant="outlined"
+                      sx={{
+                        p: 1,
+                        borderRadius: 2,
+                        borderColor: role === 'STUDENT' ? '#800000' : 'divider',
+                        bgcolor: role === 'STUDENT' ? alpha('#800000', 0.05) : 'transparent',
+                        transition: 'all 0.2s',
+                        cursor: 'pointer',
+                        '&:hover': { borderColor: '#800000' }
+                      }}
+                      onClick={() => setRole('STUDENT')}
+                    >
+                      <FormControlLabel 
+                        value="STUDENT" 
+                        control={<Radio sx={{ color: '#800000', '&.Mui-checked': { color: '#800000' } }} />} 
+                        sx={{ width: '100%', m: 0, px: 1 }}
+                        label={
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 1 }}>
+                            <SchoolIcon color={role === 'STUDENT' ? 'primary' : 'action'} />
+                            <Box sx={{ textAlign: 'left' }}>
+                              <Typography variant="subtitle2" fontWeight="bold">USC Student</Typography>
+                              <Typography variant="caption" color="text.secondary">Access health records and certificates</Typography>
                             </Box>
-                            <Typography variant="caption" color="text.secondary">
-                              Doctors, Dentists, Nurses, and Support Staff. 
-                              (Requires manual verification by Admin)
-                            </Typography>
                           </Box>
-                        </Box>
-                      } 
-                    />
-                  </Paper>
+                        } 
+                      />
+                    </Paper>
+                  )}
+
+                  {/* Teacher Role - Only for text emails */}
+                  {!isNumericEmail && (
+                    <Paper
+                      variant="outlined"
+                      sx={{
+                        p: 1,
+                        borderRadius: 2,
+                        borderColor: role === 'FACULTY' ? '#800000' : 'divider',
+                        bgcolor: role === 'FACULTY' ? alpha('#800000', 0.05) : 'transparent',
+                        transition: 'all 0.2s',
+                        cursor: 'pointer',
+                        '&:hover': { borderColor: '#800000' }
+                      }}
+                      onClick={() => setRole('FACULTY')}
+                    >
+                      <FormControlLabel 
+                        value="FACULTY" 
+                        control={<Radio sx={{ color: '#800000', '&.Mui-checked': { color: '#800000' } }} />} 
+                        sx={{ width: '100%', m: 0, px: 1 }}
+                        label={
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 1 }}>
+                            <BadgeIcon color={role === 'FACULTY' ? 'primary' : 'action'} />
+                            <Box sx={{ textAlign: 'left' }}>
+                              <Typography variant="subtitle2" fontWeight="bold">Faculty / Teacher</Typography>
+                              <Typography variant="caption" color="text.secondary">USC instructors and academic staff</Typography>
+                            </Box>
+                          </Box>
+                        } 
+                      />
+                    </Paper>
+                  )}
+
+                  {!isNumericEmail && (
+                    <Divider sx={{ my: 1 }}>
+                      <Typography variant="caption" color="text.secondary">ADMINISTRATIVE GATE</Typography>
+                    </Divider>
+                  )}
+
+                  {/* Generalized Clinic Staff Role - Only for text emails */}
+                  {!isNumericEmail && (
+                    <Paper
+                      variant="outlined"
+                      sx={{
+                        p: 2,
+                        borderRadius: 2,
+                        borderColor: isProfessionalRole(role) ? '#800000' : 'divider',
+                        bgcolor: isProfessionalRole(role) ? alpha('#800000', 0.05) : 'transparent',
+                        transition: 'all 0.2s',
+                        cursor: 'pointer',
+                        '&:hover': { borderColor: '#800000' }
+                      }}
+                      onClick={() => setRole('STAFF')}
+                    >
+                      <FormControlLabel 
+                        value="STAFF" 
+                        control={<Radio sx={{ color: '#800000', '&.Mui-checked': { color: '#800000' } }} />} 
+                        sx={{ width: '100%', m: 0, px: 1 }}
+                        label={
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 1 }}>
+                            <DoctorIcon color={isProfessionalRole(role) ? 'primary' : 'action'} />
+                            <Box sx={{ textAlign: 'left' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <Typography variant="subtitle2" fontWeight="bold">Clinic Staff / Medical Professional</Typography>
+                                <LockIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
+                              </Box>
+                              <Typography variant="caption" color="text.secondary">
+                                Doctors, Dentists, Nurses, and Support Staff. 
+                                (Requires manual verification by Admin)
+                              </Typography>
+                            </Box>
+                          </Box>
+                        } 
+                      />
+                    </Paper>
+                  )}
                 </RadioGroup>
               </FormControl>
 
@@ -294,7 +307,9 @@ const RoleSelection = () => {
               <Typography variant="caption" color="text.secondary">
                 {isProfessionalRole(role) 
                   ? "Professional roles are gated and require manual verification by an administrator."
-                  : "Teacher and Student roles provide immediate access to patient features."}
+                  : isNumericEmail 
+                    ? "Confirm your student status to access patient features."
+                    : "Faculty roles provide immediate access to patient features."}
               </Typography>
             </Stack>
           </form>

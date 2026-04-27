@@ -156,12 +156,28 @@ def get_all_users(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def request_role(request):
-    """Allow a user to request a professional role upgrade."""
+    """Allow a user to request a professional role upgrade with strict email-based enforcement."""
     try:
         new_role = request.data.get('role')
         if not new_role or new_role not in [choice[0] for choice in User.Role.choices]:
             return Response({'error': 'Invalid role requested'}, status=status.HTTP_400_BAD_REQUEST)
         
+        # Enforce email-based role rules
+        email_username = request.user.email.split('@')[0].lower()
+        is_numeric_email = email_username.isdigit()
+        
+        # 1. Students (numeric emails) can only be STUDENTS
+        if is_numeric_email and new_role != User.Role.STUDENT:
+            return Response({
+                'error': 'Student accounts (numeric emails) are restricted to the Student role.'
+            }, status=status.HTTP_403_FORBIDDEN)
+            
+        # 2. Staff/Faculty (text emails) cannot be STUDENTS
+        if not is_numeric_email and new_role == User.Role.STUDENT:
+            return Response({
+                'error': 'Staff/Faculty accounts (text-based emails) cannot be assigned the Student role.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
         # Professional roles require admin approval
         professional_roles = [User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE, User.Role.STAFF]
         
@@ -181,13 +197,22 @@ def request_role(request):
                 'requested_role': new_role
             })
         elif new_role == User.Role.FACULTY:
-            # Teachers can self-select (patient role)
+            # Faculty can self-select (patient role)
             request.user.role = User.Role.FACULTY
             request.user.requested_role = None
             request.user.save(update_fields=['role', 'requested_role'])
             return Response({
                 'message': 'Role updated to Faculty successfully.',
                 'role': 'FACULTY'
+            })
+        elif new_role == User.Role.STUDENT:
+            # Re-confirming student role
+            request.user.role = User.Role.STUDENT
+            request.user.requested_role = None
+            request.user.save(update_fields=['role', 'requested_role'])
+            return Response({
+                'message': 'Role confirmed as Student successfully.',
+                'role': 'STUDENT'
             })
         else:
             return Response({'error': 'Self-selection not allowed for this role'}, status=status.HTTP_403_FORBIDDEN)

@@ -83,6 +83,7 @@ const CampaignsPage = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [fieldErrors, setFieldErrors] = useState({});
   const [editLoading, setEditLoading] = useState(false);
+  const [menuCampaign, setMenuCampaign] = useState(null);
 
   // Viewer state
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -483,7 +484,7 @@ const CampaignsPage = () => {
     } catch (e) {
       setSelectedCampaign(campaign);
     }
-    setPublicPreviewOpen(true);
+    setViewDialogOpen(true);
   };
 
   const openPublicPreview = async (campaign) => {

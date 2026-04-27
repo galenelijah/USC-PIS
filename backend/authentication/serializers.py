@@ -77,17 +77,15 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     
     def _determine_role_from_email(self, email, role_preference=None):
         """
-        Determine user role based on email pattern and optional preference:
-        - Students: emails with numbers (e.g., 21100727@usc.edu.ph) -> Always STUDENT
-        - Safe List: Check if email is pre-authorized with a specific role
-        - Staff/Teachers/Medical: emails with only letters (e.g., elfabian@usc.edu.ph)
-          - If role_preference is valid, assign it (ONLY for non-administrative roles)
-          - Otherwise, default to STUDENT to trigger role selection on frontend
+        Determine user role based on email pattern:
+        - Students: emails consisting ONLY of numbers (e.g., 21100727@usc.edu.ph) -> Always STUDENT
+        - Staff/Faculty: emails containing any text/letters (e.g., elfabian@usc.edu.ph, j.doe2@usc.edu.ph) -> STAFF/FACULTY
+        - Safe List: Check if email is pre-authorized with a specific role (Overrides pattern)
         """
         if not email:
-            return User.Role.STUDENT  # Default fallback
+            return User.Role.STUDENT
         
-        # 1. Check SafeEmail list for pre-authorized roles (High Priority)
+        # 1. Check SafeEmail list for pre-authorized roles (Highest Priority)
         try:
             from .models import SafeEmail
             safe_entry = SafeEmail.objects.filter(email=email, is_active=True).first()
@@ -99,16 +97,17 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         # Extract the part before @ symbol
         email_username = email.split('@')[0].lower()
         
-        # 2. Heuristic check: numbers in email usually mean STUDENT
-        if re.search(r'\d', email_username):
+        # 2. Students only have number emails (purely digits)
+        if email_username.isdigit():
             return User.Role.STUDENT
         
-        # 3. Handle professional roles (only FACULTY allowed for self-selection)
-        if role_preference == User.Role.FACULTY:
-            return User.Role.FACULTY
+        # 3. Email has text (contains non-digits), so it is Staff or Faculty
+        # If the user specifically chose a role (FACULTY or STAFF), respect it
+        if role_preference in [User.Role.FACULTY, User.Role.STAFF]:
+            return role_preference
             
-        # Default for text-only emails (triggers /role-selection on frontend)
-        return User.Role.STUDENT
+        # Default to FACULTY for text-based emails if no preference given
+        return User.Role.FACULTY
     
     def validate_password(self, value):
         """Validate password with enhanced security checks."""
