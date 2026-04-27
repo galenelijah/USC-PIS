@@ -67,7 +67,7 @@ const Login = () => {
     if (loginUser.fulfilled.match(resultAction)) {
       const user = resultAction.payload.user || resultAction.payload;
       const isVerified = resultAction.payload.is_verified ?? user?.is_verified;
-      const isTextEmail = user?.email && !/\d/.test(user.email.split('@')[0]);
+      const isTextEmail = user?.email && !/^\d+$/.test(user.email.split('@')[0]);
       
       if (!isVerified) {
         navigate('/verify-email');

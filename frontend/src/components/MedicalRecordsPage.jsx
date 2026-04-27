@@ -918,26 +918,26 @@ const MedicalRecordsPage = () => {
                       </Typography>
                     </Box>
                   ) : (
-                    <TableContainer>
-                      <Table>
+                    <TableContainer sx={{ overflowX: 'auto' }}>
+                      <Table sx={{ minWidth: 800 }}>
                         <TableHead>
                           <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                            <TableCell sx={{ fontWeight: 'bold' }}>
+                            <TableCell sx={{ fontWeight: 'bold', minWidth: 120 }}>
                               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                 <CalendarTodayIcon sx={{ mr: 1, fontSize: 18 }} />
                                 Date
                               </Box>
                             </TableCell>
                             {isStaffOrMedical && (
-                              <TableCell sx={{ fontWeight: 'bold' }}>
+                              <TableCell sx={{ fontWeight: 'bold', minWidth: 180 }}>
                                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                   <PersonIcon sx={{ mr: 1, fontSize: 18 }} />
                                   Patient
                                 </Box>
                               </TableCell>
                             )}
-                            <TableCell sx={{ fontWeight: 'bold' }}>Diagnosis</TableCell>
-                            <TableCell sx={{ fontWeight: 'bold' }}>Treatment</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold', minWidth: 200 }}>Diagnosis</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold', minWidth: 200 }}>Treatment</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -973,10 +973,13 @@ const MedicalRecordsPage = () => {
                                 <Typography 
                                   variant="body2" 
                                   sx={{ 
-                                    maxWidth: 200, 
+                                    maxWidth: 300, 
                                     overflow: 'hidden', 
                                     textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap'
+                                    whiteSpace: 'normal',
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical'
                                   }}
                                 >
                                   {record.diagnosis || 'No diagnosis recorded'}
@@ -986,10 +989,13 @@ const MedicalRecordsPage = () => {
                                 <Typography 
                                   variant="body2" 
                                   sx={{ 
-                                    maxWidth: 200, 
+                                    maxWidth: 300, 
                                     overflow: 'hidden', 
                                     textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap'
+                                    whiteSpace: 'normal',
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical'
                                   }}
                                 >
                                   {record.treatment || 'No treatment recorded'}
