@@ -1,0 +1,1746 @@
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+from django.contrib.auth.base_user import BaseUserManager
+from django.utils import timezone
+import datetime
+
+class CustomUserManager(BaseUserManager):
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError('Email is required')
+        
+        email = self.normalize_email(email)
+        # Set username to email if not provided
+        if 'username' not in extra_fields:
+            extra_fields['username'] = email
+            
+        user = self.model(email=email, **extra_fields)
+        if password:
+            user.set_password(password)
+        else:
+            user.set_unusable_password()
+        user.save(using=self.db)
+        return user
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('role', 'ADMIN')
+        extra_fields.setdefault('is_verified', True)  # Superusers are verified by default
+        extra_fields.setdefault('username', email)  # Ensure username is set for superuser
+        return self.create_user(email, password, **extra_fields)
+
+class User(AbstractUser):
+    class Role(models.TextChoices):
+        ADMIN = 'ADMIN', 'Admin'
+        DOCTOR = 'DOCTOR', 'Doctor'
+        DENTIST = 'DENTIST', 'Dentist'
+        NURSE = 'NURSE', 'Nurse'
+        STAFF = 'STAFF', 'Staff'
+        STUDENT = 'STUDENT', 'Student'
+        FACULTY = 'FACULTY', 'Faculty'
+
+    # Authentication fields
+    email = models.EmailField(max_length=200, unique=True)
+    username = models.CharField(max_length=200, unique=True)  # Make explicit
+    role = models.CharField(max_length=10, choices=Role.choices, default=Role.STUDENT)
+    requested_role = models.CharField(max_length=10, choices=Role.choices, null=True, blank=True)
+    completeSetup = models.BooleanField(default=False)
+    is_verified = models.BooleanField(default=False)
+
+    # Personal Information
+    middle_name = models.CharField(max_length=50, null=True, blank=True)
+    id_number = models.CharField(max_length=50, null=True, blank=True)
+    course = models.CharField(max_length=50, null=True, blank=True)
+    year_level = models.CharField(max_length=50, null=True, blank=True)
+    school = models.CharField(max_length=50, null=True, blank=True)
+    sex = models.CharField(max_length=10, null=True, blank=True)
+    civil_status = models.CharField(max_length=50, null=True, blank=True)
+    birthday = models.DateField(null=True, blank=True)
+    nationality = models.CharField(max_length=50, null=True, blank=True)
+    religion = models.CharField(max_length=50, null=True, blank=True)
+    address_permanent = models.CharField(max_length=300, null=True, blank=True)
+    address_present = models.CharField(max_length=300, null=True, blank=True)
+    phone = models.CharField(max_length=20, null=True, blank=True)
+    blood_type = models.CharField(max_length=10, null=True, blank=True)
+
+    # Physical Information
+    weight = models.CharField(max_length=10, null=True, blank=True)  # in kg
+    height = models.CharField(max_length=10, null=True, blank=True)  # in cm
+    bmi = models.CharField(max_length=10, null=True, blank=True)  # Formula: Weight(kg)/Height (m2)
+
+    # Emergency Contacts
+    father_name = models.CharField(max_length=100, null=True, blank=True)
+    mother_name = models.CharField(max_length=100, null=True, blank=True)
+    emergency_contact = models.CharField(max_length=100, null=True, blank=True)
+    emergency_contact_number = models.CharField(max_length=100, null=True, blank=True)
+    # Encrypted (pgcrypto) version
+    emergency_contact_number_enc = models.BinaryField(null=True, blank=True, editable=False)
+
+    # Medical Information
+    illness = models.CharField(max_length=100, null=True, blank=True)
+    childhood_diseases = models.CharField(max_length=100, null=True, blank=True)
+    special_needs = models.CharField(max_length=100, null=True, blank=True)
+    existing_medical_condition = models.CharField(max_length=100, null=True, blank=True)
+    medications = models.CharField(max_length=100, null=True, blank=True)
+    allergies = models.CharField(max_length=100, null=True, blank=True)
+    hospitalization_history = models.CharField(max_length=100, null=True, blank=True)
+    surgical_procedures = models.CharField(max_length=100, null=True, blank=True)
+    # Encrypted (pgcrypto) columns for selected sensitive fields
+    illness_enc = models.BinaryField(null=True, blank=True, editable=False)
+    existing_medical_condition_enc = models.BinaryField(null=True, blank=True, editable=False)
+    medications_enc = models.BinaryField(null=True, blank=True, editable=False)
+    allergies_enc = models.BinaryField(null=True, blank=True, editable=False)
+    blood_type_enc = models.BinaryField(null=True, blank=True, editable=False)
+
+    # Department and Contact (for staff)
+    department = models.CharField(max_length=100, null=True, blank=True)
+    phone_number = models.CharField(max_length=15, null=True, blank=True)
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    objects = CustomUserManager()
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []
+
+    def __str__(self):
+        return f"{self.email} - {self.role}"
+
+    def save(self, *args, **kwargs):
+        # Ensure username is set to email if not provided
+        if not self.username:
+            self.username = self.email
+        super().save(*args, **kwargs)
+
+class SafeEmail(models.Model):
+    email = models.EmailField(unique=True)
+    role = models.CharField(
+        max_length=10, 
+        choices=User.Role.choices, 
+        default=User.Role.STUDENT,
+        help_text="Role to automatically assign when this user registers"
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.email} ({self.role})"
+
+class VerificationCode(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='verification_codes')
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+    def __str__(self):
+        return f"{self.user.email} - {self.code}"
+
+# Register signal handlers (encryption on save)
+try:
+    from . import signals  # noqa: F401
+except Exception:
+    pass
+
+from django.db import models
+from django.conf import settings
+from django.utils import timezone
+import datetime
+
+# Create your models here.
+
+class Patient(models.Model):
+    GENDER_CHOICES = [
+        ('M', 'Male'),
+        ('F', 'Female'),
+        ('O', 'Other'),
+    ]
+
+    # Link to the user account, if applicable (especially for students)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE,  # Delete patient record if user is deleted
+        null=True, 
+        blank=True, 
+        related_name='patient_profile' # Allows user.patient_profile access
+    )
+    
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    date_of_birth = models.DateField()
+    gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
+    email = models.EmailField(unique=True)
+    phone_number = models.CharField(max_length=20)
+    address = models.TextField()
+    
+    # Encrypted fields
+    first_name_enc = models.BinaryField(null=True, blank=True, editable=False)
+    last_name_enc = models.BinaryField(null=True, blank=True, editable=False)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name}"
+
+    def get_full_name(self):
+        """Return the full name of the patient"""
+        return f"{self.first_name} {self.last_name}"
+
+    @property
+    def age(self):
+        """Calculate and return the patient's age"""
+        from datetime import date
+        if not self.date_of_birth:
+            return None
+        today = date.today()
+        return today.year - self.date_of_birth.year - ((today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day))
+
+    class Meta:
+        ordering = ['-created_at']
+
+class MedicalRecord(models.Model):
+    patient = models.ForeignKey(Patient, related_name='medical_records', on_delete=models.CASCADE)
+    visit_date = models.DateTimeField()
+    concern = models.TextField(help_text="Reason for visit / Chief complaint", default="")
+    diagnosis = models.TextField()
+    treatment = models.TextField()
+    diagnosis_enc = models.BinaryField(null=True, blank=True, editable=False)
+    notes = models.TextField(blank=True)
+    vital_signs = models.JSONField(default=dict, blank=True, help_text="Vital signs data (temperature, blood pressure, etc.)")
+    physical_examination = models.JSONField(default=dict, blank=True, help_text="Physical examination findings")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+
+    class Meta:
+        ordering = ['-visit_date']
+
+    def save(self, *args, **kwargs):
+        # Ensure visit_date is an aware datetime if it's a plain date
+        if self.visit_date and not isinstance(self.visit_date, datetime.datetime) and isinstance(self.visit_date, datetime.date):
+            self.visit_date = timezone.make_aware(datetime.datetime.combine(self.visit_date, datetime.time.min))
+        # Ensure it's aware if it's a naive datetime
+        elif self.visit_date and isinstance(self.visit_date, datetime.datetime) and timezone.is_naive(self.visit_date):
+            self.visit_date = timezone.make_aware(self.visit_date)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.patient} - {self.visit_date}"
+
+class DentalRecord(models.Model):
+    PROCEDURE_CHOICES = [
+        ('CONSULTATION', 'Dental Consultation'),
+        ('REFERRAL', 'Referral'),
+        ('CLEANING', 'Dental Cleaning'),
+        ('FILLING', 'Dental Filling'),
+        ('EXTRACTION', 'Tooth Extraction'),
+        ('ROOT_CANAL', 'Root Canal Treatment'),
+        ('CROWN', 'Crown Placement'),
+        ('BRIDGE', 'Bridge Work'),
+        ('IMPLANT', 'Dental Implant'),
+        ('ORTHODONTIC', 'Orthodontic Treatment'),
+        ('PERIODONTAL', 'Periodontal Treatment'),
+        ('PROPHYLAXIS', 'Prophylaxis'),
+        ('FLUORIDE', 'Fluoride Treatment'),
+        ('SEALANT', 'Dental Sealant'),
+        ('WHITENING', 'Teeth Whitening'),
+        ('XRAY', 'Dental X-Ray'),
+        ('OTHER', 'Other Procedure'),
+    ]
+
+    TOOTH_CONDITION_CHOICES = [
+        ('HEALTHY', 'Healthy'),
+        ('CARIES', 'Caries/Decay'),
+        ('FILLED', 'Filled'),
+        ('CROWN', 'Crown'),
+        ('MISSING', 'Missing'),
+        ('EXTRACTED', 'Extracted'),
+        ('IMPACTED', 'Impacted'),
+        ('FRACTURED', 'Fractured'),
+        ('SENSITIVE', 'Sensitive'),
+        ('ROOT_CANAL', 'Root Canal Treated'),
+    ]
+
+    PRIORITY_CHOICES = [
+        ('LOW', 'Low Priority'),
+        ('MEDIUM', 'Medium Priority'),
+        ('HIGH', 'High Priority'),
+        ('URGENT', 'Urgent'),
+    ]
+
+    patient = models.ForeignKey(Patient, related_name='dental_records', on_delete=models.CASCADE)
+    visit_date = models.DateTimeField()
+    concern = models.TextField(blank=True, help_text="Student's concern / reason for visit")
+    procedure_performed = models.CharField(max_length=20, choices=PROCEDURE_CHOICES, default='CONSULTATION')
+    tooth_numbers = models.CharField(max_length=200, blank=True, help_text="Comma-separated tooth numbers (e.g., 11,12,21)")
+    diagnosis = models.TextField(blank=True, help_text="Dental diagnosis and findings")
+    treatment_performed = models.TextField(blank=True, help_text="Treatment performed during this visit")
+    treatment_plan = models.TextField(blank=True, help_text="Future treatment plan")
+    referral_to = models.TextField(blank=True, help_text="Referral to other clinic or specialist")
+    
+    # Detailed dental examination data (now optional)
+    oral_hygiene_status = models.CharField(
+        max_length=50, 
+        choices=[
+            ('EXCELLENT', 'Excellent'),
+            ('GOOD', 'Good'),
+            ('FAIR', 'Fair'),
+            ('POOR', 'Poor'),
+        ],
+        blank=True
+    )
+    
+    gum_condition = models.CharField(
+        max_length=50,
+        choices=[
+            ('HEALTHY', 'Healthy'),
+            ('GINGIVITIS', 'Gingivitis'),
+            ('PERIODONTITIS', 'Periodontitis'),
+            ('INFLAMMATION', 'Inflammation'),
+        ],
+        blank=True
+    )
+    
+    # Tooth chart data - JSON field to store individual tooth conditions
+    tooth_chart = models.JSONField(
+        default=dict, 
+        blank=True, 
+        help_text="Detailed tooth chart with individual tooth conditions"
+    )
+    
+    # Clinical notes and observations
+    clinical_notes = models.TextField(blank=True, help_text="Additional clinical observations")
+    pain_level = models.IntegerField(null=True, blank=True, help_text="Pain level on scale of 1-10")
+    
+    # Treatment details
+    anesthesia_used = models.BooleanField(default=False)
+    anesthesia_type = models.CharField(max_length=100, blank=True)
+    materials_used = models.TextField(blank=True, help_text="Materials and medications used")
+    
+    # Follow-up and recommendations
+    next_appointment_recommended = models.DateField(null=True, blank=True)
+    home_care_instructions = models.TextField(blank=True)
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='LOW')
+    
+    # Attachments and documentation
+    xray_images = models.JSONField(default=list, blank=True, help_text="List of X-ray image URLs")
+    photos = models.JSONField(default=list, blank=True, help_text="List of dental photo URLs")
+    documents = models.JSONField(default=list, blank=True, help_text="List of related document URLs")
+    
+    # Cost and billing information
+    cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    insurance_covered = models.BooleanField(default=False)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+
+    class Meta:
+        ordering = ['-visit_date']
+
+    def save(self, *args, **kwargs):
+        # Ensure visit_date is an aware datetime if it's a plain date
+        if self.visit_date and not isinstance(self.visit_date, datetime.datetime) and isinstance(self.visit_date, datetime.date):
+            self.visit_date = timezone.make_aware(datetime.datetime.combine(self.visit_date, datetime.time.min))
+        # Ensure it's aware if it's a naive datetime
+        elif self.visit_date and isinstance(self.visit_date, datetime.datetime) and timezone.is_naive(self.visit_date):
+            self.visit_date = timezone.make_aware(self.visit_date)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.patient} - {self.procedure_performed} - {self.visit_date}"
+
+    def get_affected_teeth_display(self):
+        """Return a formatted string of affected tooth numbers"""
+        if self.tooth_numbers:
+            return self.tooth_numbers.replace(',', ', ')
+        return "N/A"
+
+class Consultation(models.Model):
+    patient = models.ForeignKey(Patient, related_name='consultations', on_delete=models.CASCADE)
+    date_time = models.DateTimeField()
+    concern = models.TextField(blank=True, help_text="Student's concern / reason for visit")
+    chief_complaints = models.TextField(blank=True)  # Kept for backward compatibility
+    treatment_plan = models.TextField()
+    remarks = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+
+    class Meta:
+        ordering = ['-date_time']
+
+    def save(self, *args, **kwargs):
+        # Sync concern and chief_complaints for backward compatibility
+        if self.concern and not self.chief_complaints:
+            self.chief_complaints = self.concern
+        elif self.chief_complaints and not self.concern:
+            self.concern = self.chief_complaints
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.patient} - {self.date_time}"
+from django.db import models
+from django.conf import settings
+from django.core.validators import FileExtensionValidator
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+import os
+
+def get_media_storage():
+    """Get the appropriate storage backend for media files - TEMPORARY for migration compatibility"""
+    from django.core.files.storage import default_storage
+    return default_storage
+
+def campaign_image_upload_path(instance, filename):
+    """Generate upload path for campaign images"""
+    import os
+    # Clean filename
+    name, ext = os.path.splitext(filename)
+    safe_name = "".join(c for c in name if c.isalnum() or c in '-_').rstrip()
+    # Handle empty filename case
+    if not safe_name:
+        safe_name = "thumbnail"
+    safe_filename = f"{safe_name}{ext}"
+    # Use getattr with default to handle cases where campaign_type isn't set yet
+    campaign_type = getattr(instance, 'campaign_type', 'GENERAL') or 'GENERAL'
+    return f'campaigns/{campaign_type}/thumbnails/{safe_filename}'
+
+def banner_upload_path(instance, filename):
+    """Generate upload path for banner images"""
+    import os
+    # Clean filename
+    name, ext = os.path.splitext(filename)
+    safe_name = "".join(c for c in name if c.isalnum() or c in '-_').rstrip()
+    # Handle empty filename case
+    if not safe_name:
+        safe_name = "banner"
+    safe_filename = f"{safe_name}{ext}"
+    # Use getattr with default to handle cases where campaign_type isn't set yet
+    campaign_type = getattr(instance, 'campaign_type', 'GENERAL') or 'GENERAL'
+    return f'campaigns/{campaign_type}/banners/{safe_filename}'
+
+def pubmat_upload_path(instance, filename):
+    """Generate upload path for PubMat images"""
+    import os
+    # Clean filename
+    name, ext = os.path.splitext(filename)
+    safe_name = "".join(c for c in name if c.isalnum() or c in '-_').rstrip()
+    # Handle empty filename case
+    if not safe_name:
+        safe_name = "pubmat"
+    safe_filename = f"{safe_name}{ext}"
+    # Use getattr with default to handle cases where campaign_type isn't set yet
+    campaign_type = getattr(instance, 'campaign_type', 'GENERAL') or 'GENERAL'
+    return f'campaigns/{campaign_type}/pubmats/{safe_filename}'
+
+def health_info_image_upload_path(instance, filename):
+    """Generate upload path for health info images"""
+    import uuid
+    from django.utils import timezone
+    
+    # Create a unique identifier for the health info
+    if instance.health_info and instance.health_info.id:
+        folder_id = str(instance.health_info.id)
+    else:
+        # Use timestamp + UUID for new instances
+        timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+        folder_id = f"{timestamp}_{uuid.uuid4().hex[:8]}"
+    
+    # Clean filename for cloud storage
+    import os
+    name, ext = os.path.splitext(filename)
+    safe_name = "".join(c for c in name if c.isalnum() or c in '-_').rstrip()
+    safe_filename = f"{safe_name}{ext}"
+    
+    return f'health_info/{folder_id}/{safe_filename}'
+
+class HealthInformation(models.Model):
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    category = models.CharField(max_length=200)
+    view_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+
+    def __str__(self):
+        return self.title
+
+    def increment_view_count(self):
+        """Increment view count"""
+        self.view_count += 1
+        self.save(update_fields=['view_count'])
+
+class HealthInformationImage(models.Model):
+    """Images associated with health information"""
+    health_info = models.ForeignKey(HealthInformation, related_name='images', on_delete=models.CASCADE)
+    image = models.ImageField(
+        upload_to=health_info_image_upload_path,
+        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'gif'])]
+    )
+    caption = models.CharField(max_length=255, blank=True)
+    order = models.PositiveIntegerField(default=0, help_text="Display order of the image")
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'uploaded_at']
+
+    def __str__(self):
+        return f"Image for {self.health_info.title}"
+    
+    @property
+    def url(self):
+        """Return the full URL for the image"""
+        if self.image:
+            return self.image.url
+        return None
+
+class CampaignTemplate(models.Model):
+    """Reusable templates for health campaigns"""
+    
+    CAMPAIGN_TYPES = [
+        ('GENERAL', 'General Health Information'),
+        ('VACCINATION', 'Vaccination Campaign'),
+        ('MENTAL_HEALTH', 'Mental Health Awareness'),
+        ('NUTRITION', 'Nutrition & Wellness'),
+        ('DENTAL_HEALTH', 'Dental Health'),
+        ('HYGIENE', 'Personal Hygiene'),
+        ('EXERCISE', 'Physical Exercise'),
+        ('SAFETY', 'Health & Safety'),
+        ('PREVENTION', 'Disease Prevention'),
+        ('AWARENESS', 'Health Awareness'),
+        ('EMERGENCY', 'Emergency Health'),
+        ('SEASONAL', 'Seasonal Health'),
+        ('CUSTOM', 'Custom Campaign'),
+    ]
+    
+    PRIORITY_LEVELS = [
+        ('LOW', 'Low'),
+        ('MEDIUM', 'Medium'),
+        ('HIGH', 'High'),
+        ('URGENT', 'Urgent'),
+    ]
+    
+    name = models.CharField(max_length=200, help_text="Template name")
+    description = models.TextField(help_text="Template description")
+    campaign_type = models.CharField(max_length=20, choices=CAMPAIGN_TYPES)
+    priority = models.CharField(max_length=10, choices=PRIORITY_LEVELS, default='MEDIUM')
+    
+    # Template content (will be used as defaults)
+    title_template = models.CharField(max_length=200, help_text="Default title for campaigns using this template")
+    content_template = models.TextField(help_text="Default content template")
+    summary_template = models.CharField(max_length=500, help_text="Default summary template")
+    target_audience_template = models.CharField(max_length=200, help_text="Default target audience")
+    objectives_template = models.TextField(help_text="Default objectives")
+    call_to_action_template = models.CharField(max_length=300, help_text="Default call to action")
+    
+    # Template images
+    banner_image = models.ImageField(
+        upload_to='templates/banners/',
+        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'gif'])],
+        null=True, blank=True
+    )
+    thumbnail_image = models.ImageField(
+        upload_to='templates/thumbnails/',
+        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png'])],
+        null=True, blank=True
+    )
+    
+    # Template metadata
+    tags_template = models.CharField(max_length=500, blank=True, help_text="Default tags")
+    
+    # Usage tracking
+    usage_count = models.PositiveIntegerField(default=0, help_text="Number of times this template has been used")
+    is_active = models.BooleanField(default=True, help_text="Whether this template is available for use")
+    
+    # Audit
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    
+    class Meta:
+        ordering = ['-usage_count', 'name']
+        indexes = [
+            models.Index(fields=['campaign_type', 'is_active']),
+            models.Index(fields=['usage_count']),
+        ]
+    
+    def __str__(self):
+        return f"{self.name} ({self.get_campaign_type_display()})"
+    
+    def increment_usage(self):
+        """Increment usage count when template is used"""
+        self.usage_count += 1
+        self.save(update_fields=['usage_count'])
+
+class HealthCampaign(models.Model):
+    """Enhanced model for visual health campaigns with PubMats and banners"""
+    
+    CAMPAIGN_TYPES = [
+        ('GENERAL', 'General Health Information'),
+        ('VACCINATION', 'Vaccination Campaign'),
+        ('MENTAL_HEALTH', 'Mental Health Awareness'),
+        ('NUTRITION', 'Nutrition & Wellness'),
+        ('DENTAL_HEALTH', 'Dental Health'),
+        ('HYGIENE', 'Personal Hygiene'),
+        ('EXERCISE', 'Physical Exercise'),
+        ('SAFETY', 'Health & Safety'),
+        ('PREVENTION', 'Disease Prevention'),
+        ('AWARENESS', 'Health Awareness'),
+        ('EMERGENCY', 'Emergency Health'),
+        ('SEASONAL', 'Seasonal Health'),
+        ('CUSTOM', 'Custom Campaign'),
+    ]
+    
+    PRIORITY_LEVELS = [
+        ('LOW', 'Low'),
+        ('MEDIUM', 'Medium'),
+        ('HIGH', 'High'),
+        ('URGENT', 'Urgent'),
+    ]
+    
+    # Basic Information
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    campaign_type = models.CharField(max_length=20, choices=CAMPAIGN_TYPES)
+    priority = models.CharField(max_length=10, choices=PRIORITY_LEVELS, default='MEDIUM')
+    
+    # Template reference
+    template = models.ForeignKey(
+        CampaignTemplate, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        help_text="Template used to create this campaign"
+    )
+    
+    # Content
+    content = models.TextField(help_text="Detailed campaign content")
+    summary = models.CharField(max_length=500, blank=True, help_text="Brief campaign summary")
+    
+    # Visual Content - Use ImageField consistently for better validation
+    banner_image = models.ImageField(
+        upload_to=banner_upload_path,
+        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'gif'])],
+        null=True, blank=True,
+        help_text="Main banner image for the campaign"
+    )
+    pubmat_image = models.FileField(
+        upload_to=pubmat_upload_path,
+        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'webp', 'gif'])],
+        null=True, blank=True,
+        help_text="PubMat (Public Material) for printing and distribution (Images only)"
+    )
+    thumbnail_image = models.ImageField(
+        upload_to=campaign_image_upload_path,
+        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png'])],
+        null=True, blank=True,
+        help_text="Thumbnail image for campaign listing"
+    )
+    
+    # Campaign Details
+    target_audience = models.CharField(max_length=200, blank=True, help_text="Target audience description")
+    objectives = models.TextField(blank=True, help_text="Campaign objectives and goals")
+    call_to_action = models.CharField(max_length=300, blank=True, help_text="What action should people take?")
+    
+    # Scheduling
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField()
+    featured_until = models.DateTimeField(null=True, blank=True, help_text="Feature on homepage until this date")
+    
+    # Engagement
+    view_count = models.PositiveIntegerField(default=0)
+    engagement_count = models.PositiveIntegerField(default=0, help_text="Clicks, interactions, etc.")
+    
+    # Meta Information
+    tags = models.CharField(max_length=500, blank=True, null=True, help_text="Comma-separated tags")
+    external_link = models.URLField(blank=True, null=True, help_text="External link for more information")
+    contact_info = models.CharField(max_length=300, blank=True, null=True, help_text="Contact information for inquiries")
+    
+    # Audit
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='created_health_campaigns')
+    last_modified_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='modified_health_campaigns')
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['start_date']),
+            models.Index(fields=['campaign_type']),
+            models.Index(fields=['featured_until']),
+        ]
+    
+    def __str__(self):
+        return self.title
+    
+    @property
+    def is_active(self):
+        """Check if campaign is currently active"""
+        from django.utils import timezone
+        now = timezone.now()
+        return (
+            self.status == 'ACTIVE' and 
+            self.start_date <= now <= self.end_date
+        )
+    
+    @property
+    def is_featured(self):
+        """Check if campaign should be featured"""
+        from django.utils import timezone
+        now = timezone.now()
+        return (
+            self.featured_until and 
+            now <= self.featured_until and 
+            self.is_active
+        )
+    
+    def increment_view_count(self):
+        """Increment view count"""
+        self.view_count += 1
+        self.save(update_fields=['view_count'])
+    
+    def increment_engagement(self):
+        """Increment engagement count"""
+        self.engagement_count += 1
+        self.save(update_fields=['engagement_count'])
+    
+    @classmethod
+    def create_from_template(cls, template, user, title=None, **kwargs):
+        """Create a new campaign from a template"""
+        campaign_data = {
+            'title': title or template.title_template,
+            'campaign_type': template.campaign_type,
+            'priority': template.priority,
+            'content': template.content_template,
+            'summary': template.summary_template,
+            'target_audience': template.target_audience_template,
+            'objectives': template.objectives_template,
+            'call_to_action': template.call_to_action_template,
+            'tags': template.tags_template,
+            'template': template,
+            'created_by': user,
+            'last_modified_by': user,
+        }
+        
+        # Override with any provided kwargs
+        campaign_data.update(kwargs)
+        
+        # Create the campaign
+        campaign = cls.objects.create(**campaign_data)
+        
+        # Increment template usage
+        template.increment_usage()
+        
+        return campaign
+
+class CampaignResource(models.Model):
+    """Additional resources for campaigns (downloadable files, additional images, etc.)"""
+    
+    RESOURCE_TYPES = [
+        ('DOCUMENT', 'Document'),
+        ('IMAGE', 'Image'),
+        ('VIDEO', 'Video'),
+        ('INFOGRAPHIC', 'Infographic'),
+        ('FLYER', 'Flyer'),
+        ('POSTER', 'Poster'),
+        ('BROCHURE', 'Brochure'),
+        ('GUIDELINE', 'Guideline'),
+        ('CHECKLIST', 'Checklist'),
+        ('OTHER', 'Other'),
+    ]
+    
+    campaign = models.ForeignKey(HealthCampaign, on_delete=models.CASCADE, related_name='resources')
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    resource_type = models.CharField(max_length=15, choices=RESOURCE_TYPES)
+    file = models.FileField(
+        upload_to='resources/',
+        validators=[FileExtensionValidator(allowed_extensions=[
+            'pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'gif', 'mp4', 'avi', 'mov'
+        ])]
+    )
+    file_size = models.PositiveIntegerField(help_text="File size in bytes")
+    download_count = models.PositiveIntegerField(default=0)
+    is_public = models.BooleanField(default=True, help_text="Whether this resource is publicly accessible")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    
+    class Meta:
+        ordering = ['resource_type', 'title']
+    
+    def __str__(self):
+        return f"{self.title} ({self.campaign.title})"
+    
+    def increment_download_count(self):
+        """Increment download count"""
+        self.download_count += 1
+        self.save(update_fields=['download_count'])
+
+class CampaignFeedback(models.Model):
+    """Feedback specifically for health campaigns"""
+    
+    campaign = models.ForeignKey(HealthCampaign, on_delete=models.CASCADE, related_name='feedback')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    
+    # Feedback Content
+    rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)], help_text="1-5 star rating")
+    usefulness = models.IntegerField(choices=[(i, i) for i in range(1, 6)], help_text="How useful was this campaign?")
+    clarity = models.IntegerField(choices=[(i, i) for i in range(1, 6)], help_text="How clear was the information?")
+    
+    comments = models.TextField(blank=True)
+    suggestions = models.TextField(blank=True, help_text="Suggestions for improvement")
+    
+    # Engagement Questions
+    will_recommend = models.BooleanField(null=True, blank=True)
+    took_action = models.BooleanField(null=True, blank=True, help_text="Did you take the recommended action?")
+    learned_something_new = models.BooleanField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['campaign', 'user']
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Feedback for {self.campaign.title} by {self.user.email}"
+
+
+@receiver(post_save, sender=HealthCampaign)
+def health_campaign_notification(sender, instance, created, **kwargs):
+    """
+    Send notifications when health campaigns are created or status changes
+    """
+    try:
+        from notifications.models import Notification
+        from django.contrib.auth import get_user_model
+        import logging
+        logger = logging.getLogger(__name__)
+
+        User = get_user_model()
+
+        if created:
+            # Notify admins when a new campaign is created
+            admins = User.objects.filter(role__in=['ADMIN', 'STAFF'])
+            for admin in admins:
+                try:
+                    Notification.objects.create(
+                        recipient=admin,
+                        title="New Health Campaign Created",
+                        message=f"A new health campaign '{instance.title}' has been created and is ready for review.",
+                        notification_type="HEALTH_CAMPAIGN",
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to create admin campaign notification: {e}")
+        else:
+            # Check if status changed to active
+            if instance.status == 'ACTIVE':
+                # Notify a subset of users about new active campaign
+                active_users = User.objects.filter(is_active=True)[:50]
+                for user in active_users:
+                    try:
+                        Notification.objects.create(
+                            recipient=user,
+                            title=f"New Health Campaign: {instance.title}",
+                            message=f"A new health campaign about {instance.get_campaign_type_display()} is now active. Check it out!",
+                            notification_type="HEALTH_CAMPAIGN",
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to create user campaign notification: {e}")
+    except Exception:
+        # Never block campaign saves due to notification issues
+        import logging
+        logging.getLogger(__name__).warning("Notification dispatch failed for campaign post_save", exc_info=True)
+from django.db import models
+from patients.models import Patient, MedicalRecord, DentalRecord
+
+class Feedback(models.Model):
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='feedbacks')
+    medical_record = models.ForeignKey(MedicalRecord, on_delete=models.SET_NULL, null=True, blank=True, related_name='feedbacks')
+    dental_record = models.ForeignKey(DentalRecord, on_delete=models.SET_NULL, null=True, blank=True, related_name='feedbacks')
+    rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)])
+    comments = models.TextField(blank=True)
+    courteous = models.CharField(max_length=10, blank=True)  # 'yes' or 'no'
+    recommend = models.CharField(max_length=10, blank=True)  # 'yes' or 'no'
+    improvement = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        # Ensure only one feedback per patient per medical/dental record
+        constraints = [
+            models.UniqueConstraint(
+                fields=['patient', 'medical_record'],
+                name='unique_feedback_per_medical_visit',
+                condition=models.Q(medical_record__isnull=False)
+            ),
+            models.UniqueConstraint(
+                fields=['patient', 'dental_record'],
+                name='unique_feedback_per_dental_visit',
+                condition=models.Q(dental_record__isnull=False)
+            ),
+            models.UniqueConstraint(
+                fields=['patient'],
+                name='unique_general_feedback',
+                condition=models.Q(medical_record__isnull=True, dental_record__isnull=True)
+            )
+        ]
+        indexes = [
+            models.Index(fields=['patient', 'medical_record']),
+            models.Index(fields=['patient', 'dental_record']),
+            models.Index(fields=['patient', 'created_at']),
+        ]
+
+    def __str__(self):
+        if self.medical_record:
+            return f"Feedback by {self.patient} for medical visit {self.medical_record.id} (Rating: {self.rating})"
+        if self.dental_record:
+            return f"Feedback by {self.patient} for dental visit {self.dental_record.id} (Rating: {self.rating})"
+        return f"General feedback by {self.patient} (Rating: {self.rating})"
+from django.db import models
+from django.contrib.auth import get_user_model
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from patients.models import Patient
+
+User = get_user_model()
+
+class CertificateTemplate(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    content = models.TextField(help_text="HTML template with placeholders for certificate content")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+class MedicalCertificate(models.Model):
+    FITNESS_STATUS_CHOICES = [
+        ('fit', 'Fit'),
+        ('not_fit', 'Not Fit'),
+    ]
+    
+    APPROVAL_STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending', 'Pending Approval'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+
+    patient = models.ForeignKey(Patient, on_delete=models.PROTECT, related_name='medical_certificates')
+    template = models.ForeignKey(CertificateTemplate, on_delete=models.PROTECT)
+    
+    # Certificate Data
+    diagnosis = models.TextField(blank=True)
+    recommendations = models.TextField(blank=True)
+    valid_from = models.DateField()
+    valid_until = models.DateField()
+    additional_notes = models.TextField(blank=True)
+    
+    # Medical Fitness Assessment
+    fitness_status = models.CharField(
+        max_length=20, 
+        choices=FITNESS_STATUS_CHOICES, 
+        default='fit',
+        help_text="Medical fitness determination: Fit or Not Fit"
+    )
+    fitness_reason = models.TextField(
+        blank=True,
+        help_text="Reason for fitness status, especially important for 'Not Fit' determinations"
+    )
+    
+    # Approval Workflow
+    approval_status = models.CharField(
+        max_length=20, 
+        choices=APPROVAL_STATUS_CHOICES, 
+        default='draft',
+        help_text="Administrative approval status for the certificate"
+    )
+    issued_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='issued_certificates')
+    approved_by = models.ForeignKey(
+        User, 
+        on_delete=models.PROTECT, 
+        related_name='approved_certificates',
+        null=True, 
+        blank=True
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    issued_at = models.DateTimeField(null=True, blank=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Certificate for {self.patient} - {self.get_fitness_status_display()} ({self.get_approval_status_display()})"
+
+
+@receiver(post_save, sender=MedicalCertificate)
+def medical_certificate_notification(sender, instance, created, **kwargs):
+    """
+    Send notifications when medical certificate status changes
+    """
+    from notifications.models import Notification
+    
+    if created:
+        # Notify patient when certificate is created
+        if instance.patient.user:
+            Notification.objects.create(
+                recipient=instance.patient.user,
+                title="Medical Certificate Created",
+                message=f"A new medical certificate has been created for you by {instance.issued_by.get_full_name()}.",
+                notification_type="certificate_created"
+            )
+    else:
+        # Check if approval status changed
+        if instance.approval_status == 'approved' and instance.approved_by:
+            # Notify patient when certificate is approved
+            if instance.patient.user:
+                fitness_info = f"Status: {instance.get_fitness_status_display()}"
+                if instance.fitness_reason:
+                    fitness_info += f" - {instance.fitness_reason}"
+                Notification.objects.create(
+                    recipient=instance.patient.user,
+                    title="Medical Certificate Approved",
+                    message=f"Your medical certificate has been approved by {instance.approved_by.get_full_name()}. {fitness_info}. You can now download it.",
+                    notification_type="certificate_approved"
+                )
+        elif instance.approval_status == 'rejected' and instance.approved_by:
+            # Notify patient when certificate is rejected
+            if instance.patient.user:
+                Notification.objects.create(
+                    recipient=instance.patient.user,
+                    title="Medical Certificate Rejected",
+                    message=f"Your medical certificate has been rejected by {instance.approved_by.get_full_name()}. Please contact the clinic for more information.",
+                    notification_type="certificate_rejected"
+                )
+        elif instance.approval_status == 'pending':
+            # Notify doctors when certificate is submitted for approval
+            doctors = User.objects.filter(role__in=['DOCTOR', 'ADMIN'])
+            for doctor in doctors:
+                fitness_info = f"Fitness Status: {instance.get_fitness_status_display()}"
+                if instance.fitness_reason:
+                    fitness_info += f" - {instance.fitness_reason}"
+                Notification.objects.create(
+                    recipient=doctor,
+                    title="Medical Certificate Pending Approval",
+                    message=f"A medical certificate for {instance.patient.get_full_name()} is pending your approval. {fitness_info}",
+                    notification_type="certificate_pending"
+                )
+from django.db import models
+from django.conf import settings
+from django.utils import timezone
+from patients.models import Patient
+import uuid
+
+
+class NotificationTemplate(models.Model):
+    """Template for reusable notifications"""
+    TEMPLATE_TYPES = [
+        ('APPOINTMENT_REMINDER', 'Appointment Reminder'),
+        ('MEDICATION_REMINDER', 'Medication Reminder'),
+        ('HEALTH_CAMPAIGN', 'Health Campaign'),
+        ('CLINIC_UPDATE', 'Clinic Update'),
+        ('FOLLOW_UP', 'Follow-up Reminder'),
+        ('VACCINATION_REMINDER', 'Vaccination Reminder'),
+        ('DENTAL_REMINDER', 'Dental Checkup Reminder'),
+        ('CUSTOM', 'Custom Notification'),
+    ]
+    
+    name = models.CharField(max_length=200)
+    template_type = models.CharField(max_length=30, choices=TEMPLATE_TYPES)
+    subject_template = models.CharField(max_length=255)
+    body_template = models.TextField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    
+    # Template variables documentation
+    available_variables = models.JSONField(
+        default=dict,
+        help_text="JSON object documenting available template variables"
+    )
+    
+    class Meta:
+        ordering = ['name']
+    
+    def __str__(self):
+        return f"{self.name} ({self.get_template_type_display()})"
+
+
+class Notification(models.Model):
+    """Main notification model"""
+    NOTIFICATION_TYPES = [
+        ('APPOINTMENT_REMINDER', 'Appointment Reminder'),
+        ('MEDICATION_REMINDER', 'Medication Reminder'),
+        ('HEALTH_CAMPAIGN', 'Health Campaign'),
+        ('CLINIC_UPDATE', 'Clinic Update'),
+        ('FOLLOW_UP', 'Follow-up Reminder'),
+        ('VACCINATION_REMINDER', 'Vaccination Reminder'),
+        ('DENTAL_REMINDER', 'Dental Checkup Reminder'),
+        ('CUSTOM', 'Custom Notification'),
+        ('SYSTEM_ALERT', 'System Alert'),
+    ]
+    
+    PRIORITY_LEVELS = [
+        ('LOW', 'Low'),
+        ('MEDIUM', 'Medium'),
+        ('HIGH', 'High'),
+        ('URGENT', 'Urgent'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('SENT', 'Sent'),
+        ('DELIVERED', 'Delivered'),
+        ('READ', 'Read'),
+        ('FAILED', 'Failed'),
+        ('CANCELLED', 'Cancelled'),
+    ]
+    
+    DELIVERY_METHODS = [
+        ('EMAIL', 'Email'),
+        ('IN_APP', 'In-App'),
+        ('BOTH', 'Both Email and In-App'),
+    ]
+    
+    # Unique identifier
+    notification_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    
+    # Recipients
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='received_notifications')
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+    
+    # Content
+    notification_type = models.CharField(max_length=30, choices=NOTIFICATION_TYPES)
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    priority = models.CharField(max_length=10, choices=PRIORITY_LEVELS, default='MEDIUM')
+    
+    # Delivery settings
+    delivery_method = models.CharField(max_length=10, choices=DELIVERY_METHODS, default='BOTH')
+    scheduled_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    
+    # Status tracking
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='PENDING')
+    sent_at = models.DateTimeField(null=True, blank=True)
+    delivered_at = models.DateTimeField(null=True, blank=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+    
+    # Additional data
+    metadata = models.JSONField(default=dict, blank=True)
+    action_url = models.URLField(blank=True, null=True, help_text="URL for notification action")
+    action_text = models.CharField(max_length=100, blank=True, null=True, help_text="Text for action button")
+    
+    # Related objects
+    template = models.ForeignKey(NotificationTemplate, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Audit fields
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='created_notifications')
+    
+    # Retry mechanism
+    retry_count = models.PositiveIntegerField(default=0)
+    max_retries = models.PositiveIntegerField(default=3)
+    last_retry_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['recipient', 'status']),
+            models.Index(fields=['notification_type', 'scheduled_at']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['status', 'scheduled_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.title} - {self.recipient.email}"
+    
+    @property
+    def is_expired(self):
+        """Check if notification has expired"""
+        if self.expires_at:
+            return timezone.now() > self.expires_at
+        return False
+    
+    @property
+    def is_read(self):
+        """Check if notification has been read"""
+        return self.status == 'READ'
+    
+    def mark_as_read(self):
+        """Mark notification as read"""
+        if not self.is_read:
+            self.status = 'READ'
+            self.read_at = timezone.now()
+            self.save(update_fields=['status', 'read_at'])
+    
+    def mark_as_sent(self):
+        """Mark notification as sent"""
+        self.status = 'SENT'
+        self.sent_at = timezone.now()
+        self.save(update_fields=['status', 'sent_at'])
+    
+    def mark_as_delivered(self):
+        """Mark notification as delivered"""
+        self.status = 'DELIVERED'
+        self.delivered_at = timezone.now()
+        self.save(update_fields=['status', 'delivered_at'])
+    
+    def mark_as_failed(self):
+        """Mark notification as failed"""
+        self.status = 'FAILED'
+        self.save(update_fields=['status'])
+
+
+class NotificationLog(models.Model):
+    """Log of all notification activities for auditing"""
+    LOG_ACTIONS = [
+        ('CREATED', 'Created'),
+        ('SCHEDULED', 'Scheduled'),
+        ('SENT', 'Sent'),
+        ('DELIVERED', 'Delivered'),
+        ('READ', 'Read'),
+        ('FAILED', 'Failed'),
+        ('CANCELLED', 'Cancelled'),
+        ('RETRY', 'Retry Attempt'),
+    ]
+    
+    notification = models.ForeignKey(Notification, on_delete=models.CASCADE, related_name='logs')
+    action = models.CharField(max_length=15, choices=LOG_ACTIONS)
+    details = models.TextField(blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    
+    # Email specific tracking
+    email_message_id = models.CharField(max_length=255, blank=True)
+    email_provider_response = models.JSONField(default=dict, blank=True)
+    
+    # Error tracking
+    error_message = models.TextField(blank=True)
+    error_code = models.CharField(max_length=50, blank=True)
+    
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['notification', 'action']),
+            models.Index(fields=['timestamp']),
+        ]
+    
+    def __str__(self):
+        return f"{self.notification.title} - {self.get_action_display()} at {self.timestamp}"
+
+
+class NotificationPreference(models.Model):
+    """User preferences for notifications"""
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notification_preferences')
+    
+    # Email preferences
+    email_enabled = models.BooleanField(default=True)
+    appointment_reminders = models.BooleanField(default=True)
+    medication_reminders = models.BooleanField(default=True)
+    health_campaigns = models.BooleanField(default=True)
+    clinic_updates = models.BooleanField(default=True)
+    follow_up_reminders = models.BooleanField(default=True)
+    vaccination_reminders = models.BooleanField(default=True)
+    dental_reminders = models.BooleanField(default=True)
+    
+    # In-app preferences
+    in_app_enabled = models.BooleanField(default=True)
+    desktop_notifications = models.BooleanField(default=True)
+    sound_enabled = models.BooleanField(default=False)
+    
+    # Frequency settings
+    digest_frequency = models.CharField(
+        max_length=10,
+        choices=[
+            ('IMMEDIATE', 'Immediate'),
+            ('DAILY', 'Daily Digest'),
+            ('WEEKLY', 'Weekly Digest'),
+            ('NEVER', 'Never'),
+        ],
+        default='IMMEDIATE'
+    )
+    
+    # Quiet hours
+    quiet_hours_enabled = models.BooleanField(default=False)
+    quiet_start_time = models.TimeField(null=True, blank=True, help_text="Start of quiet hours (e.g., 22:00)")
+    quiet_end_time = models.TimeField(null=True, blank=True, help_text="End of quiet hours (e.g., 08:00)")
+    
+    # Additional settings
+    language_preference = models.CharField(max_length=10, default='en', help_text="Language for notifications")
+    timezone = models.CharField(max_length=50, default='UTC')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Notification Preference"
+        verbose_name_plural = "Notification Preferences"
+    
+    def __str__(self):
+        return f"Notification preferences for {self.user.email}"
+    
+    def is_notification_type_enabled(self, notification_type):
+        """Check if a specific notification type is enabled for the user"""
+        type_mapping = {
+            'APPOINTMENT_REMINDER': self.appointment_reminders,
+            'MEDICATION_REMINDER': self.medication_reminders,
+            'HEALTH_CAMPAIGN': self.health_campaigns,
+            'CLINIC_UPDATE': self.clinic_updates,
+            'FOLLOW_UP': self.follow_up_reminders,
+            'VACCINATION_REMINDER': self.vaccination_reminders,
+            'DENTAL_REMINDER': self.dental_reminders,
+        }
+        return type_mapping.get(notification_type, True)
+    
+    def is_in_quiet_hours(self, check_time=None):
+        """Check if current time is within user's quiet hours"""
+        if not self.quiet_hours_enabled or not self.quiet_start_time or not self.quiet_end_time:
+            return False
+        
+        if check_time is None:
+            check_time = timezone.now().time()
+        
+        if self.quiet_start_time <= self.quiet_end_time:
+            # Same day quiet hours (e.g., 22:00 to 23:59)
+            return self.quiet_start_time <= check_time <= self.quiet_end_time
+        else:
+            # Overnight quiet hours (e.g., 22:00 to 08:00)
+            return check_time >= self.quiet_start_time or check_time <= self.quiet_end_time
+
+
+class NotificationCampaign(models.Model):
+    """Model for managing notification campaigns"""
+    CAMPAIGN_STATUS = [
+        ('DRAFT', 'Draft'),
+        ('SCHEDULED', 'Scheduled'),
+        ('ACTIVE', 'Active'),
+        ('PAUSED', 'Paused'),
+        ('COMPLETED', 'Completed'),
+        ('CANCELLED', 'Cancelled'),
+    ]
+    
+    AUDIENCE_TYPES = [
+        ('ALL_USERS', 'All Users'),
+        ('ALL_PATIENTS', 'All Patients'),
+        ('ROLE_BASED', 'Role Based'),
+        ('CUSTOM_LIST', 'Custom List'),
+        ('PATIENT_CONDITION', 'Based on Patient Condition'),
+    ]
+    
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    campaign_type = models.CharField(max_length=30, choices=NotificationTemplate.TEMPLATE_TYPES)
+    
+    # Audience
+    audience_type = models.CharField(max_length=20, choices=AUDIENCE_TYPES)
+    target_roles = models.JSONField(default=list, blank=True, help_text="List of user roles to target")
+    target_users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name='targeted_campaigns')
+    
+    # Content
+    template = models.ForeignKey(NotificationTemplate, on_delete=models.CASCADE)
+    custom_subject = models.CharField(max_length=255, blank=True)
+    custom_message = models.TextField(blank=True)
+    
+    # Scheduling
+    scheduled_start = models.DateTimeField()
+    scheduled_end = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=15, choices=CAMPAIGN_STATUS, default='DRAFT')
+    
+    # Statistics
+    total_recipients = models.PositiveIntegerField(default=0)
+    sent_count = models.PositiveIntegerField(default=0)
+    delivered_count = models.PositiveIntegerField(default=0)
+    read_count = models.PositiveIntegerField(default=0)
+    failed_count = models.PositiveIntegerField(default=0)
+    
+    # Audit
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='created_campaigns')
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.name} ({self.get_status_display()})"
+    
+    @property
+    def success_rate(self):
+        """Calculate campaign success rate"""
+        if self.sent_count == 0:
+            return 0
+        return (self.delivered_count / self.sent_count) * 100
+    
+    @property
+    def engagement_rate(self):
+        """Calculate campaign engagement rate"""
+        if self.delivered_count == 0:
+            return 0
+        return (self.read_count / self.delivered_count) * 100
+
+
+class GlobalEmailSettings(models.Model):
+    """Singleton model for global email settings"""
+    is_emails_enabled = models.BooleanField(default=True, help_text="Master switch to enable/disable all automated emails")
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Global Email Setting"
+        verbose_name_plural = "Global Email Settings"
+
+    def __str__(self):
+        return f"Global Email Settings: {'Enabled' if self.is_emails_enabled else 'Disabled'}"
+
+    @classmethod
+    def get_settings(cls):
+        obj, created = cls.objects.get_or_create(id=1)
+        return obj
+
+
+class SystemEmailConfiguration(models.Model):
+    """Configuration for specific system email events"""
+    EVENT_CHOICES = [
+        ('ROLE_REQUEST', 'Role Upgrade Request'),
+        ('NEW_REGISTRATION', 'New User Registration'),
+        ('MEDICAL_CERTIFICATE_APPROVED', 'Medical Certificate Approved'),
+        ('MEDICAL_CERTIFICATE_REJECTED', 'Medical Certificate Rejected'),
+        ('SYSTEM_HEALTH_ALERT', 'System Health Alert'),
+        ('FEEDBACK_REQUEST', 'Patient Feedback Request'),
+    ]
+
+    event_type = models.CharField(max_length=50, choices=EVENT_CHOICES, unique=True)
+    is_enabled = models.BooleanField(default=True)
+    template = models.ForeignKey(NotificationTemplate, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    target_roles = models.JSONField(
+        default=list, 
+        blank=True, 
+        help_text="List of roles that should receive this notification (e.g., ['ADMIN'])"
+    )
+    
+    included_users = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, 
+        blank=True, 
+        related_name='included_in_system_emails',
+        help_text="Specific users to ALWAYS include for this event"
+    )
+    
+    excluded_users = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, 
+        blank=True, 
+        related_name='excluded_from_system_emails',
+        help_text="Specific users to ALWAYS exclude for this event"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "System Email Configuration"
+        verbose_name_plural = "System Email Configurations"
+
+    def __str__(self):
+        return f"Email Config: {self.get_event_type_display()} ({'Active' if self.is_enabled else 'Inactive'})"from django.db import models
+from django.conf import settings
+from django.core.validators import FileExtensionValidator
+from patients.models import Patient, MedicalRecord
+from authentication.models import User
+import json
+
+# Prefer Cloudinary RAW storage for non-image report files when available
+try:
+    from cloudinary_storage.storage import RawMediaCloudinaryStorage  # type: ignore
+    import cloudinary
+    # Only use Cloudinary if properly configured
+    if cloudinary.config().cloud_name:
+        REPORTS_STORAGE = RawMediaCloudinaryStorage()
+    else:
+        REPORTS_STORAGE = None
+except Exception:
+    REPORTS_STORAGE = None
+
+class ReportTemplate(models.Model):
+    """Templates for different types of reports"""
+    
+    REPORT_TYPES = [
+        ('PATIENT_SUMMARY', 'Patient Summary Report'),
+        ('VISIT_TRENDS', 'Visit Trends Report'),
+        ('TREATMENT_OUTCOMES', 'Treatment Outcomes Report'),
+        ('MEDICAL_STATISTICS', 'Medical Statistics Report'),
+        ('DENTAL_STATISTICS', 'Dental Statistics Report'),
+        ('FEEDBACK_ANALYSIS', 'Feedback Analysis Report'),
+        ('CAMPAIGN_PERFORMANCE', 'Campaign Performance Report'),
+        ('USER_ACTIVITY', 'User Activity Report'),
+        ('HEALTH_METRICS', 'Health Metrics Report'),
+    ]
+    
+    EXPORT_FORMATS = [
+        ('PDF', 'PDF Document'),
+        ('EXCEL', 'Excel Spreadsheet'),
+        ('CSV', 'CSV File'),
+        ('JSON', 'JSON Data'),
+        ('HTML', 'HTML Report'),
+    ]
+    
+    name = models.CharField(max_length=200)
+    description = models.TextField()
+    report_type = models.CharField(max_length=25, choices=REPORT_TYPES)
+    template_content = models.TextField(help_text="HTML template for the report")
+    default_filters = models.JSONField(default=dict, help_text="Default filter settings")
+    supported_formats = models.JSONField(default=list, help_text="List of supported export formats")
+    
+    # Configuration
+    is_active = models.BooleanField(default=True)
+    requires_date_range = models.BooleanField(default=True)
+    requires_patient_filter = models.BooleanField(default=False)
+    requires_user_filter = models.BooleanField(default=False)
+    
+    # Permissions
+    allowed_roles = models.JSONField(default=list, help_text="List of user roles allowed to generate this report")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    
+    class Meta:
+        ordering = ['report_type', 'name']
+    
+    def __str__(self):
+        return f"{self.name} ({self.get_report_type_display()})"
+
+class GeneratedReport(models.Model):
+    """Tracks generated reports and their metadata"""
+    
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('GENERATING', 'Generating'),
+        ('COMPLETED', 'Completed'),
+        ('FAILED', 'Failed'),
+        ('EXPIRED', 'Expired'),
+    ]
+    
+    template = models.ForeignKey(ReportTemplate, on_delete=models.CASCADE, related_name='generated_reports')
+    generated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    
+    # Report Parameters
+    title = models.CharField(max_length=300)
+    date_range_start = models.DateTimeField(null=True, blank=True)
+    date_range_end = models.DateTimeField(null=True, blank=True)
+    filters = models.JSONField(default=dict, help_text="Applied filters for this report")
+    export_format = models.CharField(max_length=10, choices=ReportTemplate.EXPORT_FORMATS)
+    
+    # Status and Results
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='PENDING')
+    progress_percentage = models.PositiveIntegerField(default=0)
+    error_message = models.TextField(blank=True)
+    
+    # File Storage
+    file_path = models.FileField(
+        upload_to='reports/',
+        max_length=255,
+        storage=REPORTS_STORAGE,
+        validators=[FileExtensionValidator(allowed_extensions=['pdf', 'xlsx', 'csv', 'json', 'html'])],
+        null=True,
+        blank=True,
+    )
+    file_size = models.PositiveIntegerField(null=True, blank=True, help_text="File size in bytes")
+    
+    # Metadata
+    record_count = models.PositiveIntegerField(null=True, blank=True, help_text="Number of records in report")
+    generation_time = models.DurationField(null=True, blank=True, help_text="Time taken to generate report")
+    expires_at = models.DateTimeField(null=True, blank=True, help_text="When this report expires")
+    download_count = models.PositiveIntegerField(default=0)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['generated_by', 'status']),
+            models.Index(fields=['template', 'created_at']),
+            models.Index(fields=['expires_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.title} - {self.get_status_display()}"
+    
+    def increment_download_count(self):
+        """Increment download count"""
+        self.download_count += 1
+        self.save(update_fields=['download_count'])
+
+class ReportMetric(models.Model):
+    """Stores calculated metrics for reports"""
+    
+    METRIC_TYPES = [
+        ('COUNT', 'Count'),
+        ('PERCENTAGE', 'Percentage'),
+        ('AVERAGE', 'Average'),
+        ('SUM', 'Sum'),
+        ('RATIO', 'Ratio'),
+        ('TREND', 'Trend'),
+        ('DISTRIBUTION', 'Distribution'),
+    ]
+    
+    report = models.ForeignKey(GeneratedReport, on_delete=models.CASCADE, related_name='metrics')
+    metric_name = models.CharField(max_length=100)
+    metric_type = models.CharField(max_length=15, choices=METRIC_TYPES)
+    metric_value = models.JSONField(help_text="Metric value (can be number, list, dict)")
+    display_order = models.PositiveIntegerField(default=0)
+    
+    class Meta:
+        ordering = ['display_order', 'metric_name']
+        unique_together = ['report', 'metric_name']
+    
+    def __str__(self):
+        return f"{self.metric_name}: {self.metric_value}"
+
+class ReportChart(models.Model):
+    """Stores chart data for reports"""
+    
+    CHART_TYPES = [
+        ('BAR', 'Bar Chart'),
+        ('LINE', 'Line Chart'),
+        ('PIE', 'Pie Chart'),
+        ('DOUGHNUT', 'Doughnut Chart'),
+        ('AREA', 'Area Chart'),
+        ('SCATTER', 'Scatter Plot'),
+        ('HISTOGRAM', 'Histogram'),
+        ('HEATMAP', 'Heatmap'),
+    ]
+    
+    report = models.ForeignKey(GeneratedReport, on_delete=models.CASCADE, related_name='charts')
+    chart_title = models.CharField(max_length=200)
+    chart_type = models.CharField(max_length=15, choices=CHART_TYPES)
+    chart_data = models.JSONField(help_text="Chart.js compatible data structure")
+    chart_options = models.JSONField(default=dict, help_text="Chart.js options")
+    display_order = models.PositiveIntegerField(default=0)
+    
+    class Meta:
+        ordering = ['display_order', 'chart_title']
+    
+    def __str__(self):
+        return f"{self.chart_title} ({self.get_chart_type_display()})"
+
+class ReportSchedule(models.Model):
+    """Schedules for automatic report generation"""
+    
+    FREQUENCY_CHOICES = [
+        ('DAILY', 'Daily'),
+        ('WEEKLY', 'Weekly'),
+        ('MONTHLY', 'Monthly'),
+        ('QUARTERLY', 'Quarterly'),
+        ('YEARLY', 'Yearly'),
+    ]
+    
+    template = models.ForeignKey(ReportTemplate, on_delete=models.CASCADE, related_name='schedules')
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    
+    # Schedule Configuration
+    frequency = models.CharField(max_length=15, choices=FREQUENCY_CHOICES)
+    day_of_week = models.PositiveIntegerField(null=True, blank=True, help_text="0=Monday, 6=Sunday")
+    day_of_month = models.PositiveIntegerField(null=True, blank=True, help_text="1-31")
+    time_of_day = models.TimeField(help_text="Time to generate report")
+    
+    # Recipients
+    email_recipients = models.JSONField(default=list, help_text="List of email addresses")
+    user_recipients = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name='scheduled_reports')
+    
+    # Configuration
+    export_format = models.CharField(max_length=10, choices=ReportTemplate.EXPORT_FORMATS, default='PDF')
+    filters = models.JSONField(default=dict, help_text="Default filters for scheduled reports")
+    is_active = models.BooleanField(default=True)
+    
+    # Tracking
+    last_run = models.DateTimeField(null=True, blank=True)
+    next_run = models.DateTimeField(null=True, blank=True)
+    run_count = models.PositiveIntegerField(default=0)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='created_schedules')
+    
+    class Meta:
+        ordering = ['next_run', 'name']
+    
+    def __str__(self):
+        return f"{self.name} ({self.get_frequency_display()})"
+
+class ReportAnalytics(models.Model):
+    """Analytics about report usage and performance"""
+    
+    report_template = models.ForeignKey(ReportTemplate, on_delete=models.CASCADE, related_name='analytics')
+    
+    # Usage Statistics
+    total_generations = models.PositiveIntegerField(default=0)
+    total_downloads = models.PositiveIntegerField(default=0)
+    unique_users = models.PositiveIntegerField(default=0)
+    
+    # Performance Statistics
+    average_generation_time = models.DurationField(null=True, blank=True)
+    average_file_size = models.PositiveIntegerField(null=True, blank=True)
+    success_rate = models.FloatField(default=0.0, help_text="Percentage of successful generations")
+    
+    # Popular Formats
+    pdf_downloads = models.PositiveIntegerField(default=0)
+    excel_downloads = models.PositiveIntegerField(default=0)
+    csv_downloads = models.PositiveIntegerField(default=0)
+    
+    # Time Tracking
+    last_calculated = models.DateTimeField(auto_now=True)
+    calculation_period_start = models.DateTimeField()
+    calculation_period_end = models.DateTimeField()
+    
+    class Meta:
+        unique_together = ['report_template', 'calculation_period_start', 'calculation_period_end']
+        ordering = ['-last_calculated']
+    
+    def __str__(self):
+        return f"Analytics for {self.report_template.name}"
+
+class ReportBookmark(models.Model):
+    """User bookmarks for frequently used reports"""
+    
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='report_bookmarks')
+    template = models.ForeignKey(ReportTemplate, on_delete=models.CASCADE)
+    name = models.CharField(max_length=200, help_text="Custom name for this bookmark")
+    saved_filters = models.JSONField(default=dict, help_text="Saved filter preferences")
+    preferred_format = models.CharField(max_length=10, choices=ReportTemplate.EXPORT_FORMATS, default='PDF')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used = models.DateTimeField(auto_now=True)
+    use_count = models.PositiveIntegerField(default=0)
+    
+    class Meta:
+        unique_together = ['user', 'template', 'name']
+        ordering = ['-last_used']
+    
+    def __str__(self):
+        return f"{self.name} (by {self.user.email})"
+    
+    def increment_use_count(self):
+        """Increment use count and update last used"""
+        self.use_count += 1
+        self.save(update_fields=['use_count', 'last_used']) 
