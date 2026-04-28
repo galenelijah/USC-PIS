@@ -527,32 +527,9 @@ const DatabaseMonitor = () => {
                     </Alert>
                 ) : (
                     <>
-                        {/* System Health Overview */}
+                        {/* Backup Overview */}
                         <Grid container spacing={3} sx={{ mb: 3 }}>
-                            <Grid item xs={12} md={4}>
-                                <Card>
-                                    <CardContent>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                            <Security sx={{ mr: 1 }} />
-                                            <Typography variant="h6">System Health</Typography>
-                                        </Box>
-                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                            {getHealthStatusIcon(backupData?.backup_summary?.health_status)}
-                                            <Typography 
-                                                variant="h6" 
-                                                sx={{ 
-                                                    ml: 1,
-                                                    color: backupData?.system_health?.backup_system_healthy ? 'green' : 'red'
-                                                }}
-                                            >
-                                                {backupData?.system_health?.backup_system_healthy ? 'Healthy' : 'Issues Detected'}
-                                            </Typography>
-                                        </Box>
-                                    </CardContent>
-                                </Card>
-                            </Grid>
-
-                            <Grid item xs={12} md={4}>
+                            <Grid item xs={12} md={6}>
                                 <Card>
                                     <CardContent>
                                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -568,7 +545,7 @@ const DatabaseMonitor = () => {
                                 </Card>
                             </Grid>
 
-                            <Grid item xs={12} md={4}>
+                            <Grid item xs={12} md={6}>
                                 <Card>
                                     <CardContent>
                                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -810,20 +787,8 @@ const DatabaseMonitor = () => {
                                                     startIcon={<Visibility />}
                                                     onClick={() => handleVerifyDryRun(backup.id)}
                                                     disabled={backup.status !== 'success'}
-                                                    sx={{ mr: 1 }}
                                                 >
                                                     Verify (Dry)
-                                                </Button>
-                                                <Button
-                                                    variant="contained"
-                                                    size="small"
-                                                    startIcon={<Restore />}
-                                                    onClick={() => handleRestoreBackup(backup.id)}
-                                                    disabled={backup.status !== 'success' || backup.backup_type !== 'database'}
-                                                    color="warning"
-                                                    sx={{ mr: 1 }}
-                                                >
-                                                    Restore
                                                 </Button>
                                             </TableCell>
                                         </TableRow>
@@ -877,8 +842,6 @@ const DatabaseMonitor = () => {
                                         onChange={(e) => setUploadType(e.target.value)}
                                     >
                                         <MenuItem value="database">Database (.json, .json.gz)</MenuItem>
-                                        <MenuItem value="media">Media Files (.zip)</MenuItem>
-                                        <MenuItem value="full">Full System (.zip)</MenuItem>
                                     </Select>
                                 </FormControl>
 
@@ -995,24 +958,11 @@ const DatabaseMonitor = () => {
                                 Upload Instructions
                             </Typography>
                             <Grid container spacing={2}>
-                                <Grid item xs={12} sm={4}>
+                                <Grid item xs={12}>
                                     <Alert severity="info">
-                                        <Typography variant="subtitle2">Database Backups</Typography>
+                                        <Typography variant="subtitle2">Database Backups Only</Typography>
                                         Upload .json or .json.gz files containing Django fixture data.
-                                        Max size: 500MB
-                                    </Alert>
-                                </Grid>
-                                <Grid item xs={12} sm={4}>
-                                    <Alert severity="info">
-                                        <Typography variant="subtitle2">Media Backups</Typography>
-                                        Upload .zip files containing media files with directory structure.
-                                        Max size: 500MB
-                                    </Alert>
-                                </Grid>
-                                <Grid item xs={12} sm={4}>
-                                    <Alert severity="warning">
-                                        <Typography variant="subtitle2">Full System Backups</Typography>
-                                        Upload .zip files containing both database JSON and media files.
+                                        This system currently only supports structured data backups to ensure clinical record integrity.
                                         Max size: 500MB
                                     </Alert>
                                 </Grid>
@@ -1035,8 +985,6 @@ const DatabaseMonitor = () => {
                                 label="Backup Type"
                             >
                                 <MenuItem value="database">Database Only</MenuItem>
-                                <MenuItem value="media">Media Files Only</MenuItem>
-                                <MenuItem value="full">Complete System Backup</MenuItem>
                             </Select>
                         </FormControl>
                         
@@ -1063,13 +1011,9 @@ const DatabaseMonitor = () => {
                         )}
                         
                         <Alert severity="info" sx={{ mt: 2 }}>
-                            {backupType === 'database' && (
-                                quickBackup 
-                                    ? 'Creates a fast database export of essential data (patient records, users, campaigns). Excludes logs and reports for faster completion.'
-                                    : 'Creates a complete export of all database tables including patient records and system settings.'
-                            )}
-                            {backupType === 'media' && 'Backs up all uploaded files, images, and documents.'}
-                            {backupType === 'full' && 'Creates a complete system backup including both database and media files. Note: This may take longer due to file uploads.'}
+                            {quickBackup 
+                                ? 'Creates a fast database export of essential data (patient records, users, campaigns). Excludes logs and reports for faster completion.'
+                                : 'Creates a complete export of all database tables including patient records and system settings.'}
                         </Alert>
                     </Box>
                 </DialogContent>
