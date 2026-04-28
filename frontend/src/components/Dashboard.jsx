@@ -76,7 +76,7 @@ const Dashboard = memo(({ user }) => {
   const [error, setError] = useState(null);
 
   // Define role check constants based on the user prop
-  const isAdminOrStaffOrDoctor = user && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST'].includes(user.role);
+  const isAdminOrStaffOrDoctor = user && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE', 'FACULTY'].includes(user.role);
   const isDoctor = user && (user.role === 'DOCTOR' || user.role === 'DENTIST');
   const isNurse = user && user.role === 'NURSE';
   const isStudent = user && ['STUDENT', 'FACULTY'].includes(user.role);

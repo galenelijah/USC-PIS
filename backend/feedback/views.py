@@ -22,7 +22,7 @@ class FeedbackViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in ['ADMIN', 'STAFF']:
+        if user.role != 'STUDENT':
             return Feedback.objects.all().order_by('-created_at')
         elif hasattr(user, 'patient_profile'):
             return Feedback.objects.filter(patient=user.patient_profile).order_by('-created_at')

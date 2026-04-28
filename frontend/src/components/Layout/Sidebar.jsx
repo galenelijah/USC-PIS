@@ -64,7 +64,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
     }
   }, [userFromRedux]);
 
-  const isAdminOrStaffOrDoctor = user && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST'].includes(user.role);
+  const isAdminOrStaffOrDoctor = user && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE', 'FACULTY'].includes(user.role);
   const isDoctor = user && (user.role === 'DOCTOR' || user.role === 'DENTIST');
   const isNurse = user && user.role === 'NURSE';
 
