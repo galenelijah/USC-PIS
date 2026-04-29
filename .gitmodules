@@ -1,0 +1,3 @@
+[submodule "manuscript"]
+	path = manuscript
+	url = https://github.com/galenelijah/USC-BSCPE-Long-Format-Thesis-Template.git

@@ -46,18 +46,20 @@ class Command(BaseCommand):
         
         self.stdout.write(f"Looking for visits between {cutoff_time} and {end_time}")
         
-        # Get medical visits that need feedback emails
+        # Get medical visits that need feedback emails (excluding those that already have feedback)
         medical_visits = MedicalRecord.objects.filter(
             visit_date__gte=cutoff_time.date(),
             visit_date__lte=end_time.date(),
-            patient__user__isnull=False  # Only patients with user accounts
+            patient__user__isnull=False,  # Only patients with user accounts
+            feedbacks__isnull=True        # Only visits without feedback already provided
         ).select_related('patient', 'patient__user')
         
-        # Get dental visits that need feedback emails
+        # Get dental visits that need feedback emails (excluding those that already have feedback)
         dental_visits = DentalRecord.objects.filter(
             visit_date__gte=cutoff_time.date(),
             visit_date__lte=end_time.date(),
-            patient__user__isnull=False  # Only patients with user accounts
+            patient__user__isnull=False,  # Only patients with user accounts
+            feedbacks__isnull=True        # Only visits without feedback already provided
         ).select_related('patient', 'patient__user')
         
         total_visits = medical_visits.count() + dental_visits.count()

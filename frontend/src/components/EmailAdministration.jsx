@@ -774,44 +774,50 @@ const EmailAdministration = () => {
               
               <Grid container spacing={3}>
                 <Grid item xs={12} md={4}>
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    startIcon={<SendIcon />}
-                    onClick={() => setTestDialogOpen(true)}
-                    disabled={actionLoading}
-                    sx={{ py: 1.5 }}
-                  >
-                    Send Manual Test Email
-                  </Button>
+                  <Tooltip title="Send a single manual email to any address to verify SMTP/Gmail connectivity without affecting real patient data." arrow>
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      startIcon={<SendIcon />}
+                      onClick={() => setTestDialogOpen(true)}
+                      disabled={actionLoading}
+                      sx={{ py: 1.5 }}
+                    >
+                      Send Manual Test Email
+                    </Button>
+                  </Tooltip>
                 </Grid>
                 
                 <Grid item xs={12} md={4}>
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    color="secondary"
-                    startIcon={<EmailIcon />}
-                    onClick={() => setFeedbackDialogOpen(true)}
-                    disabled={actionLoading}
-                    sx={{ py: 1.5 }}
-                  >
-                    Trigger Feedback Loop
-                  </Button>
+                  <Tooltip title="Manually trigger the batch process that sends survey/feedback requests to patients who visited the clinic recently (e.g., 24h ago)." arrow>
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      color="secondary"
+                      startIcon={<EmailIcon />}
+                      onClick={() => setFeedbackDialogOpen(true)}
+                      disabled={actionLoading}
+                      sx={{ py: 1.5 }}
+                    >
+                      Process Visit Feedback
+                    </Button>
+                  </Tooltip>
                 </Grid>
                 
                 <Grid item xs={12} md={4}>
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    color="warning"
-                    startIcon={<WarningIcon />}
-                    onClick={() => setAlertDialogOpen(true)}
-                    disabled={actionLoading}
-                    sx={{ py: 1.5 }}
-                  >
-                    Broadcast Health Alert
-                  </Button>
+                  <Tooltip title="Force-sends a comprehensive health report (database, storage, security status) to all system administrators." arrow>
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      color="warning"
+                      startIcon={<WarningIcon />}
+                      onClick={() => setAlertDialogOpen(true)}
+                      disabled={actionLoading}
+                      sx={{ py: 1.5 }}
+                    >
+                      Broadcast Health Alert
+                    </Button>
+                  </Tooltip>
                 </Grid>
               </Grid>
             </CardContent>
@@ -834,11 +840,10 @@ const EmailAdministration = () => {
           <Alert severity="info" sx={{ mb: 3 }}>
             <Typography variant="subtitle2" fontWeight="bold">System Notification Capabilities:</Typography>
             <Typography variant="body2">
-              The system currently supports the following notification types: 
-              <strong> Appointment, Medication, Health Campaign, Clinic Update, Follow-up, Vaccination, Dental, System Alert, and Custom.</strong>
+              The system currently supports the following clinical and administrative notification types:
+              <strong> Health Campaign, Medical Certificate (Approved/Rejected), Patient Feedback, Clinic Update, Dental Reminder, and System Health Alert.</strong>
             </Typography>
           </Alert>
-
           <TableContainer component={Paper} variant="outlined">
             <Table size="small">
               <TableHead sx={{ bgcolor: 'grey.50' }}>
@@ -1060,16 +1065,12 @@ const EmailAdministration = () => {
                   onChange={(e) => setTemplateForm(prev => ({ ...prev, template_type: e.target.value }))}
                   label="Template Type"
                 >
-                  <MenuItem value="APPOINTMENT_REMINDER">Appointment Reminder</MenuItem>
-                  <MenuItem value="MEDICATION_REMINDER">Medication Reminder</MenuItem>
                   <MenuItem value="HEALTH_CAMPAIGN">Health Campaign</MenuItem>
                   <MenuItem value="CLINIC_UPDATE">Clinic Update</MenuItem>
-                  <MenuItem value="FOLLOW_UP">Follow-up Reminder</MenuItem>
-                  <MenuItem value="VACCINATION_REMINDER">Vaccination Reminder</MenuItem>
+                  <MenuItem value="FOLLOW_UP">Patient Feedback/Follow-up</MenuItem>
                   <MenuItem value="DENTAL_REMINDER">Dental Checkup Reminder</MenuItem>
-                  <MenuItem value="CUSTOM">Custom Notification</MenuItem>
-                </Select>
-              </FormControl>
+                  <MenuItem value="CUSTOM">Custom/Other</MenuItem>
+                </Select>              </FormControl>
             </Grid>
             <Grid item xs={12}>
               <TextField
@@ -1194,18 +1195,28 @@ const EmailAdministration = () => {
 
       {/* Feedback Email Dialog */}
       <Dialog open={feedbackDialogOpen} onClose={() => setFeedbackDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Send Feedback Emails</DialogTitle>
+        <DialogTitle>Process Visit Feedback</DialogTitle>
         <DialogContent>
+          <Typography variant="body2" color="text.secondary" paragraph>
+            This triggers the automated system to find patients who visited the clinic in a specific 1-hour window and sends them a feedback survey.
+          </Typography>
+
           <TextField
             fullWidth
-            label="Hours Since Visit"
+            label="Hours Ago"
             value={feedbackForm.hours}
             onChange={(e) => setFeedbackForm(prev => ({ ...prev, hours: parseInt(e.target.value) || 24 }))}
             margin="normal"
             type="number"
-            helperText="Send feedback emails for visits from X hours ago"
+            helperText="Example: '24' targets visits from exactly 24 to 23 hours ago."
           />
-          
+
+          <Alert severity="info" sx={{ mt: 1, mb: 2 }}>
+            <Typography variant="caption" sx={{ display: 'block' }}>
+              <strong>How it works:</strong> The system looks for visits in a 1-hour block. If you select <strong>2 hours ago</strong>, it looks for patients who visited between 2 hours ago and 1 hour ago. If no visits were recorded in that specific hour, 0 emails will be sent.
+            </Typography>
+          </Alert>
+
           <FormControlLabel
             control={
               <Switch
@@ -1215,7 +1226,7 @@ const EmailAdministration = () => {
             }
             label="Dry Run (Preview Only)"
           />
-          
+
           {feedbackResults && (
             <Box sx={{ mt: 2 }}>
               <Typography variant="subtitle1" gutterBottom>Results:</Typography>
@@ -1223,13 +1234,18 @@ const EmailAdministration = () => {
                 {feedbackForm.dryRun ? 'Would send' : 'Sent'} {feedbackResults.sent_count} emails
                 {feedbackResults.error_count > 0 && ` (${feedbackResults.error_count} errors)`}
               </Alert>
+              {feedbackResults.sent_count === 0 && !feedbackResults.error_count && (
+                <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
+                  Note: No patient visits were found for the selected time window.
+                </Typography>
+              )}
             </Box>
           )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setFeedbackDialogOpen(false)}>Cancel</Button>
-          <Button 
-            onClick={handleSendFeedbackEmails} 
+          <Button
+            onClick={handleSendFeedbackEmails}
             variant="contained"
             disabled={actionLoading}
             startIcon={actionLoading ? <CircularProgress size={20} /> : null}
@@ -1238,7 +1254,6 @@ const EmailAdministration = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* Health Alert Dialog */}
       <Dialog open={alertDialogOpen} onClose={() => setAlertDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Send Health System Alert</DialogTitle>
@@ -1474,7 +1489,7 @@ const EmailAdministration = () => {
       {/* System Health Details Dialog */}
       <Dialog open={healthDialogOpen} onClose={() => setHealthDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>
-          Understanding System Health Diagnostics
+          Real-time System Diagnostics
         </DialogTitle>
         <DialogContent dividers>
           <Typography variant="body1" paragraph fontWeight="bold">
@@ -1482,35 +1497,81 @@ const EmailAdministration = () => {
           </Typography>
           
           <Grid container spacing={3}>
-            {Object.entries(healthExplanations).map(([key, info]) => (
-              <Grid item xs={12} key={key}>
-                <Paper variant="outlined" sx={{ p: 2, bgcolor: alpha('#1976d2', 0.02) }}>
-                  <Box display="flex" alignItems="center" mb={1}>
-                    <CheckCircleIcon color="success" sx={{ mr: 1, fontSize: 20 }} />
-                    <Typography variant="subtitle1" fontWeight="bold">
-                      {info.title}
+            {Object.entries(healthExplanations).map(([key, info]) => {
+              const checkResult = emailStats?.system_health_details?.checks?.[key];
+              const status = checkResult?.status || 'unknown';
+              
+              return (
+                <Grid item xs={12} key={key}>
+                  <Paper variant="outlined" sx={{ 
+                    p: 2, 
+                    bgcolor: status === 'healthy' ? alpha('#4caf50', 0.05) : status === 'warning' ? alpha('#ff9800', 0.05) : alpha('#f44336', 0.05),
+                    borderColor: status === 'healthy' ? 'success.main' : status === 'warning' ? 'warning.main' : 'error.main',
+                    borderWidth: status === 'healthy' ? 1 : 2
+                  }}>
+                    <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
+                      <Box display="flex" alignItems="center">
+                        {status === 'healthy' ? (
+                          <CheckCircleIcon color="success" sx={{ mr: 1, fontSize: 24 }} />
+                        ) : status === 'warning' ? (
+                          <WarningIcon color="warning" sx={{ mr: 1, fontSize: 24 }} />
+                        ) : (
+                          <ErrorIcon color="error" sx={{ mr: 1, fontSize: 24 }} />
+                        )}
+                        <Typography variant="subtitle1" fontWeight="bold">
+                          {info.title}
+                        </Typography>
+                      </Box>
+                      <Chip 
+                        label={status.toUpperCase()} 
+                        size="small" 
+                        color={status === 'healthy' ? 'success' : status === 'warning' ? 'warning' : 'error'}
+                        variant={status === 'healthy' ? 'outlined' : 'filled'}
+                      />
+                    </Box>
+                    
+                    <Typography variant="body2" sx={{ mb: 2 }}>
+                      {info.desc}
                     </Typography>
-                  </Box>
-                  <Typography variant="body2" color="text.secondary">
-                    {info.desc}
-                  </Typography>
-                </Paper>
-              </Grid>
-            ))}
+
+                    <Box sx={{ p: 1.5, bgcolor: 'background.paper', borderRadius: 1, borderLeft: '4px solid', borderColor: status === 'healthy' ? 'success.main' : status === 'warning' ? 'warning.main' : 'error.main' }}>
+                      <Typography variant="body2" fontWeight="bold" color={status === 'healthy' ? 'success.main' : status === 'warning' ? 'warning.dark' : 'error.main'}>
+                        Diagnostic: {checkResult?.message || 'Waiting for check result...'}
+                      </Typography>
+                      {checkResult?.metrics && (
+                        <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                          {Object.entries(checkResult.metrics).map(([mKey, mVal]) => (
+                            <Chip 
+                              key={mKey} 
+                              label={`${mKey}: ${mVal}`} 
+                              size="small" 
+                              variant="outlined" 
+                              sx={{ fontSize: '0.7rem' }}
+                            />
+                          ))}
+                        </Box>
+                      )}
+                    </Box>
+                  </Paper>
+                </Grid>
+              );
+            })}
           </Grid>
           
-          <Box sx={{ mt: 4, p: 2, bgcolor: 'warning.light', borderRadius: 1, color: 'warning.contrastText' }}>
+          <Box sx={{ mt: 4, p: 2, bgcolor: 'info.light', borderRadius: 1, color: 'info.contrastText' }}>
             <Typography variant="subtitle2" fontWeight="bold">
-              What if a check fails?
+              Infrastructure Status Legend
             </Typography>
-            <Typography variant="caption">
-              Failures (Red) usually mean a service is down or credentials have expired. Warnings (Orange) typically mean the system is working but using "Development" settings which should be updated before a full production launch.
+            <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+              • <strong>Healthy (Green):</strong> Operational and configured for production use.<br />
+              • <strong>Warning (Orange):</strong> Functional, but requires attention (e.g., using development settings, missing recent backups).<br />
+              • <strong>Critical (Red):</strong> Service is down or major configuration error. Requires immediate intervention.
             </Typography>
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setHealthDialogOpen(false)} variant="contained">
-            Got it
+          <Button onClick={() => setHealthDialogOpen(false)} variant="contained" color="primary">
+            Close Diagnostics
           </Button>
         </DialogActions>
       </Dialog>

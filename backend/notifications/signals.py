@@ -18,12 +18,9 @@ def create_notification_preferences(sender, instance, created, **kwargs):
             defaults={
                 'email_enabled': True,
                 'in_app_enabled': True,
-                'appointment_reminders': True,
-                'medication_reminders': True,
                 'health_campaigns': True,
                 'clinic_updates': True,
                 'follow_up_reminders': True,
-                'vaccination_reminders': True,
                 'dental_reminders': True,
                 'desktop_notifications': True,
                 'sound_enabled': False,
@@ -213,71 +210,6 @@ def create_default_templates():
     
     default_templates = [
         {
-            'name': 'Appointment Reminder - 24 Hours',
-            'template_type': 'APPOINTMENT_REMINDER',
-            'subject_template': 'Appointment Reminder: {{appointment_date}} at {{appointment_time}}',
-            'body_template': '''Dear {{patient_first_name}},
-
-This is a reminder that you have an appointment scheduled:
-
-Date: {{appointment_date}}
-Time: {{appointment_time}}
-Doctor: {{doctor_name}}
-Type: {{appointment_type}}
-Location: {{location}}
-
-Please arrive 15 minutes early for check-in. If you need to reschedule or cancel, please contact us at least 24 hours in advance.
-
-Contact Information:
-Phone: {{clinic_phone}}
-Email: {{clinic_email}}
-
-Thank you,
-{{clinic_name}}''',
-            'available_variables': {
-                'patient_first_name': 'Patient first name',
-                'appointment_date': 'Appointment date',
-                'appointment_time': 'Appointment time',
-                'doctor_name': 'Doctor name',
-                'appointment_type': 'Type of appointment',
-                'location': 'Appointment location',
-                'clinic_name': 'Clinic name',
-                'clinic_phone': 'Clinic phone',
-                'clinic_email': 'Clinic email'
-            }
-        },
-        {
-            'name': 'Medication Reminder',
-            'template_type': 'MEDICATION_REMINDER',
-            'subject_template': 'Medication Reminder: {{medication_name}}',
-            'body_template': '''Dear {{patient_first_name}},
-
-This is a reminder to take your medication:
-
-Medication: {{medication_name}}
-Dosage: {{dosage}}
-Time: {{scheduled_time}}
-Instructions: {{instructions}}
-
-Important: Please follow your prescribed medication schedule. If you have any questions or concerns, contact your healthcare provider.
-
-Contact Information:
-Phone: {{clinic_phone}}
-Email: {{clinic_email}}
-
-{{clinic_name}}''',
-            'available_variables': {
-                'patient_first_name': 'Patient first name',
-                'medication_name': 'Name of medication',
-                'dosage': 'Medication dosage',
-                'scheduled_time': 'Scheduled time',
-                'instructions': 'Special instructions',
-                'clinic_name': 'Clinic name',
-                'clinic_phone': 'Clinic phone',
-                'clinic_email': 'Clinic email'
-            }
-        },
-        {
             'name': 'Health Campaign Notification',
             'template_type': 'HEALTH_CAMPAIGN',
             'subject_template': 'Health Campaign: {{campaign_title}}',
@@ -372,35 +304,6 @@ Email: {{clinic_email}}
                 'recommended_date': 'Recommended follow-up date',
                 'previous_visit_date': 'Previous visit date',
                 'doctor_name': 'Doctor name',
-                'clinic_name': 'Clinic name',
-                'clinic_phone': 'Clinic phone',
-                'clinic_email': 'Clinic email'
-            }
-        },
-        {
-            'name': 'Vaccination Reminder',
-            'template_type': 'VACCINATION_REMINDER',
-            'subject_template': 'Vaccination Reminder: {{vaccine_name}}',
-            'body_template': '''Dear {{patient_first_name}},
-
-This is a reminder that you are due for a vaccination:
-
-Vaccine: {{vaccine_name}}
-Due Date: {{due_date}}
-Previous Vaccination: {{previous_vaccination_date}}
-
-Staying up-to-date with vaccinations is important for your health and the health of our community.
-
-To schedule your vaccination appointment:
-Phone: {{clinic_phone}}
-Email: {{clinic_email}}
-
-{{clinic_name}}''',
-            'available_variables': {
-                'patient_first_name': 'Patient first name',
-                'vaccine_name': 'Name of vaccine',
-                'due_date': 'Vaccination due date',
-                'previous_vaccination_date': 'Previous vaccination date',
                 'clinic_name': 'Clinic name',
                 'clinic_phone': 'Clinic phone',
                 'clinic_email': 'Clinic email'

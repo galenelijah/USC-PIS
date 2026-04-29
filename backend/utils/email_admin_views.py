@@ -375,25 +375,28 @@ def send_health_alert(request):
 def email_automation_stats(request):
     """Get statistics about email automation"""
     try:
-        # Get recent visit stats for feedback emails
+        # Get recent visit stats for feedback emails (Medical + Dental)
         now = timezone.now()
+        today = now.date()
+        yesterday = today - timedelta(days=1)
         
-        # Visits in different time periods
-        visits_today = MedicalRecord.objects.filter(
-            visit_date=now.date()
-        ).count()
+        # Visits today
+        m_today = MedicalRecord.objects.filter(visit_date__date=today).count()
+        d_today = DentalRecord.objects.filter(visit_date__date=today).count()
         
-        visits_yesterday = MedicalRecord.objects.filter(
-            visit_date=now.date() - timedelta(days=1)
-        ).count()
+        # Visits yesterday
+        m_yesterday = MedicalRecord.objects.filter(visit_date__date=yesterday).count()
+        d_yesterday = DentalRecord.objects.filter(visit_date__date=yesterday).count()
         
-        visits_week = MedicalRecord.objects.filter(
-            visit_date__gte=now.date() - timedelta(days=7)
-        ).count()
+        # Visits last 7 days
+        week_ago = today - timedelta(days=7)
+        m_week = MedicalRecord.objects.filter(visit_date__date__gte=week_ago).count()
+        d_week = DentalRecord.objects.filter(visit_date__date__gte=week_ago).count()
         
-        visits_month = MedicalRecord.objects.filter(
-            visit_date__gte=now.date() - timedelta(days=30)
-        ).count()
+        # Visits last 30 days
+        month_ago = today - timedelta(days=30)
+        m_month = MedicalRecord.objects.filter(visit_date__date__gte=month_ago).count()
+        d_month = DentalRecord.objects.filter(visit_date__date__gte=month_ago).count()
         
         # System health status
         health_checker = HealthChecker()
@@ -401,14 +404,26 @@ def email_automation_stats(request):
         
         stats = {
             'visits': {
-                'today': visits_today,
-                'yesterday': visits_yesterday,
-                'last_7_days': visits_week,
-                'last_30_days': visits_month
+                'today': m_today + d_today,
+                'yesterday': m_yesterday + d_yesterday,
+                'last_7_days': m_week + d_week,
+                'last_30_days': m_month + d_month
+            },
+            'visit_details': {
+                'medical': {
+                    'today': m_today,
+                    'yesterday': m_yesterday,
+                    'total_month': m_month
+                },
+                'dental': {
+                    'today': d_today,
+                    'yesterday': d_yesterday,
+                    'total_month': d_month
+                }
             },
             'estimated_feedback_emails': {
-                'pending_today': visits_today,  # Assumes 24hr delay
-                'pending_yesterday': visits_yesterday,
+                'pending_today': m_today + d_today,
+                'pending_yesterday': m_yesterday + d_yesterday,
             },
             'system_health': {
                 'overall_status': health_status['overall_status'],
@@ -417,6 +432,7 @@ def email_automation_stats(request):
                 'warning_checks': health_status['summary']['warnings'],
                 'unhealthy_checks': health_status['summary']['unhealthy']
             },
+            'system_health_details': health_status,
             'last_updated': timezone.now().isoformat()
         }
         
