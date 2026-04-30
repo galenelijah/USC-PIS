@@ -303,7 +303,7 @@ const ProfileSetup = () => {
   
   // Get role-based configuration
   const steps = getStepsForRole(userRole);
-  const stepFields = getStepFieldsForRole(userRole);
+  const stepFields = getStepFieldsForRole(userRole).map(step => step.filter(field => field !== 'email'));
   
   console.log('🔧 DEBUG: User role:', userRole);
   console.log('🔧 DEBUG: Steps for role:', steps);
@@ -373,7 +373,10 @@ const ProfileSetup = () => {
 
   const { control, handleSubmit, formState: { errors }, setValue, getValues, watch, trigger, reset } = useForm({
     resolver: yupResolver(createValidationSchema(userRole)),
-    defaultValues: getDefaultValues(userRole)
+    defaultValues: {
+      ...getDefaultValues(userRole),
+      email: currentUser?.email || ''
+    }
   });
 
   // Medical information state
@@ -522,18 +525,7 @@ const ProfileSetup = () => {
                 hint="7–15 digits, numbers only"
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <MyTextField
-                key={`${stepKey}-email`}
-                label="Email Address"
-                name="email"
-                control={control}
-                required
-                error={!!errors?.email}
-                helperText={errors?.email?.message}
-                hint="Active contact email"
-              />
-            </Grid>
+            {/* Email field removed as it is auto-populated from registration */}
             <Grid item xs={12} sm={6}>
               <MyTextField
                 key={`${stepKey}-contact_emergency_name`}
@@ -973,17 +965,7 @@ const ProfileSetup = () => {
                       helperText={errors?.phone?.message}
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <MyTextField
-                      key={`${stepKey}-email`}
-                      label="Email Address"
-                      name="email"
-                      control={control}
-                      required
-                      error={!!errors?.email}
-                      helperText={errors?.email?.message}
-                    />
-                  </Grid>
+                  {/* Email field removed as it is auto-populated from registration */}
                   
                   {userRole === 'STUDENT' && (
                     <>
