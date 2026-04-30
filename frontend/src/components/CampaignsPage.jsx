@@ -118,7 +118,7 @@ const CampaignsPage = () => {
   const [anchorEl, setAnchorEl] = useState(null);
 
   const user = useSelector(state => state.auth.user);
-  const isNonStudent = user && !['STUDENT', 'PATIENT'].includes(user.role);
+  const isNonStudent = user && !['STUDENT', 'PATIENT', 'FACULTY'].includes(user.role);
 
   // Campaign types
   const CAMPAIGN_TYPES = [
@@ -764,7 +764,14 @@ const CampaignsPage = () => {
             return (
               <Grid item xs={12} sm={6} md={4} key={campaign.id}>
                 <Card
-                  onClick={() => { handleEngagement(campaign.id); openViewDialog(campaign); }}
+                  onClick={() => { 
+                    handleEngagement(campaign.id); 
+                    if (isNonStudent) {
+                      openViewDialog(campaign);
+                    } else {
+                      openPublicPreview(campaign);
+                    }
+                  }}
                   sx={{
                     borderRadius: 4,                    height: '100%',
                     display: 'flex',
@@ -957,12 +964,20 @@ const CampaignsPage = () => {
                     </Box>
                   </CardContent>
 
-                  <CardActions sx={{ p: 3, pt: 0 }}>
+                <CardActions sx={{ p: 3, pt: 0 }}>
                     <Button
                       variant="contained"
                       fullWidth
-                      onClick={(e) => { e.stopPropagation(); handleEngagement(campaign.id); openViewDialog(campaign); }}
-                      startIcon={<VisibilityIcon />}
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        handleEngagement(campaign.id); 
+                        if (isNonStudent) {
+                          openViewDialog(campaign);
+                        } else {
+                          openPublicPreview(campaign);
+                        }
+                      }}
+                      startIcon={isNonStudent ? <VisibilityIcon /> : <CampaignIcon />}
                       sx={{
                         borderRadius: 3,
                         textTransform: 'none',
@@ -985,7 +1000,7 @@ const CampaignsPage = () => {
                         }
                       }}
                     >
-                      View Campaign Details
+                      {isNonStudent ? 'Manage Campaign' : 'View Full Post'}
                     </Button>
                   </CardActions>
                 </Card>
@@ -1027,7 +1042,7 @@ const CampaignsPage = () => {
           <ListItemIcon>
             <VisibilityIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Public Preview</ListItemText>
+          <ListItemText>View Full Post</ListItemText>
         </MenuItem>
         <MenuItem onClick={() => openDeleteDialog(menuCampaign)} sx={{ color: 'error.main' }}>
           <ListItemIcon>
@@ -1981,7 +1996,7 @@ const CampaignsPage = () => {
                       openPublicPreview(selectedCampaign);
                     }}
                   >
-                    Public Preview
+                    View Full Post
                   </Button>
                   <Button
                     variant="outlined"
@@ -2564,8 +2579,8 @@ const CampaignsPage = () => {
                     <Grid item xs={12}>
                       <Alert severity="info" sx={{ borderRadius: 2 }}>
                         <Typography variant="body2">
-                          <strong>Admin Preview:</strong> This is how the campaign will appear to the public when active. 
-                          The actual public view may vary slightly based on the platform and user device.
+                          <strong>Admin Preview:</strong> This is how the full post will appear to students and faculty. 
+                          The actual view may vary slightly based on the platform and user device.
                         </Typography>
                       </Alert>
                     </Grid>
