@@ -64,7 +64,7 @@ class EmailService:
                 'Reply-To': f"USC-PIS <{from_email}>",
                 'X-Mailer': 'USC Patient Information System',
                 'X-Priority': '3',
-                'Organization': 'University of Southern California'
+                'Organization': 'University of San Carlos'
             }
             
             # Send email

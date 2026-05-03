@@ -417,7 +417,7 @@ GET /api/health-info/campaign-templates/1/
   "campaign_type": "VACCINATION",
   "priority": "HIGH",
   "title_template": "COVID-19 Vaccination Drive - {date}",
-  "content_template": "<h2>COVID-19 Vaccination Campaign</h2><p>The University of Southern California is conducting a COVID-19 vaccination drive...</p>",
+  "content_template": "<h2>COVID-19 Vaccination Campaign</h2><p>The University of San Carlos is conducting a COVID-19 vaccination drive...</p>",
   "summary_template": "Get vaccinated against COVID-19 to protect yourself and our campus community.",
   "target_audience_template": "All USC students, faculty, and staff",
   "objectives_template": "- Achieve 90% vaccination rate\n- Provide easy access to vaccines\n- Educate about vaccine safety",

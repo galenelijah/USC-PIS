@@ -581,7 +581,7 @@ const Dental = () => {
         </head>
         <body>
           <div class="header">
-            <h1>University of Southern California</h1>
+            <h1>University of San Carlos</h1>
             <h2>Patient Information System</h2>
             <h3>Dental Consultation Report</h3>
             <p>Generated on: ${dayjs().format('MMMM DD, YYYY [at] HH:mm')}</p>
@@ -671,7 +671,7 @@ const Dental = () => {
           `).join('')}
           
           <div class="footer">
-            <p>University of Southern California Patient Information System</p>
+            <p>University of San Carlos Patient Information System</p>
             <p>This report contains confidential medical information</p>
           </div>
         </body>

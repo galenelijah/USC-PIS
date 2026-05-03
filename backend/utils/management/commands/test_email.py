@@ -80,7 +80,7 @@ USC-PIS Email System Test
             msg.extra_headers = {
                 'Reply-To': 'noreply@usc.edu.ph',
                 'X-Mailer': 'USC Patient Information System',
-                'Organization': 'University of Southern California'
+                'Organization': 'University of San Carlos'
             }
             
             msg.send()

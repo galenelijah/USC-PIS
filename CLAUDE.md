@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**USC Patient Information System (USC-PIS)** - Healthcare management web application for University of Southern California clinic operations.
+**USC Patient Information System (USC-PIS)** - Healthcare management web application for University of San Carlos clinic operations.
 
 ### **Academic Context**
 - **Type**: Undergraduate thesis (Computer Engineering)

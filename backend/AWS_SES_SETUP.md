@@ -145,7 +145,7 @@ After setup, you should see:
    - Fill out form:
      - **Use case**: Transactional emails for healthcare application
      - **Website URL**: https://usc-pis-5f030223f7a8.herokuapp.com
-     - **Description**: "Sending medical appointment confirmations, certificate notifications, and system alerts for University of Southern California Patient Information System"
+     - **Description**: "Sending medical appointment confirmations, certificate notifications, and system alerts for University of San Carlos Patient Information System"
    - Submit request
 
 2. **Approval Process**

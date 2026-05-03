@@ -30,7 +30,7 @@ class Command(BaseCommand):
                 'title_template': 'COVID-19 Vaccination Drive - {date}',
                 'content_template': '''
                 <h2>COVID-19 Vaccination Campaign</h2>
-                <p>The University of Southern California is conducting a COVID-19 vaccination drive to protect our campus community.</p>
+                <p>The University of San Carlos is conducting a COVID-19 vaccination drive to protect our campus community.</p>
                 
                 <h3>Why Get Vaccinated?</h3>
                 <ul>

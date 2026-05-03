@@ -5,7 +5,7 @@
 [![Grade](https://img.shields.io/badge/Grade-A+_(Excellent)-brightgreen)]()
 [![Encryption](https://img.shields.io/badge/Security-pgcrypto%20Encrypted-blue)]()
 
-A comprehensive healthcare management system for the University of Southern California clinic operations. Developed as an undergraduate thesis project by Computer Engineering students.
+A comprehensive healthcare management system for the University of San Carlos clinic operations. Developed as an undergraduate thesis project by Computer Engineering students.
 
 ## 🎉 **SYSTEM FULLY AUDITED & AUTOMATED** (April 25, 2026)
 

@@ -35,4 +35,4 @@ This is an automated alert from the USC-PIS backup monitoring system.
 If you believe this is an error, please check the admin panel or contact the system administrator.
 
 USC Patient Information System
-University of Southern California
+University of San Carlos

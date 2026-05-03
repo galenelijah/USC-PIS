@@ -153,7 +153,7 @@ const Register = () =>{
                                 Join USC-PIS
                             </Typography>
                             <Typography variant="h6" sx={{ mb: 4, opacity: 0.9 }}>
-                                University of Southern California Patient Information System
+                                University of San Carlos Patient Information System
                             </Typography>
                             
                             <Stack spacing={3}>

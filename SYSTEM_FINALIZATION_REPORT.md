@@ -286,7 +286,7 @@ The USC Patient Information System has been successfully finalized and is ready 
 - **Complete documentation** for deployment and maintenance
 - **Scalable architecture** ready for future expansion
 
-The system achieves its core objectives of providing a secure, reliable, and efficient healthcare management platform for the University of Southern California clinic operations.
+The system achieves its core objectives of providing a secure, reliable, and efficient healthcare management platform for the University of San Carlos clinic operations.
 
 ---
 

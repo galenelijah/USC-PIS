@@ -1,6 +1,6 @@
 # USC Patient Information System (USC-PIS)
 
-A comprehensive clinic management system for the University of Southern California, built with Django REST Framework and React.
+A comprehensive clinic management system for the University of San Carlos, built with Django REST Framework and React.
 
 ## 🏫 USC DOMAIN REQUIREMENT
 
@@ -579,7 +579,7 @@ python manage.py start_monitoring --daemon
 
 ## License
 
-This project is proprietary software developed for the University of Southern California.
+This project is proprietary software developed for the University of San Carlos.
 
 ## Support
 
