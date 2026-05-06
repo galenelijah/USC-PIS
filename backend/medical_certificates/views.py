@@ -53,10 +53,14 @@ class IsStaffOrMedicalPersonnel(permissions.BasePermission):
                    getattr(request.user, 'role', '') in staff_roles or \
                    getattr(request.user, 'role', '') in ['STUDENT', 'FACULTY']
                    
-        # All staff can create/draft (perform_create handles role-based logic)
+        # All staff can create (perform_create handles role-based logic)
         if request.method == 'POST':
-            return request.user.is_staff or \
-                   getattr(request.user, 'role', '') in staff_roles
+            if getattr(request.user, 'role', '') in staff_roles:
+                return True
+            # Allow students to POST to detail actions (so get_object can handle 404)
+            # but they remain blocked from 'create' action.
+            return getattr(request.user, 'role', '') in ['STUDENT', 'FACULTY'] and \
+                   getattr(view, 'action', '') != 'create'
                    
         # Only Doctor and Admin can Edit/Delete certificates or templates
         return request.user.is_staff or \
