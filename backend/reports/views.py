@@ -29,15 +29,17 @@ import logging
 logger = logging.getLogger(__name__)
 
 class IsStaffOrReadOnly(permissions.BasePermission):
-    """Custom permission for reports"""
+    """Custom permission for reports. Admin and Staff manage templates; others (Nurse/Doctor/Dentist) generate/view."""
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
-            return request.user.is_authenticated
+            return request.user.is_authenticated and (
+                request.user.is_staff or 
+                request.user.role in ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE']
+            )
         return request.user.is_authenticated and (
-            request.user.is_staff or 
-            request.user.role in ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE', 'DENTIST']
+            request.user.is_staff or
+            request.user.role in ['ADMIN', 'STAFF']
         )
-
 class ReportPagination(PageNumberPagination):
     page_size = 20
     page_size_query_param = 'page_size'

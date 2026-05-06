@@ -121,10 +121,10 @@ class PatientViewSet(viewsets.ModelViewSet):
         try:
             user = request.user
             
-            # Check permissions - only admin/staff can create patients manually
+            # Check permissions - admin/staff/doctor/nurse/dentist can create patients manually
             if user.role not in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.NURSE, User.Role.DENTIST]:
                 return Response({
-                    'detail': 'Only medical staff can create patient records manually.',
+                    'detail': 'Only medical and clinic staff can create patient records manually.',
                     'error_code': 'PERMISSION_DENIED'
                 }, status=status.HTTP_403_FORBIDDEN)
             
@@ -417,9 +417,9 @@ class MedicalRecordViewSet(viewsets.ModelViewSet):
                     return Response({
                         'detail': 'Patients cannot create medical records for others'
                     }, status=status.HTTP_403_FORBIDDEN)
-            elif user.role not in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE]:
+            elif user.role not in [User.Role.ADMIN, User.Role.DOCTOR, User.Role.NURSE]:
                 return Response({
-                    'detail': 'Insufficient permissions to create medical records'
+                    'detail': 'Insufficient permissions to create medical records. (Note: Dentists are restricted to dental records)'
                 }, status=status.HTTP_403_FORBIDDEN)
             
             # Check for duplicate records on same date
@@ -559,9 +559,9 @@ class DentalRecordViewSet(viewsets.ModelViewSet):
                 return Response({
                     'detail': 'Patients cannot create dental records'
                 }, status=status.HTTP_403_FORBIDDEN)
-            elif user.role not in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE]:
+            elif user.role not in [User.Role.ADMIN, User.Role.DENTIST, User.Role.NURSE]:
                 return Response({
-                    'detail': 'Insufficient permissions to create dental records'
+                    'detail': 'Insufficient permissions to create dental records. (Note: Doctors are restricted to medical records)'
                 }, status=status.HTTP_403_FORBIDDEN)
             
             # Use medical record validator for general dental record validation + normalization
@@ -682,7 +682,7 @@ class DentalRecordViewSet(viewsets.ModelViewSet):
 class ConsultationViewSet(viewsets.ModelViewSet):
     queryset = Consultation.objects.all()
     serializer_class = ConsultationSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [MedicalRecordPermission]
     pagination_class = None  # Disable pagination to return data as array
 
     def get_queryset(self):

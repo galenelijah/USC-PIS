@@ -26,14 +26,15 @@ def health_info_placeholder(request):
 
 class IsStaffOrReadOnly(permissions.BasePermission):
     """
-    Custom permission to only allow staff to edit campaigns.
+    Custom permission to only allow admin and clinic staff to manage campaigns/health info.
+    Medical personnel (Nurse, Doctor, Dentist) are read-only.
     """
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return True
         return request.user.is_authenticated and (
             request.user.is_staff or 
-            request.user.role in ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE']
+            request.user.role in ['ADMIN', 'STAFF']
         )
 
 class CampaignPagination(PageNumberPagination):
