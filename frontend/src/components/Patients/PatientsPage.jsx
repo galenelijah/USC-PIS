@@ -12,7 +12,7 @@ import PatientList from './PatientList';
 import PatientProfile from './PatientProfile';
 import { patientService } from '../../services/api';
 import InfoTooltip from '../utils/InfoTooltip';
-import { ProgramsChoices, YearLevelChoices } from '../static/choices';
+import { ProgramsChoices, YearLevelChoices, SemesterChoices } from '../static/choices';
 
 const PatientsPage = ({ initialPatients = [] }) => {
   const [query, setQuery] = useState('');
@@ -27,7 +27,8 @@ const PatientsPage = ({ initialPatients = [] }) => {
     role: '',
     course: '',
     year_level: '',
-    academic_year: ''
+    academic_year: '',
+    semester: ''
   });
 
   const academicYears = useMemo(() => {
@@ -40,7 +41,14 @@ const PatientsPage = ({ initialPatients = [] }) => {
   }, []);
 
   const handleFilterChange = (name, value) => {
-    setFilters(prev => ({ ...prev, [name]: value }));
+    setFilters(prev => {
+      const newFilters = { ...prev, [name]: value };
+      // If academic_year is cleared, also clear semester
+      if (name === 'academic_year' && !value) {
+        newFilters.semester = '';
+      }
+      return newFilters;
+    });
   };
 
   const clearFilters = () => {
@@ -48,7 +56,8 @@ const PatientsPage = ({ initialPatients = [] }) => {
       role: '',
       course: '',
       year_level: '',
-      academic_year: ''
+      academic_year: '',
+      semester: ''
     });
     setQuery('');
   };
@@ -214,6 +223,24 @@ const PatientsPage = ({ initialPatients = [] }) => {
               </FormControl>
             </Grid>
 
+            {/* Registration Semester Filter */}
+            <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Registration Sem</InputLabel>
+                <Select
+                  value={filters.semester}
+                  label="Registration Sem"
+                  onChange={(e) => handleFilterChange('semester', e.target.value)}
+                  disabled={!filters.academic_year}
+                >
+                  <MenuItem value="">Full Year</MenuItem>
+                  {SemesterChoices.map(s => (
+                    <MenuItem key={s.id} value={s.id}>{s.label}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
             <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
               <Button size="small" onClick={clearFilters}>Clear All</Button>
             </Grid>
@@ -227,6 +254,7 @@ const PatientsPage = ({ initialPatients = [] }) => {
           {filters.course && <Chip label={`Program: ${ProgramsChoices.find(p => p.id == filters.course)?.label || filters.course}`} size="small" onDelete={() => handleFilterChange('course', '')} />}
           {filters.year_level && <Chip label={`Year: ${YearLevelChoices.find(y => y.id == filters.year_level)?.label || filters.year_level}`} size="small" onDelete={() => handleFilterChange('year_level', '')} />}
           {filters.academic_year && <Chip label={`AY: ${filters.academic_year}`} size="small" onDelete={() => handleFilterChange('academic_year', '')} />}
+          {filters.semester && <Chip label={`Sem: ${SemesterChoices.find(s => s.id == filters.semester)?.label || filters.semester}`} size="small" onDelete={() => handleFilterChange('semester', '')} />}
         </Box>
       )}
 

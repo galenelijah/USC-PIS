@@ -89,6 +89,12 @@ export const YearLevelChoices = [
   { id: 4, label: '4th Year' },
 ]; 
 
+export const SemesterChoices = [
+  { id: '1', label: '1st Semester' },
+  { id: '2', label: '2nd Semester' },
+  { id: 'Short Term', label: 'Short Term' }
+];
+
 // Campus/School options for dropdowns
 export const CampusChoices = [
   { id: 'Downtown Campus', label: 'Downtown Campus' },
