@@ -74,6 +74,7 @@ import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../features/authentication/authSlice';
 import { dentalRecordService, patientService, patientDocumentService } from '../services/api';
 import PatientDocumentUpload from './PatientDocumentUpload';
+import { extractErrorMessage } from '../utils/errorUtils';
 
 const Dental = () => {
   const [dentalRecords, setDentalRecords] = useState([]);
@@ -103,7 +104,8 @@ const Dental = () => {
   const [globalDocuments, setGlobalDocuments] = useState([]);
 
   const user = useSelector(selectCurrentUser);
-  const canEdit = user && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
+  // Only ADMIN, DENTIST, and NURSE have CRUD for Dental. DOCTOR and STAFF are view-only.
+  const canEdit = user && ['ADMIN', 'DENTIST', 'NURSE'].includes(user.role);
 
   // Form state for new/edit record
   const [formData, setFormData] = useState({

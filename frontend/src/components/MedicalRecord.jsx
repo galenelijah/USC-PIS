@@ -108,17 +108,18 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
             await fetchAttachments();
         } catch (err) {
             console.error("Error deleting attachment:", err);
-            alert("Failed to delete attachment. Please try again.");
+            alert(`Failed to delete attachment: ${extractErrorMessage(err)}`);
         } finally {
             setLoading(false);
         }
     };
 
     const user = useSelector(state => state.auth.user);
-    const isStaffOrMedical = user?.role && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
+    // Only ADMIN, DOCTOR, and NURSE have CRUD for Medical. DENTIST and STAFF are view-only.
+    const isAuthorizedToEdit = user?.role && ['ADMIN', 'DOCTOR', 'NURSE'].includes(user.role);
     
-    // Can edit if they are staff/medical AND NOT in readOnly mode
-    const canEdit = isStaffOrMedical && !readOnly;
+    // Can edit if they are authorized AND NOT in readOnly mode
+    const canEdit = isAuthorizedToEdit && !readOnly;
     
     const [patients, setPatients] = useState([]);
     const [selectedPatient, setSelectedPatient] = useState(null);

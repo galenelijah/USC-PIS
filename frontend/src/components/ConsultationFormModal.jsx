@@ -15,9 +15,10 @@ import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { consultationSchema } from '../utils/validationSchemas';
 import { consultationService, patientService } from '../services/api';
+import { extractErrorMessage } from '../utils/errorUtils';
 import logger from '../utils/logger';
 
-const ConsultationFormModal = ({ open, onClose, consultationData, onSave }) => {
+const ConsultationFormModal = ({ open, onClose, consultationData, onSave, readOnly = false }) => {
   const {
     control,
     handleSubmit,
@@ -72,6 +73,7 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave }) => {
   }, [consultationData, isEditMode, setValue, reset]);
 
   const onSubmitForm = async (data) => {
+    if (readOnly) return;
     try {
       const payload = {
         ...data,
@@ -87,17 +89,15 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave }) => {
       onSave(); // This will trigger a refresh and close the modal in the parent
     } catch (error) {
       logger.error('Error saving consultation:', error);
-      alert(
-        `Failed to save consultation: ${
-          error.response?.data?.detail || error.message
-        }`
-      );
+      alert(`Failed to save consultation: ${extractErrorMessage(error)}`);
     }
   };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{isEditMode ? 'Edit Consultation' : 'Add New Consultation'}</DialogTitle>
+      <DialogTitle>
+        {readOnly ? 'View Consultation' : (isEditMode ? 'Edit Consultation' : 'Add New Consultation')}
+      </DialogTitle>
       <form onSubmit={handleSubmit(onSubmitForm)} noValidate>
         <DialogContent>
           <Grid container spacing={2}>
@@ -114,7 +114,7 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave }) => {
                     margin="dense"
                     error={!!errors.patient}
                     helperText={errors.patient?.message}
-                    disabled={isEditMode || patientsLoading}
+                    disabled={isEditMode || patientsLoading || readOnly}
                   >
                     {patientsLoading ? (
                       <MenuItem value="" disabled>Loading patients...</MenuItem>
@@ -147,6 +147,7 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave }) => {
                     }}
                     error={!!errors.date_time}
                     helperText={errors.date_time?.message}
+                    disabled={readOnly}
                   />
                 )}
               />
@@ -165,6 +166,7 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave }) => {
                     margin="dense"
                     error={!!errors.chief_complaints}
                     helperText={errors.chief_complaints?.message}
+                    disabled={readOnly}
                   />
                 )}
               />
@@ -183,6 +185,7 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave }) => {
                     margin="dense"
                     error={!!errors.treatment_plan}
                     helperText={errors.treatment_plan?.message}
+                    disabled={readOnly}
                   />
                 )}
               />
@@ -199,6 +202,7 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave }) => {
                     multiline
                     rows={3}
                     margin="dense"
+                    disabled={readOnly}
                   />
                 )}
               />
@@ -207,11 +211,13 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave }) => {
         </DialogContent>
         <DialogActions sx={{ padding: '16px 24px' }}>
           <Button onClick={onClose} color="secondary" disabled={isSubmitting}>
-            Cancel
+            {readOnly ? 'Close' : 'Cancel'}
           </Button>
-          <Button type="submit" variant="contained" color="primary" disabled={isSubmitting}>
-            {isSubmitting ? <CircularProgress size={24} /> : (isEditMode ? 'Save Changes' : 'Add Consultation')}
-          </Button>
+          {!readOnly && (
+            <Button type="submit" variant="contained" color="primary" disabled={isSubmitting}>
+              {isSubmitting ? <CircularProgress size={24} /> : (isEditMode ? 'Save Changes' : 'Add Consultation')}
+            </Button>
+          )}
         </DialogActions>
       </form>
     </Dialog>

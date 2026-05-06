@@ -14,9 +14,15 @@ import {
   Button,
   IconButton
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { 
+  Add as AddIcon, 
+  Edit as EditIcon, 
+  Delete as DeleteIcon,
+  Visibility as ViewIcon 
+} from '@mui/icons-material';
 import { consultationService } from '../services/api';
 import { selectCurrentUser } from '../features/authentication/authSlice';
+import { extractErrorMessage } from '../utils/errorUtils';
 import ConsultationFormModal from './ConsultationFormModal';
 import logger from '../utils/logger';
 
@@ -26,7 +32,11 @@ const ConsultationHistory = () => {
   const [error, setError] = useState(null);
   
   const currentUser = useSelector(selectCurrentUser);
-  const isAdminOrStaffOrDoctor = currentUser && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE', 'FACULTY'].includes(currentUser.role);
+  // ADMIN, DOCTOR, and NURSE have CRUD for general consultations.
+  // DENTIST, STAFF, and FACULTY are view-only.
+  const isAuthorizedToEdit = currentUser && ['ADMIN', 'DOCTOR', 'NURSE'].includes(currentUser.role);
+  // All clinic staff can see the columns and actions if they are authorized
+  const isClinicStaff = currentUser && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(currentUser.role);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentConsultationData, setCurrentConsultationData] = useState(null);
@@ -46,7 +56,7 @@ const ConsultationHistory = () => {
       }
     } catch (err) {
       logger.error('Error fetching consultations:', err);
-      setError('Failed to load consultation history. Please try again later.');
+      setError(extractErrorMessage(err));
       setConsultations([]);
     } finally {
       setLoading(false);
@@ -80,7 +90,7 @@ const ConsultationHistory = () => {
         fetchConsultations();
       } catch (err) {
         logger.error('Error deleting consultation:', err);
-        alert('Failed to delete consultation record.');
+        alert(`Failed to delete consultation record: ${extractErrorMessage(err)}`);
       }
     }
   };
@@ -118,7 +128,7 @@ const ConsultationHistory = () => {
         <Typography variant="h6" gutterBottom component="div" sx={{ fontWeight: 'bold' }}>
           Consultation History
         </Typography>
-        {isAdminOrStaffOrDoctor && (
+        {isAuthorizedToEdit && (
           <Button
             variant="contained"
             color="primary"
@@ -134,25 +144,25 @@ const ConsultationHistory = () => {
         <Table stickyHeader>
           <TableHead>
             <TableRow>
-              {isAdminOrStaffOrDoctor && <TableCell sx={{ fontWeight: 'bold' }}>Patient</TableCell>}
+              {isClinicStaff && <TableCell sx={{ fontWeight: 'bold' }}>Patient</TableCell>}
               <TableCell sx={{ fontWeight: 'bold' }}>Date/Time</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Chief Complaints</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Treatment Plan</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Remarks/Results</TableCell>
-              {isAdminOrStaffOrDoctor && <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>}
+              {isClinicStaff && <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
             {consultations.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isAdminOrStaffOrDoctor ? 6 : 5} align="center">
+                <TableCell colSpan={isClinicStaff ? 6 : 5} align="center">
                   No consultation records found.
                 </TableCell>
               </TableRow>
             ) : (
               consultations.map((consultation) => (
                 <TableRow key={consultation.id} hover>
-                  {isAdminOrStaffOrDoctor && (
+                  {isClinicStaff && (
                     <TableCell>
                       <Typography variant="body2" fontWeight="medium">
                         {consultation.patient_name || `Patient ID: ${consultation.patient}`}
@@ -168,14 +178,23 @@ const ConsultationHistory = () => {
                   <TableCell>{consultation.chief_complaints}</TableCell>
                   <TableCell>{consultation.treatment_plan}</TableCell>
                   <TableCell>{consultation.remarks}</TableCell>
-                  {isAdminOrStaffOrDoctor && (
+                  {isClinicStaff && (
                     <TableCell>
-                      <IconButton onClick={() => handleOpenModal(consultation)} color="primary" size="small">
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton onClick={() => handleDelete(consultation.id)} color="error" size="small">
-                        <DeleteIcon />
-                      </IconButton>
+                      {isAuthorizedToEdit && (
+                        <IconButton onClick={() => handleOpenModal(consultation)} color="primary" size="small">
+                          <EditIcon />
+                        </IconButton>
+                      )}
+                      {isAuthorizedToEdit && (
+                        <IconButton onClick={() => handleDelete(consultation.id)} color="error" size="small">
+                          <DeleteIcon />
+                        </IconButton>
+                      )}
+                      {!isAuthorizedToEdit && (
+                        <IconButton onClick={() => handleOpenModal(consultation)} color="info" size="small">
+                          <ViewIcon />
+                        </IconButton>
+                      )}
                     </TableCell>
                   )}
                 </TableRow>
@@ -185,12 +204,13 @@ const ConsultationHistory = () => {
         </Table>
       </TableContainer>
 
-      {isAdminOrStaffOrDoctor && (
+      {isClinicStaff && (
         <ConsultationFormModal
           open={isModalOpen}
           onClose={handleCloseModal}
           consultationData={currentConsultationData}
           onSave={handleSaveConsultation}
+          readOnly={!isAuthorizedToEdit}
         />
       )}
     </Box>
