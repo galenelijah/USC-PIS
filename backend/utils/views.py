@@ -949,9 +949,9 @@ def system_metrics(request):
         
         # Get performance metrics from monitoring system
         metrics = {
-            'database': db_monitor(),
-            'resources': resource_monitor(),
-            'performance': performance_monitor(),
+            'database': db_monitor.check_health(),
+            'resources': resource_monitor.check_resources(),
+            'performance': performance_monitor.get_performance_stats(),
             'timestamp': timezone.now().isoformat()
         }
         

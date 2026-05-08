@@ -446,27 +446,46 @@ def email_automation_stats(request):
         today = now.date()
         yesterday = today - timedelta(days=1)
         
+        # Use range filtering instead of __date for SQLite compatibility
+        today_start = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time()))
+        tomorrow_start = today_start + timedelta(days=1)
+        yesterday_start = today_start - timedelta(days=1)
+        
         # Visits today
-        m_today = MedicalRecord.objects.filter(visit_date__date=today).count()
-        d_today = DentalRecord.objects.filter(visit_date__date=today).count()
+        m_today = MedicalRecord.objects.filter(visit_date__gte=today_start, visit_date__lt=tomorrow_start).count()
+        d_today = DentalRecord.objects.filter(visit_date__gte=today_start, visit_date__lt=tomorrow_start).count()
         
         # Visits yesterday
-        m_yesterday = MedicalRecord.objects.filter(visit_date__date=yesterday).count()
-        d_yesterday = DentalRecord.objects.filter(visit_date__date=yesterday).count()
+        m_yesterday = MedicalRecord.objects.filter(visit_date__gte=yesterday_start, visit_date__lt=today_start).count()
+        d_yesterday = DentalRecord.objects.filter(visit_date__gte=yesterday_start, visit_date__lt=today_start).count()
         
         # Visits last 7 days
-        week_ago = today - timedelta(days=7)
-        m_week = MedicalRecord.objects.filter(visit_date__date__gte=week_ago).count()
-        d_week = DentalRecord.objects.filter(visit_date__date__gte=week_ago).count()
+        week_ago = today_start - timedelta(days=7)
+        m_week = MedicalRecord.objects.filter(visit_date__gte=week_ago).count()
+        d_week = DentalRecord.objects.filter(visit_date__gte=week_ago).count()
         
         # Visits last 30 days
-        month_ago = today - timedelta(days=30)
-        m_month = MedicalRecord.objects.filter(visit_date__date__gte=month_ago).count()
-        d_month = DentalRecord.objects.filter(visit_date__date__gte=month_ago).count()
+        month_ago = today_start - timedelta(days=30)
+        m_month = MedicalRecord.objects.filter(visit_date__gte=month_ago).count()
+        d_month = DentalRecord.objects.filter(visit_date__gte=month_ago).count()
         
         # System health status
         health_checker = HealthChecker()
-        health_status = health_checker.run_all_checks()
+        try:
+            health_status = health_checker.run_all_checks()
+            overall_status = health_status.get('overall_status', 'unknown')
+            health_pct = health_status.get('summary', {}).get('health_percentage', 0)
+            healthy = health_status.get('summary', {}).get('healthy', 0)
+            warnings = health_status.get('summary', {}).get('warnings', 0)
+            unhealthy = health_status.get('summary', {}).get('unhealthy', 0)
+        except Exception as e:
+            logger.error(f"Health check failed in email stats: {e}")
+            health_status = {'error': str(e)}
+            overall_status = 'error'
+            health_pct = 0
+            healthy = 0
+            warnings = 0
+            unhealthy = 0
         
         stats = {
             'visits': {
@@ -492,11 +511,11 @@ def email_automation_stats(request):
                 'pending_yesterday': m_yesterday + d_yesterday,
             },
             'system_health': {
-                'overall_status': health_status['overall_status'],
-                'health_percentage': health_status['summary']['health_percentage'],
-                'healthy_checks': health_status['summary']['healthy'],
-                'warning_checks': health_status['summary']['warnings'],
-                'unhealthy_checks': health_status['summary']['unhealthy']
+                'overall_status': overall_status,
+                'health_percentage': health_pct,
+                'healthy_checks': healthy,
+                'warning_checks': warnings,
+                'unhealthy_checks': unhealthy
             },
             'system_health_details': health_status,
             'last_updated': timezone.now().isoformat()

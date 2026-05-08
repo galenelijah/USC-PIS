@@ -446,31 +446,47 @@ def database_health_check(request):
         }, status=403)
     try:
         with connection.cursor() as cursor:
-            # Get table counts, column counts, and approximate row counts
-            # Use GREATEST(0, pc.reltuples) to show 0 instead of -1 if table not analyzed
-            cursor.execute("""
-                SELECT
-                    t.table_name,
-                    COUNT(c.column_name) AS column_count,
-                    GREATEST(0, pc.reltuples) AS approximate_row_count
-                FROM information_schema.tables t
-                LEFT JOIN information_schema.columns c ON t.table_name = c.table_name AND t.table_schema = c.table_schema
-                LEFT JOIN pg_class pc ON pc.relname = t.table_name AND pc.relnamespace = (
-                    SELECT oid FROM pg_namespace WHERE nspname = t.table_schema
-                )
-                WHERE t.table_schema = 'public'
-                GROUP BY t.table_name, pc.reltuples
-                ORDER BY t.table_name;
-            """)
-            tables = cursor.fetchall()
-            
-            # Get database size
-            cursor.execute("SELECT pg_size_pretty(pg_database_size(current_database()))")
-            db_size = cursor.fetchone()[0]
-            
-            # Get connection count
-            cursor.execute("SELECT count(*) FROM pg_stat_activity")
-            connection_count = cursor.fetchone()[0]
+            # Vendor-aware logic: PostgreSQL vs SQLite
+            if connection.vendor == 'postgresql':
+                # Get table counts, column counts, and approximate row counts
+                # Use GREATEST(0, pc.reltuples) to show 0 instead of -1 if table not analyzed
+                cursor.execute("""
+                    SELECT
+                        t.table_name,
+                        COUNT(c.column_name) AS column_count,
+                        GREATEST(0, pc.reltuples) AS approximate_row_count
+                    FROM information_schema.tables t
+                    LEFT JOIN information_schema.columns c ON t.table_name = c.table_name AND t.table_schema = c.table_schema
+                    LEFT JOIN pg_class pc ON pc.relname = t.table_name AND pc.relnamespace = (
+                        SELECT oid FROM pg_namespace WHERE nspname = t.table_schema
+                    )
+                    WHERE t.table_schema = 'public'
+                    GROUP BY t.table_name, pc.reltuples
+                    ORDER BY t.table_name;
+                """)
+                tables = cursor.fetchall()
+                
+                # Get database size
+                cursor.execute("SELECT pg_size_pretty(pg_database_size(current_database()))")
+                db_size = cursor.fetchone()[0]
+
+                # Get connection count
+                cursor.execute("SELECT count(*) FROM pg_stat_activity")
+                connection_count = cursor.fetchone()[0]
+            else:
+                # SQLite fallback
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                table_names = cursor.fetchall()
+                tables = []
+                for t in table_names:
+                    name = t[0]
+                    cursor.execute(f"PRAGMA table_info({name})")
+                    cols = len(cursor.fetchall())
+                    cursor.execute(f"SELECT COUNT(*) FROM {name}")
+                    rows = cursor.fetchone()[0]
+                    tables.append((name, cols, rows))
+                db_size = "N/A (SQLite)"
+                connection_count = 1  # SQLite is single-connection or at least doesn't have pg_stat_activity
             
             return JsonResponse({
                 'status': 'healthy',
