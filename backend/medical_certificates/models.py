@@ -94,7 +94,9 @@ def medical_certificate_notification(sender, instance, created, **kwargs):
                 recipient=instance.patient.user,
                 title="Medical Certificate Created",
                 message=f"A new medical certificate has been created for you by {instance.issued_by.get_full_name()}.",
-                notification_type="certificate_created"
+                notification_type="HEALTH_CAMPAIGN", # Reusing existing type or use CUSTOM
+                delivery_method='IN_APP',
+                status='DELIVERED'
             )
     else:
         # Check if approval status changed
@@ -108,7 +110,9 @@ def medical_certificate_notification(sender, instance, created, **kwargs):
                     recipient=instance.patient.user,
                     title="Medical Certificate Approved",
                     message=f"Your medical certificate has been approved by {instance.approved_by.get_full_name()}. {fitness_info}. You can now download it.",
-                    notification_type="certificate_approved"
+                    notification_type="HEALTH_CAMPAIGN",
+                    delivery_method='IN_APP',
+                    status='DELIVERED'
                 )
         elif instance.approval_status == 'rejected' and instance.approved_by:
             # Notify patient when certificate is rejected
@@ -117,7 +121,9 @@ def medical_certificate_notification(sender, instance, created, **kwargs):
                     recipient=instance.patient.user,
                     title="Medical Certificate Rejected",
                     message=f"Your medical certificate has been rejected by {instance.approved_by.get_full_name()}. Please contact the clinic for more information.",
-                    notification_type="certificate_rejected"
+                    notification_type="HEALTH_CAMPAIGN",
+                    delivery_method='IN_APP',
+                    status='DELIVERED'
                 )
         elif instance.approval_status == 'pending':
             # Notify doctors when certificate is submitted for approval
@@ -130,5 +136,7 @@ def medical_certificate_notification(sender, instance, created, **kwargs):
                     recipient=doctor,
                     title="Medical Certificate Pending Approval",
                     message=f"A medical certificate for {instance.patient.get_full_name()} is pending your approval. {fitness_info}",
-                    notification_type="certificate_pending"
+                    notification_type="SYSTEM_ALERT",
+                    delivery_method='IN_APP',
+                    status='DELIVERED'
                 )

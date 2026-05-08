@@ -105,6 +105,8 @@ const MedicalRecordsPage = () => {
   const user = useSelector(state => state.auth.user);
   const isStaffOrMedical = user?.role && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
   const isStudent = ['STUDENT', 'FACULTY'].includes(user?.role);
+  // Only ADMIN, DOCTOR, and NURSE have CRUD for Medical. DENTIST and STAFF are view-only.
+  const isAuthorizedToEdit = user?.role && ['ADMIN', 'DOCTOR', 'NURSE'].includes(user.role);
 
   useEffect(() => {
     fetchMedicalRecords();
@@ -870,7 +872,7 @@ const MedicalRecordsPage = () => {
                         color="primary"
                         variant="outlined"
                       />
-                      {isStaffOrMedical && (
+                      {isAuthorizedToEdit && (
                         <Button
                           variant="contained"
                           startIcon={<AddIcon />}
@@ -885,7 +887,7 @@ const MedicalRecordsPage = () => {
                       )}
                     </Box>
                   </Box>
-                  {isStaffOrMedical && (
+                  {isAuthorizedToEdit && (
                     <Alert severity="info" sx={{ mb: 2 }}>
                       <Typography variant="body2">
                         <strong>📝 Create New Records:</strong> Use the "Create New" button above or visit the{' '}

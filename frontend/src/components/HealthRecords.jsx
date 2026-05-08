@@ -121,8 +121,8 @@ const HealthRecords = () => {
     setOpenUploadDialog(true);
   };
 
-  // Check if user can edit records (not a student)
-  const canEditRecords = user && user.role !== 'STUDENT';
+  // Only ADMIN, DOCTOR, and NURSE have CRUD for Medical records. DENTIST and STAFF are view-only.
+  const canEditRecords = user?.role && ['ADMIN', 'DOCTOR', 'NURSE'].includes(user.role);
 
   // Clinical Templates for quick record creation
   const clinicalTemplates = [

@@ -752,7 +752,13 @@ def dashboard_stats(request):
         ).order_by('month')
 
         # Optimized pending requests (medical certificates, etc.)
-        pending_requests = 0  # Can be updated later if needed for other pending items
+        from medical_certificates.models import MedicalCertificate
+        from notifications.models import Notification
+        
+        pending_certs = MedicalCertificate.objects.filter(approval_status='pending').count()
+        unread_notifs = Notification.objects.filter(recipient=user, status__in=['PENDING', 'SENT', 'DELIVERED']).count()
+        
+        pending_requests = pending_certs + unread_notifs
 
         # Role-based stats
         if user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE]:

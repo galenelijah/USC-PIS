@@ -82,6 +82,24 @@ class EmailService:
             return False
     
     @staticmethod
+    def _create_in_app_notification(user, title, message, notification_type='SYSTEM', action_url=None):
+        """Helper to create an in-app notification record to sync with emails"""
+        try:
+            from notifications.models import Notification
+            Notification.objects.create(
+                recipient=user,
+                title=title,
+                message=message,
+                notification_type=notification_type,
+                delivery_method='IN_APP',
+                status='DELIVERED',
+                action_url=action_url
+            )
+            logger.info(f"In-app notification created for {user.email}: {title}")
+        except Exception as e:
+            logger.error(f"Failed to create in-app notification: {e}")
+
+    @staticmethod
     def send_verification_email(user, code):
         """Send 6-digit verification code to user's USC email"""
         context = {
@@ -90,6 +108,9 @@ class EmailService:
             'expires_in': '15 minutes',
             'site_url': settings.SITE_URL
         }
+        
+        # We generally don't send verification codes as in-app notifications 
+        # for security (MFA) and practical reasons (user might not be logged in).
         
         return EmailService.send_template_email(
             template_name='verification_code',
@@ -107,12 +128,23 @@ class EmailService:
             'support_email': settings.SUPPORT_EMAIL
         }
         
-        return EmailService.send_template_email(
+        success = EmailService.send_template_email(
             template_name='welcome',
             context=context,
             recipient_email=user.email,
             subject='Welcome to USC-PIS Healthcare System'
         )
+        
+        if success:
+            EmailService._create_in_app_notification(
+                user=user,
+                title='Welcome to USC-PIS',
+                message='Welcome to the USC Patient Information System! Your account is now active and ready to use.',
+                notification_type='CLINIC_UPDATE',
+                action_url='/profile-setup'
+            )
+            
+        return success
     
     @staticmethod
     def send_password_reset_email(user, reset_url):
@@ -123,23 +155,33 @@ class EmailService:
             'site_url': settings.SITE_URL
         }
         
-        return EmailService.send_template_email(
+        success = EmailService.send_template_email(
             template_name='password_reset',
             context=context,
             recipient_email=user.email,
             subject='USC-PIS Password Reset Request'
         )
+        
+        if success:
+            EmailService._create_in_app_notification(
+                user=user,
+                title='Password Reset Requested',
+                message='A password reset link has been sent to your email. If you did not request this, please secure your account.',
+                notification_type='SYSTEM',
+                priority='HIGH'
+            )
+            
+        return success
     
     @staticmethod
     def send_medical_certificate_notification(certificate, notification_type):
         """
         Send medical certificate notifications
-        
-        Args:
-            certificate: MedicalCertificate instance
-            notification_type: 'created', 'approved', 'rejected'
+        Note: In-app notifications for certificates are already handled by signals 
+        in medical_certificates/models.py to avoid duplication.
         """
         if notification_type == 'created':
+            # ... rest of method ...
             # Notify student about certificate creation
             context = {
                 'certificate': certificate,
@@ -250,9 +292,20 @@ class EmailService:
             'site_url': settings.SITE_URL
         }
         
-        return EmailService.send_template_email(
+        success = EmailService.send_template_email(
             template_name='appointment_reminder',
             context=context,
             recipient_email=appointment.patient.user.email,
             subject=f'Appointment Reminder - {appointment.date}'
         )
+        
+        if success:
+            EmailService._create_in_app_notification(
+                user=appointment.patient.user,
+                title='Appointment Reminder',
+                message=f'Reminder: You have a scheduled appointment on {appointment.date}.',
+                notification_type='APPOINTMENT_REMINDER',
+                action_url='/appointments'
+            )
+            
+        return success

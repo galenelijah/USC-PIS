@@ -198,13 +198,8 @@ class NotificationViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def stats(self, request):
         """Get notification statistics"""
-        user = request.user
-        
-        # Base queryset
-        if user.role in [User.Role.ADMIN, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE]:
-            queryset = Notification.objects.all()
-        else:
-            queryset = Notification.objects.filter(recipient=user)
+        # Use get_queryset to respect the 'all' parameter and user permissions
+        queryset = self.get_queryset()
         
         # Calculate statistics
         total_notifications = queryset.count()
