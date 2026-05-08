@@ -730,38 +730,56 @@ class Command(BaseCommand):
         </head>
         <body>
             <div class="header">
-                <div class="title">Health Campaign Analytics</div>
-                <div class="subtitle">Engagement and Outreach Performance</div>
+                <div class="title">Health Campaign Reach Analytics</div>
+                <div class="subtitle">Outreach and Awareness Performance</div>
             </div>
 
             <div style="display: table; width: 100%; margin-bottom: 20px;">
                 <div style="display: table-cell; width: 50%; padding: 5px;">
                     <div class="metric-box">
-                        <div class="metric-label">Total Participants</div>
-                        <div class="metric-value">{{{{ total_participants }}}}</div>
+                        <div class="metric-label">Total Reach (Views)</div>
+                        <div class="metric-value">{{{{ total_views }}}}</div>
                     </div>
                 </div>
                 <div style="display: table-cell; width: 50%; padding: 5px;">
                     <div class="metric-box">
-                        <div class="metric-label">Engagement Rate</div>
-                        <div class="metric-value">{{{{ avg_engagement_rate|floatformat:1 }}}}%</div>
+                        <div class="metric-label">Average Views per Campaign</div>
+                        <div class="metric-value">{{{{ avg_views_per_campaign|floatformat:1 }}}}</div>
                     </div>
                 </div>
             </div>
 
             <div class="section">
-                <div class="section-title">Campaign Performance Summary</div>
+                <div class="section-title">Campaign Reach Summary</div>
                 <table class="usc-table">
                     <thead>
-                        <tr><th>Campaign</th><th>Participants</th><th>Engagement</th><th>Performance</th></tr>
+                        <tr><th>Campaign</th><th>Reach (Views)</th><th>Type</th><th>Priority</th></tr>
                     </thead>
                     <tbody>
                         {{% for camp in campaign_performance %}}
                         <tr>
                             <td>{{{{ camp.title }}}}</td>
-                            <td>{{{{ camp.participant_count }}}}</td>
-                            <td>{{{{ camp.engagement_rate|floatformat:1 }}}}%</td>
-                            <td>{{{{ camp.performance }}}}</td>
+                            <td>{{{{ camp.views }}}}</td>
+                            <td>{{{{ camp.type }}}}</td>
+                            <td>{{{{ camp.priority }}}}</td>
+                        </tr>
+                        {{% endfor %}}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Visual Asset Effectiveness (Reach Analysis)</div>
+                <table class="usc-table">
+                    <thead>
+                        <tr><th>Asset Type</th><th>Campaigns</th><th>Avg Reach (Views)</th></tr>
+                    </thead>
+                    <tbody>
+                        {{% for asset in asset_effectiveness %}}
+                        <tr>
+                            <td>{{{{ asset.asset_type }}}}</td>
+                            <td>{{{{ asset.campaigns }}}}</td>
+                            <td>{{{{ asset.avg_views|floatformat:1 }}}}</td>
                         </tr>
                         {{% endfor %}}
                     </tbody>

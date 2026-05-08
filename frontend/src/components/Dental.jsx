@@ -95,6 +95,7 @@ const Dental = () => {
   const [tabValue, setTabValue] = useState(0);
   const [globalTabValue, setGlobalTabValue] = useState(0);
   const [error, setError] = useState(null);
+  const [formError, setFormError] = useState(null);
   const [success, setSuccess] = useState(null);
 
   // Document upload state
@@ -208,6 +209,7 @@ const Dental = () => {
   };
 
   const handleOpenDialog = (record = null) => {
+    setFormError(null);
     if (record) {
       setSelectedRecord(record);
       setFormData({
@@ -253,6 +255,7 @@ const Dental = () => {
     setSelectedRecord(null);
     setIsEditing(false);
     setTabValue(0);
+    setFormError(null);
   };
 
   const fetchRecordAttachments = async (record) => {
@@ -327,6 +330,7 @@ const Dental = () => {
   };
 
   const handleSubmit = async () => {
+    setFormError(null);
     try {
       const submitData = {
         ...formData,
@@ -350,9 +354,7 @@ const Dental = () => {
       setTimeout(() => setSuccess(null), 3000);
     } catch (error) {
       console.error('Error saving dental consultation:', error);
-      setError(extractErrorMessage(error));
-      // Clear error message after 5 seconds
-      setTimeout(() => setError(null), 5000);
+      setFormError(extractErrorMessage(error));
     }
   };
 
@@ -997,6 +999,11 @@ const Dental = () => {
           </DialogTitle>
           <DialogContent>
               <Box sx={{ mb: 2 }}>
+                {formError && (
+                  <Alert severity="error" sx={{ mb: 2 }} onClose={() => setFormError(null)}>
+                    {formError}
+                  </Alert>
+                )}
                 <Alert severity="info" sx={{ mb: 2 }}>
                   Note: The clinic primarily provides dental consultations. Complex procedures or surgeries may require external referral.
                 </Alert>

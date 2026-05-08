@@ -499,11 +499,6 @@ const CampaignsPage = () => {
     setPublicPreviewOpen(true);
   };
 
-  const handleEngagement = (id) => {
-    if (!id) return;
-    campaignService.trackEngagement(id).catch(err => console.error('Failed to track engagement:', err));
-  };
-
   const handleMenuOpen = (event, campaign) => {
     event.stopPropagation();
     setAnchorEl(event.currentTarget);
@@ -765,7 +760,6 @@ const CampaignsPage = () => {
               <Grid item xs={12} sm={6} md={4} key={campaign.id}>
                 <Card
                   onClick={() => { 
-                    handleEngagement(campaign.id); 
                     if (isNonStudent) {
                       openViewDialog(campaign);
                     } else {
@@ -947,16 +941,10 @@ const CampaignsPage = () => {
                           <Box display="flex" alignItems="center">
                             <VisibilityIcon sx={{ fontSize: 18, color: 'primary.main', mr: 1 }} />
                             <Typography variant="body2" fontWeight="medium">
-                              {campaign.view_count}
+                              {campaign.view_count} views
                             </Typography>
                           </Box>
                         )}
-                        <Box display="flex" alignItems="center">
-                          <TrendingIcon sx={{ fontSize: 18, color: 'success.main', mr: 1 }} />
-                          <Typography variant="body2" fontWeight="medium">
-                            {campaign.engagement_count || 0}
-                          </Typography>
-                        </Box>
                       </Box>
                       <Typography variant="caption" color="text.secondary" fontWeight="medium">
                         {formatDate(campaign.start_date)}
@@ -970,7 +958,6 @@ const CampaignsPage = () => {
                       fullWidth
                       onClick={(e) => { 
                         e.stopPropagation(); 
-                        handleEngagement(campaign.id); 
                         if (isNonStudent) {
                           openViewDialog(campaign);
                         } else {
@@ -1886,23 +1873,17 @@ const CampaignsPage = () => {
                   </Grid>
                 )}
 
-                {/* Engagement Stats - Only for non-students */}
+                {/* Campaign Reach - Only for non-students */}
                 {selectedCampaign.view_count !== undefined && (
                   <Grid item xs={12}>
                     <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                      Engagement Statistics
+                      Campaign Reach
                     </Typography>
                     <Box display="flex" gap={4}>
                       <Box display="flex" alignItems="center">
                         <VisibilityIcon sx={{ fontSize: 20, color: 'text.secondary', mr: 1 }} />
                         <Typography variant="body2">
-                          {selectedCampaign.view_count || 0} views
-                        </Typography>
-                      </Box>
-                      <Box display="flex" alignItems="center">
-                        <TrendingIcon sx={{ fontSize: 20, color: 'text.secondary', mr: 1 }} />
-                        <Typography variant="body2">
-                          {selectedCampaign.engagement_count || 0} engagements
+                          {selectedCampaign.view_count || 0} total views
                         </Typography>
                       </Box>
                       {selectedCampaign.feedback_count > 0 && (
@@ -2311,7 +2292,6 @@ const CampaignsPage = () => {
                                         href={selectedCampaign.external_link}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        onClick={() => handleEngagement(selectedCampaign.id)}
                                       >
                                         🔗 Visit Website
                                       </Button>

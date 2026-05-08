@@ -9,7 +9,8 @@ import {
   CircularProgress,
   Box,
   Grid,
-  MenuItem
+  MenuItem,
+  Alert
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -19,6 +20,7 @@ import { extractErrorMessage } from '../utils/errorUtils';
 import logger from '../utils/logger';
 
 const ConsultationFormModal = ({ open, onClose, consultationData, onSave, readOnly = false }) => {
+  const [formError, setFormError] = useState(null);
   const {
     control,
     handleSubmit,
@@ -42,6 +44,7 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave, readOn
 
   useEffect(() => {
     if (open) {
+      setFormError(null);
       setPatientsLoading(true);
       patientService.getAll()
         .then((response) => {
@@ -74,6 +77,7 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave, readOn
 
   const onSubmitForm = async (data) => {
     if (readOnly) return;
+    setFormError(null);
     try {
       const payload = {
         ...data,
@@ -89,7 +93,7 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave, readOn
       onSave(); // This will trigger a refresh and close the modal in the parent
     } catch (error) {
       logger.error('Error saving consultation:', error);
-      alert(`Failed to save consultation: ${extractErrorMessage(error)}`);
+      setFormError(extractErrorMessage(error));
     }
   };
 
@@ -100,6 +104,13 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave, readOn
       </DialogTitle>
       <form onSubmit={handleSubmit(onSubmitForm)} noValidate>
         <DialogContent>
+          {formError && (
+            <Box sx={{ mb: 2 }}>
+              <Alert severity="error" onClose={() => setFormError(null)}>
+                {formError}
+              </Alert>
+            </Box>
+          )}
           <Grid container spacing={2}>
             <Grid item xs={12}>
               <Controller

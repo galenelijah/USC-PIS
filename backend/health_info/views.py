@@ -189,13 +189,6 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
         instance.increment_view_count()
         return Response({'status': 'view tracked', 'view_count': instance.view_count})
     
-    @action(detail=True, methods=['post'])
-    def engage(self, request, pk=None):
-        """Track engagement (clicks, interactions)"""
-        campaign = self.get_object()
-        campaign.increment_engagement()
-        return Response({'status': 'engagement tracked'})
-    
     @action(detail=True, methods=['get'])
     def resources(self, request, pk=None):
         """Get campaign resources"""
@@ -253,19 +246,19 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def analytics(self, request):
-        """Get campaign analytics"""
+        """Get campaign analytics focusing on reach and feedback"""
         if not (request.user.is_staff or request.user.role in ['ADMIN', 'STAFF']):
             return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
         
         # Basic stats
         total_campaigns = HealthCampaign.objects.count()
         
-        # Engagement stats
+        # Reach stats
         total_views = HealthCampaign.objects.aggregate(Sum('view_count'))['view_count__sum'] or 0
-        total_engagement = HealthCampaign.objects.aggregate(Sum('engagement_count'))['engagement_count__sum'] or 0
         
         # Average rating
         average_rating = CampaignFeedback.objects.aggregate(Avg('rating'))['rating__avg'] or 0
+        total_feedback = CampaignFeedback.objects.count()
         
         # Top campaigns by views
         top_campaigns = HealthCampaign.objects.order_by('-view_count')[:5]
@@ -292,27 +285,27 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
                 'campaigns': month_campaigns
             })
         
-        # Engagement trends
-        engagement_trends = []
+        # Reach trends (views)
+        reach_trends = []
         for i in range(7):  # Last 7 days
             day = timezone.now() - timedelta(days=i)
-            day_engagement = HealthCampaign.objects.filter(
+            day_views = HealthCampaign.objects.filter(
                 updated_at__date=day.date()
-            ).aggregate(Sum('engagement_count'))['engagement_count__sum'] or 0
-            engagement_trends.append({
+            ).aggregate(Sum('view_count'))['view_count__sum'] or 0
+            reach_trends.append({
                 'date': day.strftime('%Y-%m-%d'),
-                'engagement': day_engagement
+                'views': day_views
             })
         
         analytics_data = {
             'total_campaigns': total_campaigns,
             'total_views': total_views,
-            'total_engagement': total_engagement,
+            'total_feedback': total_feedback,
             'average_rating': round(average_rating, 1),
             'top_campaigns': top_campaigns_serializer.data,
             'campaign_types_distribution': campaign_types_distribution,
             'monthly_stats': monthly_stats,
-            'engagement_trends': engagement_trends
+            'reach_trends': reach_trends
         }
         
         return Response(analytics_data)

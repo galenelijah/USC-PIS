@@ -411,51 +411,42 @@ class ReportDataService:
             
             if total_campaigns == 0:
                 return {
-                    'total_participants': 0, 'avg_engagement_rate': 0, 
+                    'total_views': 0, 'avg_views_per_campaign': 0, 
                     'campaign_performance': [], 'asset_effectiveness': []
                 }
                 
             perf = []
             total_views = 0
-            total_engagements = 0
             
             # Asset tracking
-            with_pubmat = {'count': 0, 'views': 0, 'engagements': 0}
-            without_pubmat = {'count': 0, 'views': 0, 'engagements': 0}
-            with_banner = {'count': 0, 'views': 0, 'engagements': 0}
+            with_pubmat = {'count': 0, 'views': 0}
+            without_pubmat = {'count': 0, 'views': 0}
+            with_banner = {'count': 0, 'views': 0}
             
             for c in queryset:
-                views = c.view_count or 1  # prevent div zero
-                engagements = c.engagement_count or 0
-                rate = (engagements / views) * 100
-                
                 total_views += c.view_count
-                total_engagements += engagements
                 
                 perf.append({
                     'title': c.title, 
                     'views': c.view_count,
-                    'participant_count': engagements, 
-                    'engagement_rate': rate, 
-                    'performance': 'High' if rate > 50 else ('Medium' if rate > 20 else 'Low')
+                    'type': c.get_campaign_type_display(),
+                    'priority': c.get_priority_display(),
+                    'performance': 'High' if c.view_count > 100 else ('Medium' if c.view_count > 50 else 'Low')
                 })
                 
                 # Effectiveness analysis
                 if c.pubmat_image:
                     with_pubmat['count'] += 1
                     with_pubmat['views'] += c.view_count
-                    with_pubmat['engagements'] += engagements
                 else:
                     without_pubmat['count'] += 1
                     without_pubmat['views'] += c.view_count
-                    without_pubmat['engagements'] += engagements
                     
                 if c.banner_image:
                     with_banner['count'] += 1
                     with_banner['views'] += c.view_count
-                    with_banner['engagements'] += engagements
 
-            avg_engagement_rate = (total_engagements / max(total_views, 1)) * 100
+            avg_views = total_views / max(total_campaigns, 1)
             
             # Calculate asset effectiveness
             asset_effectiveness = []
@@ -463,34 +454,33 @@ class ReportDataService:
                 asset_effectiveness.append({
                     'asset_type': 'With PubMat',
                     'campaigns': with_pubmat['count'],
-                    'avg_engagement_rate': (with_pubmat['engagements'] / max(with_pubmat['views'], 1)) * 100
+                    'avg_views': with_pubmat['views'] / with_pubmat['count']
                 })
             if without_pubmat['count'] > 0:
                 asset_effectiveness.append({
                     'asset_type': 'Without PubMat',
                     'campaigns': without_pubmat['count'],
-                    'avg_engagement_rate': (without_pubmat['engagements'] / max(without_pubmat['views'], 1)) * 100
+                    'avg_views': without_pubmat['views'] / without_pubmat['count']
                 })
             if with_banner['count'] > 0:
                 asset_effectiveness.append({
                     'asset_type': 'With Banner',
                     'campaigns': with_banner['count'],
-                    'avg_engagement_rate': (with_banner['engagements'] / max(with_banner['views'], 1)) * 100
+                    'avg_views': with_banner['views'] / with_banner['count']
                 })
                 
-            # Sort performance by engagement rate
-            perf = sorted(perf, key=lambda x: x['engagement_rate'], reverse=True)[:10]
+            # Sort performance by views
+            perf = sorted(perf, key=lambda x: x['views'], reverse=True)[:10]
 
             return {
-                'total_participants': total_engagements,
                 'total_views': total_views,
-                'avg_engagement_rate': avg_engagement_rate, 
+                'avg_views_per_campaign': avg_views, 
                 'campaign_performance': perf,
                 'asset_effectiveness': asset_effectiveness
             }
         except Exception as e: 
             logger.error(f"Error in get_campaign_performance_data: {str(e)}")
-            return {'error': str(e), 'total_participants': 0}
+            return {'error': str(e), 'total_views': 0}
 
     @staticmethod
     def get_medical_statistics_data(date_start=None, date_end=None, filters=None):
