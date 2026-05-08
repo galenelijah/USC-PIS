@@ -50,6 +50,7 @@ urlpatterns = [
     # Email administration endpoints
     path('email/status/', email_admin_views.email_system_status, name='email_system_status'),
     path('email/test/', email_admin_views.test_email_system, name='test_email_system'),
+    path('notification/test/', email_admin_views.test_notification_system, name='test_notification_system'),
     path('email/feedback/send/', email_admin_views.send_feedback_emails, name='send_feedback_emails'),
     path('email/health-alert/send/', email_admin_views.send_health_alert, name='send_health_alert'),
     path('email/stats/', email_admin_views.email_automation_stats, name='email_automation_stats'),

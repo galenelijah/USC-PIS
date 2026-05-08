@@ -89,7 +89,6 @@ const EmailAdministration = () => {
   const [editConfigOpen, setEditConfigOpen] = useState(false);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [testDialogOpen, setTestDialogOpen] = useState(false);
-  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
   const [alertDialogOpen, setAlertDialogOpen] = useState(false);
   const [healthDialogOpen, setHealthDialogOpen] = useState(false);
   const [selectedConfig, setSelectedConfig] = useState(null);
@@ -160,13 +159,6 @@ const EmailAdministration = () => {
   });
   const [testResults, setTestResults] = useState(null);
 
-  // Feedback email form state
-  const [feedbackForm, setFeedbackForm] = useState({
-    hours: 24,
-    dryRun: true
-  });
-  const [feedbackResults, setFeedbackResults] = useState(null);
-
   // Health alert form state
   const [alertForm, setAlertForm] = useState({
     alertLevel: 'warning',
@@ -174,6 +166,15 @@ const EmailAdministration = () => {
     dryRun: true
   });
   const [alertResults, setAlertResults] = useState(null);
+
+  const [testNotifDialogOpen, setTestNotifDialogOpen] = useState(false);
+  const [testNotifForm, setTestNotifForm] = useState({
+    user_id: '',
+    title: 'Manual Test Notification',
+    message: 'This is a test notification sent from the admin panel.',
+    notification_type: 'SYSTEM'
+  });
+  const [notifResults, setNotifResults] = useState(null);
 
   const [notification, setNotification] = useState(null);
 
@@ -506,29 +507,6 @@ const EmailAdministration = () => {
     }
   };
 
-  const handleSendFeedbackEmails = async () => {
-    try {
-      setActionLoading(true);
-      const response = await authService.sendFeedbackEmails(feedbackForm);
-      setFeedbackResults(response.data);
-      
-      setNotification({
-        type: 'success',
-        message: `Feedback emails ${feedbackForm.dryRun ? 'preview' : 'sent'} successfully`
-      });
-      
-      // Refresh stats
-      fetchEmailData();
-    } catch (error) {
-      setNotification({
-        type: 'error',
-        message: `Failed to send feedback emails: ${error.message}`
-      });
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const handleSendHealthAlert = async () => {
     try {
       setActionLoading(true);
@@ -543,6 +521,25 @@ const EmailAdministration = () => {
       setNotification({
         type: 'error',
         message: `Failed to send health alert: ${error.message}`
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleTestNotification = async () => {
+    try {
+      setActionLoading(true);
+      const response = await authService.testNotificationSystem(testNotifForm);
+      setNotifResults(response);
+      setNotification({
+        type: 'success',
+        message: 'Notification sent successfully'
+      });
+    } catch (error) {
+      setNotification({
+        type: 'error',
+        message: `Failed to send notification: ${error.message}`
       });
     } finally {
       setActionLoading(false);
@@ -772,8 +769,8 @@ const EmailAdministration = () => {
                 </Typography>
               </Box>
               
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={4}>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6} md={4}>
                   <Tooltip title="Send a single manual email to any address to verify SMTP/Gmail connectivity without affecting real patient data." arrow>
                     <Button
                       fullWidth
@@ -783,28 +780,28 @@ const EmailAdministration = () => {
                       disabled={actionLoading}
                       sx={{ py: 1.5 }}
                     >
-                      Send Manual Test Email
+                      Test Email System
                     </Button>
                   </Tooltip>
                 </Grid>
-                
-                <Grid item xs={12} md={4}>
-                  <Tooltip title="Manually trigger the batch process that sends survey/feedback requests to patients who visited the clinic recently (e.g., 24h ago)." arrow>
+
+                <Grid item xs={12} sm={6} md={4}>
+                  <Tooltip title="Test the in-app notification system by sending a message directly to a user's dashboard." arrow>
                     <Button
                       fullWidth
                       variant="contained"
-                      color="secondary"
-                      startIcon={<EmailIcon />}
-                      onClick={() => setFeedbackDialogOpen(true)}
+                      color="info"
+                      startIcon={<AppNotifIcon />}
+                      onClick={() => setTestNotifDialogOpen(true)}
                       disabled={actionLoading}
                       sx={{ py: 1.5 }}
                     >
-                      Process Visit Feedback
+                      Test Notifications
                     </Button>
                   </Tooltip>
                 </Grid>
                 
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} sm={6} md={4}>
                   <Tooltip title="Force-sends a comprehensive health report (database, storage, security status) to all system administrators." arrow>
                     <Button
                       fullWidth
@@ -815,7 +812,7 @@ const EmailAdministration = () => {
                       disabled={actionLoading}
                       sx={{ py: 1.5 }}
                     >
-                      Broadcast Health Alert
+                      System Health Alert
                     </Button>
                   </Tooltip>
                 </Grid>
@@ -1131,9 +1128,11 @@ const EmailAdministration = () => {
               onChange={(e) => setTestForm(prev => ({ ...prev, types: e.target.value }))}
               renderValue={(selected) => selected.join(', ')}
             >
-              <MenuItem value="feedback">Feedback Request</MenuItem>
+              <MenuItem value="feedback">Feedback Request (Immediate)</MenuItem>
+              <MenuItem value="feedback_reminder">Feedback Reminder (24h)</MenuItem>
               <MenuItem value="welcome">Welcome Email</MenuItem>
-              <MenuItem value="certificate">Certificate Notification</MenuItem>
+              <MenuItem value="certificate_created">Cert: Created/Pending</MenuItem>
+              <MenuItem value="certificate_approved">Cert: Approved Notification</MenuItem>
               <MenuItem value="health_alert">Health Alert</MenuItem>
             </Select>
           </FormControl>
@@ -1193,67 +1192,64 @@ const EmailAdministration = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Feedback Email Dialog */}
-      <Dialog open={feedbackDialogOpen} onClose={() => setFeedbackDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Process Visit Feedback</DialogTitle>
+      {/* Test Notification Dialog */}
+      <Dialog open={testNotifDialogOpen} onClose={() => setTestNotifDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Test In-App Notification</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" paragraph>
-            This triggers the automated system to find patients who visited the clinic in a specific 1-hour window and sends them a feedback survey.
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Send a manual notification to a user's dashboard. Leave User ID blank to send to yourself.
           </Typography>
-
           <TextField
             fullWidth
-            label="Hours Ago"
-            value={feedbackForm.hours}
-            onChange={(e) => setFeedbackForm(prev => ({ ...prev, hours: parseInt(e.target.value) || 24 }))}
+            label="Target User ID (Optional)"
+            value={testNotifForm.user_id}
+            onChange={(e) => setTestNotifForm(prev => ({ ...prev, user_id: e.target.value }))}
             margin="normal"
-            type="number"
-            helperText="Example: '24' targets visits from exactly 24 to 23 hours ago."
+            placeholder="e.g. 101"
           />
-
-          <Alert severity="info" sx={{ mt: 1, mb: 2 }}>
-            <Typography variant="caption" sx={{ display: 'block' }}>
-              <strong>How it works:</strong> The system looks for visits in a 1-hour block. If you select <strong>2 hours ago</strong>, it looks for patients who visited between 2 hours ago and 1 hour ago. If no visits were recorded in that specific hour, 0 emails will be sent.
-            </Typography>
-          </Alert>
-
-          <FormControlLabel
-            control={
-              <Switch
-                checked={feedbackForm.dryRun}
-                onChange={(e) => setFeedbackForm(prev => ({ ...prev, dryRun: e.target.checked }))}
-              />
-            }
-            label="Dry Run (Preview Only)"
+          <TextField
+            fullWidth
+            label="Notification Title"
+            value={testNotifForm.title}
+            onChange={(e) => setTestNotifForm(prev => ({ ...prev, title: e.target.value }))}
+            margin="normal"
           />
-
-          {feedbackResults && (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="subtitle1" gutterBottom>Results:</Typography>
-              <Alert severity={feedbackResults.error_count > 0 ? 'warning' : 'success'}>
-                {feedbackForm.dryRun ? 'Would send' : 'Sent'} {feedbackResults.sent_count} emails
-                {feedbackResults.error_count > 0 && ` (${feedbackResults.error_count} errors)`}
-              </Alert>
-              {feedbackResults.sent_count === 0 && !feedbackResults.error_count && (
-                <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
-                  Note: No patient visits were found for the selected time window.
-                </Typography>
-              )}
-            </Box>
-          )}
+          <TextField
+            fullWidth
+            label="Message Content"
+            value={testNotifForm.message}
+            onChange={(e) => setTestNotifForm(prev => ({ ...prev, message: e.target.value }))}
+            margin="normal"
+            multiline
+            rows={3}
+          />
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Notification Type</InputLabel>
+            <Select
+              value={testNotifForm.notification_type}
+              onChange={(e) => setTestNotifForm(prev => ({ ...prev, notification_type: e.target.value }))}
+              label="Notification Type"
+            >
+              <MenuItem value="SYSTEM">System Alert</MenuItem>
+              <MenuItem value="CLINIC_UPDATE">Clinic Update</MenuItem>
+              <MenuItem value="HEALTH_CAMPAIGN">Health Campaign</MenuItem>
+              <MenuItem value="FOLLOW_UP">Feedback Request</MenuItem>
+            </Select>
+          </FormControl>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setFeedbackDialogOpen(false)}>Cancel</Button>
-          <Button
-            onClick={handleSendFeedbackEmails}
-            variant="contained"
+          <Button onClick={() => setTestNotifDialogOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={handleTestNotification} 
+            variant="contained" 
+            color="info"
             disabled={actionLoading}
-            startIcon={actionLoading ? <CircularProgress size={20} /> : null}
           >
-            {feedbackForm.dryRun ? 'Preview' : 'Send'} Emails
+            {actionLoading ? <CircularProgress size={24} /> : 'Send Notification'}
           </Button>
         </DialogActions>
       </Dialog>
+
       {/* Health Alert Dialog */}
       <Dialog open={alertDialogOpen} onClose={() => setAlertDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Send Health System Alert</DialogTitle>

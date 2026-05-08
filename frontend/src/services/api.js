@@ -599,6 +599,30 @@ export const authService = {
     }
   },
 
+  testNotificationSystem: async (notificationData) => {
+    try {
+      const token = localStorage.getItem('Token');
+      const response = await fetch('/api/utils/notification/test/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(notificationData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { data: data.data || data };
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
   sendFeedbackEmails: async (feedbackData) => {
     try {
       const token = localStorage.getItem('Token');

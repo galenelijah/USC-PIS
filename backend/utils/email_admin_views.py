@@ -212,10 +212,14 @@ def test_email_system(request):
             try:
                 if test_type == 'feedback':
                     result = _test_feedback_email(test_email, dry_run)
+                elif test_type == 'feedback_reminder':
+                    result = _test_feedback_reminder_email(test_email, dry_run)
                 elif test_type == 'welcome':
                     result = _test_welcome_email(test_email, dry_run)
-                elif test_type == 'certificate':
-                    result = _test_certificate_email(test_email, dry_run)
+                elif test_type == 'certificate_created':
+                    result = _test_certificate_email(test_email, dry_run, 'created')
+                elif test_type == 'certificate_approved':
+                    result = _test_certificate_email(test_email, dry_run, 'approved')
                 elif test_type == 'health_alert':
                     result = _test_health_alert_email(test_email, dry_run)
                 else:
@@ -254,6 +258,39 @@ def test_email_system(request):
             'success': False,
             'error': str(e)
         }, status=500)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@admin_required
+def test_notification_system(request):
+    """Test in-app notification system by sending a test notification"""
+    try:
+        data = request.data
+        user_id = data.get('user_id') or request.user.id
+        title = data.get('title', 'System Test Notification')
+        message = data.get('message', 'This is a test of the in-app notification system.')
+        notification_type = data.get('notification_type', 'SYSTEM')
+        
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'User not found'}, status=404)
+            
+        # Call the helper method in EmailService
+        EmailService._create_in_app_notification(
+            user=user,
+            title=title,
+            message=message,
+            notification_type=notification_type
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Test notification sent to {user.email}'
+        })
+    except Exception as e:
+        logger.error(f"Error testing notification system: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -525,23 +562,28 @@ def _test_welcome_email(email, dry_run):
             'message': f'Error sending welcome email: {str(e)}'
         }
 
-def _test_certificate_email(email, dry_run):
+def _test_certificate_email(email, dry_run, notification_type='created'):
     """Test certificate email"""
     try:
         if dry_run:
             return {
                 'success': True,
-                'message': f'Would send certificate email to {email}'
+                'message': f'Would send certificate {notification_type} email to {email}'
             }
         
         # Create mock certificate for testing
         class MockPatient:
             def __init__(self):
                 self.user = MockUser()
+            def get_full_name(self):
+                return "Test Patient"
                 
         class MockUser:
             def __init__(self):
                 self.email = email
+                self.first_name = "Test"
+            def get_full_name(self):
+                return "Test Personnel"
                 
         class MockCertificate:
             def __init__(self):
@@ -549,19 +591,66 @@ def _test_certificate_email(email, dry_run):
                 self.id = 999
                 self.purpose = "Testing"
                 self.created_at = timezone.now()
+                self.approval_status = 'approved'
+                self.approved_by = MockUser()
+                self.issued_by = MockUser()
+                self.diagnosis = "Mock diagnosis for testing"
+                self.recommendations = "Mock recommendations"
+                self.valid_from = timezone.now().date()
+                self.fitness_status = 'fit'
+            def get_fitness_status_display(self):
+                return "Fit"
         
         mock_cert = MockCertificate()
-        EmailService.send_medical_certificate_notification(mock_cert, 'created')
+        EmailService.send_medical_certificate_notification(mock_cert, notification_type)
         
         return {
             'success': True,
-            'message': f'Certificate email sent to {email}'
+            'message': f'Certificate {notification_type} email sent to {email}'
         }
         
     except Exception as e:
         return {
             'success': False,
             'message': f'Error sending certificate email: {str(e)}'
+        }
+
+def _test_feedback_reminder_email(email, dry_run):
+    """Test 24h feedback reminder email"""
+    try:
+        if dry_run:
+            return {
+                'success': True,
+                'message': f'Would send feedback reminder email to {email}'
+            }
+        
+        # Create mock patient for testing
+        class MockUser:
+            def __init__(self):
+                self.email = email
+                self.first_name = "Test"
+        
+        class MockPatient:
+            def __init__(self):
+                self.user = MockUser()
+            def get_full_name(self):
+                return "Test Patient"
+        
+        mock_patient = MockPatient()
+        success = EmailService.send_feedback_request_for_visit(
+            mock_patient, 
+            timezone.now().date(), 
+            "Medical Follow-up Test"
+        )
+        
+        return {
+            'success': success,
+            'message': f'Feedback reminder email {"sent" if success else "failed"} to {email}'
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'message': f'Error sending feedback reminder: {str(e)}'
         }
 
 def _test_health_alert_email(email, dry_run):
