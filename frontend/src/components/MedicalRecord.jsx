@@ -118,6 +118,9 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
     // Only ADMIN, DOCTOR, and NURSE have CRUD for Medical. DENTIST and STAFF are view-only.
     const isAuthorizedToEdit = user?.role && ['ADMIN', 'DOCTOR', 'NURSE'].includes(user.role);
     
+    // Check if user is staff or medical personnel
+    const isStaffOrMedical = user?.role && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
+    
     // Can edit if they are authorized AND NOT in readOnly mode
     const canEdit = isAuthorizedToEdit && !readOnly;
     
