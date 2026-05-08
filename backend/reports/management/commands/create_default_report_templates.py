@@ -52,11 +52,11 @@ class Command(BaseCommand):
                 'allowed_roles': ['DOCTOR', 'STAFF', 'ADMIN']
             },
             {
-                'name': 'Treatment Outcomes Report',
-                'description': 'Analysis of treatment effectiveness and patient outcomes',
+                'name': 'Clinical Outcomes Report',
+                'description': 'Analysis of diagnosis distribution and treatment patterns',
                 'report_type': 'TREATMENT_OUTCOMES',
                 'template_content': self.get_treatment_outcomes_template(),
-                'default_filters': {'include_success_rates': True, 'group_by_treatment': True},
+                'default_filters': {'include_top_diagnoses': True, 'include_treatments': True},
                 'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
                 'allowed_roles': ['DOCTOR', 'STAFF', 'ADMIN']
             },
@@ -593,15 +593,15 @@ class Command(BaseCommand):
         </head>
         <body>
             <div class="header">
-                <div class="title">Dental Health Statistics</div>
-                <div class="subtitle">USC Patient Information System</div>
+                <div class="title">Dental Services Analysis</div>
+                <div class="subtitle">Clinical Statistics & Service Distribution</div>
             </div>
 
             <div style="display: table; width: 100%; margin-bottom: 20px;">
                 <div style="display: table-cell; width: 50%; padding: 5px;">
                     <div class="metric-box">
-                        <div class="metric-label">Total Procedures</div>
-                        <div class="metric-value">{{{{ total_procedures }}}}</div>
+                        <div class="metric-label">Total Clinical Records</div>
+                        <div class="metric-value">{{{{ total_records }}}}</div>
                     </div>
                 </div>
                 <div style="display: table-cell; width: 50%; padding: 5px;">
@@ -613,41 +613,81 @@ class Command(BaseCommand):
             </div>
 
             <div class="section">
-                <div class="section-title">Common Dental Procedures</div>
+                <div class="section-title">Procedure Distribution</div>
                 <table class="usc-table">
                     <thead>
-                        <tr><th>Procedure</th><th>Count</th><th>Success Rate</th><th>Avg Duration</th></tr>
+                        <tr><th>Procedure Type</th><th>Frequency</th><th>Percentage</th></tr>
                     </thead>
                     <tbody>
                         {{% for proc in common_procedures %}}
                         <tr>
                             <td>{{{{ proc.name }}}}</td>
                             <td>{{{{ proc.count }}}}</td>
-                            <td>{{{{ proc.success_rate }}}}%</td>
-                            <td>{{{{ proc.avg_duration }}}} min</td>
+                            <td>{{{{ proc.percentage|floatformat:1 }}}}%</td>
                         </tr>
                         {{% endfor %}}
                     </tbody>
                 </table>
             </div>
 
+            <div style="display: table; width: 100%; margin-top: 20px;">
+                <div style="display: table-cell; width: 50%; padding-right: 10px;">
+                    <div class="section">
+                        <div class="section-title">Oral Hygiene Status</div>
+                        <table class="usc-table">
+                            <thead>
+                                <tr><th>Status</th><th>Count</th></tr>
+                            </thead>
+                            <tbody>
+                                {{% for stat in hygiene_stats %}}
+                                <tr>
+                                    <td>{{{{ stat.status }}}}</td>
+                                    <td>{{{{ stat.count }}}}</td>
+                                </tr>
+                                {{% endfor %}}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div style="display: table-cell; width: 50%; padding-left: 10px;">
+                    <div class="section">
+                        <div class="section-title">Gum Condition</div>
+                        <table class="usc-table">
+                            <thead>
+                                <tr><th>Condition</th><th>Count</th></tr>
+                            </thead>
+                            <tbody>
+                                {{% for stat in gum_stats %}}
+                                <tr>
+                                    <td>{{{{ stat.condition }}}}</td>
+                                    <td>{{{{ stat.count }}}}</td>
+                                </tr>
+                                {{% endfor %}}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <div class="section">
-                <div class="section-title">Health by Age Group</div>
+                <div class="section-title">Clinical Priority Breakdown</div>
                 <table class="usc-table">
                     <thead>
-                        <tr><th>Age Group</th><th>Patients</th><th>Cavities Rate</th><th>Gum Disease</th></tr>
+                        <tr><th>Priority Level</th><th>Total Consultations</th></tr>
                     </thead>
                     <tbody>
-                        {{% for age in dental_by_age %}}
+                        {{% for stat in priority_stats %}}
                         <tr>
-                            <td>{{{{ age.range }}}}</td>
-                            <td>{{{{ age.patient_count }}}}</td>
-                            <td>{{{{ age.cavities_rate }}}}%</td>
-                            <td>{{{{ age.gum_disease_rate }}}}%</td>
+                            <td>{{{{ stat.label }}}}</td>
+                            <td>{{{{ stat.count }}}}</td>
                         </tr>
                         {{% endfor %}}
                     </tbody>
                 </table>
+            </div>
+            
+            <div class="footer">
+                <p>Generated on: {{{{ report_date }}}}</p>
             </div>
         </body>
         </html>

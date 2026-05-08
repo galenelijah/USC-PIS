@@ -85,17 +85,16 @@ class EmailService:
     def _create_in_app_notification(user, title, message, notification_type='SYSTEM', action_url=None):
         """Helper to create an in-app notification record to sync with emails"""
         try:
-            from notifications.models import Notification
-            Notification.objects.create(
+            from notifications.services import NotificationService
+            NotificationService.create_notification(
                 recipient=user,
                 title=title,
                 message=message,
                 notification_type=notification_type,
                 delivery_method='IN_APP',
-                status='DELIVERED',
                 action_url=action_url
             )
-            logger.info(f"In-app notification created for {user.email}: {title}")
+            logger.info(f"Actual in-app notification created via NotificationService for {user.email}: {title}")
         except Exception as e:
             logger.error(f"Failed to create in-app notification: {e}")
 

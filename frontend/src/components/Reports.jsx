@@ -842,17 +842,17 @@ const Reports = () => {
           <Grid container spacing={3} mb={3}>
             <Grid item xs={12} sm={6} md={3}>
               <Card sx={{ 
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                background: 'linear-gradient(135deg, #0B4F6C 0%, #246A73 100%)',
                 color: 'white'
               }}>
                 <CardContent>
                   <Box display="flex" alignItems="center" justifyContent="space-between">
                     <Box>
                       <Typography variant="h4" fontWeight="bold">
-                        {dashboard.total_reports}
+                        {dashboard.total_clinical_records || 0}
                       </Typography>
                       <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                        Total Reports
+                        Total Clinical Records
                       </Typography>
                     </Box>
                     <ReportIcon sx={{ fontSize: 40, opacity: 0.8 }} />
@@ -869,15 +869,15 @@ const Reports = () => {
                   <Box display="flex" alignItems="center" justifyContent="space-between">
                     <Box>
                       <Typography variant="h4" fontWeight="bold">
-                        {dashboard.reports_this_month}
+                        {dashboard.total_patients || 0}
                       </Typography>
                       <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                        This Month
+                        Registered Patients
                       </Typography>
                       <Box display="flex" alignItems="center" mt={0.5}>
                         <TrendingUpIcon sx={{ fontSize: 16, mr: 0.5 }} />
                         <Typography variant="caption">
-                          +12% vs last month
+                          Active Population
                         </Typography>
                       </Box>
                     </Box>
@@ -888,28 +888,23 @@ const Reports = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <Card sx={{
-                background: dashboard.pending_reports > 0 
-                  ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-                  : 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
                 color: 'white'
               }}>
                 <CardContent>
                   <Box display="flex" alignItems="center" justifyContent="space-between">
                     <Box>
                       <Typography variant="h4" fontWeight="bold">
-                        {dashboard.pending_reports}
+                        {dashboard.total_reports}
                       </Typography>
                       <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                        {realTimeUpdates ? 'Live Updates On' : 'Pending'}
+                        Exported Reports
                       </Typography>
-                      {dashboard.pending_reports > 0 && (
-                        <Box display="flex" alignItems="center" mt={0.5}>
-                          <CircularProgress size={12} sx={{ color: 'white', mr: 0.5 }} />
-                          <Typography variant="caption">
-                            Processing...
-                          </Typography>
-                        </Box>
-                      )}
+                      <Box display="flex" alignItems="center" mt={0.5}>
+                        <Typography variant="caption">
+                          {dashboard.reports_this_month} this month
+                        </Typography>
+                      </Box>
                     </Box>
                     <Badge badgeContent={dashboard.pending_reports} color="error">
                       <AnalyticsIcon sx={{ fontSize: 40, opacity: 0.8 }} />
@@ -932,7 +927,7 @@ const Reports = () => {
                         {dashboard.failed_reports}
                       </Typography>
                       <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                        Failed Reports
+                        System Alerts
                       </Typography>
                       {dashboard.failed_reports === 0 && (
                         <Typography variant="caption" color="success.main">

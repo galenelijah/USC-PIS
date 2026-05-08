@@ -267,27 +267,56 @@ def test_notification_system(request):
     try:
         data = request.data
         user_id = data.get('user_id') or request.user.id
-        title = data.get('title', 'System Test Notification')
-        message = data.get('message', 'This is a test of the in-app notification system.')
-        notification_type = data.get('notification_type', 'SYSTEM')
+        test_type = data.get('type', 'custom')
         
         try:
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'User not found'}, status=404)
             
-        # Call the helper method in EmailService
-        EmailService._create_in_app_notification(
-            user=user,
-            title=title,
-            message=message,
-            notification_type=notification_type
-        )
+        if test_type == 'custom':
+            title = data.get('title', 'System Test Notification')
+            message = data.get('message', 'This is a test of the in-app notification system.')
+            EmailService._create_in_app_notification(
+                user=user,
+                title=title,
+                message=message,
+                notification_type=data.get('notification_type', 'SYSTEM')
+            )
+            return JsonResponse({'success': True, 'message': f'Custom notification sent to {user.email}'})
+            
+        elif test_type == 'welcome':
+            EmailService._create_in_app_notification(
+                user=user,
+                title='Welcome to USC-PIS',
+                message='Welcome to the USC Patient Information System! Your account is now active and ready to use.',
+                notification_type='CLINIC_UPDATE',
+                action_url='/profile-setup'
+            )
+            return JsonResponse({'success': True, 'message': f'Welcome notification sent to {user.email}'})
+            
+        elif test_type == 'certificate_approved':
+            EmailService._create_in_app_notification(
+                user=user,
+                title='Medical Certificate Approved',
+                message='Your medical certificate has been approved by the University Physician. You can now download it from your health records.',
+                notification_type='HEALTH_CAMPAIGN',
+                action_url='/health-records'
+            )
+            return JsonResponse({'success': True, 'message': f'Cert approved notification sent to {user.email}'})
+            
+        elif test_type == 'appointment':
+            EmailService._create_in_app_notification(
+                user=user,
+                title='Appointment Reminder',
+                message='Reminder: You have a scheduled appointment at the university clinic tomorrow.',
+                notification_type='APPOINTMENT_REMINDER',
+                action_url='/appointments'
+            )
+            return JsonResponse({'success': True, 'message': f'Appointment notification sent to {user.email}'})
+            
+        return JsonResponse({'success': False, 'error': f'Unknown test type: {test_type}'}, status=400)
         
-        return JsonResponse({
-            'success': True,
-            'message': f'Test notification sent to {user.email}'
-        })
     except Exception as e:
         logger.error(f"Error testing notification system: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)

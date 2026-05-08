@@ -170,6 +170,7 @@ const EmailAdministration = () => {
   const [testNotifDialogOpen, setTestNotifDialogOpen] = useState(false);
   const [testNotifForm, setTestNotifForm] = useState({
     user_id: '',
+    type: 'custom',
     title: 'Manual Test Notification',
     message: 'This is a test notification sent from the admin panel.',
     notification_type: 'SYSTEM'
@@ -1192,12 +1193,11 @@ const EmailAdministration = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Test Notification Dialog */}
       <Dialog open={testNotifDialogOpen} onClose={() => setTestNotifDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Test In-App Notification</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Send a manual notification to a user's dashboard. Leave User ID blank to send to yourself.
+            Send a manual or system-templated notification. Leave User ID blank to send to yourself.
           </Typography>
           <TextField
             fullWidth
@@ -1207,35 +1207,60 @@ const EmailAdministration = () => {
             margin="normal"
             placeholder="e.g. 101"
           />
-          <TextField
-            fullWidth
-            label="Notification Title"
-            value={testNotifForm.title}
-            onChange={(e) => setTestNotifForm(prev => ({ ...prev, title: e.target.value }))}
-            margin="normal"
-          />
-          <TextField
-            fullWidth
-            label="Message Content"
-            value={testNotifForm.message}
-            onChange={(e) => setTestNotifForm(prev => ({ ...prev, message: e.target.value }))}
-            margin="normal"
-            multiline
-            rows={3}
-          />
+
           <FormControl fullWidth margin="normal">
-            <InputLabel>Notification Type</InputLabel>
+            <InputLabel>Notification Content Type</InputLabel>
             <Select
-              value={testNotifForm.notification_type}
-              onChange={(e) => setTestNotifForm(prev => ({ ...prev, notification_type: e.target.value }))}
-              label="Notification Type"
+              value={testNotifForm.type}
+              onChange={(e) => setTestNotifForm(prev => ({ ...prev, type: e.target.value }))}
+              label="Notification Content Type"
             >
-              <MenuItem value="SYSTEM">System Alert</MenuItem>
-              <MenuItem value="CLINIC_UPDATE">Clinic Update</MenuItem>
-              <MenuItem value="HEALTH_CAMPAIGN">Health Campaign</MenuItem>
-              <MenuItem value="FOLLOW_UP">Feedback Request</MenuItem>
+              <MenuItem value="custom">Custom (Manual Entry)</MenuItem>
+              <MenuItem value="welcome">Welcome Message Template</MenuItem>
+              <MenuItem value="certificate_approved">Certificate Approved Template</MenuItem>
+              <MenuItem value="appointment">Appointment Reminder Template</MenuItem>
             </Select>
           </FormControl>
+
+          {testNotifForm.type === 'custom' && (
+            <>
+              <TextField
+                fullWidth
+                label="Notification Title"
+                value={testNotifForm.title}
+                onChange={(e) => setTestNotifForm(prev => ({ ...prev, title: e.target.value }))}
+                margin="normal"
+              />
+              <TextField
+                fullWidth
+                label="Message Content"
+                value={testNotifForm.message}
+                onChange={(e) => setTestNotifForm(prev => ({ ...prev, message: e.target.value }))}
+                margin="normal"
+                multiline
+                rows={3}
+              />
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Category</InputLabel>
+                <Select
+                  value={testNotifForm.notification_type}
+                  onChange={(e) => setTestNotifForm(prev => ({ ...prev, notification_type: e.target.value }))}
+                  label="Category"
+                >
+                  <MenuItem value="SYSTEM">System Alert</MenuItem>
+                  <MenuItem value="CLINIC_UPDATE">Clinic Update</MenuItem>
+                  <MenuItem value="HEALTH_CAMPAIGN">Health Campaign</MenuItem>
+                  <MenuItem value="FOLLOW_UP">Feedback Request</MenuItem>
+                </Select>
+              </FormControl>
+            </>
+          )}
+
+          {testNotifForm.type !== 'custom' && (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              The system will use the actual content and action links for the selected <strong>{testNotifForm.type.replace('_', ' ')}</strong> notification type.
+            </Alert>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setTestNotifDialogOpen(false)}>Cancel</Button>

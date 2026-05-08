@@ -24,6 +24,7 @@ from .serializers import (
 )
 from .services import ReportGenerationService
 from .dispatcher import ReportDispatcher
+from patients.models import Patient, MedicalRecord, DentalRecord
 import logging
 
 logger = logging.getLogger(__name__)
@@ -349,7 +350,7 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def dashboard(self, request):
-        """Get report dashboard data"""
+        """Get report dashboard data with clinical metrics"""
         user = request.user
         
         # Base queryset for user's reports
@@ -358,12 +359,18 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
         else:
             base_queryset = GeneratedReport.objects.filter(generated_by=user)
         
-        # Calculate metrics
+        # Clinical Metrics (Actual tracking)
+        total_medical = MedicalRecord.objects.count()
+        total_dental = DentalRecord.objects.count()
+        total_clinical_records = total_medical + total_dental
+        total_patients = Patient.objects.count()
+        
+        # Generation Metrics (System activity)
         total_reports = base_queryset.count()
         reports_this_month = base_queryset.filter(
             created_at__gte=timezone.now().replace(day=1)
         ).count()
-        pending_reports = base_queryset.filter(status='PENDING').count()
+        pending_reports = base_queryset.filter(status__in=['PENDING', 'GENERATING']).count()
         failed_reports = base_queryset.filter(status='FAILED').count()
         
         # Popular templates
@@ -413,6 +420,8 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
         }
         
         dashboard_data = {
+            'total_clinical_records': total_clinical_records,
+            'total_patients': total_patients,
             'total_reports': total_reports,
             'reports_this_month': reports_this_month,
             'pending_reports': pending_reports,

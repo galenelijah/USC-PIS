@@ -184,8 +184,8 @@ class ReportDataService:
                 'gender_distribution': gender_distribution,
                 'age_distribution': age_groups,
                 'active_patients': queryset.filter(
-                    Q(medical_records__created_at__gte=timezone.now() - timedelta(days=90)) |
-                    Q(dental_records__created_at__gte=timezone.now() - timedelta(days=90))
+                    Q(medical_records__visit_date__gte=timezone.now() - timedelta(days=90)) |
+                    Q(dental_records__visit_date__gte=timezone.now() - timedelta(days=90))
                 ).distinct().count()
             }
             
@@ -202,8 +202,8 @@ class ReportDataService:
             date_start = date_start or (timezone.now() - timedelta(days=365))
             date_end = date_end or timezone.now()
             
-            medical_records = MedicalRecord.objects.filter(created_at__range=(date_start, date_end))
-            dental_records = DentalRecord.objects.filter(created_at__range=(date_start, date_end))
+            medical_records = MedicalRecord.objects.filter(visit_date__range=(date_start, date_end))
+            dental_records = DentalRecord.objects.filter(visit_date__range=(date_start, date_end))
             
             # Apply filters if provided
             if filters:
@@ -222,12 +222,14 @@ class ReportDataService:
             dental_patients = set(dental_records.values_list('patient_id', flat=True))
             unique_patients = len(medical_patients | dental_patients)
             
-            m_data = [{'date': r.created_at, 'type': 'medical'} for r in medical_records]
-            d_data = [{'date': r.created_at, 'type': 'dental'} for r in dental_records]
+            m_data = [{'date': r.visit_date, 'type': 'medical'} for r in medical_records]
+            d_data = [{'date': r.visit_date, 'type': 'dental'} for r in dental_records]
             
             monthly_summary = []
             if m_data or d_data:
                 df = pd.DataFrame(m_data + d_data)
+                # Ensure date is datetime
+                df['date'] = pd.to_datetime(df['date'])
                 df['month'] = df['date'].dt.strftime('%Y-%m')
                 monthly_counts = df.groupby(['month', 'type']).size().unstack(fill_value=0)
                 
@@ -271,6 +273,7 @@ class ReportDataService:
             peak_day_visits = 0
             if m_data or d_data:
                 df_day = pd.DataFrame(m_data + d_data)
+                df_day['date'] = pd.to_datetime(df_day['date'])
                 df_day['day'] = df_day['date'].dt.date
                 peak_day_visits = int(df_day.groupby('day').size().max())
                 
@@ -291,28 +294,39 @@ class ReportDataService:
         try:
             date_start = date_start or (timezone.now() - timedelta(days=365))
             date_end = date_end or timezone.now()
-            queryset = MedicalRecord.objects.filter(created_at__range=(date_start, date_end))
-            total_treatments = queryset.count()
-            if total_treatments == 0: return {'total_treatments': 0, 'overall_success_rate': 0, 'treatment_outcomes': [], 'top_treatments': []}
-            outcomes_raw = queryset.values('treatment').annotate(count=Count('id')).order_by('-count')
-            treatment_outcomes = []
-            for item in outcomes_raw[:10]:
-                count = item['count']; successful = int(count * 0.85); improved = int(count * 0.10)
-                treatment_outcomes.append({
-                    'category': item['treatment'] or "General Consultation", 'total_cases': count,
-                    'successful': successful, 'improved': improved, 'success_rate': (successful / count) * 100
-                })
-            top_treatments = []
-            for item in outcomes_raw[:5]:
-                count = item['count']
-                top_treatments.append({'name': item['treatment'] or "General Consultation", 'case_count': count, 'success_rate': 92.5, 'avg_duration': 7})
+            queryset = MedicalRecord.objects.filter(visit_date__range=(date_start, date_end))
+            total_cases = queryset.count()
+            
+            if total_cases == 0: 
+                return {
+                    'total_cases': 0, 'top_diagnoses': [], 
+                    'treatment_distribution': [], 'priority_breakdown': []
+                }
+            
+            # Top Diagnoses
+            diagnoses = queryset.values('diagnosis').annotate(count=Count('id')).order_by('-count')[:10]
+            top_diagnoses = [{
+                'name': d['diagnosis'], 
+                'count': d['count'],
+                'percentage': (d['count'] / total_cases) * 100
+            } for d in diagnoses]
+            
+            # Treatment Distribution
+            treatments = queryset.values('treatment').annotate(count=Count('id')).order_by('-count')[:10]
+            treatment_distribution = [{
+                'name': t['treatment'], 
+                'count': t['count'],
+                'percentage': (t['count'] / total_cases) * 100
+            } for t in treatments]
+
             return {
-                'total_treatments': total_treatments, 'overall_success_rate': 88.5,
-                'treatment_outcomes': treatment_outcomes, 'top_treatments': top_treatments
+                'total_cases': total_cases,
+                'top_diagnoses': top_diagnoses,
+                'treatment_distribution': treatment_distribution
             }
-        except Exception as e:
+        except Exception as e: 
             logger.error(f"Error in get_treatment_outcomes_data: {str(e)}")
-            return {'error': str(e), 'total_treatments': 0}
+            return {'error': str(e), 'total_cases': 0}
 
     @staticmethod
     def get_user_activity_data(date_start=None, date_end=None, filters=None):
@@ -329,7 +343,30 @@ class ReportDataService:
 
     @staticmethod
     def get_health_metrics_data(date_start=None, date_end=None, filters=None):
-        return {'total_population': Patient.objects.count(), 'age_average': 22.1, 'health_alerts': 5}
+        try:
+            from notifications.models import Notification
+            
+            # Calculate real avg age of population
+            patients = Patient.objects.all()
+            total_pop = patients.count()
+            ages = [p.age for p in patients if p.age is not None]
+            avg_age = sum(ages) / len(ages) if ages else 0
+            
+            # Health alerts (unread system notifications in the period)
+            health_alerts = Notification.objects.filter(
+                notification_type='SYSTEM',
+                status__in=['PENDING', 'SENT', 'DELIVERED'],
+                created_at__range=(date_start or (timezone.now() - timedelta(days=365)), date_end or timezone.now())
+            ).count()
+
+            return {
+                'total_population': total_pop, 
+                'age_average': round(avg_age, 1), 
+                'health_alerts': health_alerts
+            }
+        except Exception as e:
+            logger.error(f"Error in get_health_metrics_data: {e}")
+            return {'total_population': Patient.objects.count(), 'age_average': 0, 'health_alerts': 0}
 
     @staticmethod
     def get_feedback_analysis_data(date_start=None, date_end=None, filters=None):
@@ -341,8 +378,8 @@ class ReportDataService:
             total = feedback_qs.count()
             
             # Calculate response rate (total feedback / total visits)
-            medical_count = MedicalRecord.objects.filter(created_at__range=(date_start, date_end)).count()
-            dental_count = DentalRecord.objects.filter(created_at__range=(date_start, date_end)).count()
+            medical_count = MedicalRecord.objects.filter(visit_date__range=(date_start, date_end)).count()
+            dental_count = DentalRecord.objects.filter(visit_date__range=(date_start, date_end)).count()
             total_visits = medical_count + dental_count
             response_rate = (total / total_visits * 100) if total_visits > 0 else 0
 
@@ -487,16 +524,7 @@ class ReportDataService:
         try:
             date_start = date_start or (timezone.now() - timedelta(days=365))
             date_end = date_end or timezone.now()
-            records = MedicalRecord.objects.filter(created_at__range=(date_start, date_end))
-            
-            diag = []
-            for item in records.values('diagnosis').annotate(count=Count('id')).order_by('-count')[:10]:
-                diag.append({
-                    'name': item['diagnosis'] or "General Consultation", 
-                    'case_count': item['count'], 
-                    'percentage': (item['count'] / max(records.count(), 1)) * 100,
-                    'avg_age': 21.5 # Basic fallback
-                })
+            records = MedicalRecord.objects.filter(visit_date__range=(date_start, date_end))
             
             # Calculate real avg age
             patients = Patient.objects.filter(medical_records__in=records).distinct()
@@ -505,14 +533,41 @@ class ReportDataService:
                 ages = [p.age for p in patients if p.age is not None]
                 avg_age = sum(ages) / len(ages) if ages else 0
 
+            diag = []
+            # Group by diagnosis and calculate counts
+            diagnosis_groups = records.values('diagnosis').annotate(
+                count=Count('id')
+            ).order_by('-count')[:10]
+
+            for item in diagnosis_groups:
+                # Get patients with this specific diagnosis for demographic context
+                diag_patients = Patient.objects.filter(
+                    medical_records__in=records.filter(diagnosis=item['diagnosis'])
+                ).distinct()
+                diag_ages = [p.age for p in diag_patients if p.age is not None]
+                diag_avg_age = sum(diag_ages) / len(diag_ages) if diag_ages else 0
+
+                diag.append({
+                    'name': item['diagnosis'] or "General Consultation", 
+                    'case_count': item['count'], 
+                    'percentage': (item['count'] / max(records.count(), 1)) * 100,
+                    'avg_age': round(diag_avg_age, 1)
+                })
+            
             # Monthly trends
             monthly_trends = []
             if records.exists():
-                df = pd.DataFrame(list(records.values('created_at')))
-                df['month'] = df['created_at'].dt.strftime('%b %Y')
-                counts = df.groupby('month').size().to_dict()
+                df = pd.DataFrame(list(records.values('visit_date')))
+                df['visit_date'] = pd.to_datetime(df['visit_date'])
+                df['month'] = df['visit_date'].dt.strftime('%b %Y')
+                counts = df.groupby('month').size()
                 for month, count in counts.items():
-                    monthly_trends.append({'name': month, 'total': count, 'medical': count, 'emergency': 0})
+                    monthly_trends.append({
+                        'name': month, 
+                        'total': int(count), 
+                        'medical': int(count), 
+                        'emergency': 0 
+                    })
 
             return {
                 'total_patients': patients.count(), 
@@ -530,33 +585,69 @@ class ReportDataService:
         try:
             date_start = date_start or (timezone.now() - timedelta(days=365))
             date_end = date_end or timezone.now()
-            records = DentalRecord.objects.filter(created_at__range=(date_start, date_end))
+            records = DentalRecord.objects.filter(visit_date__range=(date_start, date_end))
+            total_records = records.count()
+
+            if total_records == 0:
+                return {
+                    'total_records': 0, 'common_procedures': [], 
+                    'hygiene_stats': [], 'gum_stats': [], 'priority_stats': []
+                }
             
-            proc = []
-            for item in records.values('procedure_performed').annotate(count=Count('id')).order_by('-count')[:10]:
-                proc.append({
-                    'name': item['procedure_performed'] or "Examination", 
-                    'count': item['count'], 
-                    'success_rate': 98.5, 
-                    'avg_duration': 30
-                })
-            
-            # Age group breakdown
-            age_groups = {'Student': 0, 'Faculty': 0, 'Staff': 0}
-            patients = Patient.objects.filter(dental_records__in=records).distinct()
-            dental_by_age = [
-                {'range': '18-25', 'patient_count': patients.count(), 'cavities_rate': 15.0, 'gum_disease_rate': 5.0},
-            ]
+            # Common procedures with display labels
+            proc_counts = records.values('procedure_performed').annotate(count=Count('id')).order_by('-count')
+            proc_map = dict(DentalRecord.PROCEDURE_CHOICES)
+            common_procedures = [{
+                'name': proc_map.get(item['procedure_performed'], item['procedure_performed']),
+                'count': item['count'],
+                'percentage': (item['count'] / total_records) * 100
+            } for item in proc_counts]
+
+            # Oral hygiene status distribution
+            hygiene_counts = records.exclude(oral_hygiene_status='').values('oral_hygiene_status').annotate(count=Count('id'))
+            hygiene_map = dict([
+                ('EXCELLENT', 'Excellent'), ('GOOD', 'Good'), ('FAIR', 'Fair'), ('POOR', 'Poor')
+            ])
+            hygiene_stats = [{
+                'status': hygiene_map.get(item['oral_hygiene_status'], item['oral_hygiene_status']),
+                'count': item['count']
+            } for item in hygiene_counts]
+
+            # Gum condition distribution
+            gum_counts = records.exclude(gum_condition='').values('gum_condition').annotate(count=Count('id'))
+            gum_map = dict([
+                ('HEALTHY', 'Healthy'), ('GINGIVITIS', 'Gingivitis'), 
+                ('PERIODONTITIS', 'Periodontitis'), ('INFLAMMATION', 'Inflammation')
+            ])
+            gum_stats = [{
+                'condition': gum_map.get(item['gum_condition'], item['gum_condition']),
+                'count': item['count']
+            } for item in gum_counts]
+
+            # Priority breakdown
+            priority_counts = records.values('priority').annotate(count=Count('id'))
+            priority_map = dict(DentalRecord.PRIORITY_CHOICES)
+            priority_stats = [{
+                'label': priority_map.get(item['priority'], item['priority']),
+                'count': item['count']
+            } for item in priority_counts]
+
+            # Preventive care calculation (Cleaning, Prophylaxis, Fluoride, Sealant)
+            preventive_types = ['CLEANING', 'PROPHYLAXIS', 'FLUORIDE', 'SEALANT']
+            preventive_count = records.filter(procedure_performed__in=preventive_types).count()
+            preventive_rate = (preventive_count / total_records) * 100 if total_records > 0 else 0
 
             return {
-                'total_procedures': records.count(), 
-                'preventive_care_rate': 85.0, 
-                'common_procedures': proc, 
-                'dental_by_age': dental_by_age
+                'total_records': total_records,
+                'preventive_care_rate': round(preventive_rate, 1),
+                'common_procedures': common_procedures,
+                'hygiene_stats': hygiene_stats,
+                'gum_stats': gum_stats,
+                'priority_stats': priority_stats
             }
         except Exception as e: 
             logger.error(f"Error in get_dental_statistics_data: {str(e)}")
-            return {'error': str(e), 'total_procedures': 0}
+            return {'error': str(e), 'total_records': 0}
 
     @staticmethod
     def get_comprehensive_analytics_data(date_start=None, date_end=None, filters=None):
@@ -564,12 +655,14 @@ class ReportDataService:
 
     @staticmethod
     def _get_peak_hours(queryset):
-        """Helper to calculate peak hours from a queryset of records with created_at"""
+        """Helper to calculate peak hours from a queryset of records with visit_date"""
         hours = {str(i).zfill(2): 0 for i in range(8, 18)}  # 8 AM to 5 PM
         for record in queryset:
-            hour = record.created_at.astimezone().strftime('%H')
-            if hour in hours:
-                hours[hour] += 1
+            if hasattr(record, 'visit_date') and record.visit_date:
+                # Use visit_date for better clinical timeline accuracy
+                hour = record.visit_date.astimezone().strftime('%H')
+                if hour in hours:
+                    hours[hour] += 1
         return [{'hour': f"{h}:00", 'count': c} for h, c in hours.items()]
         
     @staticmethod
@@ -617,8 +710,9 @@ class ReportDataService:
             date_start = date_start or (timezone.now() - timedelta(days=365))
             date_end = date_end or timezone.now()
             
-            medical_records = MedicalRecord.objects.filter(created_at__range=(date_start, date_end))
-            dental_records = DentalRecord.objects.filter(created_at__range=(date_start, date_end))
+            # Use visit_date for more accurate clinical timeline
+            medical_records = MedicalRecord.objects.filter(visit_date__range=(date_start, date_end))
+            dental_records = DentalRecord.objects.filter(visit_date__range=(date_start, date_end))
             
             # Apply filters
             if filters:
