@@ -151,6 +151,56 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
             logger = logging.getLogger(__name__)
             logger.error(f"Failed to send certificate creation email: {e}")
 
+    def _get_certificate_context(self, certificate):
+        """Consolidated context builder for certificate rendering."""
+        from patients.utils import calculate_age
+        from utils.usc_mappings import get_program_name, get_year_level_name
+        
+        patient = certificate.patient
+        age = calculate_age(patient.date_of_birth) if patient.date_of_birth else 'N/A'
+        
+        # Prepare course and year information
+        course_and_year = "N/A"
+        if hasattr(patient, 'user'):
+            course_id = getattr(patient.user, 'course', '')
+            year_id = getattr(patient.user, 'year_level', '')
+            
+            course_name = get_program_name(course_id)
+            year_name = get_year_level_name(year_id)
+            
+            if course_name and year_name:
+                course_and_year = f"{course_name} - {year_name}"
+            elif course_name:
+                course_and_year = course_name
+            elif year_name:
+                course_and_year = year_name
+
+        return {
+            'patient_name': f"{patient.first_name} {patient.last_name}",
+            'patient_age': age,
+            'patient': patient,
+            'course_and_year': course_and_year,
+            'date': certificate.created_at.strftime('%B %d, %Y'),
+            'visit_date': certificate.created_at.strftime('%B %d, %Y'),
+            'diagnosis': certificate.diagnosis,
+            # Map requirement_reason to diagnosis (Purpose/Requirement in UI)
+            'requirement_reason': certificate.diagnosis,
+            'recommendations': certificate.recommendations,
+            'valid_from': certificate.valid_from.strftime('%B %d, %Y') if certificate.valid_from else '',
+            'valid_until': certificate.valid_until.strftime('%B %d, %Y') if certificate.valid_until else '',
+            'additional_notes': certificate.additional_notes,
+            # Fitness status fields
+            'fitness_status': getattr(certificate, 'get_fitness_status_display', lambda: 'Fit')(),
+            'fitness_reason': getattr(certificate, 'fitness_reason', ''),
+            'is_fit': getattr(certificate, 'fitness_status', 'fit') == 'fit',
+            'is_not_fit': getattr(certificate, 'fitness_status', 'fit') == 'not_fit',
+            # Physician information
+            'doctor_name': f"{certificate.issued_by.get_full_name()}" if certificate.issued_by else 'Clinic Physician',
+            'doctor_title': getattr(certificate.issued_by, 'title', 'University Physician'),
+            'doctor_license': getattr(certificate.issued_by, 'license_number', 'N/A'),
+            'STATIC_URL': '/static/',
+        }
+
     @action(detail=True, methods=['get'])
     def render(self, request, pk=None):
         certificate = self.get_object()
@@ -159,29 +209,7 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
         template_content = certificate.template.content
         
         # Create context for template rendering
-        from patients.utils import calculate_age
-        age = calculate_age(certificate.patient.date_of_birth) if certificate.patient.date_of_birth else 'N/A'
-        
-        context = {
-            'patient_name': f"{certificate.patient.first_name} {certificate.patient.last_name}",
-            'patient_age': age,
-            'patient': certificate.patient,
-            'visit_date': certificate.created_at.strftime('%B %d, %Y'),
-            'diagnosis': certificate.diagnosis,
-            'recommendations': certificate.recommendations,
-            'valid_from': certificate.valid_from.strftime('%B %d, %Y') if certificate.valid_from else '',
-            'valid_until': certificate.valid_until.strftime('%B %d, %Y') if certificate.valid_until else '',
-            'additional_notes': certificate.additional_notes,
-            # New fitness status fields (with backward compatibility)
-            'fitness_status': getattr(certificate, 'get_fitness_status_display', lambda: 'Fit')(),
-            'fitness_reason': getattr(certificate, 'fitness_reason', ''),
-            'is_fit': getattr(certificate, 'fitness_status', 'fit') == 'fit',
-            'is_not_fit': getattr(certificate, 'fitness_status', 'fit') == 'not_fit',
-            'doctor_name': f"{certificate.issued_by.get_full_name()}" if certificate.issued_by else 'Clinic Physician',
-            'doctor_title': getattr(certificate.issued_by, 'title', None) or 'University Personnel',
-            'doctor_license': getattr(certificate.issued_by, 'license_number', None) or 'N/A',
-            'STATIC_URL': '/static/',
-        }
+        context = self._get_certificate_context(certificate)
         
         # Render the template
         try:
@@ -313,48 +341,10 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def render_pdf(self, request, pk=None):
         certificate = self.get_object()
-        patient = certificate.patient
-        # Calculate age
-        from patients.utils import calculate_age
-        age = calculate_age(patient.date_of_birth) if patient.date_of_birth else 'N/A'
         
-        # Prepare context
-        from utils.usc_mappings import get_program_name, get_year_level_name
+        # Prepare context using consolidated builder
+        context = self._get_certificate_context(certificate)
         
-        course_and_year = "N/A"
-        if hasattr(patient, 'user'):
-            course_id = getattr(patient.user, 'course', '')
-            year_id = getattr(patient.user, 'year_level', '')
-            
-            course_name = get_program_name(course_id)
-            year_name = get_year_level_name(year_id)
-            
-            if course_name and year_name:
-                course_and_year = f"{course_name} - {year_name}"
-            elif course_name:
-                course_and_year = course_name
-            elif year_name:
-                course_and_year = year_name
-
-        context = {
-            'patient_name': f"{patient.first_name} {patient.last_name}",
-            'patient_age': age,
-            'patient': patient,
-            'course_and_year': course_and_year,
-            'date': certificate.created_at.strftime('%B %d, %Y'),
-            'visit_date': certificate.created_at.strftime('%B %d, %Y'),
-            'diagnosis': certificate.diagnosis,
-            'recommendations': certificate.recommendations,
-            'valid_from': certificate.valid_from.strftime('%B %d, %Y') if certificate.valid_from else '',
-            'valid_until': certificate.valid_until.strftime('%B %d, %Y') if certificate.valid_until else '',
-            'additional_notes': certificate.additional_notes,
-            'is_fit': getattr(certificate, 'fitness_status', 'fit') == 'fit',
-            'is_not_fit': getattr(certificate, 'fitness_status', 'fit') == 'not_fit',
-            'doctor_name': f"{certificate.issued_by.get_full_name()}" if certificate.issued_by else 'Clinic Physician',
-            'doctor_title': getattr(certificate.issued_by, 'title', 'University Physician'),
-            'doctor_license': getattr(certificate.issued_by, 'license_number', 'N/A'),
-            'STATIC_URL': '/static/',
-        }
         template_content = certificate.template.content or "<p>Certificate</p>"
         template = Template(template_content)
         rendered_html = template.render(Context(context))
