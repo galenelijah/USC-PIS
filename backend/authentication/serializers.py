@@ -74,7 +74,25 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(error_message)
         
         return value.lower().strip()
-    
+
+    def validate_phone(self, value):
+        if value:
+            clean_value = re.sub(r'[\s\-\(\)\+]', '', value)
+            if not clean_value.isdigit():
+                raise serializers.ValidationError("Phone number must contain only digits.")
+            if not (7 <= len(clean_value) <= 15):
+                raise serializers.ValidationError("Phone number must be between 7 and 15 digits.")
+        return value
+
+    def validate_emergency_contact_number(self, value):
+        if value:
+            clean_value = re.sub(r'[\s\-\(\)\+]', '', value)
+            if not clean_value.isdigit():
+                raise serializers.ValidationError("Emergency contact number must contain only digits.")
+            if not (7 <= len(clean_value) <= 15):
+                raise serializers.ValidationError("Emergency contact number must be between 7 and 15 digits.")
+        return value
+
     def _determine_role_from_email(self, email, role_preference=None):
         """
         Determine user role based on email pattern:
@@ -169,6 +187,24 @@ class UserProfileSerializer(serializers.ModelSerializer):
     def get_completeSetup(self, obj):
         # Always return a boolean, defaulting to False if not set
         return bool(getattr(obj, 'completeSetup', False))
+
+    def validate_phone(self, value):
+        if value:
+            clean_value = re.sub(r'[\s\-\(\)\+]', '', value)
+            if not clean_value.isdigit():
+                raise serializers.ValidationError("Phone number must contain only digits.")
+            if not (7 <= len(clean_value) <= 15):
+                raise serializers.ValidationError("Phone number must be between 7 and 15 digits.")
+        return value
+
+    def validate_emergency_contact_number(self, value):
+        if value:
+            clean_value = re.sub(r'[\s\-\(\)\+]', '', value)
+            if not clean_value.isdigit():
+                raise serializers.ValidationError("Emergency contact number must contain only digits.")
+            if not (7 <= len(clean_value) <= 15):
+                raise serializers.ValidationError("Emergency contact number must be between 7 and 15 digits.")
+        return value
 
     class Meta:
         model = User

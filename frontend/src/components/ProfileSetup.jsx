@@ -200,7 +200,7 @@ const createValidationSchema = (role) => {
     phone: commonValidation.phone('Phone number'),
     email: commonValidation.email,
     contact_emergency_name: commonValidation.optionalText,
-    contact_emergency_number: commonValidation.optionalText,
+    contact_emergency_number: commonValidation.phoneOptional('Emergency contact number'),
   };
 
   // Role-specific validation

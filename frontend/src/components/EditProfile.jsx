@@ -169,7 +169,7 @@ const validationSchema = Yup.object().shape({
   religion: Yup.string().nullable(),
   address_permanent: Yup.string().required('Permanent address is required'),
   address_present: Yup.string().required('Present address is required'),
-  phone: Yup.string().required('Phone number is required'),
+  phone: commonValidation.phone('Phone number'),
   email: Yup.string().email('Invalid email').required('Email is required'),
   id_number: Yup.string().required('ID Number is required'),
   course: Yup.string().required('Course is required'),
@@ -180,7 +180,7 @@ const validationSchema = Yup.object().shape({
   father_name: Yup.string().nullable().notRequired(),
   mother_name: Yup.string().nullable().notRequired(),
   emergency_contact: Yup.string().nullable().notRequired(),
-  emergency_contact_number: Yup.string().nullable().notRequired()
+  emergency_contact_number: commonValidation.phoneOptional('Emergency contact number')
 });
 
 const stepFields = [

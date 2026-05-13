@@ -570,5 +570,14 @@ if DEBUG and not os.environ.get('CELERY_BROKER_URL'):
         CELERY_RESULT_BACKEND = None
         print("Warning: Redis not found. Running Celery tasks synchronously (CELERY_TASK_ALWAYS_EAGER=True)")
 
+# Celery Beat Schedule
+from celery.schedules import crontab
+CELERY_BEAT_SCHEDULE = {
+    'send-feedback-reminders-hourly': {
+        'task': 'feedback.tasks.process_feedback_reminders',
+        'schedule': crontab(minute=0),  # Run every hour on the hour
+    },
+}
+
 
 

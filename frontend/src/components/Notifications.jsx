@@ -615,7 +615,8 @@ const Notifications = () => {
                                                                         textOverflow: 'ellipsis',
                                                                         display: '-webkit-box',
                                                                         WebkitLineClamp: 2,
-                                                                        WebkitBoxOrient: 'vertical'
+                                                                        WebkitBoxOrient: 'vertical',
+                                                                        whiteSpace: 'pre-line'
                                                                     }}
                                                                 >
                                                                     {notification.message}
@@ -676,7 +677,8 @@ const Notifications = () => {
                                                                         textOverflow: 'ellipsis',
                                                                         display: '-webkit-box',
                                                                         WebkitLineClamp: 2,
-                                                                        WebkitBoxOrient: 'vertical'
+                                                                        WebkitBoxOrient: 'vertical',
+                                                                        whiteSpace: 'pre-line'
                                                                     }}
                                                                 >
                                                                     {notification.message}
@@ -725,10 +727,17 @@ const Notifications = () => {
                                 />
                             </Box>
                         </DialogTitle>
-                        <DialogContent>
+                        <DialogContent dividers>
                             <Grid container spacing={2}>
                                 <Grid item xs={12}>
-                                    <Typography variant="body1" paragraph>
+                                    <Typography 
+                                        variant="body1" 
+                                        sx={{ 
+                                            whiteSpace: 'pre-line',
+                                            lineHeight: 1.6,
+                                            color: 'text.primary'
+                                        }}
+                                    >
                                         {selectedNotification.message}
                                     </Typography>
                                 </Grid>

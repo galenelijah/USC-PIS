@@ -122,6 +122,16 @@ export const commonValidation = {
     .required(`${fieldName} is required`)
     .matches(/^[0-9]{7,15}$/, `${fieldName} must be 7-15 digits (numbers only)`),
 
+  // Optional phone number validation (digits only, 7-15 chars, if provided)
+  phoneOptional: (fieldName = 'Phone number') => yup
+    .string()
+    .nullable()
+    .transform((value) => (value === '' ? null : value))
+    .test('is-phone', `${fieldName} must be 7-15 digits (numbers only)`, (value) => {
+      if (!value) return true; // Allow null or undefined
+      return /^[0-9]{7,15}$/.test(value);
+    }),
+
   // ID number validation (at least 5 digits)
   idNumber: (fieldName = 'ID Number') => yup
     .string()

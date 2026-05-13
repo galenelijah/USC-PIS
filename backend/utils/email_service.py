@@ -17,18 +17,19 @@ class EmailService:
     def send_template_email(template_name, context, recipient_email, subject, from_email=None):
         """
         Send an email using a template with USC-PIS branding
-        
-        Args:
-            template_name (str): Template file name without extension
-            context (dict): Context data for the template
-            recipient_email (str): Recipient email address
-            subject (str): Email subject
-            from_email (str, optional): Sender email address
-        
-        Returns:
-            bool: True if sent successfully, False otherwise
         """
         try:
+            # Check global master switch
+            from notifications.models import GlobalEmailSettings
+            if not GlobalEmailSettings.get_settings().is_emails_enabled:
+                # Bypass global switch for critical security emails if needed
+                # but following the "Master Switch" requirement strictly here
+                if template_name not in ['verification_code', 'password_reset']:
+                    logger.info(f"Email system globally disabled. Skipping email to {recipient_email}: {subject}")
+                    return False
+                else:
+                    logger.info(f"Bypassing global switch for security email: {template_name}")
+
             if from_email is None:
                 from_email = settings.DEFAULT_FROM_EMAIL
             
@@ -236,12 +237,19 @@ class EmailService:
             )
     
     @staticmethod
-    def send_feedback_request_email(medical_record):
-        """Send automated feedback request after medical visit"""
+    def send_feedback_request_email(visit_record):
+        """Send automated feedback request after medical or dental visit"""
+        is_medical = hasattr(visit_record, 'diagnosis') and not hasattr(visit_record, 'procedure_performed')
+        visit_type = "Medical Consultation" if is_medical else "Dental Procedure"
+        
+        # Add visit_type to the record object temporarily for the template if it doesn't have it
+        if not hasattr(visit_record, 'visit_type'):
+            visit_record.visit_type = visit_type
+
         context = {
-            'patient': medical_record.patient,
-            'medical_record': medical_record,
-            'feedback_url': f'{settings.SITE_URL}/feedback?visit_id={medical_record.id}',
+            'patient': visit_record.patient,
+            'medical_record': visit_record, # The template uses medical_record as the variable name
+            'feedback_url': f'{settings.SITE_URL}/feedback/{visit_record.id}?type={"medical" if is_medical else "dental"}',
             'site_url': settings.SITE_URL,
             'login_url': f'{settings.SITE_URL}/login'
         }
@@ -249,7 +257,7 @@ class EmailService:
         return EmailService.send_template_email(
             template_name='feedback_request',
             context=context,
-            recipient_email=medical_record.patient.user.email,
+            recipient_email=visit_record.patient.user.email,
             subject='Share Your Healthcare Experience - USC-PIS'
         )
 

@@ -41,25 +41,27 @@ class Command(BaseCommand):
             hours_ago = 1  # Send for visits from last hour
         
         # Calculate the time window
+        # For precision, we use a 1-hour window centered around 'hours_ago'
+        # e.g., if hours_ago is 24, we look for visits that happened between 24 and 25 hours ago.
         cutoff_time = timezone.now() - timedelta(hours=hours_ago)
-        end_time = timezone.now() - timedelta(hours=hours_ago-1) if not immediate else timezone.now()
+        check_time = timezone.now() - timedelta(hours=hours_ago + 1)
         
-        self.stdout.write(f"Looking for visits between {cutoff_time} and {end_time}")
+        self.stdout.write(f"Looking for visits between {check_time} and {cutoff_time}")
         
-        # Get medical visits that need feedback emails (excluding those that already have feedback)
+        # Get medical visits that need feedback emails
         medical_visits = MedicalRecord.objects.filter(
-            visit_date__gte=cutoff_time.date(),
-            visit_date__lte=end_time.date(),
+            visit_date__gte=check_time,
+            visit_date__lte=cutoff_time,
             patient__user__isnull=False,  # Only patients with user accounts
-            feedbacks__isnull=True        # Only visits without feedback already provided
+            feedbacks__isnull=True        # Exclude if feedback already provided
         ).select_related('patient', 'patient__user')
         
-        # Get dental visits that need feedback emails (excluding those that already have feedback)
+        # Get dental visits that need feedback emails
         dental_visits = DentalRecord.objects.filter(
-            visit_date__gte=cutoff_time.date(),
-            visit_date__lte=end_time.date(),
+            visit_date__gte=check_time,
+            visit_date__lte=cutoff_time,
             patient__user__isnull=False,  # Only patients with user accounts
-            feedbacks__isnull=True        # Only visits without feedback already provided
+            feedbacks__isnull=True        # Exclude if feedback already provided
         ).select_related('patient', 'patient__user')
         
         total_visits = medical_visits.count() + dental_visits.count()
@@ -122,18 +124,8 @@ class Command(BaseCommand):
                     )
                     sent_count += 1
                 else:
-                    # Create a mock medical record for dental visits (EmailService expects MedicalRecord)
-                    # We'll enhance the EmailService to handle dental records too
-                    class DentalVisitAdapter:
-                        def __init__(self, dental_record):
-                            self.patient = dental_record.patient
-                            self.visit_date = dental_record.visit_date
-                            self.id = dental_record.id
-                            self.diagnosis = dental_record.diagnosis
-                            self.treatment = dental_record.treatment_performed
-                    
-                    adapted_visit = DentalVisitAdapter(visit)
-                    success = EmailService.send_feedback_request_email(adapted_visit)
+                    # Send the feedback request email
+                    success = EmailService.send_feedback_request_email(visit)
                     
                     if success:
                         self.stdout.write(
