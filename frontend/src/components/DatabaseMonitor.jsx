@@ -207,6 +207,29 @@ const DatabaseMonitor = () => {
         }
     };
 
+    const handleDeleteBackup = async (backupId) => {
+        if (!window.confirm('Are you sure you want to delete this backup? This will permanently remove the backup file.')) {
+            return;
+        }
+
+        try {
+            await authService.deleteBackup(backupId);
+            setSnackbar({
+                open: true,
+                message: 'Backup deleted successfully',
+                severity: 'success'
+            });
+            // Refresh data
+            fetchData();
+        } catch (err) {
+            setSnackbar({
+                open: true,
+                message: `Failed to delete backup: ${extractErrorMessage(err)}`,
+                severity: 'error'
+            });
+        }
+    };
+
     const handleVerifyDryRun = async (backupId) => {
         try {
             const res = await authService.verifyBackupDryRun(backupId);
@@ -787,9 +810,19 @@ const DatabaseMonitor = () => {
                                                     startIcon={<Visibility />}
                                                     onClick={() => handleVerifyDryRun(backup.id)}
                                                     disabled={backup.status !== 'success'}
+                                                    sx={{ mr: 1 }}
                                                 >
                                                     Verify (Dry)
                                                 </Button>
+                                                <Tooltip title="Delete Backup">
+                                                    <IconButton
+                                                        size="small"
+                                                        color="error"
+                                                        onClick={() => handleDeleteBackup(backup.id)}
+                                                    >
+                                                        <Delete />
+                                                    </IconButton>
+                                                </Tooltip>
                                             </TableCell>
                                         </TableRow>
                                     ))}

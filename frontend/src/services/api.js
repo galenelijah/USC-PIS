@@ -348,6 +348,16 @@ export const authService = {
     }
   },
 
+  deleteBackup: async (backupId) => {
+    try {
+      const response = await api.delete(`/utils/backup/delete/${backupId}/`);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
   downloadBackup: async (backupId) => {
     try {
       // Use new efficient download endpoint
