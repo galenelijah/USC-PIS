@@ -59,16 +59,35 @@ const PatientDocumentUpload = ({
   const [isDragging, setIsDragging] = useState(false);
 
   const handleFiles = (selectedFiles) => {
-    const validFiles = Array.from(selectedFiles).filter(file => {
-      if (file.size > 10 * 1024 * 1024) {
-        setError(`File ${file.name} exceeds 10MB limit.`);
-        return false;
+    setError(null);
+    const newValidFiles = [];
+    let validationError = null;
+
+    const DANGEROUS_EXTENSIONS = [
+      '.exe', '.bat', '.cmd', '.com', '.pif', '.scr', '.vbs', '.js',
+      '.jar', '.app', '.deb', '.rpm', '.dmg', '.iso', '.msi', '.sh',
+      '.ps1', '.asp', '.aspx', '.php', '.jsp', '.py', '.rb', '.pl'
+    ];
+
+    Array.from(selectedFiles).forEach(file => {
+      const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+      
+      if (DANGEROUS_EXTENSIONS.includes(ext)) {
+        validationError = `File ${file.name} is blocked because it is a potentially dangerous executable or script.`;
+      } else if (file.size > 25 * 1024 * 1024) {
+        validationError = `File ${file.name} exceeds 25MB limit.`;
+      } else {
+        newValidFiles.push(file);
       }
-      return true;
     });
 
-    setFiles(prev => [...prev, ...validFiles]);
-    setError(null);
+    if (validationError) {
+      setError(validationError);
+    }
+
+    if (newValidFiles.length > 0) {
+      setFiles(prev => [...prev, ...newValidFiles]);
+    }
   };
 
   const handleFileChange = (event) => {
@@ -79,6 +98,9 @@ const PatientDocumentUpload = ({
 
   const removeFile = (index) => {
     setFiles(prev => prev.filter((_, i) => i !== index));
+    if (files.length <= 1) {
+      setError(null);
+    }
   };
 
   const onDragOver = (e) => {
@@ -140,7 +162,24 @@ const PatientDocumentUpload = ({
       onClose();
     } catch (err) {
       console.error('Upload error:', err);
-      setError(err.response?.data?.detail || 'Failed to upload documents. Please try again.');
+      let errorMessage = 'Failed to upload documents. Please try again.';
+      
+      if (err.response?.data) {
+        const data = err.response.data;
+        if (data.errors && Array.isArray(data.errors)) {
+          errorMessage = data.errors.join(' ');
+        } else if (data.detail) {
+          errorMessage = data.detail;
+        } else if (typeof data === 'object') {
+          // Handle standard DRF field errors
+          const fieldErrors = Object.entries(data)
+            .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+            .join(' ');
+          if (fieldErrors) errorMessage = fieldErrors;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -189,7 +228,7 @@ const PatientDocumentUpload = ({
             <UploadIcon sx={{ fontSize: 40, color: isDragging ? 'primary.main' : 'text.secondary', mb: 1 }} />
             <Typography variant="body1">Click to select or drag and drop files</Typography>
             <Typography variant="caption" color="text.secondary">
-              Accepted: PDF, Images, DOC (Max 10MB each)
+              Accepted: PDF, Images, DOC (Max 25MB each)
             </Typography>
           </Box>
 

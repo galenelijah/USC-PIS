@@ -11,6 +11,7 @@ from django.db.models import Q, Count, Avg, Sum
 from django.utils import timezone
 from datetime import datetime, timedelta
 from .models import HealthInformation, HealthInformationImage, HealthCampaign, CampaignResource, CampaignFeedback
+from file_uploads.validators import FileSecurityValidator
 from .serializers import (
     HealthInformationSerializer, 
     HealthCampaignListSerializer,
@@ -52,6 +53,22 @@ class HealthInformationViewSet(viewsets.ModelViewSet):
     search_fields = ['title', 'content']
     ordering_fields = ['created_at', 'title']
     ordering = ['-created_at']
+
+    def create(self, request, *args, **kwargs):
+        images = request.FILES.getlist('images')
+        for image_file in images:
+            validation_errors = FileSecurityValidator.validate_file(image_file)
+            if validation_errors:
+                return Response({'detail': 'Validation failed', 'errors': validation_errors}, status=status.HTTP_400_BAD_REQUEST)
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        images = request.FILES.getlist('images')
+        for image_file in images:
+            validation_errors = FileSecurityValidator.validate_file(image_file)
+            if validation_errors:
+                return Response({'detail': 'Validation failed', 'errors': validation_errors}, status=status.HTTP_400_BAD_REQUEST)
+        return super().update(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         # Save the health information instance
@@ -203,15 +220,21 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
         if not (request.user.is_staff or request.user.role in ['ADMIN', 'STAFF']):
             return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
         
+        file = request.FILES.get('file')
+        if not file:
+            return Response({'error': 'No file provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # File security validation
+        validation_errors = FileSecurityValidator.validate_file(file)
+        if validation_errors:
+            return Response({'detail': 'Validation failed', 'errors': validation_errors}, status=status.HTTP_400_BAD_REQUEST)
+
         campaign = self.get_object()
         serializer = CampaignResourceSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            # Calculate file size
-            file = request.FILES.get('file')
-            if file:
-                file_size = file.size
-                serializer.save(campaign=campaign, uploaded_by=request.user, file_size=file_size)
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            file_size = file.size
+            serializer.save(campaign=campaign, uploaded_by=request.user, file_size=file_size)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=True, methods=['get', 'post'])
@@ -339,6 +362,15 @@ class CampaignResourceViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(is_public=True)
         return queryset
     
+    def create(self, request, *args, **kwargs):
+        file = request.FILES.get('file')
+        if file:
+            validation_errors = FileSecurityValidator.validate_file(file)
+            if validation_errors:
+                return Response({'detail': 'Validation failed', 'errors': validation_errors}, status=status.HTTP_400_BAD_REQUEST)
+        
+        return super().create(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         # Calculate file size
         file = self.request.FILES.get('file')

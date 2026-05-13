@@ -167,9 +167,9 @@ class FileSecurityValidator:
             errors.append("File must have an extension")
             return errors
         
-        # Check for dangerous extensions
+        # Check for dangerous extensions (executables, scripts, etc.)
         if ext in cls.DANGEROUS_EXTENSIONS:
-            errors.append(f"File type '{ext}' is not allowed for security reasons")
+            errors.append(f"File type '{ext}' is blocked because it is a potentially dangerous executable or script.")
             return errors
         
         # Check if extension is in allowed list

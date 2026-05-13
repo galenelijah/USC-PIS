@@ -16,28 +16,34 @@ export const extractErrorMessage = (error) => {
         if (status === 401) return 'Authentication failed. Please log in again.';
         if (status === 403) return 'You do not have permission to perform this action.';
         if (status === 404) return 'The requested resource was not found.';
+        if (status === 413) return 'The file is too large to be uploaded to the server.';
         if (status === 429) return 'Too many requests. Please wait a moment and try again.';
         if (status >= 500) return 'A server error occurred. Please try again later.';
 
         if (data) {
+            // Priority 1: Check for explicit error arrays/messages from custom validators
+            if (Array.isArray(data.errors)) {
+                return data.errors.join(' ');
+            }
+
             // If there's a nested 'errors' object, flatten it for processing
-            const effectiveData = data.errors && typeof data.errors === 'object' 
+            const effectiveData = data.errors && typeof data.errors === 'object' && !Array.isArray(data.errors)
                 ? { ...data, ...data.errors } 
                 : data;
 
-            // Priority 1: 'non_field_errors' (DRF global validation)
+            // Priority 2: 'non_field_errors' (DRF global validation)
             if (effectiveData.non_field_errors) {
                 return Array.isArray(effectiveData.non_field_errors) 
                     ? effectiveData.non_field_errors[0] 
                     : effectiveData.non_field_errors;
             }
 
-            // Priority 2: 'detail' or 'message' keys (Standard DRF/Custom)
-            // Skip "Validation failed" if it's just a generic wrapper
+            // Priority 3: 'detail' or 'message' keys (Standard DRF/Custom)
+            // Skip "Validation failed" if it's just a generic wrapper and we have other errors
             if (effectiveData.detail && effectiveData.detail !== 'Validation failed') return effectiveData.detail;
             if (effectiveData.message) return effectiveData.message;
 
-            // Priority 3: Flatten specific field errors into a summary string
+            // Priority 4: Flatten specific field errors into a summary string
             if (typeof effectiveData === 'object') {
                 const fieldErrors = Object.entries(effectiveData)
                     .map(([field, msgs]) => {

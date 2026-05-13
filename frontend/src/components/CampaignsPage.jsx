@@ -249,7 +249,32 @@ const CampaignsPage = () => {
   const handleFileUpload = (type, file) => {
     console.log('handleFileUpload called with:', type, file ? { name: file.name, size: file.size, type: file.type } : null);
     
-    if (file && file.size > 0) {
+    if (file) {
+      // Validate file extension
+      const DANGEROUS_EXTENSIONS = [
+        '.exe', '.bat', '.cmd', '.com', '.pif', '.scr', '.vbs', '.js',
+        '.jar', '.app', '.deb', '.rpm', '.dmg', '.iso', '.msi', '.sh',
+        '.ps1', '.asp', '.aspx', '.php', '.jsp', '.py', '.rb', '.pl'
+      ];
+      const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+      
+      if (DANGEROUS_EXTENSIONS.includes(ext)) {
+        showSnackbar(`File ${file.name} is blocked because it is a potentially dangerous executable or script.`, 'error');
+        return;
+      }
+
+      // Validate file size (20MB limit to match backend default)
+      const MAX_SIZE = 20 * 1024 * 1024;
+      if (file.size > MAX_SIZE) {
+        showSnackbar(`File ${file.name} is too large. Maximum size is 20MB.`, 'error');
+        return;
+      }
+
+      if (file.size === 0) {
+        showSnackbar('Cannot upload empty files', 'error');
+        return;
+      }
+
       console.log(`Setting ${type} file:`, file.name, file.size, 'bytes');
       switch (type) {
         case 'banner':
@@ -264,9 +289,6 @@ const CampaignsPage = () => {
         default:
           break;
       }
-    } else if (file && file.size === 0) {
-      console.error('Empty file detected:', file.name);
-      showSnackbar('Cannot upload empty files', 'error');
     } else {
       console.log('No file or file is null');
     }
