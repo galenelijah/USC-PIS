@@ -32,32 +32,35 @@ class Command(BaseCommand):
         hours_ago = options['hours']
         dry_run = options['dry_run']
 
-        # Calculate the time range (e.g., 24 hours ago)
+        # Calculate the cutoff time (visits older than this)
         cutoff_time = timezone.now() - timedelta(hours=hours_ago)
-        check_time = timezone.now() - timedelta(hours=hours_ago + 1)
+        # Add an upper bound (don't go back more than 3 days)
+        max_age_time = timezone.now() - timedelta(days=3)
 
-        self.stdout.write(f"Looking for visits between {check_time} and {cutoff_time}")
+        self.stdout.write(f"Looking for visits between {max_age_time} and {cutoff_time} that haven't received feedback emails")
 
         # 1. Medical Records
         medical_visits = MedicalRecord.objects.filter(
-            visit_date__gte=check_time,
+            visit_date__gte=max_age_time,
             visit_date__lte=cutoff_time,
             patient__user__isnull=False,
+            feedback_email_sent=False,
             feedbacks__isnull=True
         ).select_related('patient', 'patient__user')
 
-        self.stdout.write(f"Found {medical_visits.count()} recent medical visits")
+        self.stdout.write(f"Found {medical_visits.count()} pending medical visits")
         self._process_visits(medical_visits, 'medical', dry_run)
 
         # 2. Dental Records
         dental_visits = DentalRecord.objects.filter(
-            visit_date__gte=check_time,
+            visit_date__gte=max_age_time,
             visit_date__lte=cutoff_time,
             patient__user__isnull=False,
+            feedback_email_sent=False,
             feedbacks__isnull=True
         ).select_related('patient', 'patient__user')
 
-        self.stdout.write(f"Found {dental_visits.count()} recent dental visits")
+        self.stdout.write(f"Found {dental_visits.count()} pending dental visits")
         self._process_visits(dental_visits, 'dental', dry_run)
 
     def _process_visits(self, visits, visit_type, dry_run):
@@ -73,6 +76,10 @@ class Command(BaseCommand):
                 else:
                     success = EmailService.send_feedback_request_email(visit)
                     if success:
+                        # Mark as sent
+                        visit.feedback_email_sent = True
+                        visit.save(update_fields=['feedback_email_sent'])
+                        
                         self.stdout.write(self.style.SUCCESS(f"Sent {visit_type} feedback email to {patient_email}"))
                         emails_sent += 1
                     else:

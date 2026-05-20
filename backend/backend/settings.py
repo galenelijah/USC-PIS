@@ -577,6 +577,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'feedback.tasks.process_feedback_reminders',
         'schedule': crontab(minute=0),  # Run every hour on the hour
     },
+    'process-scheduled-notifications-10min': {
+        'task': 'notifications.tasks.process_scheduled_notifications',
+        'schedule': crontab(minute='*/10'),  # Run every 10 minutes
+    },
 }
 
 

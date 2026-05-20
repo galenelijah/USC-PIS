@@ -137,7 +137,7 @@ describe('Dashboard Component', () => {
       expect(screen.getByText('150')).toBeInTheDocument(); // Total patients
       expect(screen.getByText('300')).toBeInTheDocument(); // Total records
       expect(screen.getByText('5')).toBeInTheDocument(); // Appointments today
-      expect(screen.getByText('2')).toBeInTheDocument(); // Pending requests
+      expect(screen.getByText('2')).toBeInTheDocument(); // Approvals & Alerts
     });
   });
 });

@@ -40,28 +40,30 @@ class Command(BaseCommand):
         if immediate:
             hours_ago = 1  # Send for visits from last hour
         
-        # Calculate the time window
-        # For precision, we use a 1-hour window centered around 'hours_ago'
-        # e.g., if hours_ago is 24, we look for visits that happened between 24 and 25 hours ago.
+        # Calculate the cutoff time (visits older than this)
         cutoff_time = timezone.now() - timedelta(hours=hours_ago)
-        check_time = timezone.now() - timedelta(hours=hours_ago + 1)
+        # Add an upper bound (don't go back more than 3 days) to avoid spamming old visits
+        max_age_time = timezone.now() - timedelta(days=3)
         
-        self.stdout.write(f"Looking for visits between {check_time} and {cutoff_time}")
+        # We look for ANY visit between 3 days ago and 24 hours ago that hasn't had an email sent yet
+        self.stdout.write(f"Looking for visits between {max_age_time} and {cutoff_time} that haven't received feedback emails")
         
         # Get medical visits that need feedback emails
         medical_visits = MedicalRecord.objects.filter(
-            visit_date__gte=check_time,
+            visit_date__gte=max_age_time,
             visit_date__lte=cutoff_time,
-            patient__user__isnull=False,  # Only patients with user accounts
-            feedbacks__isnull=True        # Exclude if feedback already provided
+            patient__user__isnull=False,      # Only patients with user accounts
+            feedback_email_sent=False,        # Haven't sent email yet
+            feedbacks__isnull=True            # Exclude if feedback already provided (safety check)
         ).select_related('patient', 'patient__user')
         
         # Get dental visits that need feedback emails
         dental_visits = DentalRecord.objects.filter(
-            visit_date__gte=check_time,
+            visit_date__gte=max_age_time,
             visit_date__lte=cutoff_time,
-            patient__user__isnull=False,  # Only patients with user accounts
-            feedbacks__isnull=True        # Exclude if feedback already provided
+            patient__user__isnull=False,      # Only patients with user accounts
+            feedback_email_sent=False,        # Haven't sent email yet
+            feedbacks__isnull=True            # Exclude if feedback already provided (safety check)
         ).select_related('patient', 'patient__user')
         
         total_visits = medical_visits.count() + dental_visits.count()
@@ -96,6 +98,10 @@ class Command(BaseCommand):
                     success = EmailService.send_feedback_request_email(visit)
                     
                     if success:
+                        # Mark as sent
+                        visit.feedback_email_sent = True
+                        visit.save(update_fields=['feedback_email_sent'])
+                        
                         self.stdout.write(
                             self.style.SUCCESS(f'  - Sent feedback email to {patient_email}')
                         )
@@ -128,6 +134,10 @@ class Command(BaseCommand):
                     success = EmailService.send_feedback_request_email(visit)
                     
                     if success:
+                        # Mark as sent
+                        visit.feedback_email_sent = True
+                        visit.save(update_fields=['feedback_email_sent'])
+                        
                         self.stdout.write(
                             self.style.SUCCESS(f'  - Sent feedback email to {patient_email}')
                         )

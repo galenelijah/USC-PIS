@@ -54,7 +54,7 @@ def schedule_feedback_email_medical(sender, instance, created, **kwargs):
                 message=f'Please provide feedback for your recent medical visit on {instance.visit_date.strftime("%Y-%m-%d")}.',
                 priority='MEDIUM',
                 delivery_method='IN_APP',
-                action_url=f'https://usc-pis-5f030223f7a8.herokuapp.com/feedback/{instance.id}?type=medical',
+                action_url=f'{settings.SITE_URL}/feedback/{instance.id}?type=medical',
                 action_text='Leave Feedback'
             )
             
@@ -68,7 +68,7 @@ def schedule_feedback_email_medical(sender, instance, created, **kwargs):
                 priority='LOW',
                 delivery_method='BOTH',
                 scheduled_at=timezone.now() + timedelta(days=1),
-                action_url=f'https://usc-pis-5f030223f7a8.herokuapp.com/feedback/{instance.id}?type=medical',
+                action_url=f'{settings.SITE_URL}/feedback/{instance.id}?type=medical',
                 action_text='Leave Feedback'
             )
         except Exception as e:
@@ -95,7 +95,7 @@ def schedule_feedback_email_dental(sender, instance, created, **kwargs):
                 message=f'Please provide feedback for your recent dental consultation on {instance.visit_date.strftime("%Y-%m-%d")}.',
                 priority='MEDIUM',
                 delivery_method='IN_APP',
-                action_url=f'https://usc-pis-5f030223f7a8.herokuapp.com/feedback/{instance.id}?type=dental',
+                action_url=f'{settings.SITE_URL}/feedback/{instance.id}?type=dental',
                 action_text='Leave Feedback'
             )
             
@@ -109,7 +109,7 @@ def schedule_feedback_email_dental(sender, instance, created, **kwargs):
                 priority='LOW',
                 delivery_method='BOTH',
                 scheduled_at=timezone.now() + timedelta(days=1),
-                action_url=f'https://usc-pis-5f030223f7a8.herokuapp.com/feedback/{instance.id}?type=dental',
+                action_url=f'{settings.SITE_URL}/feedback/{instance.id}?type=dental',
                 action_text='Leave Feedback'
             )
             logger.info(f"Feedback and reminder scheduled for dental record {instance.id}")

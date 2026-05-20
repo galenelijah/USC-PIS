@@ -28,3 +28,18 @@ def send_email_task(notification_id):
     except Exception as e:
         logger.error(f"Async email task failed for notification {notification_id}: {str(e)}")
         return {'success': False, 'error': str(e)}
+
+@shared_task(name="notifications.tasks.process_scheduled_notifications")
+def process_scheduled_notifications():
+    """
+    Periodic task to send all scheduled notifications that are due.
+    """
+    from .services import NotificationService
+    logger.info("Starting processing of scheduled notifications")
+    try:
+        results = NotificationService.send_scheduled_notifications()
+        logger.info(f"Processed {len(results)} scheduled notifications")
+        return True
+    except Exception as e:
+        logger.error(f"Error in process_scheduled_notifications task: {str(e)}")
+        return False
