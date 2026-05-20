@@ -3,11 +3,19 @@
 {% block title %}Share Your Healthcare Experience - USC-PIS{% endblock %}
 
 {% block content %}
+{% if is_reminder %}
+<h2>Friendly Reminder: How was your visit?</h2>
+{% else %}
 <h2>How was your visit?</h2>
+{% endif %}
 
 <p>Dear {{ patient.user.first_name|default:patient.user.email }},</p>
 
+{% if is_reminder %}
+<p>We're following up on your recent visit to the USC Health Center. We haven't received your feedback yet, and we'd love to hear about your experience to help us improve our services.</p>
+{% else %}
 <p>Thank you for visiting USC Health Center recently. We'd appreciate your feedback to help us improve our healthcare services.</p>
+{% endif %}
 
 <div class="info-box">
     <strong>Your Recent Visit:</strong><br>
@@ -20,10 +28,10 @@
 <p><em>Note: If you have already provided feedback for this specific visit, please disregard this message.</em></p>
 
 <div style="text-align: center; margin: 30px 0;">
-    <a href="{{ site_url }}/feedback" class="button">Leave Feedback on Website</a>
+    <a href="{{ feedback_url }}" class="button">Leave Feedback on Website</a>
 </div>
 
-<p>Visit our feedback page at: <a href="{{ site_url }}/feedback">{{ site_url }}/feedback</a></p>
+<p>Visit our feedback page at: <a href="{{ feedback_url }}">{{ feedback_url }}</a></p>
 
 <p>Your feedback is confidential and helps us improve our medical services, enhance patient experience, and maintain high healthcare standards.</p>
 

@@ -43,7 +43,10 @@ def schedule_feedback_email_medical(sender, instance, created, **kwargs):
     if created and instance.patient and hasattr(instance.patient, 'user') and instance.patient.user:
         try:
             # Send immediate feedback email
-            EmailService.send_feedback_request_email(instance)
+            sent = EmailService.send_feedback_request_email(instance)
+            if sent:
+                instance.feedback_email_sent = True
+                instance.save(update_fields=['feedback_email_sent'])
             
             # Create immediate in-app notification
             Notification.objects.create(
@@ -58,19 +61,7 @@ def schedule_feedback_email_medical(sender, instance, created, **kwargs):
                 action_text='Leave Feedback'
             )
             
-            # Schedule a reminder in 24 hours
-            Notification.objects.create(
-                recipient=instance.patient.user,
-                patient=instance.patient,
-                notification_type='FOLLOW_UP',
-                title='Reminder: Medical Feedback',
-                message='We haven\'t heard from you yet! Please share your thoughts about your recent medical visit.',
-                priority='LOW',
-                delivery_method='BOTH',
-                scheduled_at=timezone.now() + timedelta(days=1),
-                action_url=f'{settings.SITE_URL}/feedback/{instance.id}?type=medical',
-                action_text='Leave Feedback'
-            )
+            logger.info(f"Immediate feedback sent for medical record {instance.id}")
         except Exception as e:
             logger.error(f"Error scheduling feedback for medical record {instance.id}: {e}")
 
@@ -80,11 +71,14 @@ def schedule_feedback_email_dental(sender, instance, created, **kwargs):
     if created and instance.patient and hasattr(instance.patient, 'user') and instance.patient.user:
         try:
             # Send immediate feedback email using the generic method
-            EmailService.send_feedback_request_for_visit(
+            sent = EmailService.send_feedback_request_for_visit(
                 patient=instance.patient,
                 visit_date=instance.visit_date,
                 visit_type='Dental Consultation'
             )
+            if sent:
+                instance.feedback_email_sent = True
+                instance.save(update_fields=['feedback_email_sent'])
             
             # Create immediate in-app notification
             Notification.objects.create(
@@ -99,20 +93,7 @@ def schedule_feedback_email_dental(sender, instance, created, **kwargs):
                 action_text='Leave Feedback'
             )
             
-            # Schedule a reminder in 24 hours
-            Notification.objects.create(
-                recipient=instance.patient.user,
-                patient=instance.patient,
-                notification_type='DENTAL_REMINDER',
-                title='Reminder: Dental Feedback',
-                message='Your smile matters to us! Please share your feedback about your recent dental consultation.',
-                priority='LOW',
-                delivery_method='BOTH',
-                scheduled_at=timezone.now() + timedelta(days=1),
-                action_url=f'{settings.SITE_URL}/feedback/{instance.id}?type=dental',
-                action_text='Leave Feedback'
-            )
-            logger.info(f"Feedback and reminder scheduled for dental record {instance.id}")
+            logger.info(f"Immediate feedback sent for dental record {instance.id}")
         except Exception as e:
             logger.error(f"Error scheduling feedback for dental record {instance.id}: {e}")
 

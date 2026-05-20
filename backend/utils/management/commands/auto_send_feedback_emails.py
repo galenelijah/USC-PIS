@@ -40,41 +40,41 @@ class Command(BaseCommand):
         if immediate:
             hours_ago = 1  # Send for visits from last hour
         
-        # Calculate the cutoff time (visits older than this)
+        # Calculate the cutoff time (records created older than this)
         cutoff_time = timezone.now() - timedelta(hours=hours_ago)
-        # Add an upper bound (don't go back more than 3 days) to avoid spamming old visits
-        max_age_time = timezone.now() - timedelta(days=3)
+        # Add an upper bound (don't go back more than 14 days) to avoid spamming very old records
+        max_age_time = timezone.now() - timedelta(days=14)
         
-        # We look for ANY visit between 3 days ago and 24 hours ago that hasn't had an email sent yet
-        self.stdout.write(f"Looking for visits between {max_age_time} and {cutoff_time} that haven't received feedback emails")
+        self.stdout.write(f"Looking for records created between {max_age_time} and {cutoff_time} that haven't received feedback reminders")
         
-        # Get medical visits that need feedback emails
+        # Get medical records that need feedback reminders
+        # We check feedback_reminder_sent and also ensure no feedback has been submitted yet
         medical_visits = MedicalRecord.objects.filter(
-            visit_date__gte=max_age_time,
-            visit_date__lte=cutoff_time,
+            created_at__gte=max_age_time,
+            created_at__lte=cutoff_time,
             patient__user__isnull=False,      # Only patients with user accounts
-            feedback_email_sent=False,        # Haven't sent email yet
-            feedbacks__isnull=True            # Exclude if feedback already provided (safety check)
+            feedback_reminder_sent=False,     # Haven't sent reminder yet
+            feedbacks__isnull=True            # Exclude if feedback already provided
         ).select_related('patient', 'patient__user')
         
-        # Get dental visits that need feedback emails
+        # Get dental records that need feedback reminders
         dental_visits = DentalRecord.objects.filter(
-            visit_date__gte=max_age_time,
-            visit_date__lte=cutoff_time,
+            created_at__gte=max_age_time,
+            created_at__lte=cutoff_time,
             patient__user__isnull=False,      # Only patients with user accounts
-            feedback_email_sent=False,        # Haven't sent email yet
-            feedbacks__isnull=True            # Exclude if feedback already provided (safety check)
+            feedback_reminder_sent=False,     # Haven't sent reminder yet
+            feedbacks__isnull=True            # Exclude if feedback already provided
         ).select_related('patient', 'patient__user')
         
         total_visits = medical_visits.count() + dental_visits.count()
         
         if total_visits == 0:
             self.stdout.write(
-                self.style.WARNING(f'No visits found in the specified time window.')
+                self.style.WARNING(f'No records found requiring reminders in the specified time window.')
             )
             return
         
-        self.stdout.write(f"Found {medical_visits.count()} medical visits and {dental_visits.count()} dental visits")
+        self.stdout.write(f"Found {medical_visits.count()} medical records and {dental_visits.count()} dental records requiring reminders")
         
         if dry_run:
             self.stdout.write(self.style.WARNING('DRY RUN MODE - No emails will be sent'))
@@ -86,72 +86,67 @@ class Command(BaseCommand):
         for visit in medical_visits:
             try:
                 patient_email = visit.patient.user.email
-                self.stdout.write(f"Processing medical visit for {visit.patient.get_full_name()} ({patient_email})")
+                self.stdout.write(f"Sending 24h reminder for medical visit {visit.id} to {patient_email}")
                 
                 if dry_run:
-                    self.stdout.write(
-                        self.style.SUCCESS(f'  - Would send feedback email to {patient_email}')
-                    )
+                    self.stdout.write(self.style.SUCCESS(f'  - Would send reminder to {patient_email}'))
                     sent_count += 1
                 else:
-                    # Send the feedback request email
-                    success = EmailService.send_feedback_request_email(visit)
+                    # Use a slightly different subject for the reminder
+                    success = EmailService.send_template_email(
+                        template_name='feedback_request',
+                        context={
+                            'patient': visit.patient,
+                            'medical_record': visit,
+                            'feedback_url': f'{settings.SITE_URL}/feedback/{visit.id}?type=medical',
+                            'is_reminder': True
+                        },
+                        recipient_email=patient_email,
+                        subject='Reminder: We value your feedback - USC-PIS'
+                    )
                     
                     if success:
-                        # Mark as sent
-                        visit.feedback_email_sent = True
-                        visit.save(update_fields=['feedback_email_sent'])
-                        
-                        self.stdout.write(
-                            self.style.SUCCESS(f'  - Sent feedback email to {patient_email}')
-                        )
+                        visit.feedback_reminder_sent = True
+                        visit.save(update_fields=['feedback_reminder_sent'])
                         sent_count += 1
+                        self.stdout.write(self.style.SUCCESS(f'  - Reminder sent successfully'))
                     else:
-                        self.stdout.write(
-                            self.style.ERROR(f'  - Failed to send email to {patient_email}')
-                        )
                         error_count += 1
-                        
             except Exception as e:
-                error_msg = f"Error processing medical visit {visit.id}: {str(e)}"
-                self.stdout.write(self.style.ERROR(f'  - {error_msg}'))
-                logger.error(error_msg)
+                self.stdout.write(self.style.ERROR(f'  - Error: {str(e)}'))
                 error_count += 1
-        
+
         # Process dental visits
         for visit in dental_visits:
             try:
                 patient_email = visit.patient.user.email
-                self.stdout.write(f"Processing dental visit for {visit.patient.get_full_name()} ({patient_email})")
+                self.stdout.write(f"Sending 24h reminder for dental visit {visit.id} to {patient_email}")
                 
                 if dry_run:
-                    self.stdout.write(
-                        self.style.SUCCESS(f'  - Would send feedback email to {patient_email}')
-                    )
+                    self.stdout.write(self.style.SUCCESS(f'  - Would send reminder to {patient_email}'))
                     sent_count += 1
                 else:
-                    # Send the feedback request email
-                    success = EmailService.send_feedback_request_email(visit)
+                    success = EmailService.send_template_email(
+                        template_name='feedback_request',
+                        context={
+                            'patient': visit.patient,
+                            'medical_record': visit,
+                            'feedback_url': f'{settings.SITE_URL}/feedback/{visit.id}?type=dental',
+                            'is_reminder': True
+                        },
+                        recipient_email=patient_email,
+                        subject='Reminder: Share your experience - USC-PIS'
+                    )
                     
                     if success:
-                        # Mark as sent
-                        visit.feedback_email_sent = True
-                        visit.save(update_fields=['feedback_email_sent'])
-                        
-                        self.stdout.write(
-                            self.style.SUCCESS(f'  - Sent feedback email to {patient_email}')
-                        )
+                        visit.feedback_reminder_sent = True
+                        visit.save(update_fields=['feedback_reminder_sent'])
                         sent_count += 1
+                        self.stdout.write(self.style.SUCCESS(f'  - Reminder sent successfully'))
                     else:
-                        self.stdout.write(
-                            self.style.ERROR(f'  - Failed to send email to {patient_email}')
-                        )
                         error_count += 1
-                        
             except Exception as e:
-                error_msg = f"Error processing dental visit {visit.id}: {str(e)}"
-                self.stdout.write(self.style.ERROR(f'  - {error_msg}'))
-                logger.error(error_msg)
+                self.stdout.write(self.style.ERROR(f'  - Error: {str(e)}'))
                 error_count += 1
         
         # Summary

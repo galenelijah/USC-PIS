@@ -66,7 +66,8 @@ class MedicalRecord(models.Model):
     notes = models.TextField(blank=True)
     vital_signs = models.JSONField(default=dict, blank=True, help_text="Vital signs data (temperature, blood pressure, etc.)")
     physical_examination = models.JSONField(default=dict, blank=True, help_text="Physical examination findings")
-    feedback_email_sent = models.BooleanField(default=False, help_text="Track if feedback request email was sent")
+    feedback_email_sent = models.BooleanField(default=False, help_text="Track if immediate feedback request email was sent")
+    feedback_reminder_sent = models.BooleanField(default=False, help_text="Track if 24-hour feedback reminder email was sent")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
@@ -189,7 +190,8 @@ class DentalRecord(models.Model):
     # Cost and billing information
     cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     insurance_covered = models.BooleanField(default=False)
-    feedback_email_sent = models.BooleanField(default=False, help_text="Track if feedback request email was sent")
+    feedback_email_sent = models.BooleanField(default=False, help_text="Track if immediate feedback request email was sent")
+    feedback_reminder_sent = models.BooleanField(default=False, help_text="Track if 24-hour feedback reminder email was sent")
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
