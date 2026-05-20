@@ -105,7 +105,7 @@ class EmailService:
         context = {
             'user': user,
             'code': code,
-            'expires_in': '15 minutes',
+            'expires_in': '10 minutes',
             'site_url': settings.SITE_URL
         }
         

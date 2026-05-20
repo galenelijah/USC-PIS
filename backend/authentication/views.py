@@ -92,7 +92,7 @@ def generate_verification_code(user):
     VerificationCode.objects.filter(user=user, is_used=False).update(is_used=True)
     
     code = ''.join(random.choices(string.digits, k=6))
-    expires_at = timezone.now() + datetime.timedelta(minutes=15)
+    expires_at = timezone.now() + datetime.timedelta(minutes=10)
     
     vc = VerificationCode.objects.create(
         user=user,
