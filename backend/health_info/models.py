@@ -222,6 +222,18 @@ class HealthCampaign(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
     campaign_type = models.CharField(max_length=20, choices=CAMPAIGN_TYPES)
+    status = models.CharField(
+        max_length=15, 
+        choices=[
+            ('DRAFT', 'Draft'),
+            ('SCHEDULED', 'Scheduled'),
+            ('ACTIVE', 'Active'),
+            ('PAUSED', 'Paused'),
+            ('COMPLETED', 'Completed'),
+            ('ARCHIVED', 'Archived')
+        ],
+        default='DRAFT'
+    )
     priority = models.CharField(max_length=10, choices=PRIORITY_LEVELS, default='MEDIUM')
     
     # Template reference
@@ -439,8 +451,8 @@ def health_campaign_notification(sender, instance, created, **kwargs):
 
         User = get_user_model()
 
+        # 1. Notify admins/staff when a new campaign is created (for review)
         if created:
-            # Notify admins when a new campaign is created
             admins = User.objects.filter(role__in=['ADMIN', 'STAFF'])
             for admin in admins:
                 try:
@@ -449,24 +461,40 @@ def health_campaign_notification(sender, instance, created, **kwargs):
                         title="New Health Campaign Created",
                         message=f"A new health campaign '{instance.title}' has been created and is ready for review.",
                         notification_type="HEALTH_CAMPAIGN",
+                        delivery_method='IN_APP',
+                        metadata={'campaign_id': instance.id, 'action': 'review'}
                     )
                 except Exception as e:
                     logger.warning(f"Failed to create admin campaign notification: {e}")
-        else:
-            # Check if status changed to active
-            if instance.status == 'ACTIVE':
-                # Notify a subset of users about new active campaign
-                active_users = User.objects.filter(is_active=True)[:50]
-                for user in active_users:
-                    try:
+
+        # 2. Notify students when a campaign becomes ACTIVE
+        if instance.status == 'ACTIVE':
+            # Target students and faculty
+            target_users = User.objects.filter(role__in=['STUDENT', 'FACULTY'], is_active=True)
+            
+            for user in target_users:
+                try:
+                    # Idempotency check: Don't notify if user already received active notification for this campaign
+                    # We use metadata to track which campaign this notification belongs to
+                    exists = Notification.objects.filter(
+                        recipient=user,
+                        notification_type="HEALTH_CAMPAIGN",
+                        metadata__campaign_id=instance.id,
+                        metadata__action='active_alert'
+                    ).exists()
+                    
+                    if not exists:
                         Notification.objects.create(
                             recipient=user,
-                            title=f"New Health Campaign: {instance.title}",
-                            message=f"A new health campaign about {instance.get_campaign_type_display()} is now active. Check it out!",
+                            title=f"Health Update: {instance.title}",
+                            message=f"New health campaign active: {instance.summary or instance.title}. Check the Health Insights for details!",
                             notification_type="HEALTH_CAMPAIGN",
+                            delivery_method='IN_APP',
+                            metadata={'campaign_id': instance.id, 'action': 'active_alert'}
                         )
-                    except Exception as e:
-                        logger.warning(f"Failed to create user campaign notification: {e}")
+                except Exception as e:
+                    logger.warning(f"Failed to create student campaign notification for {user.email}: {e}")
+                    
     except Exception:
         # Never block campaign saves due to notification issues
         import logging
