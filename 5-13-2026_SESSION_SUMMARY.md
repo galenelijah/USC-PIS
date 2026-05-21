@@ -41,6 +41,6 @@ We have formulated a plan to move the system to a truly secure "Encrypted at Res
 
 ## 3. Immediate Next Steps
 *   [ ] Implement the Decryption Proxy in `backend/patients/views.py`.
-*   [ ] Update `backend/patients/signals.py` to clear plain-text fields in production.
+*   [ ] Update `backend/patients/signals.py` to clear plain-text fields in production
 *   [ ] Create a management command `python manage.py cleanse_sensitive_data` for the one-time migration.
 *   [ ] Document the process in the Technical Audit for Chapter 4/5.
