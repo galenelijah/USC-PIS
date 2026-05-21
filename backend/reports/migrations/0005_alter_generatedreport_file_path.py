@@ -21,3 +21,4 @@ class Migration(migrations.Migration):
             field=models.FileField(blank=True, max_length=255, null=True, storage=get_storage(), upload_to='reports/', validators=[django.core.validators.FileExtensionValidator(allowed_extensions=['pdf', 'xlsx', 'csv', 'json', 'html'])]),
         ),
     ]
+
