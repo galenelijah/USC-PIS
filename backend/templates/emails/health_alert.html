@@ -1,0 +1,29 @@
+{% extends 'emails/base.html' %}
+
+{% block title %}Health Update: {{ campaign_title }}{% endblock %}
+
+{% block content %}
+<h2>Health Update: {{ campaign_title }}</h2>
+
+<p>Dear {{ user.first_name|default:user.username }},</p>
+
+<p>USC Health Services has launched a new health campaign that may be relevant to you:</p>
+
+<div class="info-box">
+    <strong>{{ campaign_title }}</strong><br>
+    {{ campaign_summary|default:campaign_description|truncatewords:50 }}
+</div>
+
+{% if campaign.content %}
+<p>{{ campaign.content|striptags|truncatewords:100 }}</p>
+{% endif %}
+
+<p>You can find more information about this campaign and other health insights by logging into your portal.</p>
+
+<div style="text-align: center;">
+    <a href="{{ site_url }}/health-insights" class="button">View Health Insights</a>
+</div>
+
+<p>Stay healthy!<br>
+<strong>USC Health Services Team</strong></p>
+{% endblock %}

@@ -442,12 +442,12 @@ class CampaignFeedback(models.Model):
 def health_campaign_notification(sender, instance, created, **kwargs):
     """
     Send notifications when health campaigns are created or status changes.
-    Optimized for performance and idempotency.
+    Uses direct creation and utils.EmailService for maximum reliability.
     """
     try:
         from notifications.models import Notification
         from django.contrib.auth import get_user_model
-        from django.db.models import Q
+        from utils.email_service import EmailService
         import logging
         logger = logging.getLogger(__name__)
 
@@ -464,6 +464,7 @@ def health_campaign_notification(sender, instance, created, **kwargs):
                         message=f"A new health campaign '{instance.title}' has been created and is ready for review.",
                         notification_type="HEALTH_CAMPAIGN",
                         delivery_method='IN_APP',
+                        status='DELIVERED',
                         metadata={'campaign_id': instance.id, 'action': 'review'}
                     )
                 except Exception as e:
@@ -471,50 +472,58 @@ def health_campaign_notification(sender, instance, created, **kwargs):
 
         # 2. Notify users when a campaign is ACTIVE
         if instance.status == 'ACTIVE':
-            # Identify target users (Students, Faculty, and anyone with a patient profile)
-            # We notify everyone who is active to ensure visibility
-            all_users = User.objects.filter(is_active=True)
+            # Notify ALL active users about the new live campaign
+            target_users = User.objects.filter(is_active=True)
             
-            # Filter out users who already received the active_alert for this campaign (Idempotency)
-            # We use a set for faster lookup
-            already_notified = set(Notification.objects.filter(
-                notification_type="HEALTH_CAMPAIGN",
-                metadata__campaign_id=instance.id,
-                metadata__action='active_alert'
-            ).values_list('recipient_id', flat=True))
-            
-            users_to_notify = [u for u in all_users if u.id not in already_notified]
-            
-            if users_to_notify:
-                notifications_to_create = []
-                for user in users_to_notify:
-                    is_patient = hasattr(user, 'patient_profile') and user.patient_profile is not None
-                    delivery_method = 'BOTH' if is_patient else 'IN_APP'
-                    
-                    notifications_to_create.append(Notification(
-                        recipient=user,
-                        title=f"Health Update: {instance.title}",
-                        message=f"New health campaign active: {instance.summary or instance.title}. Check the Health Insights for details!",
-                        notification_type="HEALTH_CAMPAIGN",
-                        delivery_method=delivery_method,
-                        metadata={'campaign_id': instance.id, 'action': 'active_alert'}
-                    ))
-                
-                # Bulk create In-App notifications (Fast)
-                created_notifs = Notification.objects.bulk_create(notifications_to_create)
-                logger.info(f"Created {len(created_notifs)} campaign notifications for '{instance.title}'")
-
-                # After creation, trigger email tasks for those who need them
-                # We do this in a separate loop so that the DB records are already committed
-                # though in this context (post_save signal), it's part of the same transaction.
+            for user in target_users:
                 try:
-                    from notifications.tasks import send_email_task
-                    for n in created_notifs:
-                        if n.delivery_method in ['BOTH', 'EMAIL']:
-                            # Using delay() will handle either async (if Redis) or sync (if eager)
-                            send_email_task.delay(n.id)
+                    # Idempotency check
+                    exists = Notification.objects.filter(
+                        recipient=user,
+                        notification_type="HEALTH_CAMPAIGN",
+                        metadata__campaign_id=instance.id,
+                        metadata__action='active_alert'
+                    ).exists()
+                    
+                    if not exists:
+                        # Determine if user is a patient
+                        patient_profile = getattr(user, 'patient_profile', None)
+                        is_patient = patient_profile is not None
+                        delivery_method = 'BOTH' if is_patient else 'IN_APP'
+                        
+                        # Create In-App notification
+                        Notification.objects.create(
+                            recipient=user,
+                            patient=patient_profile, # Link to patient profile for better filtering
+                            title=f"Health Update: {instance.title}",
+                            message=f"New health campaign active: {instance.summary or instance.title}. Check the Health Insights for details!",
+                            notification_type="HEALTH_CAMPAIGN",
+                            delivery_method=delivery_method,
+                            status='DELIVERED',
+                            metadata={'campaign_id': instance.id, 'action': 'active_alert'}
+                        )
+
+                        # Handle Email for patients using the verified utils.EmailService
+                        if is_patient:
+                            try:
+                                context = {
+                                    'user': user,
+                                    'campaign': instance,
+                                    'campaign_title': instance.title,
+                                    'campaign_description': instance.description,
+                                    'campaign_summary': instance.summary,
+                                }
+                                # Use a general template or health_alert if available
+                                EmailService.send_template_email(
+                                    template_name='health_alert',
+                                    context=context,
+                                    recipient_email=user.email,
+                                    subject=f"Health Update: {instance.title}"
+                                )
+                            except Exception as e:
+                                logger.error(f"Failed to send campaign email to {user.email}: {e}")
                 except Exception as e:
-                    logger.error(f"Failed to trigger email tasks: {e}")
+                    logger.warning(f"Failed to process campaign notification for {user.email}: {e}")
 
         # 3. Notify engaged users when a campaign is COMPLETED
         elif not created and instance.status == 'COMPLETED':
@@ -532,6 +541,7 @@ def health_campaign_notification(sender, instance, created, **kwargs):
                         message=f"The health campaign '{instance.title}' has been completed. Thank you for your participation and feedback!",
                         notification_type="HEALTH_CAMPAIGN",
                         delivery_method='IN_APP',
+                        status='DELIVERED',
                         metadata={'campaign_id': instance.id, 'action': 'completion'}
                     )
                 except Exception as e:
