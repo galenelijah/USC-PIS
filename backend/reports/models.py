@@ -5,17 +5,27 @@ from patients.models import Patient, MedicalRecord
 from authentication.models import User
 import json
 
-# Prefer Cloudinary RAW storage for non-image report files when available
-try:
-    from cloudinary_storage.storage import RawMediaCloudinaryStorage  # type: ignore
-    import cloudinary
-    # Only use Cloudinary if properly configured
-    if cloudinary.config().cloud_name:
-        REPORTS_STORAGE = RawMediaCloudinaryStorage()
-    else:
-        REPORTS_STORAGE = None
-except Exception:
-    REPORTS_STORAGE = None
+# Storage selection for reports
+def get_reports_storage():
+    """Returns Cloudinary storage if configured, otherwise default storage"""
+    try:
+        import cloudinary
+        from django.conf import settings
+        from cloudinary_storage.storage import RawMediaCloudinaryStorage
+        
+        # Check for presence in settings or environment
+        has_config = (
+            hasattr(settings, 'CLOUDINARY_STORAGE') or 
+            (cloudinary.config().cloud_name and cloudinary.config().api_key)
+        )
+        
+        if has_config:
+            return RawMediaCloudinaryStorage()
+    except (ImportError, Exception):
+        pass
+    return None
+
+REPORTS_STORAGE = get_reports_storage()
 
 class ReportTemplate(models.Model):
     """Templates for different types of reports"""
