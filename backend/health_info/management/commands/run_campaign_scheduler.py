@@ -39,9 +39,7 @@ class Command(BaseCommand):
                 with transaction.atomic():
                     campaign.status = 'ACTIVE'
                     campaign.save()
-                    
-                    # Send notification to all users about new active campaign
-                    self.send_campaign_notification(campaign, 'activated')
+                    # Notifications are now handled by the post_save signal in models.py
                     
             activated_count += 1
             self.stdout.write(
@@ -60,9 +58,7 @@ class Command(BaseCommand):
                 with transaction.atomic():
                     campaign.status = 'COMPLETED'
                     campaign.save()
-                    
-                    # Send notification about campaign completion
-                    self.send_campaign_notification(campaign, 'completed')
+                    # Notifications are now handled by the post_save signal in models.py
                     
             completed_count += 1
             self.stdout.write(
@@ -95,48 +91,3 @@ class Command(BaseCommand):
                 f'{unfeatured_count} unfeatured'
             )
         )
-
-    def send_campaign_notification(self, campaign, action):
-        """Send notifications to users about campaign status changes"""
-        try:
-            if action == 'activated':
-                # Send to all active users
-                users = User.objects.filter(is_active=True)
-                title = f"New Health Campaign: {campaign.title}"
-                message = f"A new health campaign '{campaign.title}' is now active. Check it out in the Health Information section!"
-                notification_type = "campaign_activated"
-                
-            elif action == 'completed':
-                # Send to users who engaged with the campaign
-                users = User.objects.filter(
-                    is_active=True,
-                    campaign_feedback__campaign=campaign
-                ).distinct()
-                title = f"Campaign Completed: {campaign.title}"
-                message = f"The health campaign '{campaign.title}' has been completed. Thank you for your participation!"
-                notification_type = "campaign_completed"
-                
-            else:
-                return
-            
-            # Create notifications for users
-            notifications = []
-            for user in users:
-                notifications.append(
-                    Notification(
-                        user=user,
-                        title=title,
-                        message=message,
-                        notification_type=notification_type
-                    )
-                )
-            
-            # Bulk create notifications for efficiency
-            if notifications:
-                Notification.objects.bulk_create(notifications, batch_size=100)
-                logger.info(f'Sent {len(notifications)} notifications for campaign {action}: {campaign.title}')
-                
-        except Exception as e:
-            logger.error(f'Error sending campaign notifications: {e}')
-            # Don't let notification errors stop the scheduling process
-            pass
