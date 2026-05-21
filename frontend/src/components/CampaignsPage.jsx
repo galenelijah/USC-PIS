@@ -95,6 +95,7 @@ const CampaignsPage = () => {
     title: '',
     description: '',
     campaign_type: 'GENERAL',
+    status: 'DRAFT',
     priority: 'MEDIUM',
     content: '',
     summary: '',
@@ -135,6 +136,16 @@ const CampaignsPage = () => {
     { value: 'EMERGENCY', label: 'Emergency Health', color: 'error' },
     { value: 'SEASONAL', label: 'Seasonal Health', color: 'secondary' },
     { value: 'CUSTOM', label: 'Custom Campaign', color: 'default' }
+  ];
+
+  // Campaign status options
+  const STATUS_CHOICES = [
+    { value: 'DRAFT', label: 'Draft', color: 'default' },
+    { value: 'SCHEDULED', label: 'Scheduled', color: 'info' },
+    { value: 'ACTIVE', label: 'Active', color: 'success' },
+    { value: 'PAUSED', label: 'Paused', color: 'warning' },
+    { value: 'COMPLETED', label: 'Completed', color: 'primary' },
+    { value: 'ARCHIVED', label: 'Archived', color: 'default' }
   ];
 
   const PRIORITY_LEVELS = [
@@ -230,6 +241,7 @@ const CampaignsPage = () => {
       title: '',
       description: '',
       campaign_type: 'GENERAL',
+      status: 'DRAFT',
       priority: 'MEDIUM',
       content: '',
       summary: '',
@@ -471,6 +483,7 @@ const CampaignsPage = () => {
         title: data.title || '',
         description: data.description || '',
         campaign_type: data.campaign_type || 'GENERAL',
+        status: data.status || 'DRAFT',
         priority: data.priority || 'MEDIUM',
         content: data.content || '',
         summary: data.summary || '',
@@ -547,6 +560,15 @@ const CampaignsPage = () => {
     } catch (error) {
       console.error('Error in getPriorityInfo:', error);
       return { value: 'MEDIUM', label: 'Medium', color: 'primary' };
+    }
+  };
+
+  const getStatusInfo = (status) => {
+    try {
+      return STATUS_CHOICES.find(s => s.value === status) || STATUS_CHOICES[0];
+    } catch (error) {
+      console.error('Error in getStatusInfo:', error);
+      return { value: 'DRAFT', label: 'Draft', color: 'default' };
     }
   };
 
@@ -776,6 +798,7 @@ const CampaignsPage = () => {
 
             const typeInfo = getCampaignTypeInfo(campaign.campaign_type || 'GENERAL');
             const priorityInfo = getPriorityInfo(campaign.priority || 'MEDIUM');
+            const statusInfo = getStatusInfo(campaign.status || 'DRAFT');
             const active = isActive(campaign);
             
             return (
@@ -851,16 +874,25 @@ const CampaignsPage = () => {
                       </Box>
                     )}
                     
-                    {/* Priority Badge */}
-                    {campaign.priority !== 'MEDIUM' && (
-                      <Box
-                        sx={{
-                          position: 'absolute',
-                          top: 16,
-                          left: 16,
-                          zIndex: 2
-                        }}
-                      >
+                    {/* Status and Priority Badges */}
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: 16,
+                        left: 16,
+                        zIndex: 2,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 1
+                      }}
+                    >
+                      <Chip
+                        label={statusInfo.label}
+                        color={statusInfo.color}
+                        size="small"
+                        sx={{ fontWeight: 'bold', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
+                      />
+                      {campaign.priority !== 'MEDIUM' && (
                         <Chip
                           label={priorityInfo.label}
                           color={priorityInfo.color}
@@ -872,8 +904,8 @@ const CampaignsPage = () => {
                             backdropFilter: 'blur(10px)'
                           }}
                         />
-                      </Box>
-                    )}
+                      )}
+                    </Box>
                   </Box>
                   
                   <CardContent sx={{ flexGrow: 1, p: 3 }}>
@@ -1148,7 +1180,24 @@ const CampaignsPage = () => {
                 Campaign Details
               </Typography>
             </Grid>
-            <Grid item xs={12} md={12}>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth required>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={campaignForm.status}
+                  label="Status"
+                  onChange={(e) => setCampaignForm({...campaignForm, status: e.target.value})}
+                >
+                  {STATUS_CHOICES.map(status => (
+                    <MenuItem key={status.value} value={status.value}>
+                      {status.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+                <FormHelperText>Active campaigns trigger notifications</FormHelperText>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
               <FormControl fullWidth>
                 <InputLabel>Priority</InputLabel>
                 <Select
@@ -1495,7 +1544,24 @@ const CampaignsPage = () => {
                 Campaign Details
               </Typography>
             </Grid>
-            <Grid item xs={12} md={12}>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth required>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={campaignForm.status}
+                  label="Status"
+                  onChange={(e) => setCampaignForm({...campaignForm, status: e.target.value})}
+                >
+                  {STATUS_CHOICES.map(status => (
+                    <MenuItem key={status.value} value={status.value}>
+                      {status.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+                <FormHelperText>Active campaigns trigger notifications</FormHelperText>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
               <FormControl fullWidth>
                 <InputLabel>Priority</InputLabel>
                 <Select
@@ -1789,6 +1855,11 @@ const CampaignsPage = () => {
                     {selectedCampaign.title}
                   </Typography>
                   <Box display="flex" gap={1} mt={1}>
+                    <Chip 
+                      label={getStatusInfo(selectedCampaign.status).label}
+                      color={getStatusInfo(selectedCampaign.status).color}
+                      size="small"
+                    />
                     <Chip 
                       label={getCampaignTypeInfo(selectedCampaign.campaign_type).label}
                       color={getCampaignTypeInfo(selectedCampaign.campaign_type).color}
