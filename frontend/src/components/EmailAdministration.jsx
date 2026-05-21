@@ -186,8 +186,6 @@ const EmailAdministration = () => {
     } else if (activeTab === 1) {
       fetchNotifications();
     } else if (activeTab === 2) {
-      fetchStaffAccess();
-    } else if (activeTab === 3) {
       fetchLogs();
     }
   }, [activeTab]);
@@ -584,8 +582,7 @@ const EmailAdministration = () => {
             onClick={() => {
               if (activeTab === 0) { fetchEmailData(); fetchConfigs(); }
               else if (activeTab === 1) fetchNotifications();
-              else if (activeTab === 2) fetchStaffAccess();
-              else if (activeTab === 3) fetchLogs();
+              else if (activeTab === 2) fetchLogs();
             }}
             disabled={loading || configLoading || staffLoading}
           >
@@ -601,7 +598,6 @@ const EmailAdministration = () => {
       >
         <Tab icon={<SettingsIcon />} iconPosition="start" label="Routing & Status" />
         <Tab icon={<NotificationsIcon />} iconPosition="start" label="Sent Notifications" />
-        <Tab icon={<StaffIcon />} iconPosition="start" label="Staff Access" />
         <Tab icon={<HistoryIcon />} iconPosition="start" label="System Logs" />
       </Tabs>
 
@@ -831,7 +827,6 @@ const EmailAdministration = () => {
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <InfoTooltip title="History of all individual notifications sent by the system." />
-              <Button startIcon={<FilterListIcon />} variant="outlined" size="small">Filter</Button>
             </Box>
           </Box>
 
@@ -989,7 +984,7 @@ const EmailAdministration = () => {
         </Box>
       )}
 
-      {activeTab === 3 && (
+      {activeTab === 2 && (
         <Box>
           <Typography variant="h6" fontWeight="bold" gutterBottom>
             System Activity Logs
