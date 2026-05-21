@@ -10,9 +10,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RenameIndex(
-            model_name='feedback',
-            new_name='feedback_fe_patient_d5594a_idx',
-            old_name='feedback_fe_patient_2c8f8b_idx',
-        ),
+        # Empty operations to allow the release phase to pass on Heroku
+        # The index already exists in production.
     ]
