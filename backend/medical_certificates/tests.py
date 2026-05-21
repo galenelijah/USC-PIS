@@ -117,7 +117,7 @@ class MedicalCertificateModelTest(TestCase):
         # Check notification was created
         notifications = Notification.objects.filter(
             recipient=self.patient_user,
-            notification_type='certificate_created'
+            notification_type='MEDICAL_CERTIFICATE'
         )
         self.assertEqual(notifications.count(), 1)
         
@@ -149,7 +149,7 @@ class MedicalCertificateModelTest(TestCase):
         # Check notification was created
         notifications = Notification.objects.filter(
             recipient=self.patient_user,
-            notification_type='certificate_approved'
+            notification_type='MEDICAL_CERTIFICATE'
         )
         self.assertEqual(notifications.count(), 1)
         
@@ -181,7 +181,7 @@ class MedicalCertificateModelTest(TestCase):
         # Check notification was created
         notifications = Notification.objects.filter(
             recipient=self.patient_user,
-            notification_type='certificate_rejected'
+            notification_type='MEDICAL_CERTIFICATE'
         )
         self.assertEqual(notifications.count(), 1)
         

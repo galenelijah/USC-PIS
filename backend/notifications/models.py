@@ -15,6 +15,7 @@ class NotificationTemplate(models.Model):
         ('FOLLOW_UP', 'Follow-up Reminder'),
         ('VACCINATION_REMINDER', 'Vaccination Reminder'),
         ('DENTAL_REMINDER', 'Dental Checkup Reminder'),
+        ('MEDICAL_CERTIFICATE', 'Medical Certificate'),
         ('CUSTOM', 'Custom Notification'),
     ]
     
@@ -49,6 +50,7 @@ class Notification(models.Model):
         ('FOLLOW_UP', 'Follow-up Reminder'),
         ('VACCINATION_REMINDER', 'Vaccination Reminder'),
         ('DENTAL_REMINDER', 'Dental Checkup Reminder'),
+        ('MEDICAL_CERTIFICATE', 'Medical Certificate'),
         ('CUSTOM', 'Custom Notification'),
         ('SYSTEM_ALERT', 'System Alert'),
     ]
