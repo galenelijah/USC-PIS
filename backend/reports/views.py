@@ -40,9 +40,10 @@ class IsStaffOrReadOnly(permissions.BasePermission):
                 request.user.role in ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE']
             )
         return request.user.is_authenticated and (
-            request.user.is_staff or
+            request.user.is_staff or 
             request.user.role in ['ADMIN', 'STAFF']
         )
+
 class ReportPagination(PageNumberPagination):
     page_size = 20
     page_size_query_param = 'page_size'
