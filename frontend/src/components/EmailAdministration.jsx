@@ -552,6 +552,64 @@ const EmailAdministration = () => {
     }));
   };
 
+  const renderStatusChip = (notif) => {
+    const status = notif.status;
+    const method = notif.delivery_method;
+    
+    let label = status;
+    let color = 'default';
+    let tooltip = '';
+
+    switch (status) {
+      case 'PENDING':
+        label = 'Processing';
+        color = 'warning';
+        tooltip = 'Waiting for scheduled time or email provider response.';
+        break;
+      case 'SENT':
+        label = 'Email Sent';
+        color = 'info';
+        tooltip = 'Notification successfully sent via email.';
+        break;
+      case 'DELIVERED':
+        label = method === 'EMAIL' ? 'Email Sent' : 'In-App Delivered';
+        color = 'success';
+        tooltip = method === 'EMAIL' 
+          ? 'Email successfully accepted by the mail server.' 
+          : 'Notification is now visible in the patient dashboard.';
+        break;
+      case 'READ':
+        label = 'Read';
+        color = 'success';
+        tooltip = 'The patient has viewed this notification in their dashboard.';
+        break;
+      case 'FAILED':
+        label = 'Failed';
+        color = 'error';
+        tooltip = 'There was an error delivering this notification. Check logs for details.';
+        break;
+      case 'CANCELLED':
+        label = 'Cancelled';
+        color = 'default';
+        tooltip = 'This notification was manually cancelled or the master switch was off.';
+        break;
+      default:
+        label = status;
+    }
+
+    return (
+      <Tooltip title={tooltip} arrow>
+        <Chip 
+          label={label} 
+          size="small" 
+          color={color}
+          variant={status === 'PENDING' ? 'outlined' : 'filled'}
+          sx={{ fontWeight: 'bold', minWidth: 90 }}
+        />
+      </Tooltip>
+    );
+  };
+
   const getStatusColor = (status) => {
     if (status === 'operational') return 'success';
     if (status === 'development') return 'warning';
@@ -645,70 +703,7 @@ const EmailAdministration = () => {
 
           {/* Email System Status */}
           <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid item xs={12} md={6}>
-              <Card sx={{ height: '100%' }}>
-                <CardContent>
-                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                    <Typography variant="h6" fontWeight="bold">
-                      <SettingsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                      System Health
-                    </Typography>
-                    <Button size="small" variant="outlined" onClick={() => setHealthDialogOpen(true)}>
-                      View Details
-                    </Button>
-                  </Box>
-                  
-                  <Box sx={{ mb: 3 }}>
-                    <Grid container spacing={1}>
-                      <Grid item xs={4}>
-                        <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'success.light', borderRadius: 1, color: 'success.contrastText' }}>
-                          <Typography variant="h6" fontWeight="bold">{emailStats?.system_health?.healthy_checks || 0}</Typography>
-                          <Typography variant="caption" sx={{ display: 'block', lineHeight: 1 }}>HEALTHY</Typography>
-                        </Box>
-                      </Grid>
-                      <Grid item xs={4}>
-                        <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'warning.light', borderRadius: 1, color: 'warning.contrastText' }}>
-                          <Typography variant="h6" fontWeight="bold">{emailStats?.system_health?.warning_checks || 0}</Typography>
-                          <Typography variant="caption" sx={{ display: 'block', lineHeight: 1 }}>WARNING</Typography>
-                        </Box>
-                      </Grid>
-                      <Grid item xs={4}>
-                        <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'error.light', borderRadius: 1, color: 'error.contrastText' }}>
-                          <Typography variant="h6" fontWeight="bold">{emailStats?.system_health?.unhealthy_checks || 0}</Typography>
-                          <Typography variant="caption" sx={{ display: 'block', lineHeight: 1 }}>CRITICAL</Typography>
-                        </Box>
-                      </Grid>
-                    </Grid>
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block', textAlign: 'center' }}>
-                      Status of 7 core infrastructure checks
-                    </Typography>
-                  </Box>
-
-                  <Divider sx={{ my: 2 }} />
-                  
-                  <Grid container spacing={2}>
-                    <Grid item xs={6}>
-                      <Typography variant="caption" color="text.secondary">Backend</Typography>
-                      <Typography variant="body2" fontWeight="bold">{emailStatus?.email_backend}</Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="caption" color="text.secondary">Environment</Typography>
-                      <Typography variant="body2" fontWeight="bold">{emailStatus?.is_development_mode ? 'DEVELOPMENT' : 'PRODUCTION'}</Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="caption" color="text.secondary">SMTP Host</Typography>
-                      <Typography variant="body2" fontWeight="bold">{emailStatus?.smtp_host}</Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="caption" color="text.secondary">From Address</Typography>
-                      <Typography variant="body2" fontWeight="bold">{emailStatus?.from_email}</Typography>
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12}>
               <Card sx={{ height: '100%' }}>
                 <CardContent>
                   <Typography variant="h6" fontWeight="bold" gutterBottom>
@@ -868,11 +863,7 @@ const EmailAdministration = () => {
                       <Chip label={notif.notification_type_display} size="small" variant="outlined" />
                     </TableCell>
                     <TableCell>
-                      <Chip 
-                        label={notif.status} 
-                        size="small" 
-                        color={notif.status === 'READ' ? 'success' : notif.status === 'SENT' ? 'info' : 'default'} 
-                      />
+                      {renderStatusChip(notif)}
                     </TableCell>
                     <TableCell>
                       <Typography variant="caption">{notif.delivery_method}</Typography>
