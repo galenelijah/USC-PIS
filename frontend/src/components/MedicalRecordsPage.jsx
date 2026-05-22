@@ -153,33 +153,41 @@ const MedicalRecordsPage = () => {
     let filteredMedical = medicalRecords;
     
     if (selectedPatient) {
-      filteredMedical = filteredMedical.filter(record => record.patient?.id === selectedPatient.id);
+      filteredMedical = filteredMedical.filter(record => {
+        const patientId = (record.patient && typeof record.patient === 'object') ? record.patient.id : record.patient;
+        return String(patientId) === String(selectedPatient.id);
+      });
     }
     
     if (searchLower !== '') {
-      filteredMedical = filteredMedical.filter(record => 
-        // Patient information
-        record.patient_name?.toLowerCase().includes(searchLower) ||
-        record.patient?.first_name?.toLowerCase().includes(searchLower) ||
-        record.patient?.last_name?.toLowerCase().includes(searchLower) ||
-        record.patient?.email?.toLowerCase().includes(searchLower) ||
-        record.patient_usc_id?.toLowerCase().includes(searchLower) ||
+      filteredMedical = filteredMedical.filter(record => {
+        const patientObj = (record.patient && typeof record.patient === 'object') ? record.patient : {};
         
-        // Medical information
-        record.diagnosis?.toLowerCase().includes(searchLower) ||
-        record.treatment?.toLowerCase().includes(searchLower) ||
-        record.chief_complaint?.toLowerCase().includes(searchLower) ||
-        record.medications?.toLowerCase().includes(searchLower) ||
-        record.notes?.toLowerCase().includes(searchLower) ||
-        
-        // Vital signs search
-        record.temperature?.toString().includes(searchLower) ||
-        record.blood_pressure?.toLowerCase().includes(searchLower) ||
-        record.pulse_rate?.toString().includes(searchLower) ||
-        
-        // Full name search
-        `${record.patient?.first_name} ${record.patient?.last_name}`.toLowerCase().includes(searchLower)
-      );
+        return (
+          // Patient information
+          record.patient_name?.toLowerCase().includes(searchLower) ||
+          patientObj.first_name?.toLowerCase().includes(searchLower) ||
+          patientObj.last_name?.toLowerCase().includes(searchLower) ||
+          patientObj.email?.toLowerCase().includes(searchLower) ||
+          record.patient_usc_id?.toLowerCase().includes(searchLower) ||
+          
+          // Medical information
+          record.diagnosis?.toLowerCase().includes(searchLower) ||
+          record.treatment?.toLowerCase().includes(searchLower) ||
+          record.chief_complaint?.toLowerCase().includes(searchLower) ||
+          record.medications?.toLowerCase().includes(searchLower) ||
+          record.notes?.toLowerCase().includes(searchLower) ||
+          
+          // Vital signs search
+          record.temperature?.toString().includes(searchLower) ||
+          record.blood_pressure?.toLowerCase().includes(searchLower) ||
+          record.pulse_rate?.toString().includes(searchLower) ||
+          
+          // Full name search
+          (patientObj.first_name && patientObj.last_name && 
+            `${patientObj.first_name} ${patientObj.last_name}`.toLowerCase().includes(searchLower))
+        );
+      });
     }
     
     if (startDate) {

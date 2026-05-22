@@ -368,13 +368,18 @@ const HealthRecords = () => {
   };
 
   const getPatientStatistics = () => {
-    const uniquePatients = [...new Set(records.map(r => r.patient?.id).filter(Boolean))];
+    const uniquePatients = [...new Set(records.map(r => 
+      (r.patient && typeof r.patient === 'object') ? r.patient.id : r.patient
+    ).filter(Boolean))];
+    
     return {
       totalPatients: uniquePatients.length,
       avgRecordsPerPatient: uniquePatients.length > 0 ? (records.length / uniquePatients.length).toFixed(1) : 0,
       patientsThisMonth: records.filter(r => 
         dayjs(r.visit_date).isAfter(dayjs().startOf('month'))
-      ).map(r => r.patient?.id).filter((id, index, arr) => arr.indexOf(id) === index).length
+      ).map(r => (r.patient && typeof r.patient === 'object') ? r.patient.id : r.patient)
+       .filter(Boolean)
+       .filter((id, index, arr) => arr.indexOf(id) === index).length
     };
   };
 

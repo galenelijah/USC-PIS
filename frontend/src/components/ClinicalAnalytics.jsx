@@ -115,19 +115,19 @@ const ClinicalAnalytics = ({ records = [] }) => {
   };
 
   const generatePatientDemographics = () => {
-    const uniquePatients = records.reduce((acc, record) => {
-      if (record.patient && !acc.find(p => p.id === record.patient.id)) {
-        acc.push(record.patient);
-      }
-      return acc;
-    }, []);
+    // Robust unique patient identification handling both objects and IDs
+    const uniquePatientIds = [...new Set(records.map(r => 
+      (r.patient && typeof r.patient === 'object') ? r.patient.id : r.patient
+    ).filter(Boolean))];
 
     const demographics = {
-      totalPatients: uniquePatients.length,
+      totalPatients: uniquePatientIds.length,
       newPatientsThisMonth: records.filter(r => 
         dayjs(r.visit_date).isAfter(dayjs().startOf('month'))
-      ).map(r => r.patient?.id).filter((id, index, arr) => arr.indexOf(id) === index).length,
-      avgVisitsPerPatient: uniquePatients.length > 0 ? (records.length / uniquePatients.length).toFixed(1) : 0,
+      ).map(r => (r.patient && typeof r.patient === 'object') ? r.patient.id : r.patient)
+       .filter(Boolean)
+       .filter((id, index, arr) => arr.indexOf(id) === index).length,
+      avgVisitsPerPatient: uniquePatientIds.length > 0 ? (records.length / uniquePatientIds.length).toFixed(1) : 0,
       recordTypes: {
         medical: records.filter(r => r.record_type === 'MEDICAL').length,
         dental: records.filter(r => r.record_type === 'DENTAL').length
