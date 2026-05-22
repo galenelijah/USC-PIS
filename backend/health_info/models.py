@@ -225,14 +225,10 @@ class HealthCampaign(models.Model):
     status = models.CharField(
         max_length=15, 
         choices=[
-            ('DRAFT', 'Draft'),
-            ('SCHEDULED', 'Scheduled'),
             ('ACTIVE', 'Active'),
-            ('PAUSED', 'Paused'),
-            ('COMPLETED', 'Completed'),
-            ('ARCHIVED', 'Archived')
+            ('POSTED', 'Posted')
         ],
-        default='DRAFT'
+        default='POSTED'
     )
     priority = models.CharField(max_length=10, choices=PRIORITY_LEVELS, default='MEDIUM')
     

@@ -95,7 +95,7 @@ const CampaignsPage = () => {
     title: '',
     description: '',
     campaign_type: 'GENERAL',
-    status: 'DRAFT',
+    status: 'POSTED',
     content: '',
     summary: '',
     objectives: '',
@@ -139,12 +139,8 @@ const CampaignsPage = () => {
 
   // Campaign status options
   const STATUS_CHOICES = [
-    { value: 'DRAFT', label: 'Draft', color: 'default' },
-    { value: 'SCHEDULED', label: 'Scheduled', color: 'info' },
     { value: 'ACTIVE', label: 'Active', color: 'success' },
-    { value: 'PAUSED', label: 'Paused', color: 'warning' },
-    { value: 'COMPLETED', label: 'Completed', color: 'primary' },
-    { value: 'ARCHIVED', label: 'Archived', color: 'default' }
+    { value: 'POSTED', label: 'Posted', color: 'default' }
   ];
 
   useEffect(() => {
@@ -233,7 +229,7 @@ const CampaignsPage = () => {
       title: '',
       description: '',
       campaign_type: 'GENERAL',
-      status: 'DRAFT',
+      status: 'POSTED',
       content: '',
       summary: '',
       objectives: '',
@@ -474,7 +470,7 @@ const CampaignsPage = () => {
         title: data.title || '',
         description: data.description || '',
         campaign_type: data.campaign_type || 'GENERAL',
-        status: data.status || 'DRAFT',
+        status: data.status || 'POSTED',
         content: data.content || '',
         summary: data.summary || '',
         objectives: data.objectives || '',
@@ -549,7 +545,7 @@ const CampaignsPage = () => {
       return STATUS_CHOICES.find(s => s.value === status) || STATUS_CHOICES[0];
     } catch (error) {
       console.error('Error in getStatusInfo:', error);
-      return { value: 'DRAFT', label: 'Draft', color: 'default' };
+      return { value: 'POSTED', label: 'Posted', color: 'default' };
     }
   };
 
@@ -778,7 +774,7 @@ const CampaignsPage = () => {
             }
 
             const typeInfo = getCampaignTypeInfo(campaign.campaign_type || 'GENERAL');
-            const statusInfo = getStatusInfo(campaign.status || 'DRAFT');
+            const statusInfo = getStatusInfo(campaign.status || 'POSTED');
             const active = isActive(campaign);
             
             return (

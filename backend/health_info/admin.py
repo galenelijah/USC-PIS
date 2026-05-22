@@ -25,12 +25,12 @@ class CampaignFeedbackInline(admin.TabularInline):
 @admin.register(HealthCampaign)
 class HealthCampaignAdmin(admin.ModelAdmin):
     list_display = [
-        'title', 'campaign_type', 'priority_badge', 
+        'title', 'campaign_type', 'status', 'priority_badge', 
         'start_date', 'end_date', 'view_count', 'engagement_count',
         'is_featured_display', 'created_by'
     ]
     list_filter = [
-        'campaign_type', 'priority', 'start_date', 'end_date', 'created_at'
+        'status', 'campaign_type', 'priority', 'start_date', 'end_date', 'created_at'
     ]
     search_fields = ['title', 'description', 'content', 'tags']
     readonly_fields = [
@@ -42,7 +42,7 @@ class HealthCampaignAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('title', 'description', 'summary', 'campaign_type', 'priority')
+            'fields': ('title', 'status', 'description', 'summary', 'campaign_type', 'priority')
         }),
         ('Content', {
             'fields': ('content', 'objectives', 'call_to_action', 'target_audience')
