@@ -388,7 +388,7 @@ const Dental = () => {
     }
     
     const procedureMatch = procedureFilter ? record.procedure_performed === procedureFilter : true;
-    return (searchTermMatch || patientMatch || idMatch) && procedureMatch && dateMatch;
+    return searchMatch && procedureMatch && dateMatch;
     });
 
     const clearFilters = () => {
