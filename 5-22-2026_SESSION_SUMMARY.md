@@ -22,6 +22,12 @@
 - **Comprehensive Logging:** Enhanced System Logs to include technical metadata (Message IDs, Delivery Methods, and Retry Counts).
 - **Race Condition Fix:** Resolved a bug where asynchronous email tasks could overwrite "Delivered" statuses back to "Sent".
 
+## 5. Audit Log Integrity (LOCAL ONLY / NOT PUSHED)
+- **Consolidated Notification Engine:** Refactored Medical Certificate notifications to use the central `NotificationService` instead of legacy "direct email" utilities.
+- **Improved Signal Handling:** Updated `medical_certificates/models.py` to handle all clinical alerts via the standard engine, ensuring both Emails and In-App alerts generate technical audit logs.
+- **Eliminated Bypass:** Removed redundant notification calls in certificate views to prevent duplicate messages and ensure the logs accurately reflect 100% of clinical communication.
+
 ## Next Steps
 - Monitor the new image proxy for performance under high load.
 - Verify that clinical staff find the new descriptive error messages helpful for navigating restricted areas.
+- **Deployment:** Prepare to push the consolidated notification logic (Section 5) once locally verified.

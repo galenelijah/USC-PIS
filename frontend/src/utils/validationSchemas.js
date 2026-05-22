@@ -295,7 +295,6 @@ export const dentalRecordSchema = yup.object().shape({
       otherwise: (schema) => schema.notRequired(),
     }),
   materials_used: commonValidation.optionalText,
-  priority: commonValidation.requiredSelect('Priority', ['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
   cost: commonValidation.positiveNumber('Cost'),
   insurance_covered: yup
     .boolean()

@@ -91,7 +91,6 @@ const Dental = () => {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [procedureFilter, setProcedureFilter] = useState('');
-  const [priorityFilter, setPriorityFilter] = useState('');
   const [tabValue, setTabValue] = useState(0);
   const [globalTabValue, setGlobalTabValue] = useState(0);
   const [error, setError] = useState(null);
@@ -128,7 +127,6 @@ const Dental = () => {
     materials_used: '',
     next_appointment_recommended: null,
     home_care_instructions: '',
-    priority: 'LOW',
     cost: null,
     insurance_covered: false
   });
@@ -241,7 +239,6 @@ const Dental = () => {
         materials_used: '',
         next_appointment_recommended: null,
         home_care_instructions: '',
-        priority: 'LOW',
         cost: null,
         insurance_covered: false
       });
@@ -373,26 +370,6 @@ const Dental = () => {
     }
   };
 
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'URGENT': return '#f44336';
-      case 'HIGH': return '#ff9800';
-      case 'MEDIUM': return '#2196f3';
-      case 'LOW': return '#4caf50';
-      default: return '#757575';
-    }
-  };
-
-  const getPriorityLabel = (priority) => {
-    switch (priority) {
-      case 'URGENT': return 'Urgent';
-      case 'HIGH': return 'High';
-      case 'MEDIUM': return 'Medium';
-      case 'LOW': return 'Low';
-      default: return priority;
-    }
-  };
-
   // Filter records based on search and filters
   const filteredRecords = dentalRecords.filter(record => {
     const searchMatch = 
@@ -411,18 +388,15 @@ const Dental = () => {
     }
     
     const procedureMatch = procedureFilter ? record.procedure_performed === procedureFilter : true;
-    const priorityMatch = priorityFilter ? record.priority === priorityFilter : true;
-    
-    return searchMatch && dateMatch && procedureMatch && priorityMatch;
-  });
+    return (searchTermMatch || patientMatch || idMatch) && procedureMatch && dateMatch;
+    });
 
-  const clearFilters = () => {
+    const clearFilters = () => {
     setSearchTerm('');
     setStartDate(null);
     setEndDate(null);
     setProcedureFilter('');
-    setPriorityFilter('');
-  };
+    };
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -453,7 +427,6 @@ const Dental = () => {
       'Diagnosis': record.diagnosis || 'N/A',
       'Treatment': record.treatment_performed || 'N/A',
       'Referral To': record.referral_to || 'N/A',
-      'Priority': getPriorityLabel(record.priority),
       'Pain Level': record.pain_level || 'N/A',
       'Cost': formatCurrency(record.cost),
       'Insurance Covered': record.insurance_covered ? 'Yes' : 'No',
@@ -507,7 +480,6 @@ const Dental = () => {
         'Tooth/Area': record.tooth_numbers || '',
         'Clinical Diagnosis': record.diagnosis || '',
         'Treatment Performed': record.treatment_performed || '',
-        'Priority Level': getPriorityLabel(record.priority),
         'Pain Assessment (1-10)': record.pain_level || '',
         'Total Cost (₱)': record.cost || 0,
         'Insurance Coverage': record.insurance_covered ? 'Covered' : 'Not Covered',
@@ -575,10 +547,6 @@ const Dental = () => {
             .field { margin-bottom: 8px; }
             .field-label { font-weight: bold; color: #333; }
             .field-value { color: #666; }
-            .priority-urgent { color: #f44336; font-weight: bold; }
-            .priority-high { color: #ff9800; font-weight: bold; }
-            .priority-medium { color: #2196f3; }
-            .priority-low { color: #4caf50; }
             .footer { text-align: center; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px; color: #666; }
             @media print { body { margin: 0; } .no-print { display: none; } }
           </style>
@@ -603,8 +571,7 @@ const Dental = () => {
                     ? `Until ${dayjs(endDate).format('MMM DD, YYYY')}`
                     : 'All dates'
             }</p>
-            <p><strong>Procedure Filter:</strong> ${procedureFilter || 'All procedures'}</p>
-            <p><strong>Priority Filter:</strong> ${priorityFilter ? getPriorityLabel(priorityFilter) : 'All priorities'}</p>
+            <p><strong>Procedure Filter:</strong> ${procedureFilter ? procedureFilter : 'All procedures'}</p>
             <p><strong>Search Term:</strong> ${searchTerm || 'None'}</p>
           </div>
           
@@ -613,8 +580,7 @@ const Dental = () => {
               <div class="record-header">
                 <div class="record-title">${record.patient_name || 'Unknown Patient'}</div>
                 <div class="record-meta">
-                  Record #${record.id} | Visit: ${formatDate(record.visit_date)} | 
-                  Priority: <span class="priority-${(record.priority || 'low').toLowerCase()}">${getPriorityLabel(record.priority)}</span>
+                  Record #${record.id} | Visit: ${formatDate(record.visit_date)}
                 </div>
               </div>
               <div class="record-body">
@@ -802,7 +768,7 @@ const Dental = () => {
                 />
               </Box>
             </Grid>
-            <Grid item xs={12} md={2}>
+            <Grid item xs={12} md={3}>
               <FormControl fullWidth size="small">
                 <InputLabel>Procedure</InputLabel>
                 <Select
@@ -816,22 +782,6 @@ const Dental = () => {
                       {proc.label}
                     </MenuItem>
                   ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={1}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Priority</InputLabel>
-                <Select
-                  value={priorityFilter}
-                  label="Priority"
-                  onChange={(e) => setPriorityFilter(e.target.value)}
-                >
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value="LOW">Low</MenuItem>
-                  <MenuItem value="MEDIUM">Med</MenuItem>
-                  <MenuItem value="HIGH">High</MenuItem>
-                  <MenuItem value="URGENT">Urgent</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -860,15 +810,6 @@ const Dental = () => {
                       <Typography variant="h6" component="div">
                         {record.patient_name}
                       </Typography>
-                      <Chip
-                        label={getPriorityLabel(record.priority)}
-                        size="small"
-                        sx={{
-                          bgcolor: getPriorityColor(record.priority),
-                          color: 'white',
-                          fontWeight: 'bold'
-                        }}
-                      />
                     </Box>
                     
                     <Typography color="text.secondary" gutterBottom>
@@ -1173,7 +1114,7 @@ const Dental = () => {
                         </Select>
                       </FormControl>
                     </Grid>
-                    <Grid item xs={12} sm={6}>
+                    <Grid item xs={12}>
                       <TextField
                         fullWidth
                         label="Pain Level (1-10)"
@@ -1182,21 +1123,6 @@ const Dental = () => {
                         onChange={(e) => handleInputChange('pain_level', e.target.value ? parseInt(e.target.value) : null)}
                         inputProps={{ min: 1, max: 10 }}
                       />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth>
-                        <InputLabel>Priority</InputLabel>
-                        <Select
-                          value={formData.priority}
-                          label="Priority"
-                          onChange={(e) => handleInputChange('priority', e.target.value)}
-                        >
-                          <MenuItem value="LOW">Low</MenuItem>
-                          <MenuItem value="MEDIUM">Medium</MenuItem>
-                          <MenuItem value="HIGH">High</MenuItem>
-                          <MenuItem value="URGENT">Urgent</MenuItem>
-                        </Select>
-                      </FormControl>
                     </Grid>
                     <Grid item xs={12}>
                       <TextField
@@ -1442,19 +1368,6 @@ const Dental = () => {
                       </Box>
                     </Grid>
                   )}
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Priority
-                    </Typography>
-                    <Chip
-                      label={getPriorityLabel(selectedRecord.priority)}
-                      size="small"
-                      sx={{
-                        bgcolor: getPriorityColor(selectedRecord.priority),
-                        color: 'white',
-                      }}
-                    />
-                  </Grid>
                   {selectedRecord.cost && (
                     <Grid item xs={12} sm={6}>
                       <Typography variant="subtitle2" color="text.secondary">

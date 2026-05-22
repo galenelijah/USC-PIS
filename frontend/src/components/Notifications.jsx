@@ -84,7 +84,6 @@ const Notifications = () => {
     const [menuAnchor, setMenuAnchor] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState('');
-    const [priorityFilter, setPriorityFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [currentUser, setCurrentUser] = useState(null);
     
@@ -126,7 +125,7 @@ const Notifications = () => {
         if (isMountedRef.current) {
             loadNotifications();
         }
-    }, [searchTerm, typeFilter, priorityFilter, statusFilter]);
+    }, [searchTerm, typeFilter, statusFilter]);
 
     useEffect(() => {
         if (isMountedRef.current) {
@@ -172,7 +171,6 @@ const Notifications = () => {
             const response = await notificationService.getNotifications({
                 search: searchTerm,
                 notification_type: typeFilter,
-                priority: priorityFilter,
                 status: statusFilter
             });
             setNotifications(response.data.results || response.data);
@@ -312,16 +310,6 @@ const Notifications = () => {
         }
     };
 
-    const getPriorityColor = (priority) => {
-        switch (priority) {
-            case 'URGENT': return 'error';
-            case 'HIGH': return 'warning';
-            case 'MEDIUM': return 'primary';
-            case 'LOW': return 'success';
-            default: return 'default';
-        }
-    };
-
     const getStatusColor = (status) => {
         switch (status?.toUpperCase()) {
             case 'READ': return 'success';
@@ -362,10 +350,9 @@ const Notifications = () => {
             const matchesSearch = notification.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                                 notification.message?.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesType = !typeFilter || notification.notification_type === typeFilter;
-            const matchesPriority = !priorityFilter || notification.priority === priorityFilter;
             const matchesStatus = !statusFilter || notification.status === statusFilter;
             
-            return matchesSearch && matchesType && matchesPriority && matchesStatus;
+            return matchesSearch && matchesType && matchesStatus;
         } catch (error) {
             console.error('Filter error:', error);
             return false;
@@ -476,7 +463,7 @@ const Notifications = () => {
                 <Grid item xs={12}>
                     <Paper sx={{ p: 2 }}>
                         <Grid container spacing={2} alignItems="center">
-                            <Grid item xs={12} sm={6} md={3}>
+                            <Grid item xs={12} sm={6} md={4}>
                                 <TextField
                                     fullWidth
                                     size="small"
@@ -488,7 +475,7 @@ const Notifications = () => {
                                     }}
                                 />
                             </Grid>
-                            <Grid item xs={12} sm={6} md={3}>
+                            <Grid item xs={12} sm={6} md={4}>
                                 <FormControl fullWidth size="small">
                                     <InputLabel>Type</InputLabel>
                                     <Select
@@ -505,24 +492,7 @@ const Notifications = () => {
                                     </Select>
                                 </FormControl>
                             </Grid>
-                            <Grid item xs={12} sm={6} md={3}>
-                                <FormControl fullWidth size="small">
-                                    <InputLabel>Priority</InputLabel>
-                                    <Select
-                                        value={priorityFilter}
-                                        label="Priority"
-                                        onChange={(e) => setPriorityFilter(e.target.value)}
-                                    >
-                                        <MenuItem value="">All Priorities</MenuItem>
-                                        {priorities.map(priority => (
-                                            <MenuItem key={priority.value} value={priority.value}>
-                                                {priority.label}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={3}>
+                            <Grid item xs={12} sm={6} md={4}>
                                 <FormControl fullWidth size="small">
                                     <InputLabel>Status</InputLabel>
                                     <Select
@@ -564,7 +534,7 @@ const Notifications = () => {
                                             No notifications found
                                         </Typography>
                                         <Typography color="textSecondary">
-                                            {searchTerm || typeFilter || priorityFilter || statusFilter
+                                            {searchTerm || typeFilter || statusFilter
                                                 ? 'Try adjusting your filters'
                                                 : 'You have no notifications yet'}
                                         </Typography>
@@ -592,11 +562,6 @@ const Notifications = () => {
                                                                 >
                                                                     {notification.title}
                                                                 </Typography>
-                                                                <Chip
-                                                                    size="small"
-                                                                    label={notification.priority_display}
-                                                                    color={getPriorityColor(notification.priority)}
-                                                                />
                                                                 <Chip
                                                                     size="small"
                                                                     label={notification.status_display}
@@ -660,11 +625,6 @@ const Notifications = () => {
                                                                 <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
                                                                     {notification.title}
                                                                 </Typography>
-                                                                <Chip
-                                                                    size="small"
-                                                                    label={notification.priority_display}
-                                                                    color={getPriorityColor(notification.priority)}
-                                                                />
                                                             </Box>
                                                         }
                                                         secondary={
@@ -714,11 +674,6 @@ const Notifications = () => {
                             <Box display="flex" alignItems="center" gap={1}>
                                 {getNotificationIcon(selectedNotification.notification_type)}
                                 <Typography variant="h6">{selectedNotification.title}</Typography>
-                                <Chip
-                                    size="small"
-                                    label={selectedNotification.priority_display}
-                                    color={getPriorityColor(selectedNotification.priority)}
-                                />
                                 <Chip
                                     size="small"
                                     label={selectedNotification.status_display}

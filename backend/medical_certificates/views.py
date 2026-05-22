@@ -141,15 +141,6 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
             extra_data['status'] = status_to_set
 
         serializer.save(**extra_data)
-        
-        # Send email notification for certificate creation
-        try:
-            certificate = serializer.instance
-            EmailService.send_medical_certificate_notification(certificate, 'created')
-        except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Failed to send certificate creation email: {e}")
 
     def _get_certificate_context(self, certificate):
         """Consolidated context builder for certificate rendering."""
@@ -244,14 +235,6 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
         certificate.approved_at = timezone.now()
         certificate.save()
         
-        # Send approval email notification
-        try:
-            EmailService.send_medical_certificate_notification(certificate, 'approved')
-        except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Failed to send certificate approval email: {e}")
-        
         serializer = self.get_serializer(certificate)
         return Response(serializer.data)
 
@@ -276,14 +259,6 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
         certificate.approved_by = request.user
         certificate.approved_at = timezone.now()
         certificate.save()
-        
-        # Send rejection email notification
-        try:
-            EmailService.send_medical_certificate_notification(certificate, 'rejected')
-        except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Failed to send certificate rejection email: {e}")
         
         serializer = self.get_serializer(certificate)
         return Response(serializer.data)

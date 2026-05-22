@@ -100,7 +100,6 @@ const MedicalRecordsPage = () => {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [procedureFilter, setProcedureFilter] = useState('');
-  const [priorityFilter, setPriorityFilter] = useState('');
   
   const user = useSelector(state => state.auth.user);
   const isStaffOrMedical = user?.role && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
@@ -117,7 +116,7 @@ const MedicalRecordsPage = () => {
 
   useEffect(() => {
     filterRecords();
-  }, [searchTerm, medicalRecords, selectedPatient, startDate, endDate, priorityFilter]);
+  }, [searchTerm, medicalRecords, selectedPatient, startDate, endDate]);
 
   const fetchMedicalRecords = async () => {
     setLoading(true);
@@ -222,16 +221,6 @@ const MedicalRecordsPage = () => {
     }
   };
 
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'URGENT': return '#f44336';
-      case 'HIGH': return '#ff9800';
-      case 'MEDIUM': return '#2196f3';
-      case 'LOW': return '#4caf50';
-      default: return '#757575';
-    }
-  };
-
   const formatCurrency = (amount) => {
     if (!amount) return 'N/A';
     return `₱${parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
@@ -243,7 +232,6 @@ const MedicalRecordsPage = () => {
     setStartDate(null);
     setEndDate(null);
     setProcedureFilter('');
-    setPriorityFilter('');
   };
 
   // Enhanced export functions with multiple formats and comprehensive data
@@ -478,10 +466,6 @@ const MedicalRecordsPage = () => {
                         <div class="field">
                           <span class="field-label">Tooth Number:</span>
                           <span class="field-value">${record.tooth_number || 'N/A'}</span>
-                        </div>
-                        <div class="field">
-                          <span class="field-label">Priority:</span>
-                          <span class="field-value">${record.priority || 'N/A'}</span>
                         </div>
                         <div class="field">
                           <span class="field-label">Pain Level:</span>
@@ -791,28 +775,7 @@ const MedicalRecordsPage = () => {
               />
             </Grid>
 
-            {tabValue === 1 && (
-              <>
-                <Grid item xs={12} md={2}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Priority</InputLabel>
-                    <Select
-                      value={priorityFilter}
-                      label="Priority"
-                      onChange={(e) => setPriorityFilter(e.target.value)}
-                    >
-                      <MenuItem value="">All Priorities</MenuItem>
-                      <MenuItem value="LOW">Low</MenuItem>
-                      <MenuItem value="MEDIUM">Medium</MenuItem>
-                      <MenuItem value="HIGH">High</MenuItem>
-                      <MenuItem value="URGENT">Urgent</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-              </>
-            )}
-            
-            <Grid item xs={12} md={tabValue === 1 ? 1 : 3}>
+            <Grid item xs={12} md={3}>
               <Stack direction="row" spacing={1}>
                 <Button
                   variant="outlined"

@@ -123,7 +123,6 @@ const UniversalCampaigns = () => {
     title: '',
     description: '',
     campaign_type: 'GENERAL',
-    priority: 'MEDIUM',
     content: '',
     summary: '',
     objectives: '',
@@ -411,7 +410,6 @@ const UniversalCampaigns = () => {
       title: '',
       description: '',
       campaign_type: 'GENERAL',
-      priority: 'MEDIUM',
       content: '',
       summary: '',
       objectives: '',
@@ -421,7 +419,6 @@ const UniversalCampaigns = () => {
       start_date: '',
       end_date: '',
       bannerFile: null,
-
       thumbnailFile: null,
       pubmatFile: null
     });
@@ -633,9 +630,6 @@ const UniversalCampaigns = () => {
                         fontWeight: 'bold'
                       }}
                     />
-                    {campaign.priority === 'HIGH' && (
-                      <Chip size="small" label="Priority" color="error" />
-                    )}
                   </Box>
                 </Box>
               </Box>
@@ -750,9 +744,6 @@ const UniversalCampaigns = () => {
                         color: 'white'
                       }}
                     />
-                    {selectedCampaign.priority === 'HIGH' && (
-                      <Chip size="small" label="High Priority" color="error" />
-                    )}
                   </Box>
                 </Box>
                 <IconButton onClick={() => setDialogOpen(false)}>
@@ -1043,7 +1034,7 @@ const UniversalCampaigns = () => {
                 />
               </Grid>
               
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12}>
                 <FormControl fullWidth error={!!fieldErrors.campaign_type}>
                   <InputLabel>Campaign Type</InputLabel>
                   <Select
@@ -1059,21 +1050,6 @@ const UniversalCampaigns = () => {
                     <MenuItem value="GENERAL">General Health</MenuItem>
                   </Select>
                   <FormHelperText>{fieldErrors.campaign_type || 'Required: Select a campaign type'}</FormHelperText>
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Priority</InputLabel>
-                  <Select
-                    value={campaignForm.priority}
-                    onChange={(e) => setCampaignForm({ ...campaignForm, priority: e.target.value })}
-                    label="Priority"
-                  >
-                    <MenuItem value="LOW">Low</MenuItem>
-                    <MenuItem value="MEDIUM">Medium</MenuItem>
-                    <MenuItem value="HIGH">High</MenuItem>
-                  </Select>
                 </FormControl>
               </Grid>
 
