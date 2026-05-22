@@ -100,79 +100,81 @@ def medical_certificate_notification(sender, instance, created, **kwargs):
                 metadata={'certificate_id': instance.id},
                 patient=instance.patient
             )
-    else:
-        # Check if approval status changed
-        if instance.approval_status == 'approved' and instance.approved_by:
-            # Notify patient when certificate is approved (Both In-App and Email)
-            if instance.patient.user:
-                from notifications.models import Notification
-                exists = Notification.objects.filter(
+            
+    # Handle specific status notifications (for both creation and updates)
+    # Check if approval status is approved
+    if instance.approval_status == 'approved' and instance.approved_by:
+        # Notify patient when certificate is approved (In-App only, view handles Email)
+        if instance.patient.user:
+            from notifications.models import Notification
+            exists = Notification.objects.filter(
+                recipient=instance.patient.user,
+                title="Medical Certificate Approved",
+                metadata__certificate_id=instance.id
+            ).exists()
+            
+            if not exists:
+                fitness_info = f"Status: {instance.get_fitness_status_display()}"
+                if instance.fitness_reason:
+                    fitness_info += f" - {instance.fitness_reason}"
+                
+                NotificationService.create_notification(
                     recipient=instance.patient.user,
                     title="Medical Certificate Approved",
-                    metadata__certificate_id=instance.id
-                ).exists()
-                
-                if not exists:
-                    fitness_info = f"Status: {instance.get_fitness_status_display()}"
-                    if instance.fitness_reason:
-                        fitness_info += f" - {instance.fitness_reason}"
-                    
-                    NotificationService.create_notification(
-                        recipient=instance.patient.user,
-                        title="Medical Certificate Approved",
-                        message=f"Your medical certificate has been approved by {instance.approved_by.get_full_name()}. {fitness_info}. You can now download it.",
-                        notification_type="MEDICAL_CERTIFICATE",
-                        delivery_method='IN_APP',
-                        metadata={'certificate_id': instance.id},
-                        action_url='/health-insights',
-                        action_text='View Certificate',
-                        patient=instance.patient
-                    )
-        elif instance.approval_status == 'rejected' and instance.approved_by:
-            # Notify patient when certificate is rejected (In-App only, view handles Email)
-            if instance.patient.user:
-                from notifications.models import Notification
-                exists = Notification.objects.filter(
+                    message=f"Your medical certificate has been approved by {instance.approved_by.get_full_name()}. {fitness_info}. You can now download it.",
+                    notification_type="MEDICAL_CERTIFICATE",
+                    delivery_method='IN_APP',
+                    metadata={'certificate_id': instance.id},
+                    action_url='/health-insights',
+                    action_text='View Certificate',
+                    patient=instance.patient
+                )
+    elif instance.approval_status == 'rejected' and instance.approved_by:
+        # Notify patient when certificate is rejected (In-App only, view handles Email)
+        if instance.patient.user:
+            from notifications.models import Notification
+            exists = Notification.objects.filter(
+                recipient=instance.patient.user,
+                title="Medical Certificate Rejected",
+                metadata__certificate_id=instance.id
+            ).exists()
+            
+            if not exists:
+                NotificationService.create_notification(
                     recipient=instance.patient.user,
                     title="Medical Certificate Rejected",
-                    metadata__certificate_id=instance.id
-                ).exists()
+                    message=f"Your medical certificate has been rejected by {instance.approved_by.get_full_name()}. Please contact the clinic for more information.",
+                    notification_type="MEDICAL_CERTIFICATE",
+                    delivery_method='IN_APP',
+                    metadata={'certificate_id': instance.id},
+                    patient=instance.patient
+                )
+    elif instance.approval_status == 'pending':
+        # Notify doctors when certificate is pending approval (In-App only, view handles Email)
+        # This triggers on creation (if status is pending) and on status change to pending
+        doctors = User.objects.filter(role__in=['DOCTOR', 'ADMIN']).exclude(id=instance.issued_by_id)
+        for doctor in doctors:
+            from notifications.models import Notification
+            exists = Notification.objects.filter(
+                recipient=doctor,
+                title="Medical Certificate Pending Approval",
+                metadata__certificate_id=instance.id,
+                status__in=['PENDING', 'DELIVERED', 'SENT']
+            ).exists()
+            
+            if not exists:
+                fitness_info = f"Fitness Status: {instance.get_fitness_status_display()}"
+                if instance.fitness_reason:
+                    fitness_info += f" - {instance.fitness_reason}"
                 
-                if not exists:
-                    NotificationService.create_notification(
-                        recipient=instance.patient.user,
-                        title="Medical Certificate Rejected",
-                        message=f"Your medical certificate has been rejected by {instance.approved_by.get_full_name()}. Please contact the clinic for more information.",
-                        notification_type="MEDICAL_CERTIFICATE",
-                        delivery_method='IN_APP',
-                        metadata={'certificate_id': instance.id},
-                        patient=instance.patient
-                    )
-        elif instance.approval_status == 'pending':
-            # Notify doctors when certificate is submitted for approval (In-App only, view handles Email)
-            doctors = User.objects.filter(role__in=['DOCTOR', 'ADMIN']).exclude(id=instance.issued_by_id)
-            for doctor in doctors:
-                from notifications.models import Notification
-                exists = Notification.objects.filter(
+                NotificationService.create_notification(
                     recipient=doctor,
                     title="Medical Certificate Pending Approval",
-                    metadata__certificate_id=instance.id,
-                    status__in=['PENDING', 'DELIVERED', 'SENT']
-                ).exists()
-                
-                if not exists:
-                    fitness_info = f"Fitness Status: {instance.get_fitness_status_display()}"
-                    if instance.fitness_reason:
-                        fitness_info += f" - {instance.fitness_reason}"
-                    
-                    NotificationService.create_notification(
-                        recipient=doctor,
-                        title="Medical Certificate Pending Approval",
-                        message=f"A medical certificate for {instance.patient.get_full_name()} is pending your approval. {fitness_info}",
-                        notification_type="MEDICAL_CERTIFICATE",
-                        delivery_method='IN_APP',
-                        metadata={'certificate_id': instance.id},
-                        action_url='/medical-certificates',
-                        action_text='Review Certificate',
-                        patient=instance.patient
-                    )
+                    message=f"A medical certificate for {instance.patient.get_full_name()} is pending your approval. {fitness_info}",
+                    notification_type="MEDICAL_CERTIFICATE",
+                    delivery_method='IN_APP',
+                    metadata={'certificate_id': instance.id},
+                    action_url='/medical-certificates',
+                    action_text='Review Certificate',
+                    patient=instance.patient
+                )
