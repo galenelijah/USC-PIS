@@ -215,7 +215,8 @@ const Reports = () => {
       resetForm();
       fetchData();
     } catch (err) {
-      setError('Failed to generate report');
+      const errorMessage = err.response?.data?.error || err.response?.data?.detail || 'Failed to generate report';
+      setError(errorMessage);
       console.error('Error generating report:', err);
     }
   };

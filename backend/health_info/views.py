@@ -269,7 +269,7 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=True, methods=['get'], permission_classes=[permissions.AllowAny])
     def banner(self, request, pk=None):
         """Securely proxy the campaign banner"""
         campaign = self.get_object()
@@ -277,7 +277,7 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'Banner not found'}, status=status.HTTP_404_NOT_FOUND)
         return FileProxyService.proxy_file(campaign.banner_image)
 
-    @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=True, methods=['get'], permission_classes=[permissions.AllowAny])
     def thumbnail(self, request, pk=None):
         """Securely proxy the campaign thumbnail"""
         campaign = self.get_object()
@@ -285,7 +285,7 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'Thumbnail not found'}, status=status.HTTP_404_NOT_FOUND)
         return FileProxyService.proxy_file(campaign.thumbnail_image)
 
-    @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=True, methods=['get'], permission_classes=[permissions.AllowAny])
     def pubmat(self, request, pk=None):
         """Securely proxy the campaign PubMat"""
         campaign = self.get_object()
@@ -375,7 +375,7 @@ class HealthInformationImageViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for viewing health information images with secure proxying"""
     queryset = HealthInformationImage.objects.all()
     serializer_class = HealthInformationImageSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     @action(detail=True, methods=['get'])
     def view(self, request, pk=None):
