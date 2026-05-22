@@ -184,8 +184,6 @@ const EmailAdministration = () => {
       fetchEmailData();
       fetchConfigs();
     } else if (activeTab === 1) {
-      fetchNotifications();
-    } else if (activeTab === 2) {
       fetchLogs();
     }
   }, [activeTab]);
@@ -639,8 +637,7 @@ const EmailAdministration = () => {
             startIcon={<RefreshIcon />} 
             onClick={() => {
               if (activeTab === 0) { fetchEmailData(); fetchConfigs(); }
-              else if (activeTab === 1) fetchNotifications();
-              else if (activeTab === 2) fetchLogs();
+              else if (activeTab === 1) fetchLogs();
             }}
             disabled={loading || configLoading || staffLoading}
           >
@@ -655,7 +652,6 @@ const EmailAdministration = () => {
         sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
       >
         <Tab icon={<SettingsIcon />} iconPosition="start" label="Routing & Status" />
-        <Tab icon={<NotificationsIcon />} iconPosition="start" label="Sent Notifications" />
         <Tab icon={<HistoryIcon />} iconPosition="start" label="System Logs" />
       </Tabs>
 
@@ -816,108 +812,87 @@ const EmailAdministration = () => {
 
       {activeTab === 1 && (
         <Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
             <Typography variant="h6" fontWeight="bold">
-              Sent Notifications History
+              System Activity Logs
             </Typography>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <InfoTooltip title="History of all individual notifications sent by the system." />
-            </Box>
+            <InfoTooltip title="Technical audit logs for every stage of the notification lifecycle (Creation, Email Dispatch, and In-App Delivery)." />
           </Box>
-
-          <Alert severity="info" sx={{ mb: 3 }}>
-            <Typography variant="subtitle2" fontWeight="bold">System Notification Capabilities:</Typography>
-            <Typography variant="body2">
-              The system currently supports the following clinical and administrative notification types:
-              <strong> Health Campaign, Medical Certificate (Approved/Rejected), Patient Feedback, Clinic Update, Dental Reminder, and System Health Alert.</strong>
-            </Typography>
-          </Alert>
           <TableContainer component={Paper} variant="outlined">
             <Table size="small">
               <TableHead sx={{ bgcolor: 'grey.50' }}>
                 <TableRow>
-                  <TableCell>Sent At</TableCell>
-                  <TableCell>Recipient</TableCell>
-                  <TableCell>Subject</TableCell>
-                  <TableCell>Type</TableCell>
-                  <TableCell>Status</TableCell>
+                  <TableCell>Timestamp</TableCell>
+                  <TableCell>Action</TableCell>
                   <TableCell>Method</TableCell>
+                  <TableCell>Recipient / Subject</TableCell>
+                  <TableCell>Internal Metadata</TableCell>
+                  <TableCell>Error / Result</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow><TableCell colSpan={6} align="center"><LinearProgress sx={{ my: 3 }} /></TableCell></TableRow>
-                ) : notifications.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} align="center" sx={{ py: 5 }}>No notifications found</TableCell></TableRow>
-                ) : notifications.map((notif) => (
-                  <TableRow key={notif.id} hover>
-                    <TableCell>{new Date(notif.created_at).toLocaleString()}</TableCell>
-                    <TableCell>
-                      <Typography variant="body2">{notif.recipient_email}</Typography>
-                      <Typography variant="caption" color="text.secondary">{notif.recipient_name}</Typography>
-                    </TableCell>
-                    <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {notif.title}
-                    </TableCell>
-                    <TableCell>
-                      <Chip label={notif.notification_type_display} size="small" variant="outlined" />
-                    </TableCell>
-                    <TableCell>
-                      {renderStatusChip(notif)}
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="caption">{notif.delivery_method}</Typography>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Box>
-      )}
-
-      {activeTab === 2 && (
-        <Box>
-          <Typography variant="h6" fontWeight="bold" gutterBottom>
-            System Activity Logs
-          </Typography>
-          <TableContainer component={Paper} variant="outlined">
-            <Table>
-              <TableHead sx={{ bgcolor: 'grey.50' }}>
-                <TableRow>
-                  <TableCell>Timestamp</TableCell>
-                  <TableCell>Action</TableCell>
-                  <TableCell>Recipient/Details</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Error</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {loading ? (
-                  <TableRow><TableCell colSpan={5} align="center"><LinearProgress sx={{ my: 3 }} /></TableCell></TableRow>
                 ) : logs.length === 0 ? (
-                  <TableRow><TableCell colSpan={5} align="center" sx={{ py: 5 }}>No activity logs found</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} align="center" sx={{ py: 5 }}>No activity logs found</TableCell></TableRow>
                 ) : logs.map((log) => (
                   <TableRow key={log.id} hover>
-                    <TableCell>{new Date(log.timestamp).toLocaleString()}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                      {new Date(log.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                    </TableCell>
                     <TableCell>
                       <Chip 
                         label={log.action_display} 
                         size="small" 
-                        color={log.action === 'FAILED' ? 'error' : log.action === 'SENT' ? 'success' : 'default'} 
+                        color={
+                          log.action === 'FAILED' ? 'error' : 
+                          log.action === 'SENT' ? 'success' : 
+                          log.action === 'DELIVERED' ? 'info' : 'default'
+                        } 
                       />
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2">{log.details}</Typography>
-                      {log.email_message_id && (
-                        <Typography variant="caption" color="text.disabled">ID: {log.email_message_id}</Typography>
-                      )}
+                      <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+                        {log.metadata?.delivery_method || (log.email_message_id ? 'EMAIL' : 'SYSTEM')}
+                      </Typography>
                     </TableCell>
                     <TableCell>
-                      {log.metadata?.status || 'N/A'}
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {log.notification?.recipient_email || 'System'}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {log.notification?.title || log.details}
+                      </Typography>
                     </TableCell>
-                    <TableCell color="error.main">
-                      {log.error_message || '-'}
+                    <TableCell>
+                      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                        {log.email_message_id && (
+                          <Typography variant="caption" color="primary" sx={{ fontFamily: 'monospace', fontSize: '0.65rem' }}>
+                            MID: {log.email_message_id.substring(0, 20)}...
+                          </Typography>
+                        )}
+                        {log.metadata?.status && (
+                          <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>
+                            Status: {log.metadata.status}
+                          </Typography>
+                        )}
+                        {log.metadata?.retry_count > 0 && (
+                          <Typography variant="caption" color="warning.main" sx={{ fontSize: '0.65rem' }}>
+                            Retry: #{log.metadata.retry_count}
+                          </Typography>
+                        )}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      {log.error_message ? (
+                        <Tooltip title={log.error_message}>
+                          <Typography variant="caption" color="error.main" sx={{ display: 'block', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {log.error_message}
+                          </Typography>
+                        </Tooltip>
+                      ) : (
+                        <Typography variant="caption" color="success.main">Success</Typography>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
