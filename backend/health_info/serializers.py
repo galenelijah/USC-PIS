@@ -13,8 +13,9 @@ class HealthInformationImageSerializer(serializers.ModelSerializer):
         if obj.image:
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.image.url)
-            return obj.image.url
+                # Return local proxy URL instead of Cloudinary URL
+                return request.build_absolute_uri(f"/api/health-info/images/{obj.id}/view/")
+            return f"/api/health-info/images/{obj.id}/view/"
         return None
 
 class HealthInformationSerializer(serializers.ModelSerializer):
@@ -40,8 +41,8 @@ class CampaignResourceSerializer(serializers.ModelSerializer):
         if obj.file:
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.file.url)
-            return obj.file.url
+                return request.build_absolute_uri(f"/api/health-info/campaign-resources/{obj.id}/download/")
+            return f"/api/health-info/campaign-resources/{obj.id}/download/"
         return None
     
     def get_file_size_formatted(self, obj):
@@ -77,32 +78,18 @@ class HealthCampaignListSerializer(serializers.ModelSerializer):
     
     def get_banner_image_url(self, obj):
         if obj.banner_image:
-            try:
-                request = self.context.get('request')
-                if request:
-                    return request.build_absolute_uri(obj.banner_image.url)
-                return obj.banner_image.url
-            except Exception as e:
-                # Handle Cloudinary configuration errors gracefully
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.warning(f"Error accessing banner_image URL for campaign {obj.id}: {str(e)}")
-                return None
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(f"/api/health-info/campaigns/{obj.id}/banner/")
+            return f"/api/health-info/campaigns/{obj.id}/banner/"
         return None
     
     def get_thumbnail_image_url(self, obj):
         if obj.thumbnail_image:
-            try:
-                request = self.context.get('request')
-                if request:
-                    return request.build_absolute_uri(obj.thumbnail_image.url)
-                return obj.thumbnail_image.url
-            except Exception as e:
-                # Handle Cloudinary configuration errors gracefully
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.warning(f"Error accessing thumbnail_image URL for campaign {obj.id}: {str(e)}")
-                return None
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(f"/api/health-info/campaigns/{obj.id}/thumbnail/")
+            return f"/api/health-info/campaigns/{obj.id}/thumbnail/"
         return None
     
     def get_images(self, obj):
@@ -112,45 +99,33 @@ class HealthCampaignListSerializer(serializers.ModelSerializer):
         
         # Add banner image if it exists
         if obj.banner_image:
-            try:
-                url = request.build_absolute_uri(obj.banner_image.url) if request else obj.banner_image.url
-                images.append({
-                    'id': f'banner_{obj.id}',
-                    'url': url,
-                    'type': 'banner',
-                    'caption': 'Campaign Banner'
-                })
-            except Exception:
-                # Skip images with Cloudinary errors
-                pass
+            url = request.build_absolute_uri(f"/api/health-info/campaigns/{obj.id}/banner/") if request else f"/api/health-info/campaigns/{obj.id}/banner/"
+            images.append({
+                'id': f'banner_{obj.id}',
+                'url': url,
+                'type': 'banner',
+                'caption': 'Campaign Banner'
+            })
         
         # Add thumbnail image if it exists
         if obj.thumbnail_image:
-            try:
-                url = request.build_absolute_uri(obj.thumbnail_image.url) if request else obj.thumbnail_image.url
-                images.append({
-                    'id': f'thumbnail_{obj.id}',
-                    'url': url,
-                    'type': 'thumbnail',
-                    'caption': 'Campaign Thumbnail'
-                })
-            except Exception:
-                # Skip images with Cloudinary errors
-                pass
+            url = request.build_absolute_uri(f"/api/health-info/campaigns/{obj.id}/thumbnail/") if request else f"/api/health-info/campaigns/{obj.id}/thumbnail/"
+            images.append({
+                'id': f'thumbnail_{obj.id}',
+                'url': url,
+                'type': 'thumbnail',
+                'caption': 'Campaign Thumbnail'
+            })
         
         # Add pubmat image if it exists
         if obj.pubmat_image:
-            try:
-                url = request.build_absolute_uri(obj.pubmat_image.url) if request else obj.pubmat_image.url
-                images.append({
-                    'id': f'pubmat_{obj.id}',
-                    'url': url,
-                    'type': 'pubmat',
-                    'caption': 'Campaign PubMat'
-                })
-            except Exception:
-                # Skip images with Cloudinary errors
-                pass
+            url = request.build_absolute_uri(f"/api/health-info/campaigns/{obj.id}/pubmat/") if request else f"/api/health-info/campaigns/{obj.id}/pubmat/"
+            images.append({
+                'id': f'pubmat_{obj.id}',
+                'url': url,
+                'type': 'pubmat',
+                'caption': 'Campaign PubMat'
+            })
         
         return images
     
@@ -196,44 +171,26 @@ class HealthCampaignDetailSerializer(serializers.ModelSerializer):
     
     def get_banner_image_url(self, obj):
         if obj.banner_image:
-            try:
-                request = self.context.get('request')
-                if request:
-                    return request.build_absolute_uri(obj.banner_image.url)
-                return obj.banner_image.url
-            except Exception as e:
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.warning(f"Error accessing banner_image URL for campaign {obj.id}: {str(e)}")
-                return None
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(f"/api/health-info/campaigns/{obj.id}/banner/")
+            return f"/api/health-info/campaigns/{obj.id}/banner/"
         return None
     
     def get_thumbnail_image_url(self, obj):
         if obj.thumbnail_image:
-            try:
-                request = self.context.get('request')
-                if request:
-                    return request.build_absolute_uri(obj.thumbnail_image.url)
-                return obj.thumbnail_image.url
-            except Exception as e:
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.warning(f"Error accessing thumbnail_image URL for campaign {obj.id}: {str(e)}")
-                return None
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(f"/api/health-info/campaigns/{obj.id}/thumbnail/")
+            return f"/api/health-info/campaigns/{obj.id}/thumbnail/"
         return None
     
     def get_pubmat_image_url(self, obj):
         if obj.pubmat_image:
-            try:
-                request = self.context.get('request')
-                if request:
-                    return request.build_absolute_uri(obj.pubmat_image.url)
-                return obj.pubmat_image.url
-            except Exception as e:
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.warning(f"Error accessing pubmat_image URL for campaign {obj.id}: {str(e)}")
-                return None
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(f"/api/health-info/campaigns/{obj.id}/pubmat/")
+            return f"/api/health-info/campaigns/{obj.id}/pubmat/"
         return None
     
     def get_images(self, obj):
@@ -243,7 +200,7 @@ class HealthCampaignDetailSerializer(serializers.ModelSerializer):
         
         # Add banner image if it exists
         if obj.banner_image:
-            url = request.build_absolute_uri(obj.banner_image.url) if request else obj.banner_image.url
+            url = request.build_absolute_uri(f"/api/health-info/campaigns/{obj.id}/banner/") if request else f"/api/health-info/campaigns/{obj.id}/banner/"
             images.append({
                 'id': f'banner_{obj.id}',
                 'url': url,
@@ -253,7 +210,7 @@ class HealthCampaignDetailSerializer(serializers.ModelSerializer):
         
         # Add thumbnail image if it exists
         if obj.thumbnail_image:
-            url = request.build_absolute_uri(obj.thumbnail_image.url) if request else obj.thumbnail_image.url
+            url = request.build_absolute_uri(f"/api/health-info/campaigns/{obj.id}/thumbnail/") if request else f"/api/health-info/campaigns/{obj.id}/thumbnail/"
             images.append({
                 'id': f'thumbnail_{obj.id}',
                 'url': url,
@@ -263,7 +220,7 @@ class HealthCampaignDetailSerializer(serializers.ModelSerializer):
         
         # Add pubmat image if it exists
         if obj.pubmat_image:
-            url = request.build_absolute_uri(obj.pubmat_image.url) if request else obj.pubmat_image.url
+            url = request.build_absolute_uri(f"/api/health-info/campaigns/{obj.id}/pubmat/") if request else f"/api/health-info/campaigns/{obj.id}/pubmat/"
             images.append({
                 'id': f'pubmat_{obj.id}',
                 'url': url,

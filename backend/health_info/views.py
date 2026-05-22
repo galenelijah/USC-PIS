@@ -12,8 +12,10 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from .models import HealthInformation, HealthInformationImage, HealthCampaign, CampaignResource, CampaignFeedback
 from file_uploads.validators import FileSecurityValidator
+from utils.services import FileProxyService
 from .serializers import (
     HealthInformationSerializer, 
+    HealthInformationImageSerializer,
     HealthCampaignListSerializer,
     HealthCampaignDetailSerializer,
     HealthCampaignCreateUpdateSerializer,
@@ -267,6 +269,30 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    @action(detail=True, methods=['get'])
+    def banner(self, request, pk=None):
+        """Securely proxy the campaign banner"""
+        campaign = self.get_object()
+        if not campaign.banner_image:
+            return Response({'detail': 'Banner not found'}, status=status.HTTP_404_NOT_FOUND)
+        return FileProxyService.proxy_file(campaign.banner_image)
+
+    @action(detail=True, methods=['get'])
+    def thumbnail(self, request, pk=None):
+        """Securely proxy the campaign thumbnail"""
+        campaign = self.get_object()
+        if not campaign.thumbnail_image:
+            return Response({'detail': 'Thumbnail not found'}, status=status.HTTP_404_NOT_FOUND)
+        return FileProxyService.proxy_file(campaign.thumbnail_image)
+
+    @action(detail=True, methods=['get'])
+    def pubmat(self, request, pk=None):
+        """Securely proxy the campaign PubMat"""
+        campaign = self.get_object()
+        if not campaign.pubmat_image:
+            return Response({'detail': 'PubMat not found'}, status=status.HTTP_404_NOT_FOUND)
+        return FileProxyService.proxy_file(campaign.pubmat_image, as_attachment=True)
+    
     @action(detail=False, methods=['get'])
     def analytics(self, request):
         """Get campaign analytics focusing on reach and feedback"""
@@ -345,6 +371,42 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
         serializer = HealthCampaignListSerializer(featured_campaigns, many=True, context={'request': request})
         return Response(serializer.data)
 
+class HealthInformationImageViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for viewing health information images with secure proxying"""
+    queryset = HealthInformationImage.objects.all()
+    serializer_class = HealthInformationImageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=True, methods=['get'])
+    def view(self, request, pk=None):
+        """Securely proxy the image for inline viewing"""
+        image_obj = self.get_object()
+        proxy_response = FileProxyService.proxy_file(
+            image_obj.image, 
+            content_type=getattr(image_obj.image, 'content_type', 'image/jpeg'),
+            as_attachment=False
+        )
+        
+        if not proxy_response:
+            return Response({'detail': 'Error retrieving image from storage'}, status=status.HTTP_502_BAD_GATEWAY)
+            
+        return proxy_response
+
+    @action(detail=True, methods=['get'])
+    def download(self, request, pk=None):
+        """Securely proxy the image as a download attachment"""
+        image_obj = self.get_object()
+        proxy_response = FileProxyService.proxy_file(
+            image_obj.image, 
+            content_type=getattr(image_obj.image, 'content_type', 'image/jpeg'),
+            as_attachment=True
+        )
+        
+        if not proxy_response:
+            return Response({'detail': 'Error retrieving image from storage'}, status=status.HTTP_502_BAD_GATEWAY)
+            
+        return proxy_response
+
 class CampaignResourceViewSet(viewsets.ModelViewSet):
     """ViewSet for managing campaign resources"""
     queryset = CampaignResource.objects.all()
@@ -377,12 +439,24 @@ class CampaignResourceViewSet(viewsets.ModelViewSet):
         file_size = file.size if file else 0
         serializer.save(uploaded_by=self.request.user, file_size=file_size)
     
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['get', 'post'])
     def download(self, request, pk=None):
-        """Track download and return file"""
+        """Securely proxy the campaign resource using the file proxy service"""
         resource = self.get_object()
         resource.increment_download_count()
-        return Response({'download_url': resource.file.url})
+        
+        # Use FileProxyService for secure delivery
+        proxy_response = FileProxyService.proxy_file(
+            resource.file,
+            original_filename=resource.title,
+            as_attachment=True
+        )
+        
+        if not proxy_response:
+            # Fallback to direct URL if proxy fails (less secure but functional)
+            return Response({'download_url': resource.file.url})
+            
+        return proxy_response
 
 class CampaignFeedbackViewSet(viewsets.ModelViewSet):
     """ViewSet for managing campaign feedback"""

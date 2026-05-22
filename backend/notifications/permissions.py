@@ -21,6 +21,7 @@ class IsMedicalStaff(permissions.BasePermission):
     Permission to only allow administrative management of campaigns and system notifications.
     Admin and Staff handle management; Doctors, Dentists and Nurses are view-only.
     """
+    message = "Only Administrators and Clinic Staff can manage system-wide notifications and email settings. Your clinical role allows viewing diagnostics only."
 
     def has_permission(self, request, view):
         if not request.user.is_authenticated:

@@ -31,6 +31,8 @@ logger = logging.getLogger(__name__)
 
 class IsStaffOrReadOnly(permissions.BasePermission):
     """Custom permission for reports. Admin and Staff manage templates; others (Nurse/Doctor/Dentist) generate/view."""
+    message = "Only Administrators and Clinic Staff can manage report templates. Your clinical role allows viewing and generating reports only."
+
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return request.user.is_authenticated and (

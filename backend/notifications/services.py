@@ -160,6 +160,9 @@ class EmailService:
             result = email.send()
             
             if result:
+                # Refresh from DB to avoid race conditions with In-App delivery
+                notification.refresh_from_db()
+                
                 # Only update status to SENT if it's not already DELIVERED or READ
                 # This prevents regression of status if In-App delivery already set it to DELIVERED
                 if notification.status not in ['DELIVERED', 'READ']:

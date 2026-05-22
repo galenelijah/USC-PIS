@@ -502,6 +502,91 @@ class BackupMonitoringService:
         
         return health_status
 
+class FileProxyService:
+    """
+    Service to proxy files from external storage (like Cloudinary) 
+    to avoid exposing direct URLs.
+    """
+    
+    @staticmethod
+    def proxy_file(file_obj, original_filename=None, content_type=None, as_attachment=False):
+        """
+        Proxy a file from Cloudinary/storage and return a StreamingHttpResponse
+        """
+        import requests
+        import re
+        import mimetypes
+        from django.http import StreamingHttpResponse
+        from django.conf import settings
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        
+        if not file_obj:
+            return None
+            
+        try:
+            file_url = file_obj.url
+            # Determine if it's a PDF for Cloudinary optimization
+            is_pdf = (original_filename and original_filename.lower().endswith('.pdf')) or \
+                     (file_obj.name and file_obj.name.lower().endswith('.pdf'))
+            
+            # Use Cloudinary SDK to generate a safe, signed download URL if applicable
+            if 'res.cloudinary.com' in file_url and getattr(settings, 'USE_CLOUDINARY', False):
+                from cloudinary.utils import private_download_url
+                
+                # Extract public_id and folder structure from URL
+                match = re.search(r'/(?:upload|private|authenticated)/(?:v\d+/)?([^.]+)', file_url)
+                if match:
+                    public_id = match.group(1)
+                    res_type = 'raw' if '/raw/' in file_url else 'image'
+                    fmt = 'pdf' if is_pdf else None
+                    
+                    # Generate the "Master" signed URL using API credentials
+                    file_url = private_download_url(
+                        public_id, 
+                        format=fmt, 
+                        resource_type=res_type, 
+                        type='upload',
+                        attachment=as_attachment
+                    )
+
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) USC-PIS/1.0'}
+            
+            # Use a session for better connection management
+            session = requests.Session()
+            response = session.get(file_url, stream=True, timeout=30, headers=headers)
+            
+            if response.status_code != 200:
+                logger.error(f"Proxy retrieval failed with status {response.status_code} for {file_url}")
+                return None
+
+            proxy_response = StreamingHttpResponse(
+                response.iter_content(chunk_size=8192),
+                content_type=content_type or response.headers.get('Content-Type', 'application/octet-stream')
+            )
+            
+            # Fallback filename
+            import os
+            filename = original_filename or os.path.basename(file_obj.name)
+            if '.' not in filename and content_type:
+                ext = mimetypes.guess_extension(content_type)
+                if ext: filename += ext
+
+            disposition = 'attachment' if as_attachment else 'inline'
+            proxy_response['Content-Disposition'] = f'{disposition}; filename="{filename}"'
+            proxy_response['Access-Control-Expose-Headers'] = 'Content-Disposition'
+            
+            # Pass through some headers if they exist
+            if 'Content-Length' in response.headers:
+                proxy_response['Content-Length'] = response.headers['Content-Length']
+                
+            return proxy_response
+            
+        except Exception as e:
+            logger.error(f"Proxy error: {str(e)}")
+            return None
+
 
 # Create service instances
 backup_service = BackupService()
