@@ -49,11 +49,27 @@ class DentalRecordSerializer(serializers.ModelSerializer):
         return 'DENTAL'
 
     def validate_tooth_numbers(self, value):
-        # ... (unchanged)
+        """Validate tooth numbers format"""
+        if value:
+            # Remove spaces and split by comma
+            tooth_nums = [num.strip() for num in value.split(',') if num.strip()]
+            for num in tooth_nums:
+                try:
+                    tooth_num = int(num)
+                    if tooth_num < 11 or tooth_num > 48:
+                        raise serializers.ValidationError(
+                            f"Invalid tooth number: {num}. Must be between 11-48 (FDI notation)."
+                        )
+                except ValueError:
+                    raise serializers.ValidationError(
+                        f"Invalid tooth number format: {num}. Must be numeric."
+                    )
         return value
 
     def validate_pain_level(self, value):
-        # ... (unchanged)
+        """Validate pain level is between 1-10"""
+        if value is not None and (value < 1 or value > 10):
+            raise serializers.ValidationError("Pain level must be between 1 and 10.")
         return value
 
 class ConsultationSerializer(serializers.ModelSerializer):
