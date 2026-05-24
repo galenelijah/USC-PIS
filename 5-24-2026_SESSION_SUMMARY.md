@@ -13,6 +13,7 @@
 - **Patient Self-Viewing:** Updated `PatientViewSet` permissions to allow Students and Faculty to access their own profiles (read-only).
 - **Dashboard Synchronization:** Updated all patient-facing dashboards and history pages to use the new unified "Heart Rate" metric and removed SpO2 display.
 - **Consistent Export Data:** Standardized CSV export functions to correctly reflect the updated vital sign structure.
+- **Unified Required Indicators:** Standardized the use of asterisks (*) for mandatory fields across all forms (Medical, Dental, Consultation, Certificates, and Campaigns) to ensure visual clarity and consistency.
 
 ## 3. Bug Fixes & System Stability
 - **Fixed `validators.py` Crash:** Resolved an `AttributeError` caused by attempting to normalize data in an immutable Django `QueryDict` during clinical record creation.

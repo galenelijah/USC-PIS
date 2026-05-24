@@ -1077,6 +1077,7 @@ const UniversalCampaigns = () => {
                   placeholder="Additional summary (optional)..."
                   multiline
                   rows={2}
+                  required={false}
                 />
               </Grid>
 
@@ -1097,7 +1098,7 @@ const UniversalCampaigns = () => {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Objectives *"
+                  label="Objectives"
                   value={campaignForm.objectives}
                   onChange={(e) => setCampaignForm({ ...campaignForm, objectives: e.target.value })}
                   placeholder="Campaign objectives and goals (e.g., • Increase awareness • Promote healthy habits • Reduce incidents)"
@@ -1157,6 +1158,7 @@ const UniversalCampaigns = () => {
                   value={campaignForm.tags}
                   onChange={(e) => setCampaignForm({ ...campaignForm, tags: e.target.value })}
                   placeholder="health, safety, students (comma-separated)"
+                  required={false}
                 />
               </Grid>
 

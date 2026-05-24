@@ -606,13 +606,13 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                         <Divider sx={{ mb: 3 }} />
                         <Grid container spacing={3}>
                             {[
-                                { name: 'temperature', label: 'Temperature (°C)', placeholder: '36.5', type: 'number' },
-                                { name: 'blood_pressure', label: 'Blood Pressure (mmHg)', placeholder: '120/80', type: 'text' },
-                                { name: 'heart_rate', label: 'Heart Rate (bpm)', placeholder: '72', type: 'number' },
-                                { name: 'respiratory_rate', label: 'Respiratory Rate (/min)', placeholder: '16', type: 'number' },
-                                { name: 'height', label: 'Height (cm)', placeholder: '170', type: 'number' },
-                                { name: 'weight', label: 'Weight (kg)', placeholder: '70', type: 'number' },
-                                { name: 'bmi', label: 'BMI', placeholder: '24.2', type: 'number' }
+                                { name: 'temperature', label: 'Temperature (°C)', placeholder: '36.5', type: 'number', required: false },
+                                { name: 'blood_pressure', label: 'Blood Pressure (mmHg)', placeholder: '120/80', type: 'text', required: false },
+                                { name: 'heart_rate', label: 'Heart Rate (bpm)', placeholder: '72', type: 'number', required: false },
+                                { name: 'respiratory_rate', label: 'Respiratory Rate (/min)', placeholder: '16', type: 'number', required: false },
+                                { name: 'height', label: 'Height (cm)', placeholder: '170', type: 'number', required: false },
+                                { name: 'weight', label: 'Weight (kg)', placeholder: '70', type: 'number', required: false },
+                                { name: 'bmi', label: 'BMI', placeholder: '24.2', type: 'number', required: false }
                             ].map((v) => (
                                 <Grid item xs={12} sm={6} md={3} key={v.name}>
                                     {readOnly ? (
@@ -629,6 +629,7 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                                                     type={v.type}
                                                     inputProps={v.type === 'number' ? { min: 0, step: 'any' } : {}}
                                                     disabled={!canEdit || v.name === 'bmi'}
+                                                    required={v.required}
                                                     placeholder={v.placeholder}
                                                     error={!!errors.vital_signs?.[v.name]}
                                                     helperText={v.name === 'bmi' ? (errors.vital_signs?.[v.name]?.message || "Automatically calculated") : errors.vital_signs?.[v.name]?.message}
@@ -804,7 +805,7 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                                                     fullWidth
                                                     multiline
                                                     rows={f.rows}
-                                                    label={`${f.label}${f.required ? ' *' : ''}`}
+                                                    label={f.label}
                                                     disabled={!canEdit}
                                                     required={f.required}
                                                     error={!!errors[f.name]}

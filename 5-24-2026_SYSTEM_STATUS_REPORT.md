@@ -19,6 +19,7 @@
 1.  **Backend "Defense in Depth":** Blood pressure strings are now parsed and validated numerically on the backend to prevent bypass of frontend constraints.
 2.  **Input Hardening:** All vital sign fields now use HTML5 `min` constraints to block negative inputs at the browser level.
 3.  **Vitals Synchronization:** A new Django signal ensures the patient's main profile always reflects the latest measured weight, height, and BMI from their clinical visits.
+4.  **UI Consistency:** Standardized required field indicators (asterisks) across all clinical and profile forms for a more professional user experience.
 
 ## Critical Issues
 - None reported.

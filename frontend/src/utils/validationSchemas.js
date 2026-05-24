@@ -137,6 +137,26 @@ export const commonValidation = {
     .string()
     .required(`${fieldName} is required`)
     .matches(/^\d{5,}$/, `${fieldName} must contain at least 5 digits`),
+
+  // Medical note/description validation
+  medicalNote: yup
+    .string()
+    .nullable()
+    .notRequired()
+    .transform((value) => (value === '' ? null : value))
+    .test('has-text', 'Description must contain at least one letter', (value) => {
+      if (!value) return true; // Allow null/empty
+      return /[a-zA-Z]/.test(value);
+    })
+    .test('valid-chars', 'Please use only alphanumeric characters and standard medical symbols (., - / + : ? #)', (value) => {
+      if (!value) return true; // Allow null/empty
+      return /^[a-zA-Z0-9\s\.,\-\(\)\/\+\:\?#;]*$/.test(value);
+    })
+    .test('min-len', 'Description is too short (min 2 characters)', (value) => {
+      if (!value) return true; // Allow null/empty
+      return value.length >= 2;
+    })
+    .max(1000, 'Description is too long (max 1000 characters)'),
 };
 
 // Authentication schemas
@@ -172,9 +192,13 @@ notes: yup.string().nullable(),
       .transform((value, originalValue) => originalValue === '' ? null : value),
     blood_pressure: yup.string()
       .nullable()
-      .matches(/^\d{2,3}\/\d{2,3}$/, 'Blood pressure must be in format like 120/80')
-      .test('bp-range', 'Blood pressure values out of range', function(value) {
+      .notRequired()
+      .test('bp-format', 'Blood pressure must be in format like 120/80', function(value) {
         if (!value) return true;
+        return /^\d{2,3}\/\d{2,3}$/.test(value);
+      })
+      .test('bp-range', 'Systolic must be 60-260 and Diastolic must be 30-150', function(value) {
+        if (!value || !/^\d{2,3}\/\d{2,3}$/.test(value)) return true;
         const [sys, dia] = value.split('/').map(Number);
         return sys >= 60 && sys <= 260 && dia >= 30 && dia <= 150;
       }),
@@ -208,14 +232,14 @@ notes: yup.string().nullable(),
     .nullable()
     .transform((value, originalValue) => originalValue === '' ? null : value),
   }),  physical_examination: yup.object().shape({
-    general_appearance: yup.string().nullable(),
-    skin: yup.string().nullable(),
-    heent: yup.string().nullable(),
-    heart: yup.string().nullable(),
-    lungs: yup.string().nullable(),
-    abdomen: yup.string().nullable(),
-    extremities: yup.string().nullable(),
-    neurological: yup.string().nullable(),
+    general_appearance: commonValidation.medicalNote,
+    skin: commonValidation.medicalNote,
+    heent: commonValidation.medicalNote,
+    heart: commonValidation.medicalNote,
+    lungs: commonValidation.medicalNote,
+    abdomen: commonValidation.medicalNote,
+    extremities: commonValidation.medicalNote,
+    neurological: commonValidation.medicalNote,
   }),
 });
 

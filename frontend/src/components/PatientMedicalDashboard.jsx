@@ -29,9 +29,9 @@ import {
   FileOpen as FileIcon,
   GetApp as DownloadIcon,
 } from "@mui/icons-material";
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import dayjs from 'dayjs';
-import { selectCurrentUser } from '../features/authentication/authSlice';
+import { selectCurrentUser, getProfile } from '../features/authentication/authSlice';
 import { 
   getSexLabel, 
   getCivilStatusLabel, 
@@ -56,6 +56,7 @@ import InfoTooltip from './utils/InfoTooltip';
 
 const PatientMedicalDashboard = () => {
   const currentUser = useSelector(selectCurrentUser);
+  const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [medicalRecords, setMedicalRecords] = useState([]);
@@ -87,6 +88,9 @@ const PatientMedicalDashboard = () => {
       
       try {
         setLoading(true);
+        // Also refresh profile to get synced vitals from backend signals
+        dispatch(getProfile());
+
         const [medResp, docResp] = await Promise.all([
           healthRecordsService.getAll(),
           patientDocumentService.getPatientDocuments(currentUser.id).catch(() => ({ data: [] }))
@@ -106,17 +110,29 @@ const PatientMedicalDashboard = () => {
         setMedicalRecords(medData);
         setDocuments(docData);
           
-        // Find the most recent medical record with vital signs
-        const recordsWithVitalSigns = medData.filter(record => 
-          record.vital_signs && Object.keys(record.vital_signs).length > 0
-        );
-        
-        if (recordsWithVitalSigns.length > 0) {
-          // Sort by visit date (most recent first) and get the latest vital signs
-          const sortedRecords = recordsWithVitalSigns.sort((a, b) => 
-            new Date(b.visit_date) - new Date(a.visit_date)
+        // Aggregate the latest measurements from all records
+        if (medData.length > 0) {
+          const sortedRecords = [...medData].sort((a, b) => 
+            new Date(b.visit_date || b.date_time || 0) - new Date(a.visit_date || a.date_time || 0)
           );
-          setLatestVitalSigns(sortedRecords[0].vital_signs);
+          
+          const aggregatedVitals = {};
+          const fields = ['height', 'weight', 'bmi', 'temperature', 'heart_rate', 'blood_pressure', 'respiratory_rate'];
+          
+          // Fill each field with the most recent non-empty value found
+          fields.forEach(field => {
+            const recordWithField = sortedRecords.find(r => 
+              r.vital_signs && 
+              r.vital_signs[field] !== undefined && 
+              r.vital_signs[field] !== null && 
+              r.vital_signs[field] !== ''
+            );
+            if (recordWithField) {
+              aggregatedVitals[field] = recordWithField.vital_signs[field];
+            }
+          });
+          
+          setLatestVitalSigns(aggregatedVitals);
         }
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
@@ -127,7 +143,7 @@ const PatientMedicalDashboard = () => {
     };
 
     fetchDashboardData();
-  }, [currentUser]);
+  }, [currentUser?.id, dispatch]);
 
   // Format vital signs for display
   const formatVitalSign = (value, unit = '') => {
@@ -301,11 +317,11 @@ const PatientMedicalDashboard = () => {
               <Grid container spacing={2}>
                 <Grid item xs={4} sx={{ textAlign: 'center' }}>
                   <Typography variant="caption" color="textSecondary">HEIGHT</Typography>
-                  <Typography variant="h6">{currentUser.height || 'N/A'} cm</Typography>
+                  <Typography variant="h6">{displayHeight || 'N/A'} cm</Typography>
                 </Grid>
                 <Grid item xs={4} sx={{ textAlign: 'center' }}>
                   <Typography variant="caption" color="textSecondary">WEIGHT</Typography>
-                  <Typography variant="h6">{currentUser.weight || 'N/A'} kg</Typography>
+                  <Typography variant="h6">{displayWeight || 'N/A'} kg</Typography>
                 </Grid>
                 <Grid item xs={4} sx={{ textAlign: 'center' }}>
                   <Typography variant="caption" color="textSecondary">BMI</Typography>

@@ -1120,6 +1120,7 @@ const CampaignsPage = () => {
                 placeholder="Brief overview of the campaign..."
                 multiline
                 rows={2}
+                required={false}
               />
             </Grid>
             <Grid item xs={12}>
@@ -1195,6 +1196,7 @@ const CampaignsPage = () => {
                 placeholder="What are the goals of this campaign?"
                 multiline
                 rows={3}
+                required={false}
               />
             </Grid>
             <Grid item xs={12}>
@@ -1213,6 +1215,7 @@ const CampaignsPage = () => {
                 value={campaignForm.tags}
                 onChange={(e) => setCampaignForm({...campaignForm, tags: e.target.value})}
                 placeholder="health, wellness, students (comma-separated)"
+                required={false}
               />
             </Grid>
 
@@ -1468,6 +1471,7 @@ const CampaignsPage = () => {
                 placeholder="Brief overview of the campaign..."
                 multiline
                 rows={2}
+                required={false}
               />
             </Grid>
             <Grid item xs={12}>

@@ -121,6 +121,7 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave, readOn
                     {...field}
                     select
                     label="Patient"
+                    required
                     fullWidth
                     margin="dense"
                     error={!!errors.patient}
@@ -150,6 +151,7 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave, readOn
                   <TextField
                     {...field}
                     label="Date and Time"
+                    required
                     type="datetime-local"
                     fullWidth
                     margin="dense"
@@ -171,6 +173,7 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave, readOn
                   <TextField
                     {...field}
                     label="Chief Complaints"
+                    required
                     fullWidth
                     multiline
                     rows={3}
@@ -190,6 +193,7 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave, readOn
                   <TextField
                     {...field}
                     label="Treatment Plan"
+                    required
                     fullWidth
                     multiline
                     rows={3}

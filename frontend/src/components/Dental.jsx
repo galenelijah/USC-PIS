@@ -1008,7 +1008,7 @@ const Dental = () => {
                         label="Visit Date & Time"
                         value={dayjs(formData.visit_date)}
                         onChange={(date) => handleInputChange('visit_date', dayjs(date).format())}
-                        slotProps={{ textField: { fullWidth: true } }}
+                        slotProps={{ textField: { fullWidth: true, required: true } }}
                       />
                     </Grid>
                     <Grid item xs={12}>
@@ -1029,7 +1029,7 @@ const Dental = () => {
                       </Alert>
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth>
+                      <FormControl fullWidth required>
                         <InputLabel>Procedure</InputLabel>
                         <Select
                           value={formData.procedure_performed}
@@ -1052,6 +1052,7 @@ const Dental = () => {
                         onChange={(e) => handleInputChange('tooth_numbers', e.target.value)}
                         placeholder="e.g., 11,12,21"
                         helperText="Use FDI notation, comma-separated"
+                        required={false}
                       />
                     </Grid>
                     <Grid item xs={12}>
@@ -1062,17 +1063,20 @@ const Dental = () => {
                         onChange={(e) => handleInputChange('diagnosis', e.target.value)}
                         multiline
                         rows={3}
+                        required
                         placeholder="Optional for consultations"
                       />
-                    </Grid>
                     <Grid item xs={12}>
                       <TextField
                         fullWidth
-                        label="Treatment Performed"
-                        value={formData.treatment_performed}
-                        onChange={(e) => handleInputChange('treatment_performed', e.target.value)}
+                        label="Treatment Plan"
+                        value={formData.treatment_plan}
+                        onChange={(e) => handleInputChange('treatment_plan', e.target.value)}
                         multiline
                         rows={3}
+                        required={false}
+                      />
+                    </Grid>
                         placeholder="Optional for consultations"
                       />
                     </Grid>
@@ -1085,7 +1089,7 @@ const Dental = () => {
                 <Box sx={{ mt: 3 }}>
                   <Grid container spacing={2}>
                     <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth>
+                      <FormControl fullWidth required>
                         <InputLabel>Oral Hygiene Status</InputLabel>
                         <Select
                           value={formData.oral_hygiene_status}
@@ -1100,7 +1104,7 @@ const Dental = () => {
                       </FormControl>
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth>
+                      <FormControl fullWidth required>
                         <InputLabel>Gum Condition</InputLabel>
                         <Select
                           value={formData.gum_condition}
@@ -1118,6 +1122,7 @@ const Dental = () => {
                       <TextField
                         fullWidth
                         label="Pain Level (1-10)"
+                        required
                         type="number"
                         value={formData.pain_level || ''}
                         onChange={(e) => handleInputChange('pain_level', e.target.value ? parseInt(e.target.value) : null)}
@@ -1132,6 +1137,7 @@ const Dental = () => {
                         onChange={(e) => handleInputChange('clinical_notes', e.target.value)}
                         multiline
                         rows={3}
+                        required={false}
                       />
                     </Grid>
                     <Grid item xs={12} sm={6}>
@@ -1150,6 +1156,7 @@ const Dental = () => {
                         <TextField
                           fullWidth
                           label="Anesthesia Type"
+                          required
                           value={formData.anesthesia_type}
                           onChange={(e) => handleInputChange('anesthesia_type', e.target.value)}
                         />
@@ -1163,6 +1170,7 @@ const Dental = () => {
                         onChange={(e) => handleInputChange('materials_used', e.target.value)}
                         multiline
                         rows={2}
+                        required={false}
                       />
                     </Grid>
                   </Grid>
@@ -1181,7 +1189,9 @@ const Dental = () => {
                         onChange={(e) => handleInputChange('treatment_plan', e.target.value)}
                         multiline
                         rows={3}
+                        required={false}
                       />
+                    </Grid>
                     </Grid>
                     <Grid item xs={12}>
                       <TextField
@@ -1191,6 +1201,7 @@ const Dental = () => {
                         onChange={(e) => handleInputChange('home_care_instructions', e.target.value)}
                         multiline
                         rows={3}
+                        required={false}
                       />
                     </Grid>
                     <Grid item xs={12} sm={6}>
@@ -1198,6 +1209,7 @@ const Dental = () => {
                         fullWidth
                         label="Cost"
                         type="number"
+                        required
                         value={formData.cost || ''}
                         onChange={(e) => handleInputChange('cost', e.target.value ? parseFloat(e.target.value) : null)}
                         inputProps={{ min: 0, step: 'any' }}
@@ -1208,6 +1220,7 @@ const Dental = () => {
                     </Grid>
                     <Grid item xs={12}>
                       <FormControlLabel
+                        required
                         control={
                           <Switch
                             checked={formData.insurance_covered}

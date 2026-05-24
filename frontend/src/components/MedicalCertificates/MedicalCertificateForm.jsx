@@ -380,11 +380,11 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
               name="template"
               control={control}
               render={({ field }) => (
-                <FormControl fullWidth error={!!errors.template}>
-                  <InputLabel>Template *</InputLabel>
+                <FormControl fullWidth required error={!!errors.template}>
+                  <InputLabel>Template</InputLabel>
                   <Select
                     {...field}
-                    label="Template *"
+                    label="Template"
                     value={field.value || ''}
                   >
                     {templates.map((template) => (
@@ -418,6 +418,7 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
                   placeholder="Enter the purpose or requirement for this medical certificate (e.g., Tour, Off-Campus Activity)..."
                   error={!!errors.diagnosis}
                   helperText={errors.diagnosis?.message}
+                  required={false}
                 />
               )}
             />
@@ -431,10 +432,11 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
               render={({ field }) => (
                 <DatePicker
                   {...field}
-                  label="Valid From *"
+                  label="Valid From"
                   slotProps={{
                     textField: {
                       fullWidth: true,
+                      required: true,
                       error: !!errors.valid_from,
                       helperText: errors.valid_from?.message,
                     },
@@ -452,10 +454,11 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
               render={({ field }) => (
                 <DatePicker
                   {...field}
-                  label="Valid Until *"
+                  label="Valid Until"
                   slotProps={{
                     textField: {
                       fullWidth: true,
+                      required: true,
                       error: !!errors.valid_until,
                       helperText: errors.valid_until?.message,
                     },
@@ -474,11 +477,11 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
                   name="fitness_status"
                   control={control}
                   render={({ field }) => (
-                    <FormControl fullWidth error={!!errors.fitness_status}>
-                      <InputLabel>Medical Fitness Status *</InputLabel>
+                    <FormControl fullWidth required error={!!errors.fitness_status}>
+                      <InputLabel>Medical Fitness Status</InputLabel>
                       <Select
                         {...field}
-                        label="Medical Fitness Status *"
+                        label="Medical Fitness Status"
                         value={field.value || 'fit'}
                       >
                         <MenuItem value="fit">Fit</MenuItem>
@@ -500,11 +503,11 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
                   name="approval_status"
                   control={control}
                   render={({ field }) => (
-                    <FormControl fullWidth error={!!errors.approval_status}>
-                      <InputLabel>Approval Status *</InputLabel>
+                    <FormControl fullWidth required error={!!errors.approval_status}>
+                      <InputLabel>Approval Status</InputLabel>
                       <Select
                         {...field}
-                        label="Approval Status *"
+                        label="Approval Status"
                         value={field.value || 'approved'}
                       >
                         <MenuItem value="approved">Approved</MenuItem>
@@ -555,7 +558,8 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
                     fullWidth
                     multiline
                     rows={4}
-                    label="Detailed Reason for Not Fit Status *"
+                    label="Detailed Reason for Not Fit Status"
+                    required
                     placeholder="Please provide detailed medical reason (e.g., specific medical conditions, restrictions, recommended duration of limitation, etc.)..."
                     error={!!errors.fitness_reason}
                     helperText={errors.fitness_reason?.message || "Be specific about medical conditions, limitations, and recommendations"}
@@ -590,6 +594,7 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
                   placeholder="Any additional medical recommendations, restrictions, or special instructions..."
                   error={!!errors.additional_notes}
                   helperText={errors.additional_notes?.message}
+                  required={false}
                 />
               )}
             />
