@@ -141,7 +141,7 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
             vital_signs: {
                 temperature: '',
                 blood_pressure: '',
-                pulse_rate: '',
+                heart_rate: '',
                 respiratory_rate: '',
                 height: '',
                 weight: '',
@@ -161,6 +161,22 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
     });
 
     const watchedVitalSigns = watch('vital_signs');
+
+    // Automatic BMI Calculation
+    useEffect(() => {
+        const height = parseFloat(watchedVitalSigns?.height);
+        const weight = parseFloat(watchedVitalSigns?.weight);
+        
+        if (height > 0 && weight > 0) {
+            const heightInMeters = height / 100;
+            const bmi = (weight / (heightInMeters * heightInMeters)).toFixed(1);
+            if (watchedVitalSigns?.bmi !== bmi) {
+                setValue('vital_signs.bmi', bmi, { shouldValidate: true });
+            }
+        } else if (watchedVitalSigns?.bmi !== '') {
+            setValue('vital_signs.bmi', '');
+        }
+    }, [watchedVitalSigns?.height, watchedVitalSigns?.weight, watchedVitalSigns?.bmi, setValue]);
 
     // Fetch patients for staff/medical users
     useEffect(() => {
@@ -226,7 +242,7 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
             vital_signs: {
                 temperature: '',
                 blood_pressure: '',
-                pulse_rate: '',
+                heart_rate: '',
                 respiratory_rate: '',
                 height: '',
                 weight: '',
@@ -260,7 +276,7 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                 vital_signs: data.vital_signs || {
                     temperature: '',
                     blood_pressure: '',
-                    pulse_rate: '',
+                    heart_rate: '',
                     respiratory_rate: '',
                     height: '',
                     weight: '',
@@ -590,13 +606,13 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                         <Divider sx={{ mb: 3 }} />
                         <Grid container spacing={3}>
                             {[
-                                { name: 'temperature', label: 'Temperature (°C)', placeholder: '36.5' },
-                                { name: 'blood_pressure', label: 'Blood Pressure (mmHg)', placeholder: '120/80' },
-                                { name: 'pulse_rate', label: 'Pulse Rate (bpm)', placeholder: '72' },
-                                { name: 'respiratory_rate', label: 'Respiratory Rate (/min)', placeholder: '16' },
-                                { name: 'height', label: 'Height (cm)', placeholder: '170' },
-                                { name: 'weight', label: 'Weight (kg)', placeholder: '70' },
-                                { name: 'bmi', label: 'BMI', placeholder: '24.2' }
+                                { name: 'temperature', label: 'Temperature (°C)', placeholder: '36.5', type: 'number' },
+                                { name: 'blood_pressure', label: 'Blood Pressure (mmHg)', placeholder: '120/80', type: 'text' },
+                                { name: 'heart_rate', label: 'Heart Rate (bpm)', placeholder: '72', type: 'number' },
+                                { name: 'respiratory_rate', label: 'Respiratory Rate (/min)', placeholder: '16', type: 'number' },
+                                { name: 'height', label: 'Height (cm)', placeholder: '170', type: 'number' },
+                                { name: 'weight', label: 'Weight (kg)', placeholder: '70', type: 'number' },
+                                { name: 'bmi', label: 'BMI', placeholder: '24.2', type: 'number' }
                             ].map((v) => (
                                 <Grid item xs={12} sm={6} md={3} key={v.name}>
                                     {readOnly ? (
@@ -610,10 +626,12 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                                                     {...field}
                                                     fullWidth
                                                     label={v.label}
-                                                    disabled={!canEdit}
+                                                    type={v.type}
+                                                    inputProps={v.type === 'number' ? { min: 0, step: 'any' } : {}}
+                                                    disabled={!canEdit || v.name === 'bmi'}
                                                     placeholder={v.placeholder}
                                                     error={!!errors.vital_signs?.[v.name]}
-                                                    helperText={errors.vital_signs?.[v.name]?.message}
+                                                    helperText={v.name === 'bmi' ? (errors.vital_signs?.[v.name]?.message || "Automatically calculated") : errors.vital_signs?.[v.name]?.message}
                                                 />
                                             )}
                                         />

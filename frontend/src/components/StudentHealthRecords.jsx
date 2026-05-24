@@ -554,7 +554,7 @@ const StudentHealthRecords = () => {
                             </Typography>
                           </Grid>
                           <Grid item xs={6}>
-                            <Typography variant="body2" fontWeight="bold">Pulse Rate:</Typography>
+                            <Typography variant="body2" fontWeight="bold">Heart Rate:</Typography>
                             <Typography variant="body2">
                               {record.vital_signs?.heart_rate || record.pulse_rate || record.heart_rate ? 
                                 `${record.vital_signs?.heart_rate || record.pulse_rate || record.heart_rate} bpm` : 'Not recorded'}

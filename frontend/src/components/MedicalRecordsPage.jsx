@@ -249,7 +249,7 @@ const MedicalRecordsPage = () => {
         'Present Illness': record.history_present_illness || 'Not documented',
         'Past Medical History': record.past_medical_history || 'None reported',
         'Physical Examination': record.physical_examination || 'Not performed',
-        'Vital Signs': `BP: ${record.blood_pressure || 'N/A'}, Temp: ${record.temperature || 'N/A'}°C, Pulse: ${record.pulse_rate || 'N/A'} bpm, RR: ${record.respiratory_rate || 'N/A'}/min`,
+        'Vital Signs': `BP: ${record.vital_signs?.blood_pressure || record.blood_pressure || 'N/A'}, Temp: ${record.vital_signs?.temperature || record.temperature || 'N/A'}°C, Heart: ${record.vital_signs?.heart_rate || record.vital_signs?.pulse_rate || record.heart_rate || record.pulse_rate || 'N/A'} bpm, RR: ${record.vital_signs?.respiratory_rate || record.respiratory_rate || 'N/A'}/min`,
         'Diagnosis': record.diagnosis || 'No diagnosis',
         'Treatment Plan': record.treatment || 'No treatment',
         'Medications': record.medications || 'None prescribed',
@@ -448,8 +448,8 @@ const MedicalRecordsPage = () => {
                           <span class="field-value">${record.temperature || 'N/A'}°C</span>
                         </div>
                         <div class="field">
-                          <span class="field-label">Pulse Rate:</span>
-                          <span class="field-value">${record.pulse_rate || 'N/A'} bpm</span>
+                          <span class="field-label">Heart Rate:</span>
+                          <span class="field-value">${record.vital_signs?.heart_rate || record.vital_signs?.pulse_rate || record.heart_rate || record.pulse_rate || 'N/A'} bpm</span>
                         </div>
                         <div class="field">
                           <span class="field-label">Respiratory Rate:</span>

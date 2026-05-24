@@ -217,8 +217,7 @@ const HealthRecords = () => {
         temperature: '',
         blood_pressure: '',
         heart_rate: '',
-        respiratory_rate: '',
-        oxygen_saturation: ''
+        respiratory_rate: ''
       },
       medications: []
     });
@@ -247,8 +246,7 @@ const HealthRecords = () => {
         temperature: '',
         blood_pressure: '',
         heart_rate: '',
-        respiratory_rate: '',
-        oxygen_saturation: ''
+        respiratory_rate: ''
       },
       medications: []
     });
@@ -315,8 +313,7 @@ const HealthRecords = () => {
             temperature: '',
             blood_pressure: '',
             heart_rate: '',
-            respiratory_rate: '',
-            oxygen_saturation: ''
+            respiratory_rate: ''
           },
           medications: []
         });
@@ -564,10 +561,10 @@ Treatment: ${r.treatment || 'N/A'}
       'Present Illness History': record.history_present_illness || 'Not documented',
       'Past Medical History': record.past_medical_history || 'None reported',
       'Physical Examination': record.physical_examination || 'Not performed',
-      'Blood Pressure': record.blood_pressure || 'N/A',
-      'Temperature (°C)': record.temperature || 'N/A',
-      'Pulse Rate (bpm)': record.pulse_rate || 'N/A',
-      'Respiratory Rate': record.respiratory_rate || 'N/A',
+      'Blood Pressure': record.vital_signs?.blood_pressure || 'N/A',
+      'Temperature (°C)': record.vital_signs?.temperature || 'N/A',
+      'Heart Rate (bpm)': record.vital_signs?.heart_rate || record.vital_signs?.pulse_rate || 'N/A',
+      'Respiratory Rate': record.vital_signs?.respiratory_rate || 'N/A',
       'Medications': record.medications || 'None prescribed',
       'Laboratory Results': record.laboratory_results || 'None ordered',
       'Follow-up Instructions': record.follow_up_instructions || 'None specified'

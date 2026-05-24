@@ -217,6 +217,7 @@ const createValidationSchema = (role) => {
         school: commonValidation.optionalText,
         weight: commonValidation.positiveNumber('Weight'),
         height: commonValidation.positiveNumber('Height'),
+        bmi: Yup.string().nullable().notRequired(),
         contact_father_name: commonValidation.optionalText,
         contact_mother_name: commonValidation.optionalText,
       });
@@ -342,6 +343,7 @@ const ProfileSetup = () => {
           school: '',
           weight: '',
           height: '',
+          bmi: '',
           contact_father_name: '',
           contact_mother_name: '',
         };
@@ -378,6 +380,24 @@ const ProfileSetup = () => {
       email: currentUser?.email || ''
     }
   });
+
+  const watchedHeight = watch('height');
+  const watchedWeight = watch('weight');
+  const watchedBMI = watch('bmi');
+
+  useEffect(() => {
+    const h = parseFloat(watchedHeight);
+    const w = parseFloat(watchedWeight);
+    if (h > 0 && w > 0) {
+      const hInMeters = h / 100;
+      const calculatedBMI = (w / (hInMeters * hInMeters)).toFixed(1);
+      if (watchedBMI !== calculatedBMI) {
+        setValue('bmi', calculatedBMI, { shouldValidate: true });
+      }
+    } else if (watchedBMI !== '' && watchedBMI !== undefined) {
+      setValue('bmi', '');
+    }
+  }, [watchedHeight, watchedWeight, watchedBMI, setValue]);
 
   // Medical information state
   const [selectedIllnesses, setSelectedIllnesses] = useState([]);
@@ -1084,28 +1104,42 @@ const ProfileSetup = () => {
                         hint="Main or satellite campus"
                       />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
+                    <Grid item xs={12} sm={4}>
                       <MyTextField
                         key={`${stepKey}-weight`}
                         label="Weight (kg)"
                         name="weight"
                         control={control}
                         type="number"
+                        inputProps={{ min: 1, step: 'any' }}
                         error={!!errors?.weight}
                         helperText={errors?.weight?.message}
-                        hint="Optional; numeric"
+                        hint="Required for BMI"
                       />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
+                    <Grid item xs={12} sm={4}>
                       <MyTextField
                         key={`${stepKey}-height`}
                         label="Height (cm)"
                         name="height"
                         control={control}
                         type="number"
+                        inputProps={{ min: 1, step: 'any' }}
                         error={!!errors?.height}
                         helperText={errors?.height?.message}
-                        hint="Optional; numeric"
+                        hint="Required for BMI"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <MyTextField
+                        key={`${stepKey}-bmi`}
+                        label="BMI"
+                        name="bmi"
+                        control={control}
+                        type="number"
+                        disabled
+                        error={!!errors?.bmi}
+                        helperText={errors?.bmi?.message || "Automatically calculated"}
                       />
                     </Grid>
                   </Grid>

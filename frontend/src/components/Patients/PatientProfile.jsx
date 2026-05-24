@@ -245,7 +245,11 @@ const PatientProfile = ({ patient: partialPatient, onBack }) => {
   }
 
   const userAge = calculateAge(patient?.date_of_birth || patient?.birthday);
-  const userBMI = calculateBMI(patient?.weight, patient?.height);
+  
+  // Prioritize latest clinical measurements
+  const displayHeight = latestVitalSigns.height || patient?.height;
+  const displayWeight = latestVitalSigns.weight || patient?.weight;
+  const userBMI = latestVitalSigns.bmi || calculateBMI(displayWeight, displayHeight);
   const bmiInfo = getBMIInfo(userBMI, patient?.gender || patient?.sex);
 
   const illnesses = convertStringToArray(patient?.illness);
@@ -357,11 +361,11 @@ const PatientProfile = ({ patient: partialPatient, onBack }) => {
               <Grid container spacing={2} sx={{ mb: 2, textAlign: 'center' }}>
                 <Grid item xs={4}>
                   <Typography variant="caption" color="textSecondary">Height</Typography>
-                  <Typography variant="body1" fontWeight="bold">{patient?.height || 'N/A'} cm</Typography>
+                  <Typography variant="body1" fontWeight="bold">{displayHeight || 'N/A'} cm</Typography>
                 </Grid>
                 <Grid item xs={4}>
                   <Typography variant="caption" color="textSecondary">Weight</Typography>
-                  <Typography variant="body1" fontWeight="bold">{patient?.weight || 'N/A'} kg</Typography>
+                  <Typography variant="body1" fontWeight="bold">{displayWeight || 'N/A'} kg</Typography>
                 </Grid>
                 <Grid item xs={4}>
                   <Typography variant="caption" color="textSecondary">BMI</Typography>
@@ -382,12 +386,12 @@ const PatientProfile = ({ patient: partialPatient, onBack }) => {
                   <Typography variant="body2">{formatVitalSign(latestVitalSigns.blood_pressure, 'mmHg')}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="textSecondary">Pulse Rate:</Typography>
+                  <Typography variant="body2" color="textSecondary">Heart Rate:</Typography>
                   <Typography variant="body2">{formatVitalSign(latestVitalSigns.heart_rate, 'bpm')}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="textSecondary">Oxygen Sat:</Typography>
-                  <Typography variant="body2">{formatVitalSign(latestVitalSigns.oxygen_saturation, '%')}</Typography>
+                  <Typography variant="body2" color="textSecondary">Respiratory Rate:</Typography>
+                  <Typography variant="body2">{formatVitalSign(latestVitalSigns.respiratory_rate, '/min')}</Typography>
                 </Box>
               </Stack>
             </CardContent>

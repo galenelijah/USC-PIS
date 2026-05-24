@@ -205,8 +205,10 @@ const PatientMedicalDashboard = () => {
     );
   }
 
+  const displayHeight = latestVitalSigns.height || currentUser.height;
+  const displayWeight = latestVitalSigns.weight || currentUser.weight;
   const userAge = calculateAge(currentUser.birthday);
-  const userBMI = calculateBMI(currentUser.weight, currentUser.height);
+  const userBMI = latestVitalSigns.bmi || calculateBMI(displayWeight, displayHeight);
   const bmiInfo = getBMIInfo(userBMI, currentUser.sex);
 
   // Parse medical information arrays using imported utility
@@ -330,16 +332,12 @@ const PatientMedicalDashboard = () => {
                   <Typography variant="body2">{formatVitalSign(latestVitalSigns.temperature, '°C')}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2">Pulse Rate:</Typography>
-                  <Typography variant="body2">{formatVitalSign(latestVitalSigns.heart_rate, 'bpm')}</Typography>
+                  <Typography variant="body2">Heart Rate:</Typography>
+                  <Typography variant="body2">{formatVitalSign(latestVitalSigns.heart_rate || latestVitalSigns.pulse_rate, 'bpm')}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2">Blood Pressure:</Typography>
                   <Typography variant="body2">{formatVitalSign(latestVitalSigns.blood_pressure, 'mmHg')}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2">Oxygen Saturation:</Typography>
-                  <Typography variant="body2">{formatVitalSign(latestVitalSigns.oxygen_saturation, '%')}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2">Respiratory Rate:</Typography>

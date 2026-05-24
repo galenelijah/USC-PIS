@@ -1200,6 +1200,7 @@ const Dental = () => {
                         type="number"
                         value={formData.cost || ''}
                         onChange={(e) => handleInputChange('cost', e.target.value ? parseFloat(e.target.value) : null)}
+                        inputProps={{ min: 0, step: 'any' }}
                         InputProps={{
                           startAdornment: <InputAdornment position="start">₱</InputAdornment>,
                         }}

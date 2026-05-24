@@ -157,22 +157,57 @@ export const registerSchema = yup.object().shape({
 
 // Medical Record schema
 export const medicalRecordSchema = yup.object().shape({
-  patient: commonValidation.requiredText('Patient selection'),
-  visit_date: yup.date().required('Visit date is required').nullable().typeError('Invalid date format'),
-  concern: commonValidation.requiredText("Student's concern"),
-  diagnosis: commonValidation.requiredText('Diagnosis'),
-  treatment: yup.string().nullable(),
-  notes: yup.string().nullable(),
+patient: commonValidation.requiredText('Patient selection'),
+visit_date: yup.date().required('Visit date is required').nullable().typeError('Invalid date format'),
+concern: commonValidation.requiredText("Student's concern"),
+diagnosis: commonValidation.requiredText('Diagnosis'),
+treatment: yup.string().nullable(),
+notes: yup.string().nullable(),
   vital_signs: yup.object().shape({
-    temperature: yup.number().typeError('Temperature must be a number').nullable().transform((value, originalValue) => originalValue === '' ? null : value),
-    blood_pressure: yup.string().nullable(),
-    pulse_rate: yup.number().typeError('Pulse rate must be a number').nullable().transform((value, originalValue) => originalValue === '' ? null : value),
-    respiratory_rate: yup.number().typeError('Respiratory rate must be a number').nullable().transform((value, originalValue) => originalValue === '' ? null : value),
-    height: yup.number().typeError('Height must be a number').nullable().transform((value, originalValue) => originalValue === '' ? null : value),
-    weight: yup.number().typeError('Weight must be a number').nullable().transform((value, originalValue) => originalValue === '' ? null : value),
-    bmi: yup.number().typeError('BMI must be a number').nullable().transform((value, originalValue) => originalValue === '' ? null : value),
-  }),
-  physical_examination: yup.object().shape({
+    temperature: yup.number()
+      .typeError('Temperature must be a number')
+      .min(32, 'Temperature is too low (min 32°C)')
+      .max(42, 'Temperature is too high (max 42°C)')
+      .nullable()
+      .transform((value, originalValue) => originalValue === '' ? null : value),
+    blood_pressure: yup.string()
+      .nullable()
+      .matches(/^\d{2,3}\/\d{2,3}$/, 'Blood pressure must be in format like 120/80')
+      .test('bp-range', 'Blood pressure values out of range', function(value) {
+        if (!value) return true;
+        const [sys, dia] = value.split('/').map(Number);
+        return sys >= 60 && sys <= 260 && dia >= 30 && dia <= 150;
+      }),
+    heart_rate: yup.number()
+      .typeError('Heart rate must be a number')
+      .min(30, 'Heart rate is too low (min 30)')
+      .max(220, 'Heart rate is too high (max 220)')
+      .nullable()
+      .transform((value, originalValue) => originalValue === '' ? null : value),
+    respiratory_rate: yup.number()
+      .typeError('Respiratory rate must be a number')
+      .min(6, 'Respiratory rate is too low (min 6)')
+      .max(50, 'Respiratory rate is too high (max 50)')
+      .nullable()
+      .transform((value, originalValue) => originalValue === '' ? null : value),
+    height: yup.number()    .typeError('Height must be a number')
+    .min(50, 'Height is too short (min 50cm)')
+    .max(250, 'Height is too tall (max 250cm)')
+    .nullable()
+    .transform((value, originalValue) => originalValue === '' ? null : value),
+  weight: yup.number()
+    .typeError('Weight must be a number')
+    .min(10, 'Weight is too light (min 10kg)')
+    .max(500, 'Weight is too heavy (max 500kg)')
+    .nullable()
+    .transform((value, originalValue) => originalValue === '' ? null : value),
+  bmi: yup.number()
+    .typeError('BMI must be a number')
+    .positive('BMI must be a positive number')
+    .max(100, 'BMI is too high')
+    .nullable()
+    .transform((value, originalValue) => originalValue === '' ? null : value),
+  }),  physical_examination: yup.object().shape({
     general_appearance: yup.string().nullable(),
     skin: yup.string().nullable(),
     heent: yup.string().nullable(),

@@ -38,6 +38,40 @@ def encrypt_medical_record_fields(sender, instance, **kwargs):
             cursor.execute("UPDATE patients_medicalrecord SET diagnosis_enc = pgp_sym_encrypt(%s, %s)::bytea WHERE id=%s", [instance.diagnosis, key, instance.id])
 
 @receiver(post_save, sender=MedicalRecord)
+def update_patient_profile_vitals(sender, instance, created, **kwargs):
+    """Update patient's user profile with latest weight, height, and BMI from medical records."""
+    if instance.patient and hasattr(instance.patient, 'user') and instance.patient.user:
+        vitals = instance.vital_signs
+        if vitals and isinstance(vitals, dict):
+            user = instance.patient.user
+            updated = False
+            
+            # Check if this is the most recent medical record
+            latest_record = MedicalRecord.objects.filter(patient=instance.patient).order_by('-visit_date').first()
+            if latest_record and latest_record.id != instance.id:
+                # If we are saving an older record, don't update the profile
+                return
+
+            # Update weight if present
+            if 'weight' in vitals and vitals['weight']:
+                user.weight = str(vitals['weight'])
+                updated = True
+                
+            # Update height if present
+            if 'height' in vitals and vitals['height']:
+                user.height = str(vitals['height'])
+                updated = True
+                
+            # Update BMI if present
+            if 'bmi' in vitals and vitals['bmi']:
+                user.bmi = str(vitals['bmi'])
+                updated = True
+            
+            if updated:
+                user.save(update_fields=['weight', 'height', 'bmi'])
+                logger.info(f"Updated profile vitals for patient {instance.patient.id}")
+
+@receiver(post_save, sender=MedicalRecord)
 def schedule_feedback_email_medical(sender, instance, created, **kwargs):
     """Immediately send feedback email and in-app notification for medical visits."""
     if created and instance.patient and hasattr(instance.patient, 'user') and instance.patient.user:

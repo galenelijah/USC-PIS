@@ -329,19 +329,27 @@ class MedicalRecordValidator:
             date_errors = MedicalRecordValidator._validate_visit_date(visit_date)
             errors.extend(date_errors)
             
-            # Normalize the date in-place in the data dict to avoid type errors later
+            # Normalize the date if possible
             if not date_errors:
                 try:
+                    normalized_date = None
                     if isinstance(visit_date, str):
                         dt = date_parser.parse(visit_date)
                         if timezone.is_naive(dt):
                             dt = timezone.make_aware(dt)
-                        data['visit_date'] = dt
+                        normalized_date = dt
                     elif isinstance(visit_date, datetime.datetime):
                         if timezone.is_naive(visit_date):
-                            data['visit_date'] = timezone.make_aware(visit_date)
+                            normalized_date = timezone.make_aware(visit_date)
                     elif isinstance(visit_date, datetime.date):
-                        data['visit_date'] = timezone.make_aware(datetime.datetime.combine(visit_date, datetime.time.min))
+                        normalized_date = timezone.make_aware(datetime.datetime.combine(visit_date, datetime.time.min))
+                    
+                    if normalized_date and hasattr(data, '__setitem__'):
+                        try:
+                            data['visit_date'] = normalized_date
+                        except (AttributeError, TypeError):
+                            # Handle immutable QueryDict or other immutable types
+                            pass
                 except Exception as e:
                     logger.error(f"Normalization error: {e}")
         else:

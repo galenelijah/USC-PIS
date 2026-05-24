@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 class PatientViewSet(viewsets.ModelViewSet):
     serializer_class = PatientSerializer
-    permission_classes = [IsStaffUser] # Restrict access to staff only
+    permission_classes = [MedicalRecordPermission] # Allow students to view their own profile via SAFE methods
     pagination_class = None  # Disable pagination to return data as array
     
     def get_queryset(self):

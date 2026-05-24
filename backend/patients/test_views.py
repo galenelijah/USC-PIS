@@ -203,6 +203,7 @@ class MedicalRecordViewSetTest(TestCase):
         record_data = {
             'patient': self.patient.id,
             'visit_date': '2023-12-01',
+            'concern': 'Constant headaches',
             'diagnosis': 'Headache',
             'treatment': 'Aspirin',
             'notes': 'Patient feeling better'
@@ -220,6 +221,7 @@ class MedicalRecordViewSetTest(TestCase):
         record_data = {
             'patient': self.patient.id,
             'visit_date': '2023-12-01',
+            'concern': 'Should not matter',
             'diagnosis': 'Headache',
             'treatment': 'Aspirin'
         }

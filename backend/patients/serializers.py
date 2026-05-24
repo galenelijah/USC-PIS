@@ -22,6 +22,49 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
     def get_record_type(self, obj):
         return 'MEDICAL'
 
+    def validate_vital_signs(self, value):
+        """Validate vital signs content with realistic clinical ranges"""
+        if not value or not isinstance(value, dict):
+            return value
+            
+        ranges = {
+            'temperature': (32.0, 42.0),
+            'respiratory_rate': (6, 50),
+            'height': (50, 250),
+            'weight': (10, 500),
+            'bmi': (5, 100),
+            'heart_rate': (30, 220)
+        }
+        
+        for field, (min_val, max_val) in ranges.items():
+            if field in value and value[field] is not None and value[field] != '':
+                try:
+                    val = float(value[field])
+                    if val < min_val:
+                        raise serializers.ValidationError(f"{field.replace('_', ' ').title()} is too low (min {min_val}).")
+                    if val > max_val:
+                        raise serializers.ValidationError(f"{field.replace('_', ' ').title()} is too high (max {max_val}).")
+                except (ValueError, TypeError):
+                    pass
+        
+        # Blood pressure regex and range validation
+        if 'blood_pressure' in value and value['blood_pressure']:
+            import re
+            bp_str = str(value['blood_pressure'])
+            if not re.match(r'^\d{2,3}/\d{2,3}$', bp_str):
+                raise serializers.ValidationError("Blood pressure must be in format like 120/80.")
+            
+            try:
+                sys, dia = map(int, bp_str.split('/'))
+                if sys < 60 or sys > 260:
+                    raise serializers.ValidationError("Systolic blood pressure must be between 60 and 260.")
+                if dia < 30 or dia > 150:
+                    raise serializers.ValidationError("Diastolic blood pressure must be between 30 and 150.")
+            except (ValueError, TypeError):
+                raise serializers.ValidationError("Invalid blood pressure values.")
+                
+        return value
+
 class DentalRecordSerializer(serializers.ModelSerializer):
     patient_name = serializers.SerializerMethodField()
     procedure_performed_display = serializers.CharField(source='get_procedure_performed_display', read_only=True)
@@ -64,6 +107,12 @@ class DentalRecordSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError(
                         f"Invalid tooth number format: {num}. Must be numeric."
                     )
+        return value
+
+    def validate_cost(self, value):
+        """Validate cost is not negative"""
+        if value is not None and value < 0:
+            raise serializers.ValidationError("Cost cannot be negative.")
         return value
 
     def validate_pain_level(self, value):

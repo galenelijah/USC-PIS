@@ -1105,11 +1105,11 @@ const MedicalHistoryPage = () => {
                                 />
                               </ListItem>
                             )}
-                            {record.vital_signs.heart_rate && (
+                            {(record.vital_signs.heart_rate || record.vital_signs.pulse_rate) && (
                               <ListItem>
                                 <ListItemText 
                                   primary="Heart Rate" 
-                                  secondary={`${record.vital_signs.heart_rate} bpm`} 
+                                  secondary={`${record.vital_signs.heart_rate || record.vital_signs.pulse_rate} bpm`} 
                                 />
                               </ListItem>
                             )}
@@ -1118,14 +1118,6 @@ const MedicalHistoryPage = () => {
                                 <ListItemText 
                                   primary="Respiratory Rate" 
                                   secondary={`${record.vital_signs.respiratory_rate} breaths/min`} 
-                                />
-                              </ListItem>
-                            )}
-                            {record.vital_signs.oxygen_saturation && (
-                              <ListItem>
-                                <ListItemText 
-                                  primary="Oxygen Saturation" 
-                                  secondary={`${record.vital_signs.oxygen_saturation}%`} 
                                 />
                               </ListItem>
                             )}

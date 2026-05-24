@@ -176,8 +176,9 @@ const validationSchema = Yup.object().shape({
   course: Yup.string().required('Course is required'),
   year_level: Yup.string().required('Year Level is required'),
   school: Yup.string().nullable().notRequired(),
-  weight: Yup.string().nullable().notRequired(),
-  height: Yup.string().nullable().notRequired(),
+  weight: commonValidation.positiveNumber('Weight'),
+  height: commonValidation.positiveNumber('Height'),
+  bmi: Yup.string().nullable().notRequired(),
   father_name: Yup.string().nullable().notRequired(),
   mother_name: Yup.string().nullable().notRequired(),
   emergency_contact: Yup.string().nullable().notRequired(),
@@ -222,12 +223,31 @@ const EditProfile = () => {
       school: '',
       weight: '',
       height: '',
+      bmi: '',
       father_name: '',
       mother_name: '',
       emergency_contact: '',
       emergency_contact_number: '',
     }
   });
+
+  const watchedHeight = watch('height');
+  const watchedWeight = watch('weight');
+  const watchedBMI = watch('bmi');
+
+  useEffect(() => {
+    const h = parseFloat(watchedHeight);
+    const w = parseFloat(watchedWeight);
+    if (h > 0 && w > 0) {
+      const hInMeters = h / 100;
+      const calculatedBMI = (w / (hInMeters * hInMeters)).toFixed(1);
+      if (watchedBMI !== calculatedBMI) {
+        setValue('bmi', calculatedBMI, { shouldValidate: true });
+      }
+    } else if (watchedBMI !== '' && watchedBMI !== undefined) {
+      setValue('bmi', '');
+    }
+  }, [watchedHeight, watchedWeight, watchedBMI, setValue]);
 
   // Medical information state
   const [selectedIllnesses, setSelectedIllnesses] = useState([]);
@@ -266,6 +286,7 @@ const EditProfile = () => {
       school: userData.school || '',
       weight: userData.weight || '',
       height: userData.height || '',
+      bmi: userData.bmi || '',
       father_name: userData.father_name || '',
       mother_name: userData.mother_name || '',
       emergency_contact: userData.emergency_contact || '',
@@ -628,26 +649,42 @@ const EditProfile = () => {
                       helperText={errors?.school?.message}
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid item xs={12} sm={4}>
                     <MyTextField
                       key={`${stepKey}-weight`}
                       label="Weight (kg)"
                       name="weight"
                       control={control}
                       type="number"
+                      inputProps={{ min: 1, step: 'any' }}
                       error={!!errors?.weight}
                       helperText={errors?.weight?.message}
+                      hint="Required for BMI"
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid item xs={12} sm={4}>
                     <MyTextField
                       key={`${stepKey}-height`}
                       label="Height (cm)"
                       name="height"
                       control={control}
                       type="number"
+                      inputProps={{ min: 1, step: 'any' }}
                       error={!!errors?.height}
                       helperText={errors?.height?.message}
+                      hint="Required for BMI"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <MyTextField
+                      key={`${stepKey}-bmi`}
+                      label="BMI"
+                      name="bmi"
+                      control={control}
+                      type="number"
+                      disabled
+                      error={!!errors?.bmi}
+                      helperText={errors?.bmi?.message || "Automatically calculated"}
                     />
                   </Grid>
                 </Grid>
