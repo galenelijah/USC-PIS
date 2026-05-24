@@ -1064,20 +1064,19 @@ const Dental = () => {
                         multiline
                         rows={3}
                         required
-                        placeholder="Optional for consultations"
+                        placeholder="Clinical findings and diagnosis..."
                       />
+                    </Grid>
                     <Grid item xs={12}>
                       <TextField
                         fullWidth
-                        label="Treatment Plan"
-                        value={formData.treatment_plan}
-                        onChange={(e) => handleInputChange('treatment_plan', e.target.value)}
+                        label="Treatment Performed"
+                        value={formData.treatment_performed}
+                        onChange={(e) => handleInputChange('treatment_performed', e.target.value)}
                         multiline
                         rows={3}
-                        required={false}
-                      />
-                    </Grid>
-                        placeholder="Optional for consultations"
+                        required
+                        placeholder="Procedures, medications, and care provided during this visit..."
                       />
                     </Grid>
                   </Grid>
@@ -1191,7 +1190,6 @@ const Dental = () => {
                         rows={3}
                         required={false}
                       />
-                    </Grid>
                     </Grid>
                     <Grid item xs={12}>
                       <TextField
