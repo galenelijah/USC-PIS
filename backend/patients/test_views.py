@@ -82,15 +82,13 @@ class PatientViewSetTest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 2)
         
-    def test_student_can_only_view_own_patient_record(self):
-        """Test that student can only view their own patient record"""
+    def test_student_cannot_view_patient_list(self):
+        """Test that student is blocked from viewing patient list (RBAC check)"""
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.student_token.key}')
         
         response = self.client.get('/api/patients/patients/')
         
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]['email'], 'student@usc.edu.ph')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         
     def test_admin_can_create_patient(self):
         """Test that admin can create a new patient"""
