@@ -15,13 +15,21 @@ const saveToken = (token) => {
   }
 };
 
+// Configure global axios defaults for CSRF
+axios.defaults.xsrfCookieName = 'csrftoken';
+axios.defaults.xsrfHeaderName = 'X-CSRFToken';
+axios.defaults.withCredentials = true;
+
 export const api = axios.create({
   baseURL: '/api', // Always use relative path!
   headers: {
     'Content-Type': 'application/json',
   },
   // Add withCredentials for CORS
-  withCredentials: true
+  withCredentials: true,
+  // Configure CSRF protection for Django
+  xsrfCookieName: 'csrftoken',
+  xsrfHeaderName: 'X-CSRFToken',
 });
 
 // Add request interceptor for authentication
@@ -488,20 +496,8 @@ export const authService = {
   // Email Administration methods
   getEmailSystemStatus: async () => {
     try {
-      const token = localStorage.getItem('Token');
-      const response = await fetch('/api/utils/email/status/', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
+      const response = await api.get('/utils/email/status/');
+      return response.data;
     } catch (error) {
       handleApiError(error);
       throw error;
@@ -510,20 +506,8 @@ export const authService = {
 
   getEmailStats: async () => {
     try {
-      const token = localStorage.getItem('Token');
-      const response = await fetch('/api/utils/email/stats/', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
+      const response = await api.get('/utils/email/stats/');
+      return response.data;
     } catch (error) {
       handleApiError(error);
       throw error;
@@ -582,27 +566,13 @@ export const authService = {
 
   testEmailSystem: async (testData) => {
     try {
-      const token = localStorage.getItem('Token');
       // Map dryRun to dry_run for backend
       const payload = {
         ...testData,
         dry_run: testData.dryRun
       };
-      const response = await fetch('/api/utils/email/test/', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return { data: data.data || data };
+      const response = await api.post('/utils/email/test/', payload);
+      return { data: response.data.data || response.data };
     } catch (error) {
       handleApiError(error);
       throw error;
@@ -611,22 +581,8 @@ export const authService = {
 
   testNotificationSystem: async (notificationData) => {
     try {
-      const token = localStorage.getItem('Token');
-      const response = await fetch('/api/utils/notification/test/', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(notificationData),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return { data: data.data || data };
+      const response = await api.post('/utils/notification/test/', notificationData);
+      return { data: response.data.data || response.data };
     } catch (error) {
       handleApiError(error);
       throw error;
@@ -635,27 +591,13 @@ export const authService = {
 
   sendFeedbackEmails: async (feedbackData) => {
     try {
-      const token = localStorage.getItem('Token');
       // Map dryRun to dry_run for backend
       const payload = {
         ...feedbackData,
         dry_run: feedbackData.dryRun
       };
-      const response = await fetch('/api/utils/email/feedback/send/', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return { data: data.data || data };
+      const response = await api.post('/utils/email/feedback/send/', payload);
+      return { data: response.data.data || response.data };
     } catch (error) {
       handleApiError(error);
       throw error;
@@ -664,7 +606,6 @@ export const authService = {
 
   sendHealthAlert: async (alertData) => {
     try {
-      const token = localStorage.getItem('Token');
       // Map alertLevel to alert_level and dryRun to dry_run for backend
       const payload = {
         ...alertData,
@@ -672,21 +613,8 @@ export const authService = {
         force_alert: alertData.forceAlert,
         dry_run: alertData.dryRun
       };
-      const response = await fetch('/api/utils/email/health-alert/send/', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return { data: data.data || data };
+      const response = await api.post('/utils/email/health-alert/send/', payload);
+      return { data: response.data.data || response.data };
     } catch (error) {
       handleApiError(error);
       throw error;
@@ -696,26 +624,13 @@ export const authService = {
   // Backup Upload and Restore methods
   uploadBackup: async (file, backupType, description = '') => {
     try {
-      const token = localStorage.getItem('Token');
       const formData = new FormData();
       formData.append('backup_file', file);
       formData.append('backup_type', backupType);
       formData.append('description', description);
 
-      const response = await fetch('/api/utils/backup/upload/', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${token}`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
+      const response = await api.post('/utils/backup/upload/', formData);
+      return response.data;
     } catch (error) {
       handleApiError(error);
       throw error;

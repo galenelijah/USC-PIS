@@ -35,7 +35,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 
 const validationSchema = Yup.object().shape({
     password: Yup.string()
-        .required('New Password is required')
+        .required('New Password * is required')
         .min(8, 'Password must be at least 8 characters long')
         .matches(
             /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>#^])[A-Za-z\d!@#$%^&*(),.?":{}|<>#^]/,
@@ -174,7 +174,7 @@ const PasswordReset = () => {
                                             }} 
                                         />
                                         <Typography variant="h4" fontWeight="bold" color="primary.main" gutterBottom>
-                                            New Password
+                                            New Password *
                                         </Typography>
                                         <Typography variant="body2" color="text.secondary">
                                             Set a strong password to protect your records
@@ -192,12 +192,12 @@ const PasswordReset = () => {
                                     )}
 
                                     <Stack spacing={3}>
-                                        {/* New Password */}
+                                        {/* New Password * */}
                                         <Box>
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                                                 <LockIcon fontSize="small" color="primary" />
                                                 <Typography variant="body2" fontWeight="medium">
-                                                    New Password
+                                                    New Password *
                                                 </Typography>
                                             </Box>
                                             <Controller
@@ -235,7 +235,7 @@ const PasswordReset = () => {
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                                                 <CheckIcon fontSize="small" color="primary" />
                                                 <Typography variant="body2" fontWeight="medium">
-                                                    Confirm New Password
+                                                    Confirm New Password *
                                                 </Typography>
                                             </Box>
                                             <Controller

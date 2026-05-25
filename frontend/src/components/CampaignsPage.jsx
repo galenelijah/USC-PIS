@@ -645,7 +645,7 @@ const CampaignsPage = () => {
               <InputLabel>Campaign Type</InputLabel>
               <Select
                 value={filterType}
-                label="Campaign Type"
+                label="Campaign Type *"
                 onChange={(e) => setFilterType(e.target.value)}
               >
                 <MenuItem value="ALL">All Types</MenuItem>
@@ -1010,20 +1010,20 @@ const CampaignsPage = () => {
                 </Card>
               </Grid>
             );
-              });
-            } catch (error) {
-              console.error('Error rendering campaigns:', error);
-              return (
-                <Grid item xs={12}>
-                  <Alert severity="error">
-                    Error loading campaigns. Please refresh the page.
-                  </Alert>
-                </Grid>
-              );
-            }
-          })()}
-        </Grid>
-      )}
+          });
+        } catch (error) {
+          console.error('Error rendering campaigns:', error);
+          return (
+            <Grid item xs={12}>
+              <Alert severity="error">
+                Error loading campaigns. Please refresh the page.
+              </Alert>
+            </Grid>
+          );
+        }
+      })()}
+    </Grid>
+  )}
 
       {/* Action Menu */}
       <Menu
@@ -1097,7 +1097,7 @@ const CampaignsPage = () => {
                 <InputLabel>Campaign Type</InputLabel>
                 <Select
                   value={campaignForm.campaign_type}
-                  label="Campaign Type"
+                  label="Campaign Type *"
                   onChange={(e) => { setCampaignForm({...campaignForm, campaign_type: e.target.value}); setFieldErrors(prev => ({ ...prev, campaign_type: undefined })); }}
                 >
                   {CAMPAIGN_TYPES.map(type => (
@@ -1126,7 +1126,7 @@ const CampaignsPage = () => {
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>Campaign Description<InfoTooltip title="Required: Brief description of the campaign" /></Box>}
+                label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>Campaign Description *<InfoTooltip title="Required: Brief description of the campaign" /></Box>}
                 value={campaignForm.description}
                 onChange={(e) => { setCampaignForm({...campaignForm, description: e.target.value}); setFieldErrors(prev => ({ ...prev, description: undefined })); }}
                 placeholder="Detailed description of the campaign..."
@@ -1149,7 +1149,7 @@ const CampaignsPage = () => {
                 <InputLabel>Status</InputLabel>
                 <Select
                   value={campaignForm.status}
-                  label="Status"
+                  label="Status *"
                   onChange={(e) => setCampaignForm({...campaignForm, status: e.target.value})}
                 >
                   {STATUS_CHOICES.map(status => (
@@ -1164,7 +1164,7 @@ const CampaignsPage = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>Start Date<InfoTooltip title="Required: Must be before End Date" /></Box>}
+                label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>Start Date *<InfoTooltip title="Required: Must be before End Date *" /></Box>}
                 type="date"
                 value={campaignForm.start_date}
                 onChange={(e) => { setCampaignForm({...campaignForm, start_date: e.target.value}); setFieldErrors(prev => ({ ...prev, start_date: undefined })); }}
@@ -1177,7 +1177,7 @@ const CampaignsPage = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>End Date<InfoTooltip title="Required: Must be after Start Date" /></Box>}
+                label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>End Date *<InfoTooltip title="Required: Must be after Start Date *" /></Box>}
                 type="date"
                 value={campaignForm.end_date}
                 onChange={(e) => { setCampaignForm({...campaignForm, end_date: e.target.value}); setFieldErrors(prev => ({ ...prev, end_date: undefined })); }}
@@ -1435,7 +1435,7 @@ const CampaignsPage = () => {
             <Grid item xs={12} md={8}>
               <TextField
                 fullWidth
-                label="Campaign Title"
+                label="Campaign Title *"
                 value={campaignForm.title}
                 onChange={(e) => { setCampaignForm({...campaignForm, title: e.target.value}); setFieldErrors(prev => ({ ...prev, title: undefined })); }}
                 required
@@ -1448,7 +1448,7 @@ const CampaignsPage = () => {
                 <InputLabel>Campaign Type</InputLabel>
                 <Select
                   value={campaignForm.campaign_type}
-                  label="Campaign Type"
+                  label="Campaign Type *"
                   onChange={(e) => { setCampaignForm({...campaignForm, campaign_type: e.target.value}); setFieldErrors(prev => ({ ...prev, campaign_type: undefined })); }}
                 >
                   {CAMPAIGN_TYPES.map(type => (
@@ -1477,7 +1477,7 @@ const CampaignsPage = () => {
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Campaign Description"
+                label="Campaign Description *"
                 value={campaignForm.description}
                 onChange={(e) => { setCampaignForm({...campaignForm, description: e.target.value}); setFieldErrors(prev => ({ ...prev, description: undefined })); }}
                 placeholder="Detailed description of the campaign..."
@@ -1500,7 +1500,7 @@ const CampaignsPage = () => {
                 <InputLabel>Status</InputLabel>
                 <Select
                   value={campaignForm.status}
-                  label="Status"
+                  label="Status *"
                   onChange={(e) => setCampaignForm({...campaignForm, status: e.target.value})}
                 >
                   {STATUS_CHOICES.map(status => (
@@ -1515,7 +1515,7 @@ const CampaignsPage = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Start Date"
+                label="Start Date *"
                 type="date"
                 value={campaignForm.start_date}
                 onChange={(e) => { setCampaignForm({...campaignForm, start_date: e.target.value}); setFieldErrors(prev => ({ ...prev, start_date: undefined })); }}
@@ -1528,7 +1528,7 @@ const CampaignsPage = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="End Date"
+                label="End Date *"
                 type="date"
                 value={campaignForm.end_date}
                 onChange={(e) => { setCampaignForm({...campaignForm, end_date: e.target.value}); setFieldErrors(prev => ({ ...prev, end_date: undefined })); }}

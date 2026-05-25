@@ -460,9 +460,9 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 # CSRF settings
-CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = 'Lax'
-CSRF_USE_SESSIONS = True
+CSRF_USE_SESSIONS = False # Standard cookie-based CSRF is easier for SPAs
 
 # Password reset token expiry (seconds). Match email copy: 24 hours by default.
 PASSWORD_RESET_TIMEOUT = int(os.environ.get('PASSWORD_RESET_TIMEOUT', 60 * 60 * 24))

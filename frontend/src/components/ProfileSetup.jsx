@@ -431,7 +431,7 @@ const ProfileSetup = () => {
             <Grid item xs={12} sm={6}>
               <MyTextField
                 key={`${stepKey}-first_name`}
-                label="First Name"
+                label="First Name *"
                 name="first_name"
                 control={control}
                 required
@@ -443,7 +443,7 @@ const ProfileSetup = () => {
             <Grid item xs={12} sm={6}>
               <MyTextField
                 key={`${stepKey}-last_name`}
-                label="Last Name"
+                label="Last Name *"
                 name="last_name"
                 control={control}
                 required
@@ -466,7 +466,7 @@ const ProfileSetup = () => {
             <Grid item xs={12} sm={6}>
               <MySelector
                 key={`${stepKey}-sex`}
-                label="Sex"
+                label="Sex *"
                 name="sex"
                 control={control}
                 options={safeSexChoices}
@@ -522,7 +522,7 @@ const ProfileSetup = () => {
             <Grid item xs={12}>
               <MyTextField
                 key={`${stepKey}-address_permanent`}
-                label="Address"
+                label="Address *"
                 name="address_permanent"
                 control={control}
                 required
@@ -549,7 +549,7 @@ const ProfileSetup = () => {
             <Grid item xs={12} sm={6}>
               <MyTextField
                 key={`${stepKey}-contact_emergency_name`}
-                label="Emergency Contact Name"
+                label="Emergency Contact Name *"
                 name="contact_emergency_name"
                 control={control}
                 required
@@ -847,7 +847,7 @@ const ProfileSetup = () => {
                   <Grid item xs={12} sm={6}>
                     <MyTextField
                       key={`${stepKey}-last_name`}
-                      label="Last Name"
+                      label="Last Name *"
                       name="last_name"
                       control={control}
                       required
@@ -870,7 +870,7 @@ const ProfileSetup = () => {
                   <Grid item xs={12} sm={6}>
                     <MySelector
                       key={`${stepKey}-sex`}
-                      label="Sex"
+                      label="Sex *"
                       name="sex"
                       control={control}
                       options={safeSexChoices}
@@ -908,7 +908,7 @@ const ProfileSetup = () => {
                   <Grid item xs={12} sm={6}>
                     <MyTextField
                       key={`${stepKey}-nationality`}
-                      label="Nationality"
+                      label="Nationality *"
                       name="nationality"
                       control={control}
                       required
@@ -950,7 +950,7 @@ const ProfileSetup = () => {
                   <Grid item xs={12}>
                     <MyTextField
                       key={`${stepKey}-address_permanent`}
-                      label="Permanent Address"
+                      label="Permanent Address *"
                       name="address_permanent"
                       control={control}
                       required
@@ -1015,7 +1015,7 @@ const ProfileSetup = () => {
                   <Grid item xs={12} sm={6}>
                     <MyTextField
                       key={`${stepKey}-contact_emergency_name`}
-                      label="Emergency Contact Name"
+                      label="Emergency Contact Name *"
                       name="contact_emergency_name"
                       control={control}
                       required
@@ -1057,7 +1057,7 @@ const ProfileSetup = () => {
                     <Grid item xs={12} sm={6}>
                       <MyTextField
                         key={`${stepKey}-id_number`}
-                        label="USC ID Number"
+                        label="USC ID Number *"
                         name="id_number"
                         control={control}
                         required
@@ -1069,7 +1069,7 @@ const ProfileSetup = () => {
                     <Grid item xs={12} sm={6}>
                       <MySelector
                         key={`${stepKey}-course`}
-                        label="Course"
+                        label="Course *"
                         name="course"
                         control={control}
                         options={safeProgramsChoices}
@@ -1082,7 +1082,7 @@ const ProfileSetup = () => {
                     <Grid item xs={12} sm={6}>
                       <MySelector
                         key={`${stepKey}-year_level`}
-                        label="Year Level"
+                        label="Year Level *"
                         name="year_level"
                         control={control}
                         options={safeYearLevelChoices}
@@ -1190,7 +1190,7 @@ const ProfileSetup = () => {
                     <Grid item xs={12} sm={6}>
                       <MyTextField
                         key={`${stepKey}-contact_emergency_name`}
-                        label="Emergency Contact Name"
+                        label="Emergency Contact Name *"
                         name="contact_emergency_name"
                         control={control}
                         error={!!errors?.contact_emergency_name}

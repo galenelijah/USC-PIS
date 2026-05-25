@@ -434,7 +434,7 @@ const EditProfile = () => {
                   <Grid item xs={12} sm={6}>
                     <MyTextField
                       key={`${stepKey}-first_name`}
-                      label="First Name"
+                      label="First Name *"
                       name="first_name"
                       control={control}
                       required
@@ -445,7 +445,7 @@ const EditProfile = () => {
                   <Grid item xs={12} sm={6}>
                     <MyTextField
                       key={`${stepKey}-last_name`}
-                      label="Last Name"
+                      label="Last Name *"
                       name="last_name"
                       control={control}
                       required
@@ -466,7 +466,7 @@ const EditProfile = () => {
                   <Grid item xs={12} sm={6}>
                     <MySelector
                       key={`${stepKey}-sex`}
-                      label="Sex"
+                      label="Sex *"
                       name="sex"
                       control={control}
                       options={safeSexChoices}
@@ -478,7 +478,7 @@ const EditProfile = () => {
                   <Grid item xs={12} sm={6}>
                     <MySelector
                       key={`${stepKey}-civil_status`}
-                      label="Civil Status"
+                      label="Civil Status *"
                       name="civil_status"
                       control={control}
                       options={safeCivilStatusChoices}
@@ -490,7 +490,7 @@ const EditProfile = () => {
                   <Grid item xs={12} sm={6}>
                     <MyDatePicker
                       key={`${stepKey}-birthday`}
-                      label="Birthday"
+                      label="Birthday *"
                       name="birthday"
                       control={control}
                       required
@@ -501,7 +501,7 @@ const EditProfile = () => {
                   <Grid item xs={12} sm={6}>
                     <MyTextField
                       key={`${stepKey}-nationality`}
-                      label="Nationality"
+                      label="Nationality *"
                       name="nationality"
                       control={control}
                       required
@@ -541,7 +541,7 @@ const EditProfile = () => {
                   <Grid item xs={12}>
                     <MyTextField
                       key={`${stepKey}-address_permanent`}
-                      label="Permanent Address"
+                      label="Permanent Address *"
                       name="address_permanent"
                       control={control}
                       required
@@ -554,7 +554,7 @@ const EditProfile = () => {
                   <Grid item xs={12}>
                     <MyTextField
                       key={`${stepKey}-address_present`}
-                      label="Present Address"
+                      label="Present Address *"
                       name="address_present"
                       control={control}
                       required
@@ -567,7 +567,7 @@ const EditProfile = () => {
                   <Grid item xs={12} sm={6}>
                     <MyTextField
                       key={`${stepKey}-phone`}
-                      label="Phone Number"
+                      label="Phone Number *"
                       name="phone"
                       control={control}
                       required
@@ -608,7 +608,7 @@ const EditProfile = () => {
                   <Grid item xs={12} sm={6}>
                     <MyTextField
                       key={`${stepKey}-id_number`}
-                      label="Student ID Number"
+                      label="Student ID Number *"
                       name="id_number"
                       control={control}
                       required
@@ -619,7 +619,7 @@ const EditProfile = () => {
                   <Grid item xs={12} sm={6}>
                     <MySelector
                       key={`${stepKey}-course`}
-                      label="Course"
+                      label="Course *"
                       name="course"
                       control={control}
                       options={safeProgramsChoices}
@@ -631,7 +631,7 @@ const EditProfile = () => {
                   <Grid item xs={12} sm={6}>
                     <MyTextField
                       key={`${stepKey}-year_level`}
-                      label="Year Level"
+                      label="Year Level *"
                       name="year_level"
                       control={control}
                       required

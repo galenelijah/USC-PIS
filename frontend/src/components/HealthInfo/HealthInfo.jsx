@@ -165,7 +165,7 @@ const HealthInfo = () => {
                     <TextField
                       {...field}
                       fullWidth
-                      label="Title"
+                      label="Title *"
                       variant="outlined"
                       required
                       error={!!errors.title}
@@ -182,7 +182,7 @@ const HealthInfo = () => {
                     <TextField
                       {...field}
                       fullWidth
-                      label="Category"
+                      label="Category *"
                       variant="outlined"
                       required
                       error={!!errors.category}
@@ -201,7 +201,7 @@ const HealthInfo = () => {
                       fullWidth
                       multiline
                       rows={4}
-                      label="Content"
+                      label="Content *"
                       variant="outlined"
                       required
                       error={!!errors.content}

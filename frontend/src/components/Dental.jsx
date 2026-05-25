@@ -1005,7 +1005,7 @@ const Dental = () => {
                     </Grid>
                     <Grid item xs={12} sm={6}>
                       <DateTimePicker
-                        label="Visit Date & Time"
+                        label="Visit Date & Time *"
                         value={dayjs(formData.visit_date)}
                         onChange={(date) => handleInputChange('visit_date', dayjs(date).format())}
                         slotProps={{ textField: { fullWidth: true, required: true } }}
@@ -1014,7 +1014,7 @@ const Dental = () => {
                     <Grid item xs={12}>
                       <TextField
                         fullWidth
-                        label="Concern / Reason for Visit"
+                        label="Concern / Reason for Visit *"
                         value={formData.concern}
                         onChange={(e) => handleInputChange('concern', e.target.value)}
                         multiline
@@ -1030,10 +1030,10 @@ const Dental = () => {
                     </Grid>
                     <Grid item xs={12} sm={6}>
                       <FormControl fullWidth required>
-                        <InputLabel>Procedure</InputLabel>
+                        <InputLabel>Procedure *</InputLabel>
                         <Select
                           value={formData.procedure_performed}
-                          label="Procedure"
+                          label="Procedure *"
                           onChange={(e) => handleInputChange('procedure_performed', e.target.value)}
                         >
                           {procedures.map((proc) => (
@@ -1058,7 +1058,7 @@ const Dental = () => {
                     <Grid item xs={12}>
                       <TextField
                         fullWidth
-                        label="Diagnosis"
+                        label="Diagnosis *"
                         value={formData.diagnosis}
                         onChange={(e) => handleInputChange('diagnosis', e.target.value)}
                         multiline
@@ -1070,7 +1070,7 @@ const Dental = () => {
                     <Grid item xs={12}>
                       <TextField
                         fullWidth
-                        label="Treatment Performed"
+                        label="Treatment Performed *"
                         value={formData.treatment_performed}
                         onChange={(e) => handleInputChange('treatment_performed', e.target.value)}
                         multiline

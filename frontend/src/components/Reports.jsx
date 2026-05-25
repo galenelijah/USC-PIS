@@ -1353,7 +1353,7 @@ const Reports = () => {
                   <Grid item xs={12}>
                     <TextField
                       fullWidth
-                      label="Report Title"
+                      label="Report Title *"
                       value={reportForm.title}
                       onChange={(e) => setReportForm(prev => ({ ...prev, title: e.target.value }))}
                     />
@@ -1361,7 +1361,7 @@ const Reports = () => {
                   
                   <Grid item xs={12} sm={6}>
                     <DatePicker
-                      label="Start Date"
+                      label="Start Date *"
                       value={reportForm.date_range_start}
                       onChange={(newValue) => setReportForm(prev => ({ ...prev, date_range_start: newValue }))}
                       renderInput={(params) => <TextField {...params} fullWidth />}
@@ -1370,7 +1370,7 @@ const Reports = () => {
                   
                   <Grid item xs={12} sm={6}>
                     <DatePicker
-                      label="End Date"
+                      label="End Date *"
                       value={reportForm.date_range_end}
                       onChange={(newValue) => setReportForm(prev => ({ ...prev, date_range_end: newValue }))}
                       renderInput={(params) => <TextField {...params} fullWidth />}
@@ -1390,7 +1390,7 @@ const Reports = () => {
                       <Select
                         labelId="export-format-label"
                         value={reportForm.export_format}
-                        label="Export Format"
+                        label="Export Format *"
                         onChange={(e) => setReportForm(prev => ({ ...prev, export_format: e.target.value }))}
                       >
                         <MenuItem value="PDF">PDF Document</MenuItem>

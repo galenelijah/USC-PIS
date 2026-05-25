@@ -118,17 +118,16 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave, readOn
                 control={control}
                 render={({ field }) => (
                   <TextField
-                    {...field}
-                    select
-                    label="Patient"
-                    required
-                    fullWidth
-                    margin="dense"
-                    error={!!errors.patient}
-                    helperText={errors.patient?.message}
-                    disabled={isEditMode || patientsLoading || readOnly}
-                  >
-                    {patientsLoading ? (
+                  {...field}
+                  select
+                  label="Patient *"
+                  required
+                  fullWidth
+                  margin="dense"
+                  error={!!errors.patient}
+                  helperText={errors.patient?.message}
+                  disabled={isEditMode || patientsLoading || readOnly}
+                  >                    {patientsLoading ? (
                       <MenuItem value="" disabled>Loading patients...</MenuItem>
                     ) : patients.length === 0 ? (
                       <MenuItem value="" disabled>No patients found</MenuItem>
@@ -150,7 +149,7 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave, readOn
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Date and Time"
+                    label="Date and Time *"
                     required
                     type="datetime-local"
                     fullWidth
@@ -172,7 +171,7 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave, readOn
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Chief Complaints"
+                    label="Chief Complaints *"
                     required
                     fullWidth
                     multiline
@@ -192,7 +191,7 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave, readOn
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Treatment Plan"
+                    label="Treatment Plan *"
                     required
                     fullWidth
                     multiline
