@@ -16,9 +16,7 @@ import {
 import {
   Notifications as NotificationsIcon,
   Person as PersonIcon,
-  Settings as SettingsIcon,
   ExitToApp as LogoutIcon,
-  Help as HelpIcon,
   Menu as MenuIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -107,12 +105,6 @@ const Header = ({ handleDrawerToggle }) => {
         </Typography>
         
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Tooltip title="Help">
-            <IconButton color="inherit" sx={{ mr: 1 }}>
-              <HelpIcon />
-            </IconButton>
-          </Tooltip>
-          
           <Tooltip title="Notifications">
             <IconButton 
               color="inherit" 
@@ -197,12 +189,6 @@ const Header = ({ handleDrawerToggle }) => {
             <PersonIcon fontSize="small" />
           </ListItemIcon>
           My Profile
-        </MenuItem>
-        <MenuItem onClick={handleMenuClose}>
-          <ListItemIcon>
-            <SettingsIcon fontSize="small" />
-          </ListItemIcon>
-          Settings
         </MenuItem>
         <Divider />
         <MenuItem onClick={handleLogout}>

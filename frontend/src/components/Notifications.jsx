@@ -359,6 +359,8 @@ const Notifications = () => {
         }
     });
 
+    const filteredUnreadNotifications = filteredNotifications.filter(n => !n.is_read);
+
     // Notification types for filters
     const notificationTypes = [
         { value: 'HEALTH_CAMPAIGN', label: 'Health Campaign' },
@@ -368,15 +370,7 @@ const Notifications = () => {
         { value: 'SYSTEM_ALERT', label: 'System Alert' },
     ];
 
-    const priorities = [
-        { value: 'LOW', label: 'Low' },
-        { value: 'MEDIUM', label: 'Medium' },
-        { value: 'HIGH', label: 'High' },
-        { value: 'URGENT', label: 'Urgent' },
-    ];
-
     const statuses = [
-        { value: 'PENDING', label: 'Pending' },
         { value: 'SENT', label: 'Sent' },
         { value: 'DELIVERED', label: 'Delivered' },
         { value: 'READ', label: 'Read' },
@@ -391,13 +385,15 @@ const Notifications = () => {
                     <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
                         <Box display="flex" alignItems="center">
                           <Typography variant="h4" component="h1" gutterBottom>
-                              <NotificationsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                              <Badge 
+                                badgeContent={unreadNotifications.length} 
+                                color="error" 
+                                invisible={unreadNotifications.length === 0}
+                                sx={{ mr: 1 }}
+                              >
+                                <NotificationsIcon sx={{ verticalAlign: 'middle' }} />
+                              </Badge>
                               Notifications
-                              {unreadNotifications.length > 0 && (
-                                  <Badge badgeContent={unreadNotifications.length} color="error" sx={{ ml: 2 }}>
-                                      <NotificationsIcon />
-                                  </Badge>
-                              )}
                           </Typography>
                           <InfoTooltip title="View, search, and filter your notifications. Use the actions to refresh or mark all as read." />
                         </Box>
@@ -601,19 +597,21 @@ const Notifications = () => {
                             </TabPanel>
 
                             <TabPanel value={currentTab} index={1}>
-                                {unreadNotifications.length === 0 ? (
+                                {filteredUnreadNotifications.length === 0 ? (
                                     <Box textAlign="center" p={3}>
                                         <CheckCircle sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
                                         <Typography variant="h6" color="textSecondary">
-                                            All caught up!
+                                            {searchTerm || typeFilter || statusFilter ? 'No matching unread notifications' : 'All caught up!'}
                                         </Typography>
                                         <Typography color="textSecondary">
-                                            You have no unread notifications
+                                            {searchTerm || typeFilter || statusFilter 
+                                                ? 'Try adjusting your filters' 
+                                                : 'You have no unread notifications'}
                                         </Typography>
                                     </Box>
                                 ) : (
                                     <List>
-                                        {unreadNotifications.map((notification, index) => (
+                                        {filteredUnreadNotifications.map((notification, index) => (
                                             <React.Fragment key={notification.id}>
                                                 <ListItemButton onClick={() => handleViewDetails(notification)}>
                                                     <ListItemIcon>
@@ -650,7 +648,7 @@ const Notifications = () => {
                                                         }
                                                     />
                                                 </ListItemButton>
-                                                {index < unreadNotifications.length - 1 && <Divider />}
+                                                {index < filteredUnreadNotifications.length - 1 && <Divider />}
                                             </React.Fragment>
                                         ))}
                                     </List>
