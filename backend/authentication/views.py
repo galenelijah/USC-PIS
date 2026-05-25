@@ -15,6 +15,7 @@ import string
 from django.http import JsonResponse
 from django.db import connection, transaction, IntegrityError
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
+from rest_framework.views import APIView
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
