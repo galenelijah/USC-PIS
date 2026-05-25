@@ -22,35 +22,28 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout, logoutUser } from '../../features/authentication/authSlice';
-import { notificationService } from '../../services/api';
+import { fetchUnreadCount, selectUnreadCount } from '../../features/notificationSlice';
 
 const Header = ({ handleDrawerToggle }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector(state => state.auth?.user);
+  const unreadCount = useSelector(selectUnreadCount);
   
   const [anchorEl, setAnchorEl] = useState(null);
-  const [unreadCount, setUnreadCount] = useState(0);
   const open = Boolean(anchorEl);
   
   // Load unread notification count
   useEffect(() => {
     if (user) {
-      loadUnreadCount();
+      dispatch(fetchUnreadCount());
       // Refresh count every 30 seconds
-      const interval = setInterval(loadUnreadCount, 30000);
+      const interval = setInterval(() => {
+        dispatch(fetchUnreadCount());
+      }, 30000);
       return () => clearInterval(interval);
     }
-  }, [user]);
-
-  const loadUnreadCount = async () => {
-    try {
-      const response = await notificationService.getUnreadNotifications();
-      setUnreadCount(response.data?.length || 0);
-    } catch (error) {
-      console.error('Error loading unread count:', error);
-    }
-  };
+  }, [user, dispatch]);
 
   const handleProfileMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);

@@ -116,12 +116,10 @@ const Reports = () => {
   const [templateAnalytics, setTemplateAnalytics] = useState(null);
   const [systemAnalytics, setSystemAnalytics] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
-  const [realTimeUpdates, setRealTimeUpdates] = useState(true);
   const [filters, setFilters] = useState({
     dateRange: 'lastYear',
     clinic_type: 'all'
   });
-  const intervalRef = useRef(null);
 
   useEffect(() => {
     fetchData();
@@ -132,17 +130,6 @@ const Reports = () => {
       fetchSystemAnalytics();
     }
   }, [selectedTab, filters.dateRange, filters.clinic_type]);
-
-  useEffect(() => {
-    if (realTimeUpdates) {
-      intervalRef.current = setInterval(fetchReportStatuses, 5000); // Update every 5 seconds
-      return () => {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-        }
-      };
-    }
-  }, [realTimeUpdates, reports]);
 
   const fetchData = async () => {
     try {
@@ -946,18 +933,8 @@ const Reports = () => {
           </Grid>
         )}
 
-        {/* Real-time Controls */}
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={realTimeUpdates}
-                onChange={(e) => setRealTimeUpdates(e.target.checked)}
-                color="primary"
-              />
-            }
-            label="Real-time Updates"
-          />
+        {/* Manual Refresh Control */}
+        <Box display="flex" justifyContent="flex-end" alignItems="center" mb={2}>
           <Box>
             <IconButton onClick={fetchData} disabled={loading}>
               <RefreshIcon />

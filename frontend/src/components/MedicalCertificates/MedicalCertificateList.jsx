@@ -21,8 +21,6 @@ import {
   Button,
   useTheme,
   useMediaQuery,
-  Switch,
-  FormControlLabel,
 } from '@mui/material';
 import { 
   Visibility as VisibilityIcon,
@@ -142,24 +140,10 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole, refreshTri
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [autoRefresh, setAutoRefresh] = useState(false);
 
   useEffect(() => {
     fetchCertificates();
   }, [refreshTrigger]); // Re-fetch when refreshTrigger changes
-
-  // Auto-refresh every 30 seconds when enabled
-  useEffect(() => {
-    let interval;
-    if (autoRefresh) {
-      interval = setInterval(() => {
-        fetchCertificates();
-      }, 30000); // 30 seconds
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [autoRefresh]);
 
   const fetchCertificates = async () => {
     try {
@@ -259,17 +243,6 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole, refreshTri
         >
           Refresh
         </Button>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={autoRefresh}
-              onChange={(e) => setAutoRefresh(e.target.checked)}
-              size="small"
-            />
-          }
-          label="Auto-refresh (30s)"
-          sx={{ ml: 1 }}
-        />
       </Stack>
 
       {/* Desktop Table View */}

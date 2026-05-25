@@ -268,7 +268,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
     
     @action(detail=False, methods=['post'])
-    def mark_all_read(self, request):
+    def mark_all_as_read(self, request):
         """Mark all notifications as read for current user"""
         updated_count = Notification.objects.filter(
             recipient=request.user,

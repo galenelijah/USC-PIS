@@ -50,6 +50,8 @@ import {
     DeleteSweep
 } from '@mui/icons-material';
 import { format } from 'date-fns';
+import { useDispatch } from 'react-redux';
+import { setUnreadCount, decrementUnreadCount } from '../features/notificationSlice';
 import InfoTooltip from './utils/InfoTooltip';
 import { notificationService, authService } from '../services/api';
 
@@ -72,6 +74,7 @@ function TabPanel({ children, value, index, ...other }) {
 }
 
 const Notifications = () => {
+    const dispatch = useDispatch();
     const [currentTab, setCurrentTab] = useState(0);
     const [notifications, setNotifications] = useState([]);
     const [unreadNotifications, setUnreadNotifications] = useState([]);
@@ -186,6 +189,7 @@ const Notifications = () => {
         try {
             const response = await notificationService.getUnreadNotifications();
             setUnreadNotifications(response.data);
+            dispatch(setUnreadCount(response.data?.length || 0));
         } catch (err) {
             console.error('Error loading unread notifications:', err);
         }
@@ -211,6 +215,7 @@ const Notifications = () => {
                 n.id === notificationId ? { ...n, is_read: true, status: 'READ' } : n
             ));
             setUnreadNotifications(prev => prev.filter(n => n.id !== notificationId));
+            dispatch(decrementUnreadCount());
             
             // Reload data to ensure consistency
             await Promise.all([loadNotifications(), loadUnreadNotifications(), loadStats()]);
@@ -231,6 +236,7 @@ const Notifications = () => {
             // Optimistic update
             setNotifications(prev => prev.map(n => ({ ...n, is_read: true, status: 'READ' })));
             setUnreadNotifications([]);
+            dispatch(setUnreadCount(0));
             
             // Reload data to ensure consistency
             await Promise.all([loadNotifications(), loadUnreadNotifications(), loadStats()]);
@@ -245,12 +251,17 @@ const Notifications = () => {
     const handleDelete = async (notificationId) => {
         try {
             setLoading(true);
+            const notificationToDelete = notifications.find(n => n.id === notificationId);
             await notificationService.deleteNotification(notificationId);
             setSuccess('Notification deleted');
             
             // Optimistic update
             setNotifications(prev => prev.filter(n => n.id !== notificationId));
             setUnreadNotifications(prev => prev.filter(n => n.id !== notificationId));
+            
+            if (notificationToDelete && !notificationToDelete.is_read) {
+                dispatch(decrementUnreadCount());
+            }
             
             // Reload data
             await Promise.all([loadNotifications(), loadUnreadNotifications(), loadStats()]);
@@ -290,6 +301,7 @@ const Notifications = () => {
             
             setNotifications([]);
             setUnreadNotifications([]);
+            dispatch(setUnreadCount(0));
             
             // Reload data
             await Promise.all([loadNotifications(), loadUnreadNotifications(), loadStats()]);
