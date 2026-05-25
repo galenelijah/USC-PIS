@@ -6,18 +6,42 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 from django.contrib.auth import authenticate
-from .models import User
+from .models import User, SafeEmail, VerificationCode
 from .serializers import UserRegistrationSerializer, UserProfileSerializer, ChangePasswordSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer
 import logging
 import traceback
 import random
 import string
+import datetime
 from django.http import JsonResponse
 from django.db import connection, transaction, IntegrityError
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework.views import APIView
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.conf import settings
+from django.utils import timezone
+from patients.models import Patient
+from .validators import email_validator, strict_email_validator, password_validator, rate_limiter, SessionManager
+
+# Import email service
+from utils.email_service import EmailService
+
+logger = logging.getLogger(__name__)
+
+def get_client_ip(request):
+    """Get client IP address from request."""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -65,10 +89,6 @@ def check_email(request):
             'exists': False,
             'error': 'An error occurred while checking email'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-import random
-import string
-from .models import User, SafeEmail, VerificationCode
 
 def generate_verification_code(user):
     """Generate a 6-digit verification code and save it."""
