@@ -166,6 +166,14 @@ export const authService = {
       handleApiError(error);
     }
   },
+  initializeCsrf: async () => {
+    try {
+      await api.get('/auth/get-csrf-token/');
+    } catch (error) {
+      // Don't use handleApiError here to avoid logging noise if it fails
+      console.error('Failed to initialize CSRF:', error);
+    }
+  },
   logout: async () => {
     try {
       return await api.post('/auth/logout/');

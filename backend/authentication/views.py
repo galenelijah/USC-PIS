@@ -14,36 +14,17 @@ import random
 import string
 from django.http import JsonResponse
 from django.db import connection, transaction, IntegrityError
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.decorators import login_required
-import json
-from django.contrib.auth.tokens import default_token_generator
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes, force_str
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.conf import settings
-from rest_framework.views import APIView
-from patients.models import Patient
-import datetime
-from .validators import email_validator, strict_email_validator, password_validator, rate_limiter, SessionManager
-from django.utils import timezone
-from django.core.exceptions import ValidationError as DjangoValidationError
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 
-# Import email service
-from utils.email_service import EmailService
-
-logger = logging.getLogger(__name__)
-
-def get_client_ip(request):
-    """Get client IP address from request."""
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
+@api_view(['GET'])
+@permission_classes([AllowAny])
+@ensure_csrf_cookie
+def get_csrf_token(request):
+    """
+    Endpoint to ensure the CSRF cookie is set on the client.
+    This should be called by the SPA before making any POST/PUT/DELETE requests.
+    """
+    return Response({'detail': 'CSRF cookie set'}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])

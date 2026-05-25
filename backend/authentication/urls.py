@@ -15,6 +15,7 @@ urlpatterns = [
     path('admin/users/<int:user_id>/toggle-verification/', user_management_views.toggle_user_verification, name='toggle_verification'),
     
     path('register/', views.register_user, name='register'),
+    path('get-csrf-token/', views.get_csrf_token, name='get-csrf-token'),
     path('debug-register/', views.debug_register, name='debug-register'),
     path('debug-current-user/', views.debug_current_user, name='debug-current-user'),
     path('login/', views.login_user, name='login'),

@@ -2,7 +2,7 @@ import React, { useEffect, useState, Suspense, lazy, useMemo, useCallback } from
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectIsAuthenticated, selectCurrentUser, logout } from './features/authentication/authSlice';
-import { patientService } from './services/api';
+import { patientService, authService } from './services/api';
 import { useParams } from 'react-router-dom';
 import { CircularProgress, Box } from '@mui/material';
 
@@ -96,6 +96,11 @@ const App = () => {
   const handleLogout = useCallback(() => {
     dispatch(logout());
   }, [dispatch]);
+
+  useEffect(() => {
+    // Initialize CSRF protection on app mount
+    authService.initializeCsrf();
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
