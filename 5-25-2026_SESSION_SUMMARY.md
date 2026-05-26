@@ -1,30 +1,27 @@
-# Session Summary - May 25, 2026
+# Session Summary - May 25, 2026 (Updated)
 
-## 1. Security & CSRF Hardening
-- **CSRF Resolution:** Fixed "CSRF token missing" and "CSRF cookie not set" errors that were blocking POST/PUT/DELETE requests in the React SPA.
-- **Handshake Mechanism:** Implemented a new `/api/auth/get-csrf-token/` endpoint decorated with `@ensure_csrf_cookie` to initialize the browser's security context on app mount.
-- **Backend Configuration:** Updated `settings.py` to allow the frontend to read CSRF cookies (`CSRF_COOKIE_HTTPONLY = False`) and switched to standard cookie-based CSRF (`CSRF_USE_SESSIONS = False`) for SPA compatibility.
-- **Axios Synchronization:** Configured global Axios defaults to automatically include the `X-CSRFToken` header in all requests.
+## 1. Professional Reporting Engine (v2.0 Overhaul)
+- **Customizable Reports:** Implemented a schema-driven reporting system allowing granular data filtering and field selection across all report types (Health Campaigns, Patient Summary, Feedback, etc.).
+- **Demographic Analysis:** Added support for filtering by School/College, Course, and Year Level in Patient Summary reports, with dynamic server-side aggregation.
+- **Visual Analytics:** Integrated **Chart.js** (frontend) and **QuickChart API** (backend) to provide interactive previews and embedded charts in exported PDFs.
+- **Institutional Branding:** Redesigned PDF exports with official USC headers, page numbering, confidential footers, and table-based layouts for 100% rendering stability in `xhtml2pdf`.
+- **Expanded Access:** Updated RBAC logic to allow clinical roles (NURSE, DOCTOR, DENTIST) to generate and view analytics, formerly restricted to ADMIN/STAFF.
 
-## 2. Heroku Deployment & 500 Error Recovery
-- **Restored Dependencies:** Resolved multiple `NameError` exceptions during deployment caused by missing imports (`APIView`, `require_http_methods`, `DjangoValidationError`) and the `get_client_ip` helper in `backend/authentication/views.py`.
-- **Database Alignment:** Identified and applied three pending migrations (`feedback.0006`, `notifications.0005`, `reports.0005`) that were causing 500 errors in production due to schema-code mismatches.
-- **Fixed API Mismatch:** Renamed the backend action `mark_all_read` to `mark_all_as_read` to resolve "Method POST not allowed" errors during notification management.
+## 2. Administrative Activity Logging (Audit System)
+- **Exhaustive Tracking:** Implemented a new `AuditLog` model and system middleware to capture all data mutations (CREATE, UPDATE, DELETE) across the platform.
+- **Actor Context:** Every log entry records the Actor (User ID), Role, IP Address, User Agent, and a summary of the change.
+- **Async Processing:** Connected logging to **Celery background tasks** to ensure zero performance impact on standard clinical workflows.
+- **Secure Admin API:** Created a strictly gated endpoint (`/api/auth/admin/activity-logs/`) accessible only to the ADMIN role.
 
-## 3. UI/UX Refinement & Cleanup
-- **Enhanced Feedback Analytics:** Merged new `AdminFeedbackList.jsx` and `FeedbackAnalytics.jsx` components, adding real-time client-side charting and responsive mobile card views.
-- **Header Simplification:** Removed unused "Help" and "Settings" buttons from the top navigation bar to reduce UI clutter.
-- **Auto-Refresh Removal:** Removed "Auto-refresh" toggles from Medical Certificates and Reports pages. Data now relies on manual refreshes, preventing unwanted list updates while users are interacting with items.
-- **Notification Consolidation:** Removed duplicate notification bells in the `/notifications` header and fixed unread tab filtering logic.
-
-## 4. Global State Synchronization
-- **Notification Sync:** Implemented a new Redux `notificationSlice` to manage unread counts globally. Marking a notification as read or deleting it now updates the top header badge instantly across the entire application.
-- **Fetch Refactoring:** Converted manual `fetch` calls in utility services to use the unified Axios `api` instance, ensuring consistent authentication and CSRF protection.
+## 3. System Stability & Bug Fixes
+- **Preview Resilience:** Fixed a critical bug in the report preview API where mismatched argument names (`date_range_end` vs `date_end`) caused 500 errors.
+- **PDF Layout Stability:** Fixed "broken" PDF layouts by switching from modern CSS (Flexbox) to stable Table-based grids, ensuring charts and metrics align perfectly on A4 pages.
+- **Database Schema:** Created and applied migration `authentication.0012_auditlog`.
 
 ## Next Steps
-- Monitor CSRF handshake performance in high-latency environments.
-- Verify that the new analytics components handle large datasets (1000+ entries) without performance degradation.
-- Confirm with the team if automated polling should also be removed from the System Health and Database Monitor dashboards.
+- Verify the Audit Log dashboard with the ADMIN user to ensure high volumes of mutations (1000+) are paginated and searchable correctly.
+- Review the signature block requirement in PDF reports with university legal/compliance if necessary.
+- Monitor background chart generation (QuickChart) latency to ensure it doesn't timeout for extremely large datasets.
 
-**Generated by:** Gemini CLI
-**Date:** May 25, 2026
+**Report Updated by:** Gemini CLI
+**Date:** May 25, 2026 (Revision 2)

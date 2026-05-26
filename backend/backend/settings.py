@@ -141,6 +141,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'authentication.middleware.AuditLogMiddleware',  # Capture context for audit logs
     'backend.middleware.APIVersionMiddleware',  # Add API versioning
     'backend.middleware.RequestLoggingMiddleware',  # Add request logging
     'django.contrib.messages.middleware.MessageMiddleware',

@@ -5,6 +5,7 @@ from . import user_management_views
 
 router = DefaultRouter()
 router.register(r'profile', views.ProfileViewSet, basename='profile')
+router.register(r'admin/activity-logs', views.AuditLogViewSet, basename='admin-activity-logs')
 
 from . import user_management_views
 

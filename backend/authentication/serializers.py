@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User
+from .models import User, AuditLog
 from patients.models import Patient
 from .validators import email_validator, strict_email_validator, password_validator
 import re
@@ -292,3 +292,11 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     #     if data['password'] != data['password2']:
     #         raise serializers.ValidationError("Passwords must match.")
     #     return data 
+
+class AuditLogSerializer(serializers.ModelSerializer):
+    actor_name = serializers.CharField(source='actor.get_full_name', read_only=True)
+
+    class Meta:
+        model = AuditLog
+        fields = '__all__'
+ 

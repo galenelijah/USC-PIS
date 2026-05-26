@@ -8,7 +8,7 @@ import {
   Paper, Chip, LinearProgress, IconButton, Tooltip,
   Accordion, AccordionSummary, AccordionDetails,
   Switch, FormControlLabel, Divider, Badge,
-  Autocomplete, Checkbox, ListItemText
+  Autocomplete, Checkbox, ListItemText, Slider
 } from '@mui/material';
 import {
   Add as AddIcon, GetApp as DownloadIcon, Visibility as ViewIcon,
@@ -345,6 +345,21 @@ const Reports = () => {
                           ))}
                         </Select>
                       </FormControl>
+                    ) : filter.type === 'slider' ? (
+                      <Box sx={{ px: 1 }}>
+                        <Typography variant="caption" color="text.secondary" gutterBottom>
+                          {filter.label}: {customFilters[filter.id] || filter.min}
+                        </Typography>
+                        <Slider
+                          value={customFilters[filter.id] || filter.min}
+                          min={filter.min || 0}
+                          max={filter.max || 5}
+                          step={filter.step || 1}
+                          marks
+                          valueLabelDisplay="auto"
+                          onChange={(e, val) => setCustomFilters(prev => ({ ...prev, [filter.id]: val }))}
+                        />
+                      </Box>
                     ) : (
                       <TextField
                         fullWidth
@@ -362,9 +377,12 @@ const Reports = () => {
           
           <Grid item xs={12}>
             <Divider sx={{ my: 1 }} />
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, fontWeight: 500, textTransform: 'uppercase' }}>
-              Field Selection
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500, textTransform: 'uppercase' }}>
+                Column Customization
+              </Typography>
+              <InfoTooltip title="Choose which data fields to include in the final report. Fewer fields result in a cleaner layout." />
+            </Box>
             <FormControl fullWidth size="small">
               <InputLabel>Fields to Include</InputLabel>
               <Select
@@ -399,10 +417,10 @@ const Reports = () => {
                   label="Advanced Grouping"
                   onChange={(e) => setGroupBy(e.target.value)}
                 >
-                  <MenuItem value=""><em>No Grouping</em></MenuItem>
+                  <MenuItem value=""><em>No Grouping (Flat List)</em></MenuItem>
                   {schema.groupable_by.map(fieldId => (
                     <MenuItem key={fieldId} value={fieldId}>
-                      Group by {schema.fields.find(f => f.id === fieldId)?.label || fieldId}
+                      Group Data by {schema.fields.find(f => f.id === fieldId)?.label || fieldId}
                     </MenuItem>
                   ))}
                 </Select>
@@ -420,6 +438,19 @@ const Reports = () => {
     const getChartData = () => {
       const type = selectedTemplate.report_type;
       
+      if (type === 'PATIENT_SUMMARY' && previewData.course_distribution) {
+        return {
+          labels: previewData.course_distribution.map(c => c.course || 'Unknown'),
+          datasets: [{
+            label: 'Students',
+            data: previewData.course_distribution.map(c => c.count || 0),
+            backgroundColor: 'rgba(76, 175, 80, 0.6)',
+            borderColor: '#4caf50',
+            borderWidth: 1
+          }]
+        };
+      }
+
       if (type === 'CAMPAIGN_PERFORMANCE' && previewData.campaign_performance) {
         const data = Array.isArray(previewData.campaign_performance) 
           ? previewData.campaign_performance 

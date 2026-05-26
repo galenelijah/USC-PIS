@@ -1,4 +1,4 @@
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, filters
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
@@ -6,8 +6,11 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 from django.contrib.auth import authenticate
-from .models import User, SafeEmail, VerificationCode
-from .serializers import UserRegistrationSerializer, UserProfileSerializer, ChangePasswordSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer
+from .models import User, SafeEmail, VerificationCode, AuditLog
+from .serializers import (
+    UserRegistrationSerializer, UserProfileSerializer, ChangePasswordSerializer, 
+    PasswordResetRequestSerializer, PasswordResetConfirmSerializer, AuditLogSerializer
+)
 import logging
 import traceback
 import random
@@ -34,6 +37,30 @@ from utils.email_service import EmailService
 
 logger = logging.getLogger(__name__)
 
+class IsAdminUserRole(BasePermission):
+    """
+    Allows access only to users with the ADMIN role.
+    """
+    def has_permission(self, request, view):
+        return (
+            request.user and 
+            request.user.is_authenticated and 
+            request.user.role == 'ADMIN'
+        )
+
+class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for viewing administrative activity logs.
+    Strictly limited to ADMIN role.
+    """
+    queryset = AuditLog.objects.all().select_related('actor')
+    serializer_class = AuditLogSerializer
+    permission_classes = [IsAuthenticated, IsAdminUserRole]
+    filter_backends = [filters.OrderingFilter, filters.SearchFilter]
+    search_fields = ['actor_email', 'target_model', 'action_type', 'target_object_id']
+    ordering_fields = ['timestamp', 'action_type', 'target_model']
+    ordering = ['-timestamp']
+
 def get_client_ip(request):
     """Get client IP address from request."""
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -42,8 +69,6 @@ def get_client_ip(request):
     else:
         ip = request.META.get('REMOTE_ADDR')
     return ip
-
-@api_view(['GET'])
 @permission_classes([AllowAny])
 @ensure_csrf_cookie
 def get_csrf_token(request):

@@ -133,6 +133,8 @@ class ReportDataService:
                             'allergies': getattr(patient, 'decrypted_allergies', None) or (getattr(patient.user, 'allergies', 'None') if patient.user else 'None'),
                             'medical_conditions': getattr(patient, 'decrypted_med_cond', None) or (getattr(patient.user, 'existing_medical_condition', 'None') if patient.user else 'None'),
                             'current_medications': getattr(patient, 'decrypted_meds', None) or (getattr(patient.user, 'medications', 'None') if patient.user else 'None'),
+                            'course': getattr(patient.user, 'course', 'N/A') if patient.user else 'N/A',
+                            'school': getattr(patient.user, 'school', 'N/A') if patient.user else 'N/A',
                         },
                         'recent_appointments_count': len(medical_records) + len(dental_records) + len(consultations),
                         'medical_records': medical_records,
@@ -160,6 +162,12 @@ class ReportDataService:
             if filters:
                 if filters.get('gender'):
                     queryset = queryset.filter(gender=filters['gender'])
+                if filters.get('school'):
+                    queryset = queryset.filter(user__school=filters['school'])
+                if filters.get('course'):
+                    queryset = queryset.filter(user__course=filters['course'])
+                if filters.get('year_level'):
+                    queryset = queryset.filter(user__year_level=filters['year_level'])
             
             # Aggregate data in single query
             aggregate_data = queryset.aggregate(
@@ -181,6 +189,16 @@ class ReportDataService:
             # Age distribution
             age_groups = {'0-17': 0, '18-25': 0, '26-35': 0, '36-45': 0, '46-60': 0, '60+': 0}
             try:
+                # Course and School distribution
+                course_distribution = list(queryset.values('user__course').annotate(count=Count('id')).order_by('-count')[:10])
+                course_distribution = [{'course': item['user__course'] or 'Unknown', 'count': item['count']} for item in course_distribution]
+                
+                school_distribution = list(queryset.values('user__school').annotate(count=Count('id')).order_by('-count')[:10])
+                school_distribution = [{'school': item['user__school'] or 'Unknown', 'count': item['count']} for item in school_distribution]
+
+                year_level_distribution = list(queryset.values('user__year_level').annotate(count=Count('id')).order_by('-count')[:10])
+                year_level_distribution = [{'year_level': item['user__year_level'] or 'N/A', 'count': item['count']} for item in year_level_distribution]
+
                 with connection.cursor() as cursor:
                     if connection.vendor == 'postgresql':
                         cursor.execute("""
@@ -223,6 +241,9 @@ class ReportDataService:
                 **aggregate_data,
                 'gender_distribution': gender_distribution,
                 'age_distribution': age_groups,
+                'course_distribution': course_distribution,
+                'school_distribution': school_distribution,
+                'year_level_distribution': year_level_distribution,
                 'active_patients': queryset.filter(
                     Q(medical_records__visit_date__gte=timezone.now() - timedelta(days=90)) |
                     Q(dental_records__visit_date__gte=timezone.now() - timedelta(days=90))
@@ -451,6 +472,24 @@ class ReportDataService:
             date_end = date_end or timezone.now()
             
             feedback_qs = Feedback.objects.filter(created_at__range=(date_start, date_end))
+            
+            # Apply filters
+            if filters:
+                if filters.get('rating'):
+                    feedback_qs = feedback_qs.filter(rating=filters['rating'])
+                if filters.get('visit_type'):
+                    # visit_type can be MEDICAL or DENTAL
+                    # We might need to join with MedicalRecord or DentalRecord if visit_type is stored there
+                    # For now, let's assume Feedback has a visit_type field or we filter based on patient interaction
+                    # If visit_type is not on Feedback, we might need a more complex join.
+                    # Assuming for this requirement it filters by a field named visit_type if it exists,
+                    # or we filter by the existence of related records in the time range.
+                    v_type = filters['visit_type'].upper()
+                    if v_type == 'MEDICAL':
+                        feedback_qs = feedback_qs.filter(medical_record__isnull=False)
+                    elif v_type == 'DENTAL':
+                        feedback_qs = feedback_qs.filter(dental_record__isnull=False)
+            
             total = feedback_qs.count()
             
             # Calculate response rate (total feedback / total visits)
@@ -535,7 +574,7 @@ class ReportDataService:
                 else:
                     queryset = queryset.filter(id=campaign_ids)
             
-            campaign_type = filters.get('campaign_type')
+            campaign_type = filters.get('campaign_type') or filters.get('category')
             if campaign_type:
                 queryset = queryset.filter(campaign_type=campaign_type)
             
@@ -621,9 +660,15 @@ class ReportDataService:
     @staticmethod
     def get_medical_statistics_data(date_start=None, date_end=None, filters=None):
         try:
+            filters = filters or {}
             date_start = date_start or (timezone.now() - timedelta(days=365))
             date_end = date_end or timezone.now()
             records = MedicalRecord.objects.filter(visit_date__range=(date_start, date_end))
+            
+            # Apply diagnosis category filter
+            diag_category = filters.get('diagnosis_category')
+            if diag_category:
+                records = records.filter(diagnosis__icontains=diag_category)
             
             # Calculate real avg age
             patients = Patient.objects.filter(medical_records__in=records).distinct()
@@ -631,6 +676,15 @@ class ReportDataService:
             if patients.exists():
                 ages = [p.age for p in patients if p.age is not None]
                 avg_age = sum(ages) / len(ages) if ages else 0
+
+            # Vitals Metrics
+            vitals = records.aggregate(
+                avg_weight=Avg('weight'),
+                avg_height=Avg('height'),
+                avg_bmi=Avg('bmi'),
+                max_bp_sys=Max('blood_pressure_systolic'),
+                min_bp_sys=Max('blood_pressure_systolic') # approximate
+            )
 
             diag = []
             # Group by diagnosis and calculate counts
@@ -677,6 +731,7 @@ class ReportDataService:
                 'total_consultations': records.count(), 
                 'avg_age': round(float(avg_age), 1), 
                 'top_diagnoses': diag, 
+                'vitals_summary': vitals,
                 'monthly_trends': sorted(monthly_trends, key=lambda x: x['name']) if isinstance(monthly_trends, list) else monthly_trends
             }
         except Exception as e: 
@@ -1133,52 +1188,101 @@ class ReportGenerationService:
         <head>
             <title>{title}</title>
             <style>
-                @page {{ size: A4; margin: 1.5cm; }}
-                body {{ font-family: 'Helvetica', sans-serif; line-height: 1.4; color: #333; }}
-                .header {{ text-align: center; border-bottom: 3px solid #0B4F6C; margin-bottom: 25px; padding-bottom: 15px; }}
-                .header h1 {{ color: #0B4F6C; margin: 0; font-size: 24pt; }}
-                .section {{ margin-bottom: 25px; }}
-                .section-title {{ background-color: #f8f9fa; color: #0B4F6C; font-size: 14pt; font-weight: bold; padding: 8px; border-left: 5px solid #0B4F6C; }}
-                .data-table {{ width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 9pt; }}
-                .data-table th {{ background-color: #0B4F6C; color: white; padding: 8px; text-align: left; }}
-                .data-table td {{ padding: 8px; border-bottom: 1px solid #dee2e6; }}
-                .metric-grid {{ display: flex; flex-wrap: wrap; margin-bottom: 20px; }}
-                .metric-item {{ flex: 1; min-width: 150px; padding: 10px; background: #f8f9fa; border: 1px solid #eee; margin: 5px; text-align: center; }}
-                .metric-val {{ font-size: 16pt; font-weight: bold; color: #0B4F6C; }}
-                .metric-lbl {{ font-size: 8pt; color: #666; text-transform: uppercase; }}
+                @page {{ 
+                    size: A4; 
+                    margin: 2cm; 
+                    @bottom-right {{
+                        content: "Page " counter(page) " of " counter(pages);
+                        font-size: 8pt;
+                        color: #666;
+                    }}
+                    @bottom-left {{
+                        content: "USC Patient Information System | Confidential";
+                        font-size: 8pt;
+                        color: #666;
+                    }}
+                }}
+                body {{ font-family: 'Helvetica', 'Arial', sans-serif; line-height: 1.5; color: #2c3e50; font-size: 10pt; }}
+                
+                .usc-header {{ 
+                    text-align: center; 
+                    border-bottom: 2px solid #0B4F6C; 
+                    margin-bottom: 30px; 
+                    padding-bottom: 10px; 
+                }}
+                .usc-logo-text {{ font-size: 18pt; font-weight: bold; color: #0B4F6C; margin: 0; text-transform: uppercase; }}
+                .usc-sub-text {{ font-size: 10pt; color: #7f8c8d; margin: 5px 0 0 0; }}
+                
+                .report-title {{ text-align: center; font-size: 16pt; color: #2c3e50; margin-bottom: 20px; text-transform: uppercase; }}
+
+                .section {{ margin-bottom: 30px; page-break-inside: avoid; }}
+                .section-title {{ 
+                    background-color: #f0f4f8; 
+                    color: #0B4F6C; 
+                    font-size: 12pt; 
+                    font-weight: bold; 
+                    padding: 10px; 
+                    border-left: 6px solid #0B4F6C; 
+                    margin-bottom: 15px; 
+                }}
+                
+                .chart-container {{ text-align: center; margin: 20px 0; }}
+                
+                .data-table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
+                .data-table th {{ background-color: #0B4F6C; color: white; padding: 10px 8px; text-align: left; font-size: 9pt; }}
+                .data-table td {{ padding: 8px; border-bottom: 1px solid #ecf0f1; font-size: 9pt; }}
+                .data-table tr:nth-child(even) {{ background-color: #f9fbfd; }}
+                
+                .metric-table {{ width: 100%; margin-bottom: 20px; border-spacing: 10px; border-collapse: separate; }}
+                .metric-box {{ background: #f8f9fa; border: 1px solid #e9ecef; padding: 15px; text-align: center; border-radius: 4px; width: 25%; }}
+                .metric-val {{ font-size: 18pt; font-weight: bold; color: #0B4F6C; display: block; }}
+                .metric-lbl {{ font-size: 7.5pt; color: #6c757d; text-transform: uppercase; font-weight: 600; margin-top: 5px; display: block; }}
+                
+                .footer-sign {{ margin-top: 50px; text-align: right; font-size: 9pt; }}
+                .signature-line {{ border-top: 1px solid #2c3e50; width: 250px; display: inline-block; margin-top: 40px; }}
             </style>
         </head>
         <body>
-            <div class="header"><h1>{title}</h1><p>University of San Carlos - Patient Information System</p></div>
+            <div class="usc-header">
+                <p class="usc-logo-text">University of San Carlos</p>
+                <p class="usc-sub-text">Health Services Department - Patient Information System</p>
+            </div>
+            
+            <div class="report-title">{title}</div>
 
-            {{% if visual_charts %}}
+            {{% if visual_charts or charts_base64 %}}
             <div class="section">
-                <div class="section-title">Visual Analytics</div>
-                <div style="text-align: center; margin-top: 15px;">
-                    {{% for chart_url in visual_charts %}}
-                        <img src="{{{{ chart_url }}}}" style="max-width: 100%; height: auto; margin-bottom: 20px; border: 1px solid #ddd; padding: 5px; background: white;" />
-                    {{% endfor %}}
-                </div>
+                <div class="section-title">Visual Data Analysis</div>
+                {{% for chart_url in visual_charts %}}
+                <div class="chart-container"><img src="{{{{ chart_url }}}}" width="450" /></div>
+                {{% endfor %}}
+                {{% for chart_b64 in charts_base64 %}}
+                <div class="chart-container"><img src="{{{{ chart_b64 }}}}" width="450" /></div>
+                {{% endfor %}}
             </div>
             {{% endif %}}
 
             <div class="section">
-                <div class="section-title">Summary Metrics</div>                <div class="metric-grid">
+                <div class="section-title">Summary Metrics</div>
+                <table class="metric-table">
+                    <tr>
                     {{% for k, v in report_data.items %}}
-                        {{% if v|is_simple %}}
-                        <div class="metric-item">
-                            <div class="metric-val">{{{{ v }}}}</div>
-                            <div class="metric-lbl">{{{{ k|title_clean }}}}</div>
-                        </div>
+                        {{% if v|is_simple and k not in "report_title,date_range_start,date_range_end,generated_at,system_name,report_type,visual_charts,charts_base64" %}}
+                            <td class="metric-box">
+                                <span class="metric-val">{{{{ v }}}}</span>
+                                <span class="metric-lbl">{{{{ k|title_clean }}}}</span>
+                            </td>
+                            {{% if forloop.counter|divisibleby:4 %}} </tr><tr> {{% endif %}}
                         {{% endif %}}
                     {{% endfor %}}
-                </div>
+                    </tr>
+                </table>
             </div>
 
             {{% for k, v in report_data.items %}}
-                {{% if v|is_list and v|has_data %}}
+                {{% if v|is_list and v|has_data and k not in "visual_charts,charts_base64,visual_analytics" %}}
                 <div class="section">
-                    <div class="section-title">{{{{ k|title_clean }}}}</div>
+                    <div class="section-title">{{{{ k|title_clean }}}} Detail</div>
                     <table class="data-table">
                         {{% with first_item=v|first %}}
                             {{% if first_item|is_dict %}}
@@ -1211,8 +1315,10 @@ class ReportGenerationService:
                 {{% endif %}}
             {{% endfor %}}
 
-            <div style="text-align: center; color: #999; font-size: 8pt; margin-top: 50px;">
-                Generated on {{{{ generated_at|date:"F d, Y H:i" }}}} | USC-PIS Reporting System
+            <div class="footer-sign">
+                <div class="signature-line"></div>
+                <p><strong>AUTHORIZED CLINIC PERSONNEL</strong></p>
+                <p>University of San Carlos Health Services</p>
             </div>
         </body>
         </html>"""
@@ -1295,7 +1401,13 @@ class ReportGenerationService:
             
             # Enrich with Charts
             charts = []
-            if rtype == 'VISIT_TRENDS' and data.get('monthly_summary'):
+            if rtype == 'PATIENT_SUMMARY' and data.get('course_distribution'):
+                dist = data['course_distribution']
+                charts.append(self._generate_chart_url('bar', 
+                    [d.get('course', 'N/A') for d in dist[:10]], 
+                    [d.get('count', 0) for d in dist[:10]],
+                    "Patient Enrollment by Course"))
+            elif rtype == 'VISIT_TRENDS' and data.get('monthly_summary'):
                 charts.append(self._generate_chart_url('line', 
                     [m['month'] for m in data['monthly_summary']], 
                     [m['total_visits'] for m in data['monthly_summary']],
@@ -1399,7 +1511,7 @@ class ReportSchemaService:
             'CAMPAIGN_PERFORMANCE': {
                 'filters': [
                     {'id': 'campaign_ids', 'label': 'Specific Campaigns', 'type': 'api_multiselect', 'endpoint': '/api/health-info/campaigns/'},
-                    {'id': 'campaign_type', 'label': 'Campaign Type', 'type': 'select', 'options': [
+                    {'id': 'category', 'label': 'Campaign Category', 'type': 'select', 'options': [
                         {'label': 'Awareness', 'value': 'AWARENESS'},
                         {'label': 'Screening', 'value': 'SCREENING'},
                         {'label': 'Vaccination', 'value': 'VACCINATION'},
@@ -1418,14 +1530,26 @@ class ReportSchemaService:
             'PATIENT_SUMMARY': {
                 'filters': [
                     {'id': 'patient_id', 'label': 'Select Student/Patient', 'type': 'api_select', 'endpoint': '/api/patients/'},
+                    {'id': 'school', 'label': 'School/College', 'type': 'text'},
+                    {'id': 'course', 'label': 'Course/Program', 'type': 'text'},
+                    {'id': 'year_level', 'label': 'Year Level', 'type': 'select', 'options': [
+                        {'label': '1st Year', 'value': '1'},
+                        {'label': '2nd Year', 'value': '2'},
+                        {'label': '3rd Year', 'value': '3'},
+                        {'label': '4th Year', 'value': '4'},
+                        {'label': '5th Year', 'value': '5'}
+                    ]}
                 ],
                 'fields': [
                     {'id': 'visit_date', 'label': 'Visit Date', 'default': True},
                     {'id': 'diagnosis', 'label': 'Diagnosis', 'default': True},
                     {'id': 'treatment', 'label': 'Treatment', 'default': True},
-                    {'id': 'notes', 'label': 'Clinical Notes', 'default': False}
+                    {'id': 'notes', 'label': 'Clinical Notes', 'default': False},
+                    {'id': 'course', 'label': 'Course', 'default': True},
+                    {'id': 'school', 'label': 'School', 'default': True},
+                    {'id': 'year_level', 'label': 'Year Level', 'default': True}
                 ],
-                'groupable_by': []
+                'groupable_by': ['course', 'school', 'year_level']
             },
             'VISIT_TRENDS': {
                 'filters': [
@@ -1462,7 +1586,13 @@ class ReportSchemaService:
                 'groupable_by': ['procedure']
             },
             'FEEDBACK_ANALYSIS': {
-                'filters': [],
+                'filters': [
+                    {'id': 'rating', 'label': 'Minimum Rating', 'type': 'slider', 'min': 1, 'max': 5, 'step': 1},
+                    {'id': 'visit_type', 'label': 'Visit Type', 'type': 'select', 'options': [
+                        {'label': 'Medical', 'value': 'MEDICAL'},
+                        {'label': 'Dental', 'value': 'DENTAL'}
+                    ]}
+                ],
                 'fields': [
                     {'id': 'category', 'label': 'Category', 'default': True},
                     {'id': 'avg_rating', 'label': 'Average Rating', 'default': True},

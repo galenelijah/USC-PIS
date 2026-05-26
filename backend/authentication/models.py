@@ -143,6 +143,42 @@ class VerificationCode(models.Model):
     def __str__(self):
         return f"{self.user.email} - {self.code}"
 
+class AuditLog(models.Model):
+    """ Exhaustive administrative activity logging for data mutations """
+    ACTION_CHOICES = [
+        ('CREATE', 'Create'),
+        ('UPDATE', 'Update'),
+        ('DELETE', 'Delete'),
+        ('LOGIN', 'Login'),
+        ('LOGOUT', 'Logout'),
+    ]
+
+    actor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='audit_actions')
+    actor_email = models.EmailField(max_length=200, blank=True)
+    actor_role = models.CharField(max_length=50, blank=True)
+    
+    action_type = models.CharField(max_length=10, choices=ACTION_CHOICES)
+    target_model = models.CharField(max_length=100)
+    target_object_id = models.CharField(max_length=100, blank=True)
+    
+    # Store a summary of changes or affected record description
+    changes_summary = models.JSONField(default=dict, blank=True)
+    
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['timestamp']),
+            models.Index(fields=['action_type']),
+            models.Index(fields=['target_model']),
+        ]
+
+    def __str__(self):
+        return f"{self.timestamp} - {self.actor_email} - {self.action_type} {self.target_model}"
+
 # Register signal handlers (encryption on save)
 try:
     from . import signals  # noqa: F401
