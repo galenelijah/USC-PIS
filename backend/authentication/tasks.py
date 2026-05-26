@@ -31,8 +31,8 @@ def log_activity_task(actor_id, action_type, target_model, target_object_id, cha
             target_model=target_model,
             target_object_id=str(target_object_id),
             changes_summary=changes_summary,
-            ip_address=ip_address,
-            user_agent=user_agent
+            ip_address=ip_address or "0.0.0.0",
+            user_agent=user_agent or "System/Internal"
         )
     except Exception as e:
         logger.error(f"Audit Log Task Error: {str(e)}")

@@ -4,10 +4,13 @@ from django.dispatch import receiver
 from django.conf import settings
 from django.apps import apps
 from django.contrib.auth.signals import user_logged_in, user_logged_out
+import logging
 
 from .models import User, AuditLog
 from .middleware import get_current_user, get_current_ip, get_current_user_agent
 from .tasks import log_activity_task
+
+logger = logging.getLogger(__name__)
 
 
 SENSITIVE_FIELDS = [
@@ -46,7 +49,7 @@ def encrypt_sensitive_user_fields(sender, instance: User, **kwargs):
 
 def should_log_model(model):
     """ Exclude specific models from being logged to avoid recursion or noise """
-    excluded_models = [AuditLog, 'Session', 'ContentFile', 'Migration', 'ContentType', 'LogEntry']
+    excluded_models = ['AuditLog', 'Session', 'ContentFile', 'Migration', 'ContentType', 'LogEntry', 'NotificationPreference']
     if model.__name__ in excluded_models:
         return False
     # Only log models from our core apps
@@ -56,6 +59,10 @@ def should_log_model(model):
 @receiver(post_save)
 def audit_log_save(sender, instance, created, **kwargs):
     if not should_log_model(sender):
+        return
+
+    # Fail-safe for early migrations
+    if not connection.introspection.table_names() or 'authentication_auditlog' not in connection.introspection.table_names():
         return
 
     actor = get_current_user()
@@ -85,6 +92,10 @@ def audit_log_save(sender, instance, created, **kwargs):
 @receiver(post_delete)
 def audit_log_delete(sender, instance, **kwargs):
     if not should_log_model(sender):
+        return
+
+    # Fail-safe for early migrations
+    if not connection.introspection.table_names() or 'authentication_auditlog' not in connection.introspection.table_names():
         return
 
     actor = get_current_user()
