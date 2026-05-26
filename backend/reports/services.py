@@ -23,6 +23,41 @@ class ReportDataService:
     """Service for collecting and processing data for reports"""
     
     @staticmethod
+    def _apply_customization(data_list, filters):
+        """Helper to prune fields and group data list based on filters"""
+        if not data_list or not isinstance(data_list, list):
+            return data_list
+            
+        selected_fields = filters.get('selected_fields')
+        group_by = filters.get('group_by')
+        
+        # 1. Prune fields
+        if selected_fields:
+            pruned_list = []
+            for item in data_list:
+                if isinstance(item, dict):
+                    # Always keep the group_by field if it exists, so grouping still works
+                    effective_fields = set(selected_fields)
+                    if group_by: effective_fields.add(group_by)
+                    pruned_list.append({k: v for k, v in item.items() if k in effective_fields})
+                else:
+                    pruned_list.append(item)
+            data_list = pruned_list
+            
+        # 2. Group data (returns a dict of lists if grouping is active)
+        if group_by and data_list and isinstance(data_list[0], dict) and group_by in data_list[0]:
+            grouped_data = {}
+            for item in data_list:
+                val = item.get(group_by)
+                key = str(val) if val is not None else 'None/Other'
+                if key not in grouped_data:
+                    grouped_data[key] = []
+                grouped_data[key].append(item)
+            return grouped_data
+            
+        return data_list
+
+    @staticmethod
     def _get_cache_key(prefix, date_start, date_end, filters):
         """Generate cache key for report data"""
         key_parts = [
@@ -65,6 +100,11 @@ class ReportDataService:
                     consultations = list(patient.consultations.all().order_by('-date_time').values(
                         'date_time', 'chief_complaints', 'treatment_plan', 'remarks'
                     )[:10])
+                    
+                    # Apply customization (field selection and grouping)
+                    medical_records = ReportDataService._apply_customization(medical_records, filters)
+                    dental_records = ReportDataService._apply_customization(dental_records, filters)
+                    consultations = ReportDataService._apply_customization(consultations, filters)
                     
                     # Calculate age
                     today = timezone.now().date()
@@ -213,6 +253,12 @@ class ReportDataService:
                 if filters.get('role'):
                     medical_records = medical_records.filter(patient__user__role=filters['role'])
                     dental_records = dental_records.filter(patient__user__role=filters['role'])
+                
+                department = filters.get('department')
+                if department == 'MEDICAL':
+                    dental_records = dental_records.none()
+                elif department == 'DENTAL':
+                    medical_records = medical_records.none()
 
             total_medical = medical_records.count()
             total_dental = dental_records.count()
@@ -255,7 +301,7 @@ class ReportDataService:
                         'total_visits': int(row['total']),
                         'medical_visits': int(row.get('medical', 0)), 
                         'dental_visits': int(row.get('dental', 0)),
-                        'growth_percentage': float(row.get('growth', 0))
+                        'growth_percentage': f"{float(row.get('growth', 0)):.1f}%"
                     })
             else:
                 # Provide at least current month with zero data if empty
@@ -265,9 +311,12 @@ class ReportDataService:
                     'total_visits': 0,
                     'medical_visits': 0,
                     'dental_visits': 0,
-                    'growth_percentage': 0
+                    'growth_percentage': "0%"
                 })
                 
+            # Apply customization (field selection and grouping)
+            monthly_summary = ReportDataService._apply_customization(monthly_summary, filters)
+            
             days_diff = (date_end - date_start).days or 1
             avg_daily = round(total_visits / days_diff, 1)
             peak_day_visits = 0
@@ -332,11 +381,27 @@ class ReportDataService:
     def get_user_activity_data(date_start=None, date_end=None, filters=None):
         try:
             users = User.objects.all()
+            
+            # Apply user filter if provided
+            user_id = (filters or {}).get('user_id')
+            if user_id:
+                users = users.filter(id=user_id)
+                
             active_users_log = []
             for u in users.order_by('-last_login')[:100]:
-                active_users_log.append({'User': u.get_full_name() or u.email, 'Role': u.role, 'Last_Login': u.last_login, 'Status': 'Active' if u.is_active else 'Inactive'})
+                active_users_log.append({
+                    'user': u.get_full_name() or u.email, 
+                    'role': u.role, 
+                    'timestamp': u.last_login, 
+                    'status': 'Active' if u.is_active else 'Inactive'
+                })
+            
+            # Apply customization
+            active_users_log = ReportDataService._apply_customization(active_users_log, filters or {})
+            
             return {
-                'total_users': users.count(), 'active_users_period': users.filter(last_login__gte=date_start or timezone.now()-timedelta(days=30)).count(),
+                'total_users': users.count(), 
+                'active_users_period': users.filter(last_login__gte=date_start or timezone.now()-timedelta(days=30)).count(),
                 'system_log': active_users_log 
             }
         except Exception as e: return {'error': str(e)}
@@ -358,11 +423,22 @@ class ReportDataService:
                 status__in=['PENDING', 'SENT', 'DELIVERED'],
                 created_at__range=(date_start or (timezone.now() - timedelta(days=365)), date_end or timezone.now())
             ).count()
+            
+            # Sample metrics list for customization
+            metrics = [
+                {'metric_name': 'Total Population', 'value': total_pop, 'unit': 'Patients'},
+                {'metric_name': 'Average Age', 'value': round(avg_age, 1), 'unit': 'Years'},
+                {'metric_name': 'System Alerts', 'value': health_alerts, 'unit': 'Notifications'}
+            ]
+            
+            # Apply customization
+            metrics = ReportDataService._apply_customization(metrics, filters or {})
 
             return {
                 'total_population': total_pop, 
                 'age_average': round(avg_age, 1), 
-                'health_alerts': health_alerts
+                'health_alerts': health_alerts,
+                'metrics_details': metrics
             }
         except Exception as e:
             logger.error(f"Error in get_health_metrics_data: {e}")
@@ -405,20 +481,25 @@ class ReportDataService:
                     'patient_id': patient_id
                 })
                 
+            # Apply customization to comments
+            comments = ReportDataService._apply_customization(comments, filters or {})
+
             excellent_count = feedback_qs.filter(rating=5).count()
             good_count = feedback_qs.filter(rating=4).count()
             fair_count = feedback_qs.filter(rating=3).count()
             poor_count = feedback_qs.filter(rating__lte=2).count()
-            
+
             rating_distribution = [
                 {'category': 'Excellent (5★)', 'count': excellent_count, 'percentage': (excellent_count/total*100)},
                 {'category': 'Good (4★)', 'count': good_count, 'percentage': (good_count/total*100)},
                 {'category': 'Fair (3★)', 'count': fair_count, 'percentage': (fair_count/total*100)},
                 {'category': 'Poor (1-2★)', 'count': poor_count, 'percentage': (poor_count/total*100)},
             ]
-            
-            return {
-                'total_responses': total, 
+
+            # Apply customization to rating distribution
+            rating_distribution = ReportDataService._apply_customization(rating_distribution, filters or {})
+
+            return {                'total_responses': total, 
                 'total_visits': total_visits,
                 'response_rate': round(float(response_rate), 1),
                 'avg_rating': round(float(avg), 1), 
@@ -440,10 +521,28 @@ class ReportDataService:
     @staticmethod
     def get_campaign_performance_data(date_start=None, date_end=None, filters=None):
         try:
+            filters = filters or {}
             date_start = date_start or (timezone.now() - timedelta(days=365))
             date_end = date_end or timezone.now()
             
-            queryset = HealthCampaign.objects.filter(created_at__range=(date_start, date_end))
+            queryset = HealthCampaign.objects.all()
+            
+            # Apply filters
+            campaign_ids = filters.get('campaign_ids')
+            if campaign_ids:
+                if isinstance(campaign_ids, list):
+                    queryset = queryset.filter(id__in=campaign_ids)
+                else:
+                    queryset = queryset.filter(id=campaign_ids)
+            
+            campaign_type = filters.get('campaign_type')
+            if campaign_type:
+                queryset = queryset.filter(campaign_type=campaign_type)
+            
+            # Date range filter (only if not filtering by specific IDs)
+            if not campaign_ids:
+                queryset = queryset.filter(created_at__range=(date_start, date_end))
+            
             total_campaigns = queryset.count()
             
             if total_campaigns == 0:
@@ -506,8 +605,8 @@ class ReportDataService:
                     'avg_views': with_banner['views'] / with_banner['count']
                 })
                 
-            # Sort performance by views
-            perf = sorted(perf, key=lambda x: x['views'], reverse=True)[:10]
+            # Apply customization (field selection and grouping)
+            perf = ReportDataService._apply_customization(perf, filters)
 
             return {
                 'total_views': total_views,
@@ -569,12 +668,16 @@ class ReportDataService:
                         'emergency': 0 
                     })
 
+            # Apply customization (field selection and grouping)
+            diag = ReportDataService._apply_customization(diag, filters or {})
+            monthly_trends = ReportDataService._apply_customization(monthly_trends, filters or {})
+
             return {
                 'total_patients': patients.count(), 
                 'total_consultations': records.count(), 
                 'avg_age': round(float(avg_age), 1), 
                 'top_diagnoses': diag, 
-                'monthly_trends': sorted(monthly_trends, key=lambda x: x['name'])
+                'monthly_trends': sorted(monthly_trends, key=lambda x: x['name']) if isinstance(monthly_trends, list) else monthly_trends
             }
         except Exception as e: 
             logger.error(f"Error in get_medical_statistics_data: {str(e)}")
@@ -636,6 +739,12 @@ class ReportDataService:
             preventive_types = ['CLEANING', 'PROPHYLAXIS', 'FLUORIDE', 'SEALANT']
             preventive_count = records.filter(procedure_performed__in=preventive_types).count()
             preventive_rate = (preventive_count / total_records) * 100 if total_records > 0 else 0
+
+            # Apply customization (field selection and grouping)
+            common_procedures = ReportDataService._apply_customization(common_procedures, filters or {})
+            hygiene_stats = ReportDataService._apply_customization(hygiene_stats, filters or {})
+            gum_stats = ReportDataService._apply_customization(gum_stats, filters or {})
+            priority_stats = ReportDataService._apply_customization(priority_stats, filters or {})
 
             return {
                 'total_records': total_records,
@@ -1183,3 +1292,126 @@ class ReportGenerationService:
     def generate_campaign_performance_report(self, **kwargs): return self._generate_generic_report('CAMPAIGN_PERFORMANCE', "Campaign Performance", **kwargs)
     def generate_user_activity_report(self, **kwargs): return self._generate_generic_report('USER_ACTIVITY', "User Activity", **kwargs)
     def generate_health_metrics_report(self, **kwargs): return self._generate_generic_report('HEALTH_METRICS', "Health Metrics", **kwargs)
+
+class ReportSchemaService:
+    """Service for providing configuration schemas for customizable reports"""
+    
+    @staticmethod
+    def get_schema(report_type):
+        schemas = {
+            'CAMPAIGN_PERFORMANCE': {
+                'filters': [
+                    {'id': 'campaign_ids', 'label': 'Specific Campaigns', 'type': 'api_multiselect', 'endpoint': '/api/health-info/campaigns/'},
+                    {'id': 'campaign_type', 'label': 'Campaign Type', 'type': 'select', 'options': [
+                        {'label': 'Awareness', 'value': 'AWARENESS'},
+                        {'label': 'Screening', 'value': 'SCREENING'},
+                        {'label': 'Vaccination', 'value': 'VACCINATION'},
+                        {'label': 'Workshop', 'value': 'WORKSHOP'}
+                    ]}
+                ],
+                'fields': [
+                    {'id': 'title', 'label': 'Campaign Title', 'default': True},
+                    {'id': 'views', 'label': 'Total Views', 'default': True},
+                    {'id': 'type', 'label': 'Type', 'default': True},
+                    {'id': 'priority', 'label': 'Priority', 'default': True},
+                    {'id': 'performance', 'label': 'Performance', 'default': False}
+                ],
+                'groupable_by': ['type', 'priority']
+            },
+            'PATIENT_SUMMARY': {
+                'filters': [
+                    {'id': 'patient_id', 'label': 'Select Student/Patient', 'type': 'api_select', 'endpoint': '/api/patients/'},
+                ],
+                'fields': [
+                    {'id': 'visit_date', 'label': 'Visit Date', 'default': True},
+                    {'id': 'diagnosis', 'label': 'Diagnosis', 'default': True},
+                    {'id': 'treatment', 'label': 'Treatment', 'default': True},
+                    {'id': 'notes', 'label': 'Clinical Notes', 'default': False}
+                ],
+                'groupable_by': []
+            },
+            'VISIT_TRENDS': {
+                'filters': [
+                    {'id': 'department', 'label': 'Department', 'type': 'select', 'options': [
+                        {'label': 'Medical', 'value': 'MEDICAL'},
+                        {'label': 'Dental', 'value': 'DENTAL'}
+                    ]}
+                ],
+                'fields': [
+                    {'id': 'month', 'label': 'Month', 'default': True},
+                    {'id': 'visit_count', 'label': 'Visit Count', 'default': True},
+                    {'id': 'patient_count', 'label': 'Unique Patients', 'default': True}
+                ],
+                'groupable_by': ['month']
+            },
+            'MEDICAL_STATISTICS': {
+                'filters': [
+                    {'id': 'diagnosis_category', 'label': 'Diagnosis Category', 'type': 'text'}
+                ],
+                'fields': [
+                    {'id': 'diagnosis', 'label': 'Diagnosis', 'default': True},
+                    {'id': 'count', 'label': 'Case Count', 'default': True},
+                    {'id': 'percentage', 'label': 'Percentage', 'default': True}
+                ],
+                'groupable_by': ['diagnosis']
+            },
+            'DENTAL_STATISTICS': {
+                'filters': [],
+                'fields': [
+                    {'id': 'procedure', 'label': 'Procedure', 'default': True},
+                    {'id': 'count', 'label': 'Case Count', 'default': True},
+                    {'id': 'percentage', 'label': 'Percentage', 'default': True}
+                ],
+                'groupable_by': ['procedure']
+            },
+            'FEEDBACK_ANALYSIS': {
+                'filters': [],
+                'fields': [
+                    {'id': 'category', 'label': 'Category', 'default': True},
+                    {'id': 'avg_rating', 'label': 'Average Rating', 'default': True},
+                    {'id': 'response_count', 'label': 'Total Responses', 'default': True}
+                ],
+                'groupable_by': ['category']
+            },
+            'USER_ACTIVITY': {
+                'filters': [
+                    {'id': 'user_id', 'label': 'Specific User', 'type': 'api_select', 'endpoint': '/api/auth/users/'}
+                ],
+                'fields': [
+                    {'id': 'user', 'label': 'User', 'default': True},
+                    {'id': 'action', 'label': 'Action', 'default': True},
+                    {'id': 'timestamp', 'label': 'Timestamp', 'default': True},
+                    {'id': 'ip_address', 'label': 'IP Address', 'default': False}
+                ],
+                'groupable_by': ['user', 'action']
+            },
+            'TREATMENT_OUTCOMES': {
+                'filters': [],
+                'fields': [
+                    {'id': 'treatment', 'label': 'Treatment', 'default': True},
+                    {'id': 'success_rate', 'label': 'Success Rate', 'default': True},
+                    {'id': 'avg_recovery_days', 'label': 'Avg. Recovery', 'default': True}
+                ],
+                'groupable_by': ['treatment']
+            },
+            'HEALTH_METRICS': {
+                'filters': [],
+                'fields': [
+                    {'id': 'metric_name', 'label': 'Metric Name', 'default': True},
+                    {'id': 'value', 'label': 'Value', 'default': True},
+                    {'id': 'unit', 'label': 'Unit', 'default': True}
+                ],
+                'groupable_by': ['metric_name']
+            }
+        }
+        
+        # Return specific schema or a basic generic fallback
+        return schemas.get(report_type, {
+            'filters': [],
+            'fields': [
+                {'id': 'id', 'label': 'ID', 'default': True},
+                {'id': 'name', 'label': 'Name', 'default': True},
+                {'id': 'created_at', 'label': 'Date Created', 'default': True}
+            ],
+            'groupable_by': []
+        })

@@ -11,14 +11,26 @@ logger = logging.getLogger(__name__)
 class ReportTemplateSerializer(serializers.ModelSerializer):
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
     generation_count = serializers.SerializerMethodField()
+    schema = serializers.SerializerMethodField()
     
     class Meta:
         model = ReportTemplate
-        fields = '__all__'
+        fields = [
+            'id', 'name', 'description', 'report_type', 'default_filters',
+            'supported_formats', 'is_active', 'requires_date_range',
+            'requires_patient_filter', 'requires_user_filter', 'allowed_roles',
+            'created_at', 'updated_at', 'created_by', 'created_by_name',
+            'generation_count', 'schema'
+        ]
         read_only_fields = ('created_at', 'updated_at', 'created_by')
     
     def get_generation_count(self, obj):
         return obj.generated_reports.count()
+
+    def get_schema(self, obj):
+        """Get the configuration schema for this report type"""
+        from .services import ReportSchemaService
+        return ReportSchemaService.get_schema(obj.report_type)
     
     def validate_supported_formats(self, value):
         """Validate supported formats"""

@@ -7,7 +7,8 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, Chip, LinearProgress, IconButton, Tooltip,
   Accordion, AccordionSummary, AccordionDetails,
-  Switch, FormControlLabel, Divider, Badge
+  Switch, FormControlLabel, Divider, Badge,
+  Autocomplete, Checkbox, ListItemText
 } from '@mui/material';
 import {
   Add as AddIcon, GetApp as DownloadIcon, Visibility as ViewIcon,
@@ -112,6 +113,47 @@ const Reports = () => {
     export_format: 'PDF',
     filters: {}
   });
+  const [customFilters, setCustomFilters] = useState({});
+  const [selectedFields, setSelectedFields] = useState([]);
+  const [groupBy, setGroupBy] = useState('');
+  const [filterOptions, setFilterOptions] = useState({});
+
+  useEffect(() => {
+    if (selectedTemplate && selectedTemplate.schema) {
+      const defaultFields = selectedTemplate.schema.fields
+        .filter(f => f.default)
+        .map(f => f.id);
+      setSelectedFields(defaultFields);
+      setCustomFilters({});
+      setGroupBy('');
+      
+      // Fetch options for filters with endpoints
+      selectedTemplate.schema.filters.forEach(filter => {
+        if ((filter.type === 'api_multiselect' || filter.type === 'api_select') && filter.endpoint) {
+          fetchOptions(filter.id, filter.endpoint);
+        }
+      });
+    }
+  }, [selectedTemplate]);
+
+  const fetchOptions = async (filterId, endpoint) => {
+    try {
+      // Basic fetch from relative endpoint
+      const response = await reportService.api.get(endpoint);
+      const data = response.data.results || response.data;
+      
+      // Standardize options (attempt to find ID and Name/Title)
+      const options = data.map(item => ({
+        value: item.id || item.value,
+        label: item.title || item.name || item.first_name || item.full_name || item.label || String(item)
+      }));
+      
+      setFilterOptions(prev => ({ ...prev, [filterId]: options }));
+    } catch (err) {
+      console.error(`Failed to fetch options for ${filterId}:`, err);
+    }
+  };
+
   const [dashboard, setDashboard] = useState(null);
   const [templateAnalytics, setTemplateAnalytics] = useState(null);
   const [systemAnalytics, setSystemAnalytics] = useState(null);
@@ -193,10 +235,16 @@ const Reports = () => {
 
   const handleGenerateReport = async () => {
     try {
-      const response = await reportService.generateReport(selectedTemplate.id, {
+      const payload = {
         ...reportForm,
-        template_id: selectedTemplate.id
-      });
+        template_id: selectedTemplate.id,
+        filters: {
+          ...customFilters,
+          selected_fields: selectedFields,
+          group_by: groupBy
+        }
+      };
+      const response = await reportService.generateReport(selectedTemplate.id, payload);
       setSuccess('Report generation started!');
       setGenerateDialogOpen(false);
       resetForm();
@@ -206,6 +254,136 @@ const Reports = () => {
       setError(errorMessage);
       console.error('Error generating report:', err);
     }
+  };
+
+  const renderDynamicFilters = () => {
+    if (!selectedTemplate || !selectedTemplate.schema) return null;
+    
+    const { schema } = selectedTemplate;
+    
+    return (
+      <Box sx={{ mt: 3 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', color: '#1976d2' }}>
+          <FilterIcon sx={{ mr: 1, fontSize: '1.2rem' }} />
+          Customization Options
+        </Typography>
+        
+        <Grid container spacing={2}>
+          {schema.filters && schema.filters.length > 0 && (
+            <Grid item xs={12}>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, fontWeight: 500, textTransform: 'uppercase' }}>
+                Data Filters
+              </Typography>
+              <Grid container spacing={2}>
+                {schema.filters.map(filter => (
+                  <Grid item xs={12} key={filter.id}>
+                    {filter.type === 'api_multiselect' ? (
+                      <Autocomplete
+                        multiple
+                        options={filterOptions[filter.id] || []}
+                        getOptionLabel={(option) => option.label}
+                        value={(filterOptions[filter.id] || []).filter(opt => (customFilters[filter.id] || []).includes(opt.value))}
+                        isOptionEqualToValue={(option, value) => option.value === value.value}
+                        onChange={(e, newValue) => {
+                          setCustomFilters(prev => ({ ...prev, [filter.id]: newValue.map(v => v.value) }));
+                        }}
+                        renderInput={(params) => (
+                          <TextField {...params} label={filter.label} size="small" placeholder="Select multiple..." />
+                        )}
+                      />
+                    ) : filter.type === 'api_select' ? (
+                      <Autocomplete
+                        options={filterOptions[filter.id] || []}
+                        getOptionLabel={(option) => option.label}
+                        value={(filterOptions[filter.id] || []).find(opt => opt.value === customFilters[filter.id]) || null}
+                        isOptionEqualToValue={(option, value) => option.value === value.value}
+                        onChange={(e, newValue) => {
+                          setCustomFilters(prev => ({ ...prev, [filter.id]: newValue?.value }));
+                        }}
+                        renderInput={(params) => (
+                          <TextField {...params} label={filter.label} size="small" />
+                        )}
+                      />
+                    ) : filter.type === 'select' ? (
+                      <FormControl fullWidth size="small">
+                        <InputLabel>{filter.label}</InputLabel>
+                        <Select
+                          value={customFilters[filter.id] || ''}
+                          label={filter.label}
+                          onChange={(e) => setCustomFilters(prev => ({ ...prev, [filter.id]: e.target.value }))}
+                        >
+                          {filter.options.map(opt => (
+                            <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    ) : (
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label={filter.label}
+                        value={customFilters[filter.id] || ''}
+                        onChange={(e) => setCustomFilters(prev => ({ ...prev, [filter.id]: e.target.value }))}
+                      />
+                    )}
+                  </Grid>
+                ))}
+              </Grid>
+            </Grid>
+          )}
+          
+          <Grid item xs={12}>
+            <Divider sx={{ my: 1 }} />
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, fontWeight: 500, textTransform: 'uppercase' }}>
+              Field Selection
+            </Typography>
+            <FormControl fullWidth size="small">
+              <InputLabel>Fields to Include</InputLabel>
+              <Select
+                multiple
+                value={selectedFields}
+                label="Fields to Include"
+                onChange={(e) => setSelectedFields(e.target.value)}
+                renderValue={(selected) => (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {selected.map((value) => (
+                      <Chip key={value} label={schema.fields.find(f => f.id === value)?.label || value} size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                    ))}
+                  </Box>
+                )}
+              >
+                {schema.fields.map((field) => (
+                  <MenuItem key={field.id} value={field.id}>
+                    <Checkbox checked={selectedFields.indexOf(field.id) > -1} size="small" />
+                    <ListItemText primary={field.label} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
+          {schema.groupable_by && schema.groupable_by.length > 0 && (
+            <Grid item xs={12}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Advanced Grouping</InputLabel>
+                <Select
+                  value={groupBy}
+                  label="Advanced Grouping"
+                  onChange={(e) => setGroupBy(e.target.value)}
+                >
+                  <MenuItem value=""><em>No Grouping</em></MenuItem>
+                  {schema.groupable_by.map(fieldId => (
+                    <MenuItem key={fieldId} value={fieldId}>
+                      Group by {schema.fields.find(f => f.id === fieldId)?.label || fieldId}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          )}
+        </Grid>
+      </Box>
+    );
   };
 
   const fetchReportStatuses = useCallback(async () => {
@@ -1377,6 +1555,11 @@ const Reports = () => {
                         <MenuItem value="HTML">HTML Report</MenuItem>
                       </Select>
                     </FormControl>
+                  </Grid>
+
+                  {/* Dynamic Customization Section */}
+                  <Grid item xs={12}>
+                    {renderDynamicFilters()}
                   </Grid>
                 </Grid>
               </Box>
