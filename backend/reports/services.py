@@ -1150,10 +1150,20 @@ class ReportGenerationService:
         </head>
         <body>
             <div class="header"><h1>{title}</h1><p>University of San Carlos - Patient Information System</p></div>
-            
+
+            {{% if visual_charts %}}
             <div class="section">
-                <div class="section-title">Summary Metrics</div>
-                <div class="metric-grid">
+                <div class="section-title">Visual Analytics</div>
+                <div style="text-align: center; margin-top: 15px;">
+                    {{% for chart_url in visual_charts %}}
+                        <img src="{{{{ chart_url }}}}" style="max-width: 100%; height: auto; margin-bottom: 20px; border: 1px solid #ddd; padding: 5px; background: white;" />
+                    {{% endfor %}}
+                </div>
+            </div>
+            {{% endif %}}
+
+            <div class="section">
+                <div class="section-title">Summary Metrics</div>                <div class="metric-grid">
                     {{% for k, v in report_data.items %}}
                         {{% if v|is_simple %}}
                         <div class="metric-item">
@@ -1207,13 +1217,46 @@ class ReportGenerationService:
         </body>
         </html>"""
 
-    def collect_report_data(self, report_type, title, date_start=None, date_end=None, filters=None):
+    def _generate_chart_url(self, chart_type, labels, data, label="Metric"):
+        """Generate a QuickChart.io URL for embedding charts in reports"""
+        import json
+        import urllib.parse
+        
+        # Limit labels and data for readability
+        labels = labels[:12]
+        data = data[:12]
+        
+        chart_config = {
+            'type': chart_type,
+            'data': {
+                'labels': labels,
+                'datasets': [{
+                    'label': label,
+                    'data': data,
+                    'backgroundColor': [
+                        'rgba(11, 79, 108, 0.7)', 'rgba(2, 136, 209, 0.7)',
+                        'rgba(46, 125, 50, 0.7)', 'rgba(230, 74, 25, 0.7)',
+                        'rgba(123, 31, 162, 0.7)', 'rgba(0, 121, 107, 0.7)'
+                    ]
+                }]
+            },
+            'options': {
+                'title': { 'display': True, 'text': label },
+                'legend': { 'display': chart_type in ['pie', 'doughnut'] }
+            }
+        }
+        
+        config_str = json.dumps(chart_config)
+        encoded_config = urllib.parse.quote(config_str)
+        return f"https://quickchart.io/chart?c={encoded_config}&w=500&h=300"
+
+    def collect_report_data(self, report_type, title, date_start=None, date_end=None, filters=None, **kwargs):
         """Standardized data collection for any report type"""
         rtype = str(report_type or '').strip().upper()
         
         # Standardize dates
-        if not date_start: date_start = timezone.now() - timedelta(days=365)
-        if not date_end: date_end = timezone.now()
+        date_start = date_start or kwargs.get('date_range_start') or (timezone.now() - timedelta(days=365))
+        date_end = date_end or kwargs.get('date_range_end') or timezone.now()
 
         try:
             if rtype == 'PATIENT_SUMMARY': 
@@ -1250,6 +1293,56 @@ class ReportGenerationService:
             
             if not isinstance(data, dict): data = {'error': 'Invalid data format', 'report_type': rtype}
             
+            # Enrich with Charts
+            charts = []
+            if rtype == 'VISIT_TRENDS' and data.get('monthly_summary'):
+                charts.append(self._generate_chart_url('line', 
+                    [m['month'] for m in data['monthly_summary']], 
+                    [m['total_visits'] for m in data['monthly_summary']],
+                    "Total Visits by Month"))
+            elif rtype == 'CAMPAIGN_PERFORMANCE' and data.get('campaign_performance'):
+                perf = data['campaign_performance']
+                if isinstance(perf, dict): perf = [v for k,v in perf.items()] # handle grouped
+                if isinstance(perf, list) and len(perf) > 0 and isinstance(perf[0], list): perf = [item for sublist in perf for item in sublist]
+                charts.append(self._generate_chart_url('bar', 
+                    [c.get('title', 'N/A') for c in perf[:10]], 
+                    [c.get('views', 0) for c in perf[:10]],
+                    "Top 10 Campaigns by Views"))
+            elif rtype == 'FEEDBACK_ANALYSIS' and data.get('rating_distribution'):
+                dist = data['rating_distribution']
+                charts.append(self._generate_chart_url('pie', 
+                    [d.get('category', 'N/A') for d in dist], 
+                    [d.get('count', 0) for d in dist],
+                    "Patient Satisfaction Distribution"))
+            elif rtype == 'MEDICAL_STATISTICS' and data.get('top_diagnoses'):
+                diag = data['top_diagnoses']
+                charts.append(self._generate_chart_url('bar', 
+                    [d.get('name', 'N/A') for d in diag[:10]], 
+                    [d.get('count', d.get('total', 0)) for d in diag[:10]],
+                    "Top Diagnoses Distribution"))
+            elif rtype == 'DENTAL_STATISTICS' and data.get('common_procedures'):
+                proc = data['common_procedures']
+                charts.append(self._generate_chart_url('bar', 
+                    [p.get('name', 'N/A') for p in proc[:10]], 
+                    [p.get('count', 0) for p in proc[:10]],
+                    "Common Dental Procedures"))
+            elif rtype == 'TREATMENT_OUTCOMES' and data.get('top_diagnoses'):
+                outcomes = data['top_diagnoses']
+                charts.append(self._generate_chart_url('bar', 
+                    [o.get('diagnosis', 'N/A') for o in outcomes[:10]], 
+                    [o.get('count', 0) for o in outcomes[:10]],
+                    "Treatment Outcomes by Diagnosis"))
+            elif rtype == 'USER_ACTIVITY' and data.get('system_log'):
+                log = data['system_log']
+                # Group by role for a pie chart
+                roles = {}
+                for entry in log:
+                    r = entry.get('role', 'Unknown')
+                    roles[r] = roles.get(r, 0) + 1
+                charts.append(self._generate_chart_url('pie', 
+                    list(roles.keys()), list(roles.values()),
+                    "System Activity by User Role"))
+
             # Standardize Metadata
             data.update({
                 'report_title': report_title,
@@ -1257,7 +1350,8 @@ class ReportGenerationService:
                 'date_range_end': data.get('date_range_end', date_end),
                 'generated_at': data.get('generated_at', timezone.now()),
                 'system_name': "USC Patient Information System",
-                'report_type': rtype
+                'report_type': rtype,
+                'visual_charts': charts
             })
             return data
 

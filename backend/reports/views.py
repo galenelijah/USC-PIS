@@ -170,7 +170,7 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
                 report_type=template.report_type,
                 title=validated_data['title'],
                 date_start=validated_data.get('date_range_start'),
-                date_range_end=validated_data.get('date_range_end'),
+                date_end=validated_data.get('date_range_end'),
                 filters=validated_data.get('filters', {})
             )
             
