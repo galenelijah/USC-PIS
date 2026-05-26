@@ -141,6 +141,48 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+    @action(detail=True, methods=['post'])
+    def preview(self, request, pk=None):
+        """Get raw report data for preview without generating a file"""
+        try:
+            template = self.get_object()
+            
+            # Validate request data
+            serializer = ReportGenerationRequestSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            validated_data = serializer.validated_data
+            
+            # Check user permissions
+            user_role = request.user.role
+            if template.allowed_roles and user_role not in template.allowed_roles:
+                return Response(
+                    {'error': 'You do not have permission to preview this report'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Use the generation service to collect data directly
+            from .services import ReportGenerationService
+            service = ReportGenerationService()
+            
+            data = service.collect_report_data(
+                report_type=template.report_type,
+                title=validated_data['title'],
+                date_start=validated_data.get('date_range_start'),
+                date_range_end=validated_data.get('date_range_end'),
+                filters=validated_data.get('filters', {})
+            )
+            
+            return Response(data, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Error in preview action: {str(e)}")
+            return Response(
+                {'error': f'Preview failed: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 class GeneratedReportViewSet(viewsets.ModelViewSet):
     """ViewSet for managing generated reports"""
     queryset = GeneratedReport.objects.all()

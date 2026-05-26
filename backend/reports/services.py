@@ -1207,15 +1207,14 @@ class ReportGenerationService:
         </body>
         </html>"""
 
-    def _generate_generic_report(self, report_type, title, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
-        # 1. Normalize and identify the correct clinical report type
+    def collect_report_data(self, report_type, title, date_start=None, date_end=None, filters=None):
+        """Standardized data collection for any report type"""
         rtype = str(report_type or '').strip().upper()
         
-        # 2. Standardize dates early
+        # Standardize dates
         if not date_start: date_start = timezone.now() - timedelta(days=365)
         if not date_end: date_end = timezone.now()
 
-        # 3. Explicit Data Collection Mapping
         try:
             if rtype == 'PATIENT_SUMMARY': 
                 data = self.data_service.get_patient_summary_data(date_start, date_end, filters)
@@ -1251,31 +1250,35 @@ class ReportGenerationService:
             
             if not isinstance(data, dict): data = {'error': 'Invalid data format', 'report_type': rtype}
             
-            # 4. Standardize Clinical Metadata for all formats
+            # Standardize Metadata
             data.update({
                 'report_title': report_title,
                 'date_range_start': data.get('date_range_start', date_start),
                 'date_range_end': data.get('date_range_end', date_end),
                 'generated_at': data.get('generated_at', timezone.now()),
-                'system_name': "USC Patient Information System"
+                'system_name': "USC Patient Information System",
+                'report_type': rtype
             })
+            return data
 
         except Exception as e:
-            logger.error(f"Critical data collection failure: {str(e)}")
-            data = {'error': str(e), 'report_title': title or "Report Failure"}
-            report_title = title or "Report"
+            logger.error(f"Data collection failure: {str(e)}")
+            return {'error': str(e), 'report_title': title or "Report Failure"}
 
-        # 5. Smart Template Selection
-        # We use the provided HTML only if it's large enough to be a real template (>100 chars)
-        # and doesn't appear to be a dummy fallback.
+    def _generate_generic_report(self, report_type, title, date_start=None, date_end=None, filters=None, export_format='PDF', template_html=None):
+        # 1. Collect Data
+        data = self.collect_report_data(report_type, title, date_start, date_end, filters)
+        report_title = data.get('report_title', title)
+        rtype = data.get('report_type', report_type)
+
+        # 2. Smart Template Selection
         is_dummy = template_html and "Comprehensive Analytics" in template_html and rtype != 'COMPREHENSIVE_ANALYTICS'
         if not template_html or len(str(template_html)) < 150 or is_dummy:
             final_tpl = self.get_default_template(rtype, report_title)
         else:
             final_tpl = template_html
 
-        # 6. Export Dispatch
-        # Use report_title which is normalized based on rtype
+        # 3. Export Dispatch
         if export_format == 'PDF': return self.export_service.export_to_pdf(data, final_tpl, report_title)
         if export_format == 'HTML': return self.export_service.export_to_html(data, final_tpl, report_title)
         if export_format == 'EXCEL': return self.export_service.export_to_excel(data, report_title)

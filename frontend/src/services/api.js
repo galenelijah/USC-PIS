@@ -1654,6 +1654,11 @@ export const reportService = {
     return api.post(`/reports/templates/${templateId}/generate/`, data);
   },
 
+  // Preview report data
+  previewReport: (templateId, data) => {
+    return api.post(`/reports/templates/${templateId}/preview/`, data);
+  },
+
   // Get generated reports
   getReports: (params = {}) => {
     return api.get('/reports/generated/', { params });

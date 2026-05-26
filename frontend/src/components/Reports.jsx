@@ -117,6 +117,9 @@ const Reports = () => {
   const [selectedFields, setSelectedFields] = useState([]);
   const [groupBy, setGroupBy] = useState('');
   const [filterOptions, setFilterOptions] = useState({});
+  const [previewData, setPreviewData] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     if (selectedTemplate && selectedTemplate.schema) {
@@ -126,6 +129,8 @@ const Reports = () => {
       setSelectedFields(defaultFields);
       setCustomFilters({});
       setGroupBy('');
+      setPreviewData(null);
+      setShowPreview(false);
       
       // Fetch options for filters with endpoints
       selectedTemplate.schema.filters.forEach(filter => {
@@ -135,6 +140,29 @@ const Reports = () => {
       });
     }
   }, [selectedTemplate]);
+
+  const handlePreviewReport = async () => {
+    try {
+      setPreviewLoading(true);
+      setShowPreview(true);
+      const payload = {
+        ...reportForm,
+        template_id: selectedTemplate.id,
+        filters: {
+          ...customFilters,
+          selected_fields: selectedFields,
+          group_by: groupBy
+        }
+      };
+      const response = await reportService.previewReport(selectedTemplate.id, payload);
+      setPreviewData(response.data);
+    } catch (err) {
+      const errorMessage = err.response?.data?.error || 'Failed to fetch preview';
+      setError(errorMessage);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
 
   const fetchOptions = async (filterId, endpoint) => {
     try {
@@ -382,6 +410,138 @@ const Reports = () => {
             </Grid>
           )}
         </Grid>
+      </Box>
+    );
+  };
+
+  const renderPreviewContent = () => {
+    if (!previewData) return null;
+
+    const getChartData = () => {
+      const type = selectedTemplate.report_type;
+      
+      if (type === 'CAMPAIGN_PERFORMANCE' && previewData.campaign_performance) {
+        const data = Array.isArray(previewData.campaign_performance) 
+          ? previewData.campaign_performance 
+          : Object.values(previewData.campaign_performance).flat();
+          
+        return {
+          labels: data.map(c => c.title || 'Unknown'),
+          datasets: [{
+            label: 'Views',
+            data: data.map(c => c.views || 0),
+            backgroundColor: 'rgba(25, 118, 210, 0.6)',
+            borderColor: '#1976d2',
+            borderWidth: 1
+          }]
+        };
+      }
+      
+      if (type === 'VISIT_TRENDS' && previewData.monthly_summary) {
+        return {
+          labels: previewData.monthly_summary.map(m => m.month),
+          datasets: [
+            {
+              label: 'Total Visits',
+              data: previewData.monthly_summary.map(m => m.total_visits),
+              borderColor: '#1976d2',
+              backgroundColor: 'rgba(25, 118, 210, 0.1)',
+              fill: true,
+              tension: 0.4
+            }
+          ]
+        };
+      }
+      
+      if (type === 'FEEDBACK_ANALYSIS' && previewData.rating_distribution) {
+        return {
+          labels: previewData.rating_distribution.map(d => d.category || `Rating ${d.rating}`),
+          datasets: [{
+            data: previewData.rating_distribution.map(d => d.count),
+            backgroundColor: ['#4caf50', '#8bc34a', '#ffc107', '#ff9800', '#f44336']
+          }]
+        };
+      }
+
+      if (type === 'MEDICAL_STATISTICS' && previewData.top_diagnoses) {
+        return {
+          labels: previewData.top_diagnoses.map(d => d.name),
+          datasets: [{
+            label: 'Cases',
+            data: previewData.top_diagnoses.map(d => d.count || d.total || 0),
+            backgroundColor: 'rgba(230, 74, 25, 0.6)'
+          }]
+        };
+      }
+      
+      return null;
+    };
+
+    const chartData = getChartData();
+
+    return (
+      <Box sx={{ mt: 4, p: 2, bgcolor: '#f5f5f5', borderRadius: 2, border: '1px solid #e0e0e0' }}>
+        <Typography variant="h6" gutterBottom color="primary" sx={{ display: 'flex', alignItems: 'center' }}>
+          <AnalyticsIcon sx={{ mr: 1 }} /> Data Preview & Insights
+        </Typography>
+        
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          {/* Summary Tiles */}
+          {Object.entries(previewData).map(([key, value]) => {
+            if (typeof value === 'number') {
+              return (
+                <Grid item xs={6} sm={3} key={key}>
+                  <Paper sx={{ p: 1.5, textAlign: 'center' }}>
+                    <Typography variant="h5" color="primary" sx={{ fontWeight: 'bold' }}>{value}</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
+                      {key.replace(/_/g, ' ')}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              );
+            }
+            return null;
+          })}
+        </Grid>
+
+        {chartData && (
+          <Box sx={{ height: 250, mb: 3, bgcolor: 'white', p: 2, borderRadius: 1 }}>
+            {selectedTemplate.report_type === 'FEEDBACK_ANALYSIS' ? (
+              <Pie data={chartData} options={{ maintainAspectRatio: false }} />
+            ) : (
+              <Bar data={chartData} options={{ maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
+            )}
+          </Box>
+        )}
+
+        <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold' }}>Sample Data (Top 5 Rows)</Typography>
+        <TableContainer component={Paper} sx={{ maxHeight: 200 }}>
+          <Table size="small" stickyHeader>
+            <TableHead>
+              <TableRow>
+                {selectedFields.map(f => (
+                  <TableCell key={f} sx={{ bgcolor: '#eee', fontWeight: 'bold' }}>
+                    {selectedTemplate.schema.fields.find(field => field.id === f)?.label || f}
+                  </TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {(() => {
+                // Find the first array in previewData to show as sample
+                const dataArrayKey = Object.keys(previewData).find(k => Array.isArray(previewData[k]));
+                const data = previewData[dataArrayKey] || [];
+                return data.slice(0, 5).map((row, i) => (
+                  <TableRow key={i}>
+                    {selectedFields.map(f => (
+                      <TableCell key={f}>{String(row[f] || '-')}</TableCell>
+                    ))}
+                  </TableRow>
+                ));
+              })()}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Box>
     );
   };
@@ -960,6 +1120,10 @@ const Reports = () => {
       export_format: 'PDF',
       filters: {}
     });
+    setPreviewData(null);
+    setShowPreview(false);
+    setCustomFilters({});
+    setGroupBy('');
   };
 
   const getStatusColor = (status) => {
@@ -1490,11 +1654,11 @@ const Reports = () => {
         <Dialog
           open={generateDialogOpen}
           onClose={() => setGenerateDialogOpen(false)}
-          maxWidth="sm"
+          maxWidth="md"
           fullWidth
         >
           <DialogTitle>Generate Report</DialogTitle>
-          <DialogContent>
+          <DialogContent dividers>
             {selectedTemplate && (
               <Box>
                 <Typography variant="h6" gutterBottom>
@@ -1511,6 +1675,7 @@ const Reports = () => {
                       label="Report Title *"
                       value={reportForm.title}
                       onChange={(e) => setReportForm(prev => ({ ...prev, title: e.target.value }))}
+                      size="small"
                     />
                   </Grid>
                   
@@ -1519,7 +1684,7 @@ const Reports = () => {
                       label="Start Date *"
                       value={reportForm.date_range_start}
                       onChange={(newValue) => setReportForm(prev => ({ ...prev, date_range_start: newValue }))}
-                      renderInput={(params) => <TextField {...params} fullWidth />}
+                      renderInput={(params) => <TextField {...params} fullWidth size="small" />}
                     />
                   </Grid>
                   
@@ -1528,20 +1693,13 @@ const Reports = () => {
                       label="End Date *"
                       value={reportForm.date_range_end}
                       onChange={(newValue) => setReportForm(prev => ({ ...prev, date_range_end: newValue }))}
-                      renderInput={(params) => <TextField {...params} fullWidth />}
+                      renderInput={(params) => <TextField {...params} fullWidth size="small" />}
                     />
                   </Grid>
                   
                   <Grid item xs={12}>
-                    <FormControl fullWidth>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                        <InputLabel id="export-format-label">Export Format</InputLabel>
-                        <Tooltip title="PDF reports are formatted summaries (limited to 200 items per section). Excel/CSV formats provide the full dataset for advanced analysis.">
-                          <IconButton size="small" sx={{ ml: 4, mt: -1 }}>
-                            <InfoOutlinedIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
+                    <FormControl fullWidth size="small">
+                      <InputLabel id="export-format-label">Export Format</InputLabel>
                       <Select
                         labelId="export-format-label"
                         value={reportForm.export_format}
@@ -1562,14 +1720,32 @@ const Reports = () => {
                     {renderDynamicFilters()}
                   </Grid>
                 </Grid>
+
+                {/* Data Preview Section */}
+                {renderPreviewContent()}
               </Box>
             )}
           </DialogContent>
-          <DialogActions>
+          <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'space-between' }}>
             <Button onClick={() => setGenerateDialogOpen(false)}>Cancel</Button>
-            <Button variant="contained" onClick={handleGenerateReport}>
-              Generate Report
-            </Button>
+            <Box>
+              <Button 
+                variant="outlined" 
+                onClick={handlePreviewReport} 
+                disabled={previewLoading || !reportForm.date_range_start || !reportForm.date_range_end}
+                sx={{ mr: 1 }}
+                startIcon={previewLoading ? <CircularProgress size={20} /> : <ViewIcon />}
+              >
+                Preview Results
+              </Button>
+              <Button 
+                variant="contained" 
+                onClick={handleGenerateReport}
+                disabled={!reportForm.date_range_start || !reportForm.date_range_end || !reportForm.title}
+              >
+                Generate Report
+              </Button>
+            </Box>
           </DialogActions>
         </Dialog>
 
