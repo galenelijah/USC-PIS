@@ -1,31 +1,35 @@
 # Session Summary - May 26, 2026 (FINAL REVISION)
 
-## 1. Medical Certificate Module Overhaul (Thesis Revisions)
+## 1. Clinical Records & Vitals Integrity
+- **Automated BMI:** Updated the `MedicalRecord` save logic to autonomously calculate and log the Body Mass Index based on provided height and weight metrics.
+- **Physiological Bounds:** Hard-coded strict thesis panel physiological ranges directly into the DRF serializers (e.g., Temp: 32-42°C, HR: 30-220 bpm) and explicitly enforced a rejection hook against `0` or negative entries to ensure data fidelity.
+
+## 2. Medical Certificate Module Overhaul (Thesis Revisions)
 - **Terminology Refactor:** Exchanged the term "Approved" for **"Issued"** across all layers (models, views, frontend components, and email templates). Completely purged "Request" terminology to strictly reflect a physician-led issuance workflow.
 - **Data Protection:** Implemented an immutable lock for **Rejected** certificates, returning strict 400/403 HTTP errors to prevent tampering and preserve audit integrity.
 - **Clinical Precision:** Restricted the `fitness_status` to mutually exclusive choices (**Physically Fit** vs **Physically Unfit**), and enforced a mandatory justification field for unfit assessments.
 - **Dynamic PDF Rendering:** Redesigned the output logic for the Default and USC Clinic (Tours/Off-Campus) templates. The chosen fitness status is now rendered exclusively, the physician's name is dynamically positioned above the signature line in uppercase, and the "License No:" line was removed per the panel's requirements.
 - **Patient UX:** Removed ambiguous download buttons for students, replacing them with a clear, professional notification banner advising them to claim their physical certificate at the clinic.
 
-## 2. Infrastructure Hardening & Bug Fixes
+## 3. Reporting System & RBAC Expansion
+- **Customizable Dashboard:** Completely reworked the `/reports` page with dynamic, schema-driven filters. Users can now filter by Course, School, Year Level, Rating, and specific Campaign IDs.
+- **Interactive Visualizations:** Integrated **Chart.js** (frontend) and **QuickChart API** (backend). Users can now preview data via Bar, Pie, and Line charts before exporting.
+- **Role Expansion:** Refactored the `IsStaffOrReadOnly` DRF permission to officially unlock report generation and analytics for clinical staff roles (**DOCTOR, DENTIST, NURSE**), clearing panel constraints regarding clinical accessibility.
+- **Query Hardening:** Formally verified the reporting queries for optimal database-level aggregation and secure handling of `pgcrypto` columns.
+
+## 4. Infrastructure Hardening & Bug Fixes
 - **500 Error Resolution:** Fixed multiple backend crashes resulting from the database field renaming (`issued_by` to `created_by`, `approval_status` to `issuance_status`). Updated all associated ORM queries, test setups, and mock data objects.
 - **CSRF Initialization:** Corrected a 500 error during React's CSRF handshake by adding the missing `@api_view(['GET'])` DRF decorator to the `get_csrf_token` view.
 - **CI/CD Stabilization:** Identified and fixed a critical **Recursion Error** where the new Audit Logging system was attempting to log its own database creations. Added defensive checks to skip logging during automated test database migrations, ensuring the GitHub Actions pipeline can run to completion.
 
-## 3. Reporting System Revolution (v2.0 - v2.1)
-- **Customizable Dashboard:** Completely reworked the `/reports` page with dynamic, schema-driven filters. Users can now filter by Course, School, Year Level, Rating, and specific Campaign IDs.
-- **Interactive Visualizations:** Integrated **Chart.js** (frontend) and **QuickChart API** (backend). Users can now preview data via Bar, Pie, and Line charts before exporting.
-- **Role Expansion:** Unlocked report generation and analytics for clinical staff roles (**DOCTOR, DENTIST, NURSE**), facilitating data-driven clinical decision-making.
-
-## 4. Administrative Audit & Accountability
+## 5. Administrative Audit & Accountability
 - **Exhaustive Logging:** Implemented an audit system that captures all CREATE, UPDATE, DELETE, LOGIN, and LOGOUT mutations across the platform.
 - **Asynchronous Resilience:** Logging is offloaded to Celery. Successfully resolved Redis SSL EOF protocol violations on Heroku by implementing explicit SSL negotiation settings.
 - **Fail-Silent Signals:** Updated audit signals to prevent background logging issues from crashing the main clinical workflow.
 
 ## Next Steps
-- Monitor Heroku application logs to ensure the new Medical Certificate HTML templates render perfectly in production.
-- Monitor the GitHub Actions dashboard to verify the pipeline executes cleanly once GitHub resolves their ongoing service outage.
-- Prepare the final system demonstration focusing on the strict, staff-only medical certificate issuance pipeline.
+- Push the latest Medical Record and Vitals validations to the repository and deploy to Heroku.
+- Prepare the final system demonstration focusing on the strict, staff-only medical certificate issuance pipeline and dynamic report generation capabilities.
 
 **Generated by:** Gemini CLI
 **Date:** May 26, 2026 (End of Day)
