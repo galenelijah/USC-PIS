@@ -1,3 +1,5 @@
+from django.http import JsonResponse
+from django.urls import resolve, Resolver404
 import threading
 
 _thread_locals = threading.local()
@@ -10,6 +12,47 @@ def get_current_ip():
 
 def get_current_user_agent():
     return getattr(_thread_locals, 'user_agent', None)
+
+class EmailVerificationMiddleware:
+    """
+    Middleware that enforces email verification (MFA) for authenticated users.
+    Blocks access to sensitive clinical endpoints if user.is_verified is False.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+        # Define paths that are exempt from the verification check
+        self.exempt_paths = [
+            'login', 'register', 'verify_email', 'resend_code', 
+            'logout', 'get-csrf-token', 'password-reset-request',
+            'password-reset-confirm', 'password-reset-confirm-post',
+            'check-email', 'database-health', 'debug-current-user'
+        ]
+
+    def __call__(self, request):
+        # 1. Skip check for unauthenticated users (they are handled by DRF permissions)
+        # 2. Skip check for admin/staff/clinical users if needed? (Requirement says "any user")
+        # 3. Only check if path is in /api/
+        
+        if request.user.is_authenticated and not request.user.is_verified:
+            path = request.path_info
+            
+            # Check if this is an API request
+            if path.startswith('/api/'):
+                try:
+                    match = resolve(path)
+                    url_name = match.url_name
+                    
+                    # If not exempt, block with 403
+                    if url_name not in self.exempt_paths:
+                        return JsonResponse({
+                            'error': 'Email verification required',
+                            'code': 'VERIFICATION_REQUIRED',
+                            'is_verified': False
+                        }, status=403)
+                except Resolver404:
+                    pass
+
+        return self.get_response(request)
 
 class AuditLogMiddleware:
     """
