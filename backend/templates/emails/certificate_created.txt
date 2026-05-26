@@ -1,19 +1,19 @@
-Medical Certificate Request Submitted
+Medical Certificate Created
 
-Dear {{ patient.user.first_name|default:patient.user.email }},
+Hello {{ patient.user.first_name }},
 
-Your medical certificate request has been submitted and is pending approval.
+A new medical certificate has been created for you and is now under clinical review.
 
 Certificate ID: {{ certificate.id }}
-Submitted: {{ certificate.created_at|date:"F d, Y at g:i A" }}
-Status: Pending Approval
+Date Created: {{ certificate.created_at|date:"F d, Y" }}
+Status: Pending Review
+
+Next Steps:
+1. Clinical Review by our medical team
+2. Decision by the University Physician
+3. Once issued, visit the clinic to claim your physical copy
 
 Check status: {{ site_url }}/medical-certificates
 
-Processing time: 24-48 hours during business days.
-
-Questions? Contact: {{ support_email }}
-
+Best regards,
 USC Health Center
-University of San Carlos
-

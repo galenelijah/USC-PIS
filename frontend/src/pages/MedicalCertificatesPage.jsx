@@ -138,12 +138,14 @@ const MedicalCertificatesPage = () => {
           onBack={handleBack}
           onEdit={() => handleEdit(selectedCertificate)}
           onSubmit={() => handleWorkflowAction('submit', selectedCertificate)}
-          onApprove={() => handleWorkflowAction('approve', selectedCertificate)}
+          onIssue={() => handleWorkflowAction('issue', selectedCertificate)}
           onReject={() => handleWorkflowAction('reject', selectedCertificate)}
           userRole={user?.role}
         />
       );
     }
+
+    const isStaff = ['ADMIN', 'DOCTOR', 'NURSE', 'STAFF', 'DENTIST'].includes(user?.role);
 
     return (
       <>
@@ -152,18 +154,20 @@ const MedicalCertificatesPage = () => {
             <Typography variant="h4" component="h1">
               Medical Certificates
             </Typography>
-            <InfoTooltip title="Create, view, and manage certificate requests. Students can request; staff and doctors can process." />
+            <InfoTooltip title="View and manage medical certificates. Clinical staff and doctors can create and issue certificates." />
           </Box>
-          <Tooltip title="Start a new medical certificate request">
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<AddIcon />}
-              onClick={handleCreate}
-            >
-              New Certificate
-            </Button>
-          </Tooltip>
+          {isStaff && (
+            <Tooltip title="Start a new medical certificate">
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AddIcon />}
+                onClick={handleCreate}
+              >
+                New Certificate
+              </Button>
+            </Tooltip>
+          )}
         </Box>
 
         {error && (

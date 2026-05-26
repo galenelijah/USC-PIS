@@ -1,41 +1,41 @@
 {% extends 'emails/base.html' %}
 
-{% block title %}Medical Certificate Request Submitted - USC-PIS{% endblock %}
+{% block title %}Medical Certificate Created - USC-PIS{% endblock %}
 
 {% block content %}
-<h2>Medical Certificate Request Submitted ✅</h2>
+<h2>Medical Certificate Created ✅</h2>
 
 <p>Dear {{ patient.user.first_name|default:patient.user.email }},</p>
 
-<p>Your medical certificate request has been successfully submitted and is now under review.</p>
+<p>A new medical certificate has been created for you and is now under clinical review.</p>
 
 <div class="success-box">
-    <strong>Request Details:</strong><br>
+    <strong>Certificate Details:</strong><br>
     <strong>Certificate ID:</strong> {{ certificate.id }}<br>
-    <strong>Submitted:</strong> {{ certificate.created_at|date:"F d, Y at g:i A" }}<br>
-    <strong>Status:</strong> Pending Approval
+    <strong>Date Created:</strong> {{ certificate.created_at|date:"F d, Y at g:i A" }}<br>
+    <strong>Status:</strong> Pending Review
 </div>
 
 <h3>What happens next?</h3>
 <ol>
-    <li><strong>Medical Review:</strong> Our medical team will review your request</li>
-    <li><strong>Assessment:</strong> A doctor will evaluate your fitness for the requested purpose</li>
-    <li><strong>Notification:</strong> You'll receive an email once the decision is made</li>
-    <li><strong>Download:</strong> If approved, you can download your certificate from the portal</li>
+    <li><strong>Clinical Review:</strong> Our medical team is reviewing the record</li>
+    <li><strong>Assessment:</strong> A doctor will perform the final fitness assessment</li>
+    <li><strong>Notification:</strong> You'll receive an email once the certificate is officially issued</li>
+    <li><strong>Claiming:</strong> Once issued, you can visit the clinic to claim your physical copy</li>
 </ol>
 
 <div style="text-align: center; margin: 30px 0;">
-    <a href="{{ site_url }}/medical-certificates" class="button">Check Certificate Status</a>
+    <a href="{{ site_url }}/medical-certificates" class="button">View Certificate Status</a>
 </div>
 
 <div class="info-box">
-    <strong>Processing Time:</strong><br>
-    Most medical certificates are processed within 24-48 hours during business days.
-    You will receive an email notification as soon as your certificate is ready.
+    <strong>Issuance Workflow:</strong><br>
+    Medical certificates are typically issued within 24-48 hours during business days after clinical assessment.
+    You will receive a notification as soon as your certificate is ready to be claimed.
 </div>
 
-<h3>Need to make changes?</h3>
-<p>If you need to update your request or have questions, please contact us immediately:</p>
+<h3>Questions?</h3>
+<p>If you have questions about this certificate, please contact the clinic:</p>
 <ul>
     <li>📧 Email: <a href="mailto:{{ support_email }}">{{ support_email }}</a></li>
     <li>🏥 Visit the USC Health Center</li>

@@ -172,7 +172,7 @@ const Register = () =>{
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                     <CheckCircle sx={{ color: 'white' }} />
                                     <Typography variant="body1">
-                                        Easy medical certificate requests
+                                        Digital medical certificate issuance
                                     </Typography>
                                 </Box>
                             </Stack>

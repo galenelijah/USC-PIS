@@ -4,16 +4,16 @@
 <div style="padding: 20px; font-family: Arial, sans-serif;">
     <h2 style="color: #800000;">Medical Certificate Update Required</h2>
     <p>Hello <strong>{{ patient.user.first_name }}</strong>,</p>
-    <p>Your request for a medical certificate has been reviewed, but it requires further action or has been declined.</p>
+    <p>The medical certificate created for you has been reviewed by the University Physician and has been declined at this time.</p>
     
     <div style="background-color: #fffde7; padding: 15px; border-left: 4px solid #fbc02d; margin: 20px 0;">
-        <p><strong>Reason/Notes:</strong> {{ certificate.rejection_reason|default:"Please contact the clinic for more details." }}</p>
+        <p><strong>Notes from Physician:</strong> {{ certificate.fitness_reason|default:"Please contact the clinic for more details." }}</p>
     </div>
     
-    <p>You can view the details or submit a new request through your dashboard.</p>
+    <p>The record is now permanently locked for auditing purposes. Please visit the clinic if you require a new assessment.</p>
     
     <div style="text-align: center; margin: 30px 0;">
-        <a href="{{ site_url }}/medical-certificates" style="background-color: #800000; color: white; padding: 12px 25px; text-decoration: none; borderRadius: 5px; font-weight: bold;">View Details</a>
+        <a href="{{ site_url }}/medical-certificates" style="background-color: #800000; color: white; padding: 12px 25px; text-decoration: none; borderRadius: 5px; font-weight: bold;">View Status</a>
     </div>
 </div>
 {% endblock %}

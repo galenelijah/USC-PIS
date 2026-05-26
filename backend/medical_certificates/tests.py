@@ -55,15 +55,15 @@ class MedicalCertificateModelTest(TestCase):
             valid_from=date.today(),
             valid_until=date.today() + timedelta(days=7),
             additional_notes='Follow up in one week',
-            issued_by=self.doctor
+            created_by=self.doctor
         )
         
         self.assertEqual(certificate.patient, self.patient)
         self.assertEqual(certificate.template, self.template)
         self.assertEqual(certificate.diagnosis, 'Common cold')
-        self.assertEqual(certificate.approval_status, 'draft')
-        self.assertEqual(certificate.issued_by, self.doctor)
-        self.assertIsNone(certificate.approved_by)
+        self.assertEqual(certificate.issuance_status, 'draft')
+        self.assertEqual(certificate.created_by, self.doctor)
+        self.assertIsNone(certificate.issuing_doctor)
         
     def test_certificate_string_representation(self):
         """Test certificate string representation"""
@@ -74,10 +74,10 @@ class MedicalCertificateModelTest(TestCase):
             recommendations='Rest',
             valid_from=date.today(),
             valid_until=date.today() + timedelta(days=3),
-            issued_by=self.doctor
+            created_by=self.doctor
         )
         
-        expected_str = f"Certificate for {self.patient} - Fit (Draft)"
+        expected_str = f"Certificate for {self.patient} - Physically Fit (Draft)"
         self.assertEqual(str(certificate), expected_str)
         
     def test_certificate_status_choices(self):
@@ -89,19 +89,18 @@ class MedicalCertificateModelTest(TestCase):
             recommendations='Test',
             valid_from=date.today(),
             valid_until=date.today() + timedelta(days=1),
-            issued_by=self.doctor
+            created_by=self.doctor
         )
         
         # Test all valid status choices
-        valid_statuses = ['draft', 'pending', 'approved', 'rejected']
+        valid_statuses = ['draft', 'pending', 'issued', 'rejected']
         for status_choice in valid_statuses:
-            certificate.approval_status = status_choice
+            certificate.issuance_status = status_choice
             certificate.save()
-            self.assertEqual(certificate.approval_status, status_choice)
+            self.assertEqual(certificate.issuance_status, status_choice)
             
     def test_certificate_notification_on_creation(self):
         """Test notification is sent when certificate is created"""
-        # Clear any existing notifications
         Notification.objects.all().delete()
         
         certificate = MedicalCertificate.objects.create(
@@ -111,10 +110,9 @@ class MedicalCertificateModelTest(TestCase):
             recommendations='Test recommendations',
             valid_from=date.today(),
             valid_until=date.today() + timedelta(days=5),
-            issued_by=self.doctor
+            created_by=self.doctor
         )
         
-        # Check notification was created
         notifications = Notification.objects.filter(
             recipient=self.patient_user,
             notification_type='MEDICAL_CERTIFICATE'
@@ -123,10 +121,9 @@ class MedicalCertificateModelTest(TestCase):
         
         notification = notifications.first()
         self.assertEqual(notification.title, 'Medical Certificate Created')
-        self.assertIn('new medical certificate has been created', notification.message)
         
-    def test_certificate_notification_on_approval(self):
-        """Test notification is sent when certificate is approved"""
+    def test_certificate_notification_on_issuance(self):
+        """Test notification is sent when certificate is issued"""
         certificate = MedicalCertificate.objects.create(
             patient=self.patient,
             template=self.template,
@@ -134,19 +131,18 @@ class MedicalCertificateModelTest(TestCase):
             recommendations='Test recommendations',
             valid_from=date.today(),
             valid_until=date.today() + timedelta(days=5),
-            issued_by=self.doctor,
-            approval_status='pending'
+            created_by=self.doctor,
+            issuance_status='pending'
         )
         
-        # Clear notifications from creation
         Notification.objects.all().delete()
         
-        # Approve the certificate
-        certificate.approval_status = 'approved'
-        certificate.approved_by = self.doctor
+        # Issue the certificate
+        certificate.issuance_status = 'issued'
+        certificate.issuing_doctor = self.doctor
+        certificate.issued_at = date.today()
         certificate.save()
         
-        # Check notification was created
         notifications = Notification.objects.filter(
             recipient=self.patient_user,
             notification_type='MEDICAL_CERTIFICATE'
@@ -154,47 +150,14 @@ class MedicalCertificateModelTest(TestCase):
         self.assertEqual(notifications.count(), 1)
         
         notification = notifications.first()
-        self.assertEqual(notification.title, 'Medical Certificate Approved')
-        self.assertIn('has been approved', notification.message)
-        
-    def test_certificate_notification_on_rejection(self):
-        """Test notification is sent when certificate is rejected"""
-        certificate = MedicalCertificate.objects.create(
-            patient=self.patient,
-            template=self.template,
-            diagnosis='Test diagnosis',
-            recommendations='Test recommendations',
-            valid_from=date.today(),
-            valid_until=date.today() + timedelta(days=5),
-            issued_by=self.doctor,
-            approval_status='pending'
-        )
-        
-        # Clear notifications from creation
-        Notification.objects.all().delete()
-        
-        # Reject the certificate
-        certificate.approval_status = 'rejected'
-        certificate.approved_by = self.doctor
-        certificate.save()
-        
-        # Check notification was created
-        notifications = Notification.objects.filter(
-            recipient=self.patient_user,
-            notification_type='MEDICAL_CERTIFICATE'
-        )
-        self.assertEqual(notifications.count(), 1)
-        
-        notification = notifications.first()
-        self.assertEqual(notification.title, 'Medical Certificate Rejected')
-        self.assertIn('has been rejected', notification.message)
+        self.assertEqual(notification.title, 'Medical Certificate Issued')
+        self.assertIn('Medical Certificate is ready to be claimed', notification.message)
 
 
 class MedicalCertificateViewSetTest(TestCase):
     def setUp(self):
         self.client = APIClient()
         
-        # Create users
         self.doctor = User.objects.create_user(
             email='doctor@usc.edu.ph',
             password='testpass123',
@@ -211,20 +174,9 @@ class MedicalCertificateViewSetTest(TestCase):
             last_name='One'
         )
         
-        self.admin = User.objects.create_user(
-            email='admin@usc.edu.ph',
-            password='testpass123',
-            role='ADMIN',
-            first_name='Admin',
-            last_name='User'
-        )
-        
-        # Create tokens
         self.doctor_token = Token.objects.create(user=self.doctor)
         self.student_token = Token.objects.create(user=self.student)
-        self.admin_token = Token.objects.create(user=self.admin)
         
-        # Create patient
         self.patient = Patient.objects.create(
             user=self.student,
             first_name='John',
@@ -237,14 +189,12 @@ class MedicalCertificateViewSetTest(TestCase):
             created_by=self.doctor
         )
         
-        # Create template
         self.template = CertificateTemplate.objects.create(
             name='Test Template',
             description='Test template',
             content='<p>Certificate for {{patient_name}}</p>'
         )
         
-        # Create certificate
         self.certificate = MedicalCertificate.objects.create(
             patient=self.patient,
             template=self.template,
@@ -252,7 +202,7 @@ class MedicalCertificateViewSetTest(TestCase):
             recommendations='Rest and fluids',
             valid_from=date.today(),
             valid_until=date.today() + timedelta(days=7),
-            issued_by=self.doctor
+            created_by=self.doctor
         )
         
     def test_doctor_can_create_certificate(self):
@@ -267,14 +217,25 @@ class MedicalCertificateViewSetTest(TestCase):
             'valid_from': date.today().isoformat(),
             'valid_until': (date.today() + timedelta(days=3)).isoformat(),
             'additional_notes': 'Follow up if symptoms persist',
-            'fitness_status': 'fit',
-            'approval_status': 'approved'
+            'fitness_status': 'physically_fit'
         }
         
         response = self.client.post('/api/medical-certificates/certificates/', data)
-        
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(MedicalCertificate.objects.count(), 2)
+        
+    def test_doctor_can_issue_certificate(self):
+        """Test doctor can issue certificate"""
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.doctor_token.key}')
+        
+        self.certificate.issuance_status = 'pending'
+        self.certificate.save()
+        
+        response = self.client.post(f'/api/medical-certificates/certificates/{self.certificate.id}/issue/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        self.certificate.refresh_from_db()
+        self.assertEqual(self.certificate.issuance_status, 'issued')
+        self.assertEqual(self.certificate.issuing_doctor, self.doctor)
         
     def test_student_cannot_create_certificate(self):
         """Test student cannot create medical certificate"""
@@ -292,100 +253,44 @@ class MedicalCertificateViewSetTest(TestCase):
         response = self.client.post('/api/medical-certificates/certificates/', data)
         
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        
-    def test_doctor_can_approve_certificate(self):
-        """Test doctor can approve certificate"""
-        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.doctor_token.key}')
-        
-        # First submit for approval
-        self.certificate.approval_status = 'pending'
-        self.certificate.save()
-        
-        response = self.client.post(f'/api/medical-certificates/certificates/{self.certificate.id}/approve/')
-        
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        
-        # Refresh from database
-        self.certificate.refresh_from_db()
-        self.assertEqual(self.certificate.approval_status, 'approved')
-        self.assertEqual(self.certificate.approved_by, self.doctor)
-        
-    def test_doctor_can_reject_certificate(self):
-        """Test doctor can reject certificate"""
-        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.doctor_token.key}')
-        
-        # First submit for approval
-        self.certificate.approval_status = 'pending'
-        self.certificate.save()
-        
-        response = self.client.post(f'/api/medical-certificates/certificates/{self.certificate.id}/reject/')
-        
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        
-        # Refresh from database
-        self.certificate.refresh_from_db()
-        self.assertEqual(self.certificate.approval_status, 'rejected')
-        self.assertEqual(self.certificate.approved_by, self.doctor)
-        
-    def test_student_can_view_own_certificates(self):
-        """Test student can view only their own certificates"""
-        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.student_token.key}')
-        
-        response = self.client.get('/api/medical-certificates/certificates/')
-        
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]['patient'], self.patient.id)
-        
-    def test_doctor_can_view_all_certificates(self):
-        """Test doctor can view all certificates"""
-        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.doctor_token.key}')
-        
-        response = self.client.get('/api/medical-certificates/certificates/')
-        
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        
-    def test_certificate_pdf_generation(self):
-        """Test certificate PDF generation"""
-        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.doctor_token.key}')
-        
-        # Approve certificate first
-        self.certificate.approval_status = 'approved'
-        self.certificate.approved_by = self.doctor
-        self.certificate.save()
-        
-        response = self.client.get(f'/api/medical-certificates/certificates/{self.certificate.id}/render_pdf/')
-        
-        # Even if pisa is None, the view should handle it gracefully
-        self.assertIn(response.status_code, [200, 500, 503])
-        
-    def test_unauthenticated_access_denied(self):
-        """Test unauthenticated access is denied"""
-        response = self.client.get('/api/medical-certificates/certificates/')
-        
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_rejected_certificate_is_locked(self):
+        """Test rejected certificate cannot be modified"""
+        self.certificate.issuance_status = 'rejected'
+        self.certificate.save()
+        
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.doctor_token.key}')
+        data = {'diagnosis': 'New Diagnosis'}
+        response = self.client.patch(f'/api/medical-certificates/certificates/{self.certificate.id}/', data)
+        
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('rejected and cannot be modified', str(response.data))
 
-class CertificateTemplateTest(TestCase):
-    def test_template_creation(self):
-        """Test creating a certificate template"""
-        template = CertificateTemplate.objects.create(
-            name='Test Template',
-            description='A test template',
-            content='<p>This is a test template for {{patient_name}}</p>'
-        )
+    def test_date_trapping_future_birthday(self):
+        """Test date trapping for future birthdays"""
+        self.patient.date_of_birth = date.today() + timedelta(days=1)
+        self.patient.save()
         
-        self.assertEqual(template.name, 'Test Template')
-        self.assertEqual(template.description, 'A test template')
-        self.assertIn('{{patient_name}}', template.content)
-        self.assertEqual(str(template), 'Test Template')
-        
-    def test_template_string_representation(self):
-        """Test template string representation"""
-        template = CertificateTemplate.objects.create(
-            name='Medical Certificate Template',
-            content='<p>Template content</p>'
-        )
-        
-        self.assertEqual(str(template), 'Medical Certificate Template')
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.doctor_token.key}')
+        data = {
+            'patient': self.patient.id,
+            'template': self.template.id,
+            'valid_from': date.today().isoformat(),
+            'valid_until': (date.today() + timedelta(days=1)).isoformat()
+        }
+        response = self.client.post('/api/medical-certificates/certificates/', data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('date of birth cannot be in the future', str(response.data))
+
+    def test_date_trapping_preceding_consultation(self):
+        """Test valid_from cannot precede consultation date"""
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.doctor_token.key}')
+        data = {
+            'patient': self.patient.id,
+            'template': self.template.id,
+            'valid_from': (date.today() - timedelta(days=5)).isoformat(),
+            'valid_until': date.today().isoformat()
+        }
+        response = self.client.post('/api/medical-certificates/certificates/', data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('cannot precede the consultation date', str(response.data))

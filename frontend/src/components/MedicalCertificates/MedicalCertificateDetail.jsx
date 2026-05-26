@@ -18,26 +18,27 @@ import {
   Print as PrintIcon,
   Download as DownloadIcon,
   Close as CloseIcon,
+  Verified as VerifiedIcon,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { medicalCertificateService } from '../../services/api';
 import axios from 'axios';
 
-const approvalStatusColors = {
+const issuanceStatusColors = {
   draft: 'default',
   pending: 'warning',
-  approved: 'success',
+  issued: 'success',
   rejected: 'error',
 };
 
 const fitnessStatusColors = {
-  fit: 'success',
-  not_fit: 'error',
+  physically_fit: 'success',
+  physically_unfit: 'error',
 };
 
 const MedicalCertificateDetail = ({ 
   certificate, 
-  onApprove, 
+  onIssue, 
   onReject, 
   onSubmit, 
   onEdit, 
@@ -49,19 +50,22 @@ const MedicalCertificateDetail = ({
   const [error, setError] = useState(null);
 
   const canApproveReject = userRole === 'DOCTOR' || userRole === 'ADMIN';
+  const isStudent = userRole === 'STUDENT' || userRole === 'FACULTY';
   
   // Medical professionals can always edit for fitness status changes
-  // Only restrict editing completely approved certificates to avoid confusion
+  // Only restrict editing completely issued certificates to avoid confusion
   const canEdit = (
-    certificate.approval_status === 'draft' || 
+    certificate.issuance_status === 'draft' || 
     (
       (userRole === 'DOCTOR' || userRole === 'ADMIN' || userRole === 'STAFF' || userRole === 'NURSE') && 
-      certificate.approval_status !== 'approved'
+      certificate.issuance_status !== 'issued' &&
+      certificate.issuance_status !== 'rejected'
     )
   );
   
-  const canSubmit = certificate.approval_status === 'draft';
-  const canPrint = certificate.approval_status === 'approved';
+  const canSubmit = certificate.issuance_status === 'draft';
+  const canPrint = certificate.issuance_status === 'issued' && !isStudent;
+  const showStudentBanner = certificate.issuance_status === 'issued' && isStudent;
 
   const handlePreview = async () => {
     try {
@@ -73,13 +77,6 @@ const MedicalCertificateDetail = ({
       setError('Failed to generate certificate preview');
       console.error('Error generating preview:', err);
     }
-  };
-
-  const handlePrint = () => {
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(previewHtml);
-    printWindow.document.close();
-    printWindow.print();
   };
 
   const handleDownloadPdf = async () => {
@@ -116,24 +113,24 @@ const MedicalCertificateDetail = ({
           <Button 
             onClick={onEdit} 
             color="primary"
-            variant={certificate.approval_status === 'draft' ? 'contained' : 'outlined'}
-            title={certificate.approval_status === 'draft' ? 'Edit Certificate' : 'Edit Fitness Status & Medical Details'}
+            variant={certificate.issuance_status === 'draft' ? 'contained' : 'outlined'}
+            title={certificate.issuance_status === 'draft' ? 'Edit Certificate' : 'Update Medical Assessment'}
           >
-            {certificate.approval_status === 'draft' ? 'Edit Certificate' : 'Update Medical Assessment'}
+            {certificate.issuance_status === 'draft' ? 'Edit Certificate' : 'Update Medical Assessment'}
           </Button>
         )}
         {canSubmit && (
           <Button onClick={onSubmit} color="primary" variant="contained">
-            Submit for Approval
+            Submit for Issuance
           </Button>
         )}
-        {canApproveReject && certificate.status === 'pending' && (
+        {canApproveReject && certificate.issuance_status === 'pending' && (
           <>
             <Button onClick={onReject} color="error" variant="outlined">
               Reject
             </Button>
-            <Button onClick={onApprove} color="success" variant="contained">
-              Approve
+            <Button onClick={onIssue} color="success" variant="contained">
+              Issue Certificate
             </Button>
           </>
         )}
@@ -142,7 +139,7 @@ const MedicalCertificateDetail = ({
             onClick={handleDownloadPdf}
             color="primary"
             variant="outlined"
-            startIcon={<PrintIcon />}
+            startIcon={<DownloadIcon />}
           >
             Download PDF
           </Button>
@@ -162,21 +159,56 @@ const MedicalCertificateDetail = ({
               </Typography>
               <Stack direction="row" spacing={1}>
                 <Chip
-                  label={certificate.fitness_status === 'fit' ? 'Fit' : 'Not Fit'}
+                  label={certificate.fitness_status_display}
                   color={fitnessStatusColors[certificate.fitness_status]}
-                  variant={certificate.fitness_status === 'not_fit' ? 'filled' : 'outlined'}
+                  variant={certificate.fitness_status === 'physically_unfit' ? 'filled' : 'outlined'}
                 />
                 <Chip
-                  label={certificate.approval_status_display || certificate.approval_status?.replace('_', ' ')}
-                  color={approvalStatusColors[certificate.approval_status]}
+                  label={certificate.issuance_status_display}
+                  color={issuanceStatusColors[certificate.issuance_status]}
                 />
               </Stack>
             </Stack>
             <Divider sx={{ my: 2 }} />
           </Grid>
 
-          {/* Show edit info for non-draft certificates */}
-          {canEdit && certificate.approval_status !== 'draft' && (
+          {showStudentBanner && (
+            <Grid item xs={12}>
+              <Alert 
+                severity="success" 
+                icon={<VerifiedIcon fontSize="large" />}
+                sx={{ 
+                  mb: 3, 
+                  py: 2,
+                  '& .MuiAlert-message': { width: '100%' }
+                }}
+              >
+                <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
+                  Medical Certificate is ready to be claimed
+                </Typography>
+                <Typography variant="body1">
+                  Your medical certificate has been officially issued by the University Physician. 
+                  Please visit the clinic to claim your physical copy.
+                </Typography>
+              </Alert>
+            </Grid>
+          )}
+
+          {certificate.issuance_status === 'rejected' && (
+            <Grid item xs={12}>
+              <Alert severity="error" sx={{ mb: 3 }}>
+                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                  Certificate Rejected
+                </Typography>
+                <Typography variant="body2">
+                  This record has been rejected and is now permanently locked for auditing purposes. 
+                  Please create a new certificate if necessary.
+                </Typography>
+              </Alert>
+            </Grid>
+          )}
+
+          {canEdit && certificate.issuance_status !== 'draft' && (
             <Grid item xs={12}>
               <Alert severity="info" sx={{ mb: 2 }}>
                 <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
@@ -184,7 +216,7 @@ const MedicalCertificateDetail = ({
                 </Typography>
                 <Typography variant="body2">
                   As a medical professional, you can still update the fitness status and medical details 
-                  even after the certificate has been submitted for approval.
+                  until the certificate is officially issued.
                 </Typography>
               </Alert>
             </Grid>
@@ -224,7 +256,7 @@ const MedicalCertificateDetail = ({
               Valid From
             </Typography>
             <Typography variant="body1">
-              {format(new Date(certificate.valid_from), 'MMMM d, yyyy')}
+              {certificate.valid_from ? format(new Date(certificate.valid_from), 'MMMM d, yyyy') : 'N/A'}
             </Typography>
           </Grid>
 
@@ -233,7 +265,7 @@ const MedicalCertificateDetail = ({
               Valid Until
             </Typography>
             <Typography variant="body1">
-              {format(new Date(certificate.valid_until), 'MMMM d, yyyy')}
+              {certificate.valid_until ? format(new Date(certificate.valid_until), 'MMMM d, yyyy') : 'N/A'}
             </Typography>
           </Grid>
 
@@ -242,28 +274,28 @@ const MedicalCertificateDetail = ({
               Fitness Status
             </Typography>
             <Chip
-              label={certificate.fitness_status === 'fit' ? 'Fit' : 'Not Fit'}
+              label={certificate.fitness_status_display}
               color={fitnessStatusColors[certificate.fitness_status]}
-              variant={certificate.fitness_status === 'not_fit' ? 'filled' : 'outlined'}
+              variant={certificate.fitness_status === 'physically_unfit' ? 'filled' : 'outlined'}
               size="small"
             />
           </Grid>
 
           <Grid item xs={12} md={6}>
             <Typography variant="subtitle2" color="text.secondary">
-              Approval Status
+              Issuance Status
             </Typography>
             <Chip
-              label={certificate.approval_status_display || certificate.approval_status?.replace('_', ' ')}
-              color={approvalStatusColors[certificate.approval_status]}
+              label={certificate.issuance_status_display}
+              color={issuanceStatusColors[certificate.issuance_status]}
               size="small"
             />
           </Grid>
 
-          {certificate.fitness_reason && certificate.fitness_status === 'not_fit' && (
+          {certificate.fitness_reason && certificate.fitness_status === 'physically_unfit' && (
             <Grid item xs={12}>
               <Typography variant="subtitle2" color="error" sx={{ fontWeight: 'bold' }}>
-                Reason for Not Fit Status
+                Reason for Physically Unfit Status
               </Typography>
               <Paper sx={{ p: 2, backgroundColor: 'rgba(255, 235, 235, 0.1)', border: '1px solid rgba(211, 47, 47, 0.2)' }}>
                 <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
@@ -276,24 +308,29 @@ const MedicalCertificateDetail = ({
           <Grid item xs={12}>
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" color="text.secondary">
-              Certificate Details
+              Auditing Details
             </Typography>
             <Grid container spacing={2} sx={{ mt: 1 }}>
               <Grid item xs={12} sm={6}>
                 <Typography variant="body2">
-                  Issued by: {certificate.issued_by_name}
+                  Created by: {certificate.created_by_name}
                 </Typography>
                 <Typography variant="body2">
-                  Issued at: {certificate.issued_at && format(new Date(certificate.issued_at), 'MMM d, yyyy h:mm a')}
+                  Created at: {certificate.created_at && format(new Date(certificate.created_at), 'MMM d, yyyy h:mm a')}
                 </Typography>
-              </Grid>
-              {certificate.approved_by && (
-                <Grid item xs={12} sm={6}>
+                {certificate.submitted_at && (
                   <Typography variant="body2">
-                    {certificate.status === 'approved' ? 'Approved' : 'Rejected'} by: {certificate.approved_by_name}
+                    Submitted for review at: {format(new Date(certificate.submitted_at), 'MMM d, yyyy h:mm a')}
+                  </Typography>
+                )}
+              </Grid>
+              {certificate.issuing_doctor && (
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                    {certificate.issuance_status === 'issued' ? 'Issued' : 'Rejected'} by DOCTOR: {certificate.issuing_doctor_name}
                   </Typography>
                   <Typography variant="body2">
-                    {certificate.status === 'approved' ? 'Approved' : 'Rejected'} at: {format(new Date(certificate.approved_at), 'MMM d, yyyy h:mm a')}
+                    {certificate.issuance_status === 'issued' ? 'Issued' : 'Rejected'} at: {certificate.issued_at && format(new Date(certificate.issued_at), 'MMM d, yyyy h:mm a')}
                   </Typography>
                 </Grid>
               )}
@@ -315,4 +352,4 @@ const MedicalCertificateDetail = ({
   );
 };
 
-export default MedicalCertificateDetail; 
+export default MedicalCertificateDetail;

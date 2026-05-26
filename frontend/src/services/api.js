@@ -1061,9 +1061,9 @@ export const medicalCertificateService = {
       handleApiError(error);
     }
   },
-  approve: async (id) => {
+  issue: async (id) => {
     try {
-      return await api.post(`/medical-certificates/certificates/${id}/approve/`);
+      return await api.post(`/medical-certificates/certificates/${id}/issue/`);
     } catch (error) {
       handleApiError(error);
     }
@@ -1121,7 +1121,7 @@ export const medicalCertificateService = {
   },
   getByStatus: async (status) => {
     try {
-      return await api.get(`/medical-certificates/certificates/?status=${status}`);
+      return await api.get(`/medical-certificates/certificates/?issuance_status=${status}`);
     } catch (error) {
       handleApiError(error);
     }

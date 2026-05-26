@@ -250,7 +250,7 @@ const baseMedicalCertificateSchema = {
   template: commonValidation.requiredText('Template selection'),
   diagnosis: commonValidation.optionalText,
   recommendations: commonValidation.optionalText,
-  valid_from: commonValidation.pastDate('Valid from date'),
+  valid_from: commonValidation.requiredDate('Valid from date'),
   valid_until: yup
     .date()
     .required('Valid until date is required')
@@ -264,19 +264,15 @@ const baseMedicalCertificateSchema = {
 const doctorMedicalCertificateFields = {
   fitness_status: yup
     .string()
-    .required('Fitness status is required')
-    .oneOf(['fit', 'not_fit'], 'Please select a valid fitness status'),
+    .required('Medical fitness status is required')
+    .oneOf(['physically_fit', 'physically_unfit'], 'Please select a valid fitness status'),
   fitness_reason: yup
     .string()
     .when('fitness_status', {
-      is: 'not_fit',
-      then: (schema) => schema.required('Reason is required for "Not Fit" status'),
+      is: 'physically_unfit',
+      then: (schema) => schema.required('Reason is required for "Physically Unfit" status'),
       otherwise: (schema) => schema.notRequired()
     }),
-  approval_status: yup
-    .string()
-    .required('Approval status is required')
-    .oneOf(['approved', 'rejected'], 'Please select a valid approval status'),
 };
 
 // Dynamic schema generator

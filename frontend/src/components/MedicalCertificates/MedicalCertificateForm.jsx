@@ -29,7 +29,6 @@ import { medicalCertificateService } from '../../services/api';
 import { patientService } from '../../services/api';
 
 const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRole = null }) => {
-  console.log('MedicalCertificateForm rendered with userRole:', userRole); // Debug log
   const [patients, setPatients] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,17 +46,14 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
       additional_notes: '',
     };
     
-    // Only doctors can set fitness status during creation
     if (userRole === 'DOCTOR') {
       return {
         ...baseValues,
-        fitness_status: 'fit',
+        fitness_status: 'physically_fit',
         fitness_reason: '',
-        approval_status: 'approved', // Doctors can approve immediately
       };
     }
     
-    // Non-doctors create certificates that automatically go to pending
     return baseValues;
   };
 
@@ -68,14 +64,12 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
 
   const fitnessStatus = watch('fitness_status');
 
-
   useEffect(() => {
     fetchFormData();
   }, []);
 
   useEffect(() => {
     if (certificate && patients.length > 0) {
-      // Find and set the selected patient for display
       const patient = patients.find(p => p.id === certificate.patient);
       setSelectedPatient(patient);
       
@@ -87,9 +81,8 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
         valid_from: certificate.valid_from ? new Date(certificate.valid_from) : null,
         valid_until: certificate.valid_until ? new Date(certificate.valid_until) : null,
         additional_notes: certificate.additional_notes || '',
-        fitness_status: certificate.fitness_status || 'fit',
+        fitness_status: certificate.fitness_status || 'physically_fit',
         fitness_reason: certificate.fitness_reason || '',
-        approval_status: certificate.approval_status || 'draft',
       });
     }
   }, [certificate, patients, templates, reset]);
@@ -106,7 +99,6 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
       setPatients(patientsData);
       setTemplates(templatesData);
       
-      // Auto-select first template if creating and none selected
       if (!certificate && templatesData.length > 0) {
         setValue('template', templatesData[0].id);
       }
@@ -134,7 +126,7 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
   };
 
   if (loading) {
-    return <Typography>Loading form...</Typography>;
+    return <Typography sx={{ p: 2 }}>Loading form...</Typography>;
   }
 
   return (
@@ -147,22 +139,19 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
             </Grid>
           )}
 
-          {/* Show info when editing non-draft certificates */}
-          {certificate && certificate.approval_status !== 'draft' && (
+          {certificate && certificate.issuance_status !== 'draft' && (
             <Grid item xs={12}>
               <Alert severity="info" sx={{ mb: 2 }}>
                 <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                  Editing Medical Assessment
+                  Updating Medical Assessment
                 </Typography>
                 <Typography variant="body2">
-                  You can update the fitness status and medical details even after submission. 
-                  Changes to fitness status (Fit/Not Fit) and reasons will be reflected in the certificate.
+                  You are updating an existing medical assessment. Changes to fitness status (Physically Fit / Physically Unfit) and reasons will be reflected in the final issued certificate.
                 </Typography>
               </Alert>
             </Grid>
           )}
 
-          {/* Patient Selection - Enhanced Single-Step Search */}
           <Grid item xs={12}>
             <Typography variant="subtitle2" color="primary" gutterBottom sx={{ mb: 2 }}>
               🔍 Patient Search & Selection
@@ -180,90 +169,6 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
                   }}
                   value={selectedPatient}
                   onChange={handlePatientChange}
-                  filterOptions={(options, { inputValue }) => {
-                    if (!inputValue) return options;
-                    
-                    const searchLower = inputValue.toLowerCase();
-                    return options.filter(patient => 
-                      patient.first_name?.toLowerCase().includes(searchLower) ||
-                      patient.last_name?.toLowerCase().includes(searchLower) ||
-                      patient.email?.toLowerCase().includes(searchLower) ||
-                      patient.usc_id?.toLowerCase().includes(searchLower) ||
-                      patient.id_number?.toLowerCase().includes(searchLower) ||
-                      `${patient.first_name} ${patient.last_name}`.toLowerCase().includes(searchLower)
-                    );
-                  }}
-                  renderOption={(props, option) => (
-                    <Box 
-                      component="li" 
-                      {...props} 
-                      sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: 2, 
-                        py: 1.5,
-                        borderBottom: '1px solid rgba(0,0,0,0.06)',
-                        '&:hover': {
-                          backgroundColor: 'rgba(25, 118, 210, 0.08)',
-                        }
-                      }}
-                    >
-                      <Avatar 
-                        sx={{ 
-                          bgcolor: 'primary.main', 
-                          width: 40, 
-                          height: 40,
-                          fontSize: '0.9rem'
-                        }}
-                      >
-                        {option.first_name?.[0]}{option.last_name?.[0]}
-                      </Avatar>
-                      <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                        <Typography 
-                          variant="body1" 
-                          fontWeight="medium"
-                          sx={{ mb: 0.5 }}
-                        >
-                          {option.first_name} {option.last_name}
-                        </Typography>
-                        <Typography 
-                          variant="body2" 
-                          color="text.secondary"
-                          sx={{ mb: 0.5 }}
-                        >
-                          📧 {option.email}
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                          {option.usc_id && (
-                            <Chip 
-                              label={`🎓 USC ID: ${option.usc_id}`} 
-                              size="small" 
-                              color="primary"
-                              variant="outlined"
-                              sx={{ 
-                                fontSize: '0.7rem', 
-                                height: 20,
-                                '& .MuiChip-label': { px: 1 }
-                              }}
-                            />
-                          )}
-                          {option.id_number && (
-                            <Chip 
-                              label={`🆔 ID: ${option.id_number}`} 
-                              size="small" 
-                              color="secondary"
-                              variant="outlined"
-                              sx={{ 
-                                fontSize: '0.7rem', 
-                                height: 20,
-                                '& .MuiChip-label': { px: 1 }
-                              }}
-                            />
-                          )}
-                        </Box>
-                      </Box>
-                    </Box>
-                  )}
                   renderInput={(params) => (
                     <TextField 
                       {...params} 
@@ -271,10 +176,7 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
                       placeholder="Start typing patient name, email, or USC ID..."
                       required 
                       error={!!errors.patient}
-                      helperText={
-                        errors.patient?.message || 
-                        "💡 Type to search by name, email, USC ID, or ID number"
-                      }
+                      helperText={errors.patient?.message}
                       InputProps={{
                         ...params.InputProps,
                         startAdornment: (
@@ -283,98 +185,14 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
                           </InputAdornment>
                         ),
                       }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                          '&:hover': {
-                            backgroundColor: 'rgba(255, 255, 255, 1)',
-                          },
-                          '&.Mui-focused': {
-                            backgroundColor: 'rgba(255, 255, 255, 1)',
-                          }
-                        },
-                      }}
                     />
                   )}
-                  noOptionsText="No patients found - try a different search term"
-                  loadingText="Loading patients..."
-                  clearOnBlur={false}
-                  selectOnFocus
-                  handleHomeEndKeys
                   popupIcon={null}
-                  clearIcon={selectedPatient ? <ClearIcon /> : null}
-                  sx={{
-                    '& .MuiAutocomplete-popupIndicator': {
-                      display: 'none'
-                    }
-                  }}
                 />
               )}
             />
-            
-            {/* Selected Patient Confirmation */}
-            {selectedPatient && (
-              <Box sx={{ 
-                mt: 3, 
-                p: 3, 
-                backgroundColor: 'rgba(76, 175, 80, 0.08)', 
-                borderRadius: 2,
-                border: '2px solid rgba(76, 175, 80, 0.2)',
-                position: 'relative'
-              }}>
-                <Typography 
-                  variant="subtitle2" 
-                  color="success.main" 
-                  gutterBottom
-                  sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}
-                >
-                  ✅ Selected Patient Confirmed
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                  <Avatar 
-                    sx={{ 
-                      bgcolor: 'success.main', 
-                      width: 48, 
-                      height: 48,
-                      fontSize: '1.1rem'
-                    }}
-                  >
-                    {selectedPatient.first_name?.[0]}{selectedPatient.last_name?.[0]}
-                  </Avatar>
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="h6" fontWeight="bold" color="text.primary">
-                      {selectedPatient.first_name} {selectedPatient.last_name}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      📧 {selectedPatient.email}
-                    </Typography>
-                    <Stack direction="row" spacing={1}>
-                      {selectedPatient.usc_id && (
-                        <Chip 
-                          label={`🎓 USC ID: ${selectedPatient.usc_id}`} 
-                          size="small" 
-                          color="success"
-                          variant="filled"
-                          sx={{ fontWeight: 'medium' }}
-                        />
-                      )}
-                      {selectedPatient.id_number && (
-                        <Chip 
-                          label={`🆔 ID: ${selectedPatient.id_number}`} 
-                          size="small" 
-                          color="info"
-                          variant="filled"
-                          sx={{ fontWeight: 'medium' }}
-                        />
-                      )}
-                    </Stack>
-                  </Box>
-                </Box>
-              </Box>
-            )}
           </Grid>
 
-          {/* Template Selection */}
           <Grid item xs={12} md={6}>
             <Controller
               name="template"
@@ -403,7 +221,6 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
             />
           </Grid>
 
-          {/* Purpose/Requirement */}
           <Grid item xs={12}>
             <Controller
               name="diagnosis"
@@ -413,18 +230,16 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
                   {...field}
                   fullWidth
                   multiline
-                  rows={3}
+                  rows={2}
                   label="Purpose/Requirement"
-                  placeholder="Enter the purpose or requirement for this medical certificate (e.g., Tour, Off-Campus Activity)..."
+                  placeholder="Enter the purpose or requirement for this medical certificate..."
                   error={!!errors.diagnosis}
                   helperText={errors.diagnosis?.message}
-                  required={false}
                 />
               )}
             />
           </Grid>
 
-          {/* Valid From Date */}
           <Grid item xs={12} md={6}>
             <Controller
               name="valid_from"
@@ -446,7 +261,6 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
             />
           </Grid>
 
-          {/* Valid Until Date */}
           <Grid item xs={12} md={6}>
             <Controller
               name="valid_until"
@@ -468,87 +282,30 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
             />
           </Grid>
 
-          {/* Doctor-Only Fields: Fitness and Approval Status */}
           {userRole === 'DOCTOR' && (
-            <>
-              {/* Fitness Status */}
-              <Grid item xs={12} md={6}>
-                <Controller
-                  name="fitness_status"
-                  control={control}
-                  render={({ field }) => (
-                    <FormControl fullWidth required error={!!errors.fitness_status}>
-                      <InputLabel>Medical Fitness Status</InputLabel>
-                      <Select
-                        {...field}
-                        label="Medical Fitness Status"
-                        value={field.value || 'fit'}
-                      >
-                        <MenuItem value="fit">Fit</MenuItem>
-                        <MenuItem value="not_fit">Not Fit</MenuItem>
-                      </Select>
-                      {errors.fitness_status && (
-                        <Typography variant="caption" color="error" sx={{ mt: 1 }}>
-                          {errors.fitness_status.message}
-                        </Typography>
-                      )}
-                    </FormControl>
-                  )}
-                />
-              </Grid>
-
-              {/* Approval Status */}
-              <Grid item xs={12} md={6}>
-                <Controller
-                  name="approval_status"
-                  control={control}
-                  render={({ field }) => (
-                    <FormControl fullWidth required error={!!errors.approval_status}>
-                      <InputLabel>Approval Status</InputLabel>
-                      <Select
-                        {...field}
-                        label="Approval Status"
-                        value={field.value || 'approved'}
-                      >
-                        <MenuItem value="approved">Approved</MenuItem>
-                        <MenuItem value="rejected">Rejected</MenuItem>
-                      </Select>
-                      {errors.approval_status && (
-                        <Typography variant="caption" color="error" sx={{ mt: 1 }}>
-                          {errors.approval_status.message}
-                        </Typography>
-                      )}
-                    </FormControl>
-                  )}
-                />
-              </Grid>
-            </>
-          )}
-
-          {/* Non-Doctor Info */}
-          {userRole !== 'DOCTOR' && (
             <Grid item xs={12}>
-              <Alert severity="info">
-                <Typography variant="body2">
-                  <strong>Automatic Workflow:</strong> This certificate will be automatically submitted for doctor approval once created. 
-                  The doctor will assess the medical fitness status and provide final approval.
-                </Typography>
-              </Alert>
+              <Controller
+                name="fitness_status"
+                control={control}
+                render={({ field }) => (
+                  <FormControl fullWidth required error={!!errors.fitness_status}>
+                    <InputLabel>Medical Fitness Status</InputLabel>
+                    <Select
+                      {...field}
+                      label="Medical Fitness Status"
+                      value={field.value || 'physically_fit'}
+                    >
+                      <MenuItem value="physically_fit">Physically Fit</MenuItem>
+                      <MenuItem value="physically_unfit">Physically Unfit</MenuItem>
+                    </Select>
+                  </FormControl>
+                )}
+              />
             </Grid>
           )}
 
-          {/* Fitness Reason (conditional - only for doctors when not_fit) */}
-          {userRole === 'DOCTOR' && fitnessStatus === 'not_fit' && (
+          {userRole === 'DOCTOR' && fitnessStatus === 'physically_unfit' && (
             <Grid item xs={12}>
-              <Alert severity="warning" sx={{ mb: 2 }}>
-                <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                  Reason Required for "Not Fit" Status
-                </Typography>
-                <Typography variant="body2">
-                  Please provide a detailed medical reason for determining the patient as "Not Fit". 
-                  This information will be included in the certificate and notifications.
-                </Typography>
-              </Alert>
               <Controller
                 name="fitness_reason"
                 control={control}
@@ -557,29 +314,18 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
                     {...field}
                     fullWidth
                     multiline
-                    rows={4}
-                    label="Detailed Reason for Not Fit Status"
+                    rows={3}
+                    label="Reason for Physically Unfit Status"
                     required
-                    placeholder="Please provide detailed medical reason (e.g., specific medical conditions, restrictions, recommended duration of limitation, etc.)..."
+                    placeholder="Provide clinical justification for determining 'Physically Unfit' status..."
                     error={!!errors.fitness_reason}
-                    helperText={errors.fitness_reason?.message || "Be specific about medical conditions, limitations, and recommendations"}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        backgroundColor: 'rgba(255, 245, 157, 0.2)', // Light yellow background
-                        borderColor: 'warning.main',
-                      },
-                      '& .MuiInputLabel-root': {
-                        color: 'warning.main',
-                        fontWeight: 'medium',
-                      },
-                    }}
+                    helperText={errors.fitness_reason?.message}
                   />
                 )}
               />
             </Grid>
           )}
 
-          {/* Remarks/Recommendations */}
           <Grid item xs={12}>
             <Controller
               name="additional_notes"
@@ -590,24 +336,22 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
                   fullWidth
                   multiline
                   rows={3}
-                  label="Remarks / Recommendations"
-                  placeholder="Any additional medical recommendations, restrictions, or special instructions..."
+                  label="Additional Remarks / Recommendations"
+                  placeholder="Additional medical recommendations or restrictions..."
                   error={!!errors.additional_notes}
                   helperText={errors.additional_notes?.message}
-                  required={false}
                 />
               )}
             />
           </Grid>
 
-          {/* Action Buttons */}
           <Grid item xs={12}>
             <Stack direction="row" spacing={2} justifyContent="flex-end">
               <Button onClick={onCancel} variant="outlined">
                 Cancel
               </Button>
-              <Button type="submit" variant="contained">
-                {certificate ? 'Update Certificate' : 'Create Certificate'}
+              <Button type="submit" variant="contained" color="primary">
+                {certificate ? 'Update Assessment' : 'Create Certificate'}
               </Button>
             </Stack>
           </Grid>

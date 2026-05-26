@@ -32,16 +32,16 @@ import { format } from 'date-fns';
 import { medicalCertificateService } from '../../services/api';
 import { formatDatePH } from '../../utils/dateUtils';
 
-const approvalStatusColors = {
+const issuanceStatusColors = {
   draft: 'default',
   pending: 'warning',
-  approved: 'success',
+  issued: 'success',
   rejected: 'error',
 };
 
 const fitnessStatusColors = {
-  fit: 'success',
-  not_fit: 'error',
+  physically_fit: 'success',
+  physically_unfit: 'error',
 };
 
 // Mobile Certificate Card Component
@@ -73,20 +73,20 @@ const CertificateCard = ({ certificate, onView, onEdit, onDelete, userRole }) =>
         <Typography className="mobile-table-label">Fitness Status:</Typography>
         <Box className="mobile-table-value">
           <Chip
-            label={certificate.fitness_status === 'fit' ? 'Fit' : 'Not Fit'}
+            label={certificate.fitness_status_display}
             color={fitnessStatusColors[certificate.fitness_status]}
             size="small"
-            variant={certificate.fitness_status === 'not_fit' ? 'filled' : 'outlined'}
+            variant={certificate.fitness_status === 'physically_unfit' ? 'filled' : 'outlined'}
           />
         </Box>
       </Box>
       
       <Box className="mobile-table-row">
-        <Typography className="mobile-table-label">Approval Status:</Typography>
+        <Typography className="mobile-table-label">Issuance Status:</Typography>
         <Box className="mobile-table-value">
           <Chip
-            label={certificate.approval_status_display || certificate.approval_status?.replace('_', ' ')}
-            color={approvalStatusColors[certificate.approval_status]}
+            label={certificate.issuance_status_display}
+            color={issuanceStatusColors[certificate.issuance_status]}
             size="small"
           />
         </Box>
@@ -101,9 +101,10 @@ const CertificateCard = ({ certificate, onView, onEdit, onDelete, userRole }) =>
         >
           View
         </Button>
-        {(certificate.approval_status === 'draft' || 
+        {(certificate.issuance_status === 'draft' || 
           ((userRole === 'DOCTOR' || userRole === 'ADMIN' || userRole === 'STAFF' || userRole === 'NURSE') && 
-           certificate.approval_status !== 'approved')) && (
+           certificate.issuance_status !== 'issued' &&
+           certificate.issuance_status !== 'rejected')) && (
           <Button
             variant="outlined"
             startIcon={<EditIcon />}
@@ -113,7 +114,7 @@ const CertificateCard = ({ certificate, onView, onEdit, onDelete, userRole }) =>
             Edit
           </Button>
         )}
-        {(certificate.approval_status === 'draft' || 
+        {(certificate.issuance_status === 'draft' || 
           (userRole === 'DOCTOR' || userRole === 'ADMIN' || userRole === 'STAFF' || userRole === 'NURSE')) && (
           <Button
             variant="outlined"
@@ -143,7 +144,7 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole, refreshTri
 
   useEffect(() => {
     fetchCertificates();
-  }, [refreshTrigger]); // Re-fetch when refreshTrigger changes
+  }, [refreshTrigger]);
 
   const fetchCertificates = async () => {
     try {
@@ -179,33 +180,31 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole, refreshTri
   };
 
   const filteredCertificates = certificates
-    .filter((cert) => statusFilter === 'all' || cert.approval_status === statusFilter)
+    .filter((cert) => statusFilter === 'all' || cert.issuance_status === statusFilter)
     .filter((cert) => {
       if (searchQuery === '') return true;
       
       const query = searchQuery.toLowerCase().trim();
       const patientName = `${cert.patient_details?.first_name || ''} ${cert.patient_details?.last_name || ''}`.toLowerCase();
       
-      // Normalize statuses for better searching (e.g., "not_fit" becomes "not fit")
-      const fitnessStatus = (cert.fitness_status || '').toLowerCase().replace('_', ' ');
-      const approvalStatus = (cert.approval_status || '').toLowerCase().replace('_', ' ');
+      const fitnessStatus = (cert.fitness_status_display || '').toLowerCase();
+      const issuanceStatus = (cert.issuance_status_display || '').toLowerCase();
       const diagnosis = (cert.diagnosis || '').toLowerCase();
       
       return (
         patientName.includes(query) ||
         diagnosis.includes(query) ||
         fitnessStatus.includes(query) ||
-        approvalStatus.includes(query) ||
-        (cert.fitness_status || '').toLowerCase().includes(query) // still check raw value
+        issuanceStatus.includes(query)
       );
     });
 
   if (loading) {
-    return <Typography>Loading certificates...</Typography>;
+    return <Typography sx={{ p: 2 }}>Loading certificates...</Typography>;
   }
 
   if (error) {
-    return <Typography color="error">{error}</Typography>;
+    return <Typography color="error" sx={{ p: 2 }}>{error}</Typography>;
   }
 
   return (
@@ -221,7 +220,7 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole, refreshTri
         />
         <TextField
           select
-          label="Status"
+          label="Issuance Status"
           value={statusFilter}
           onChange={handleStatusFilterChange}
           size="small"
@@ -230,7 +229,7 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole, refreshTri
           <MenuItem value="all">All Status</MenuItem>
           <MenuItem value="draft">Draft</MenuItem>
           <MenuItem value="pending">Pending</MenuItem>
-          <MenuItem value="approved">Approved</MenuItem>
+          <MenuItem value="issued">Issued</MenuItem>
           <MenuItem value="rejected">Rejected</MenuItem>
         </TextField>
         <Button
@@ -246,7 +245,7 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole, refreshTri
       </Stack>
 
       {/* Desktop Table View */}
-      <TableContainer component={Paper} className="desktop-table">
+      <TableContainer component={Paper} sx={{ display: { xs: 'none', md: 'block' } }}>
         <Table>
           <TableHead>
             <TableRow>
@@ -255,16 +254,16 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole, refreshTri
               <TableCell>Valid From</TableCell>
               <TableCell>Valid Until</TableCell>
               <TableCell>Fitness Status</TableCell>
-              <TableCell>Approval Status</TableCell>
-              <TableCell>Actions</TableCell>
+              <TableCell>Issuance Status</TableCell>
+              <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {filteredCertificates
               .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
               .map((certificate) => (
-                <TableRow key={certificate.id}>
-                  <TableCell>
+                <TableRow key={certificate.id} hover>
+                  <TableCell sx={{ fontWeight: 500 }}>
                     {certificate.patient_details?.first_name} {certificate.patient_details?.last_name}
                   </TableCell>
                   <TableCell>{certificate.diagnosis}</TableCell>
@@ -272,51 +271,58 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole, refreshTri
                   <TableCell>{formatDatePH(certificate.valid_until)}</TableCell>
                   <TableCell>
                     <Chip
-                      label={certificate.fitness_status === 'fit' ? 'Fit' : 'Not Fit'}
+                      label={certificate.fitness_status_display}
                       color={fitnessStatusColors[certificate.fitness_status]}
                       size="small"
-                      variant={certificate.fitness_status === 'not_fit' ? 'filled' : 'outlined'}
+                      variant={certificate.fitness_status === 'physically_unfit' ? 'filled' : 'outlined'}
                     />
                   </TableCell>
                   <TableCell>
                     <Chip
-                      label={certificate.approval_status_display || certificate.approval_status?.replace('_', ' ')}
-                      color={approvalStatusColors[certificate.approval_status]}
+                      label={certificate.issuance_status_display}
+                      color={issuanceStatusColors[certificate.issuance_status]}
                       size="small"
                     />
                   </TableCell>
-                  <TableCell>
-                    <IconButton onClick={() => onView(certificate)}>
-                      <VisibilityIcon />
-                    </IconButton>
-                    {/* Show edit button for draft certificates or medical professionals on non-approved certificates */}
-                    {(certificate.approval_status === 'draft' || 
-                      ((userRole === 'DOCTOR' || userRole === 'ADMIN' || userRole === 'STAFF' || userRole === 'NURSE') && 
-                       certificate.approval_status !== 'approved')) && (
-                      <IconButton 
-                        onClick={() => onEdit(certificate)}
-                        title={certificate.approval_status === 'draft' ? 'Edit Certificate' : 'Edit Fitness Status & Medical Details'}
-                      >
-                        <EditIcon />
+                  <TableCell align="right">
+                    <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                      <IconButton size="small" onClick={() => onView(certificate)} title="View Details">
+                        <VisibilityIcon fontSize="small" />
                       </IconButton>
-                    )}
-                    {/* Allow delete for:
-                        1. Draft certificates (for everyone)
-                        2. Any certificate (for medical professionals/admins)
-                    */}
-                    {(certificate.approval_status === 'draft' || 
-                      (userRole === 'DOCTOR' || userRole === 'ADMIN' || userRole === 'STAFF' || userRole === 'NURSE')) && (
-                      <IconButton 
-                        onClick={() => onDelete(certificate)}
-                        title="Delete Certificate"
-                        color="error"
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    )}
+                      {(certificate.issuance_status === 'draft' || 
+                        ((userRole === 'DOCTOR' || userRole === 'ADMIN' || userRole === 'STAFF' || userRole === 'NURSE') && 
+                         certificate.issuance_status !== 'issued' &&
+                         certificate.issuance_status !== 'rejected')) && (
+                        <IconButton 
+                          size="small"
+                          onClick={() => onEdit(certificate)}
+                          title={certificate.issuance_status === 'draft' ? 'Edit Certificate' : 'Update Medical Assessment'}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                      {(certificate.issuance_status === 'draft' || 
+                        (userRole === 'DOCTOR' || userRole === 'ADMIN' || userRole === 'STAFF' || userRole === 'NURSE')) && (
+                        <IconButton 
+                          size="small"
+                          onClick={() => onDelete(certificate)}
+                          title="Delete Certificate"
+                          color="error"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))}
+            {filteredCertificates.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                  No medical certificates found.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
         <TablePagination
@@ -331,7 +337,7 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole, refreshTri
       </TableContainer>
 
       {/* Mobile Card View */}
-      <Box className="mobile-table-card" sx={{ display: { xs: 'block', md: 'none' } }}>
+      <Box sx={{ display: { xs: 'block', md: 'none' } }}>
         {filteredCertificates
           .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
           .map((certificate) => (
@@ -345,7 +351,12 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole, refreshTri
             />
           ))}
         
-        {/* Mobile Pagination */}
+        {filteredCertificates.length === 0 && (
+          <Paper sx={{ p: 3, textAlign: 'center' }}>
+            No medical certificates found.
+          </Paper>
+        )}
+
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
           <TablePagination
             rowsPerPageOptions={[5, 10, 25]}
@@ -368,4 +379,4 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole, refreshTri
   );
 };
 
-export default MedicalCertificateList; 
+export default MedicalCertificateList;

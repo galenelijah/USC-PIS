@@ -181,7 +181,6 @@ class EmailService:
         in medical_certificates/models.py to avoid duplication.
         """
         if notification_type == 'created':
-            # ... rest of method ...
             # Notify student about certificate creation
             context = {
                 'certificate': certificate,
@@ -193,10 +192,10 @@ class EmailService:
                 template_name='certificate_created',
                 context=context,
                 recipient_email=certificate.patient.user.email,
-                subject='Medical Certificate Request Submitted'
+                subject='Medical Certificate Created'
             )
             
-            # Notify doctors about pending approval
+            # Notify doctors about pending review and issuance
             from authentication.models import User
             doctors = User.objects.filter(role='DOCTOR')
             for doctor in doctors:
@@ -205,10 +204,10 @@ class EmailService:
                     template_name='certificate_pending_approval',
                     context=context,
                     recipient_email=doctor.email,
-                    subject='Medical Certificate Approval Required'
+                    subject='Medical Certificate Review & Issuance Required'
                 )
         
-        elif notification_type == 'approved':
+        elif notification_type == 'approved' or notification_type == 'issued':
             context = {
                 'certificate': certificate,
                 'patient': certificate.patient,
@@ -219,7 +218,7 @@ class EmailService:
                 template_name='certificate_approved',
                 context=context,
                 recipient_email=certificate.patient.user.email,
-                subject='Medical Certificate Approved'
+                subject='Medical Certificate Issued'
             )
         
         elif notification_type == 'rejected':
@@ -233,7 +232,7 @@ class EmailService:
                 template_name='certificate_rejected',
                 context=context,
                 recipient_email=certificate.patient.user.email,
-                subject='Medical Certificate Update Required'
+                subject='Medical Certificate Updated'
             )
     
     @staticmethod

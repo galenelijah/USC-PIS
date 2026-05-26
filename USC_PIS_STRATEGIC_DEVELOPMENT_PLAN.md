@@ -293,7 +293,7 @@ A comprehensive healthcare management web application developed as an undergradu
 **Budget**: $5,000-6,000
 
 **Medical Certificate Notifications:**
-- ✅ Certificate request confirmation emails to students
+- ✅ Certificate issuance confirmation emails to students
 - ✅ Doctor notification emails for pending certificate approvals
 - ✅ Certificate approval/rejection notifications with PDF attachments
 - ✅ Certificate status change notifications (pending → approved → issued)

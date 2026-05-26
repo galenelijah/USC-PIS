@@ -18,14 +18,14 @@ class CertificateTemplate(models.Model):
 
 class MedicalCertificate(models.Model):
     FITNESS_STATUS_CHOICES = [
-        ('fit', 'Fit'),
-        ('not_fit', 'Not Fit'),
+        ('physically_fit', 'Physically Fit'),
+        ('physically_unfit', 'Physically Unfit'),
     ]
     
-    APPROVAL_STATUS_CHOICES = [
+    ISSUANCE_STATUS_CHOICES = [
         ('draft', 'Draft'),
-        ('pending', 'Pending Approval'),
-        ('approved', 'Approved'),
+        ('pending', 'Pending Issuance'),
+        ('issued', 'Issued'),
         ('rejected', 'Rejected'),
     ]
 
@@ -43,26 +43,26 @@ class MedicalCertificate(models.Model):
     fitness_status = models.CharField(
         max_length=20, 
         choices=FITNESS_STATUS_CHOICES, 
-        default='fit',
-        help_text="Medical fitness determination: Fit or Not Fit"
+        default='physically_fit',
+        help_text="Medical fitness determination: Physically Fit or Physically Unfit"
     )
     fitness_reason = models.TextField(
         blank=True,
-        help_text="Reason for fitness status, especially important for 'Not Fit' determinations"
+        help_text="Reason for fitness status, especially important for 'Physically Unfit' determinations"
     )
     
-    # Approval Workflow
-    approval_status = models.CharField(
+    # Issuance Workflow
+    issuance_status = models.CharField(
         max_length=20, 
-        choices=APPROVAL_STATUS_CHOICES, 
+        choices=ISSUANCE_STATUS_CHOICES, 
         default='draft',
-        help_text="Administrative approval status for the certificate"
+        help_text="Administrative issuance status for the certificate"
     )
-    issued_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='issued_certificates')
-    approved_by = models.ForeignKey(
+    created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='created_certificates')
+    issuing_doctor = models.ForeignKey(
         User, 
         on_delete=models.PROTECT, 
-        related_name='approved_certificates',
+        related_name='issued_medical_certificates',
         null=True, 
         blank=True
     )
@@ -70,14 +70,14 @@ class MedicalCertificate(models.Model):
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    submitted_at = models.DateTimeField(null=True, blank=True)
     issued_at = models.DateTimeField(null=True, blank=True)
-    approved_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"Certificate for {self.patient} - {self.get_fitness_status_display()} ({self.get_approval_status_display()})"
+        return f"Certificate for {self.patient} - {self.get_fitness_status_display()} ({self.get_issuance_status_display()})"
 
 
 @receiver(post_save, sender=MedicalCertificate)
@@ -94,7 +94,7 @@ def medical_certificate_notification(sender, instance, created, **kwargs):
             NotificationService.create_notification(
                 recipient=instance.patient.user,
                 title="Medical Certificate Created",
-                message=f"A new medical certificate has been created for you by {instance.issued_by.get_full_name()}.",
+                message=f"A new medical certificate has been created for you by {instance.created_by.get_full_name()}.",
                 notification_type="MEDICAL_CERTIFICATE",
                 delivery_method='IN_APP',
                 metadata={'certificate_id': instance.id},
@@ -102,14 +102,14 @@ def medical_certificate_notification(sender, instance, created, **kwargs):
             )
             
     # Handle specific status notifications (for both creation and updates)
-    # Check if approval status is approved
-    if instance.approval_status == 'approved' and instance.approved_by:
-        # Notify patient when certificate is approved (In-App only, view handles Email)
+    # Check if issuance status is issued
+    if instance.issuance_status == 'issued' and instance.issuing_doctor:
+        # Notify patient when certificate is issued (In-App only, view handles Email)
         if instance.patient.user:
             from notifications.models import Notification
             exists = Notification.objects.filter(
                 recipient=instance.patient.user,
-                title="Medical Certificate Approved",
+                title="Medical Certificate Issued",
                 metadata__certificate_id=instance.id
             ).exists()
             
@@ -120,8 +120,8 @@ def medical_certificate_notification(sender, instance, created, **kwargs):
                 
                 NotificationService.create_notification(
                     recipient=instance.patient.user,
-                    title="Medical Certificate Approved",
-                    message=f"Your medical certificate has been approved by {instance.approved_by.get_full_name()}. {fitness_info}. You can now download it.",
+                    title="Medical Certificate Issued",
+                    message=f"Your medical certificate has been issued by {instance.issuing_doctor.get_full_name()}. {fitness_info}. Medical Certificate is ready to be claimed.",
                     notification_type="MEDICAL_CERTIFICATE",
                     delivery_method='IN_APP',
                     metadata={'certificate_id': instance.id},
@@ -129,7 +129,7 @@ def medical_certificate_notification(sender, instance, created, **kwargs):
                     action_text='View Certificate',
                     patient=instance.patient
                 )
-    elif instance.approval_status == 'rejected' and instance.approved_by:
+    elif instance.issuance_status == 'rejected' and instance.issuing_doctor:
         # Notify patient when certificate is rejected (In-App only, view handles Email)
         if instance.patient.user:
             from notifications.models import Notification
@@ -143,21 +143,20 @@ def medical_certificate_notification(sender, instance, created, **kwargs):
                 NotificationService.create_notification(
                     recipient=instance.patient.user,
                     title="Medical Certificate Rejected",
-                    message=f"Your medical certificate has been rejected by {instance.approved_by.get_full_name()}. Please contact the clinic for more information.",
+                    message=f"Your medical certificate has been rejected by {instance.issuing_doctor.get_full_name()}. Please contact the clinic for more information.",
                     notification_type="MEDICAL_CERTIFICATE",
                     delivery_method='IN_APP',
                     metadata={'certificate_id': instance.id},
                     patient=instance.patient
                 )
-    elif instance.approval_status == 'pending':
-        # Notify doctors when certificate is pending approval (In-App only, view handles Email)
-        # This triggers on creation (if status is pending) and on status change to pending
-        doctors = User.objects.filter(role__in=['DOCTOR', 'ADMIN']).exclude(id=instance.issued_by_id)
+    elif instance.issuance_status == 'pending':
+        # Notify doctors when certificate is pending issuance (In-App only, view handles Email)
+        doctors = User.objects.filter(role__in=['DOCTOR', 'ADMIN']).exclude(id=instance.created_by_id)
         for doctor in doctors:
             from notifications.models import Notification
             exists = Notification.objects.filter(
                 recipient=doctor,
-                title="Medical Certificate Pending Approval",
+                title="Medical Certificate Pending Issuance",
                 metadata__certificate_id=instance.id,
                 status__in=['PENDING', 'DELIVERED', 'SENT']
             ).exists()
@@ -169,8 +168,8 @@ def medical_certificate_notification(sender, instance, created, **kwargs):
                 
                 NotificationService.create_notification(
                     recipient=doctor,
-                    title="Medical Certificate Pending Approval",
-                    message=f"A medical certificate for {instance.patient.get_full_name()} is pending your approval. {fitness_info}",
+                    title="Medical Certificate Pending Issuance",
+                    message=f"A medical certificate for {instance.patient.get_full_name()} is pending your review and issuance. {fitness_info}",
                     notification_type="MEDICAL_CERTIFICATE",
                     delivery_method='IN_APP',
                     metadata={'certificate_id': instance.id},

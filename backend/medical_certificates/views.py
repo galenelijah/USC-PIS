@@ -17,28 +17,21 @@ from datetime import date
 from rest_framework.permissions import IsAuthenticated
 
 
-def get_certificate_status(certificate, field='approval_status'):
-    """Get certificate status with backward compatibility"""
-    if hasattr(certificate, 'approval_status'):
-        return getattr(certificate, field) if field == 'approval_status' else certificate.approval_status
-    elif hasattr(certificate, 'status'):
-        return certificate.status
-    return 'draft'
+def get_certificate_status(certificate):
+    """Get certificate issuance status."""
+    return certificate.issuance_status
 
 
 def set_certificate_status(certificate, status_value):
-    """Set certificate status with backward compatibility"""
-    if hasattr(certificate, 'approval_status'):
-        certificate.approval_status = status_value
-    elif hasattr(certificate, 'status'):
-        certificate.status = status_value
+    """Set certificate issuance status."""
+    certificate.issuance_status = status_value
 
 # Create your views here.
 
 class IsStaffOrMedicalPersonnel(permissions.BasePermission):
     """
     Permission to only allow staff with authority to manage templates/certs.
-    Doctors have exclusive approval power; Nurses and Staff can only draft/view.
+    Doctors have exclusive issuance power; Nurses and Staff can only draft/view.
     """
     def has_permission(self, request, view):
         if not request.user.is_authenticated:
@@ -47,20 +40,13 @@ class IsStaffOrMedicalPersonnel(permissions.BasePermission):
         # Clinical staff roles
         staff_roles = ['DOCTOR', 'NURSE', 'STAFF', 'ADMIN', 'DENTIST']
         
-        # All staff can view
+        # All authenticated users can view (students/faculty see only their own via queryset)
         if request.method in permissions.SAFE_METHODS:
-            return request.user.is_staff or \
-                   getattr(request.user, 'role', '') in staff_roles or \
-                   getattr(request.user, 'role', '') in ['STUDENT', 'FACULTY']
+            return True
                    
-        # All staff can create (perform_create handles role-based logic)
+        # Only staff can create (perform_create handles role-based logic)
         if request.method == 'POST':
-            if getattr(request.user, 'role', '') in staff_roles:
-                return True
-            # Allow students to POST to detail actions (so get_object can handle 404)
-            # but they remain blocked from 'create' action.
-            return getattr(request.user, 'role', '') in ['STUDENT', 'FACULTY'] and \
-                   getattr(view, 'action', '') != 'create'
+            return getattr(request.user, 'role', '') in staff_roles
                    
         # Only Doctor and Admin can Edit/Delete certificates or templates
         return request.user.is_staff or \
@@ -70,80 +56,55 @@ class CertificateTemplateViewSet(viewsets.ModelViewSet):
     queryset = CertificateTemplate.objects.all()
     serializer_class = CertificateTemplateSerializer
     permission_classes = [IsStaffOrMedicalPersonnel]
-    pagination_class = None  # Disable pagination to return data as array
+    pagination_class = None
 
 class MedicalCertificateViewSet(viewsets.ModelViewSet):
     queryset = MedicalCertificate.objects.all()
     serializer_class = MedicalCertificateSerializer
     permission_classes = [IsStaffOrMedicalPersonnel]
-    pagination_class = None  # Disable pagination to return data as array
+    pagination_class = None
 
     def get_queryset(self):
         user = self.request.user
         queryset = super().get_queryset()
         
-        # If student, only show their own certificates
+        # If student or faculty, only show their own certificates
         if hasattr(user, 'role') and user.role in ['STUDENT', 'FACULTY']:
-            # Find the patient profile linked to the student user
             try:
-                # Some models might use 'patient' or 'patient_profile'
-                if hasattr(user, 'patient'):
-                    patient = user.patient
-                elif hasattr(user, 'patient_profile'):
-                    patient = user.patient_profile
-                else:
-                    # Fallback to direct query
-                    from patients.models import Patient
-                    patient = Patient.objects.get(user=user)
-                
+                from patients.models import Patient
+                patient = Patient.objects.get(user=user)
                 queryset = queryset.filter(patient=patient)
             except Exception:
                 queryset = queryset.none()
         
-        # Staff, doctor, nurse, admin, dentist see all certificates or filtered by patient
         patient_id = self.request.query_params.get('patient', None)
         if patient_id:
             queryset = queryset.filter(patient_id=patient_id)
             
-        # Support both old 'status' and new 'approval_status' parameters for backward compatibility
-        status_param = self.request.query_params.get('status', None) or self.request.query_params.get('approval_status', None)
+        status_param = self.request.query_params.get('status', None) or self.request.query_params.get('issuance_status', None)
         if status_param:
-            # Check which field exists in the model
-            model_fields = [field.name for field in MedicalCertificate._meta.get_fields()]
-            if 'approval_status' in model_fields:
-                queryset = queryset.filter(approval_status=status_param)
-            elif 'status' in model_fields:
-                queryset = queryset.filter(status=status_param)
+            queryset = queryset.filter(issuance_status=status_param)
         return queryset
 
     def perform_create(self, serializer):
-        # Admin, Doctor, Nurse, Dentist, and Staff can create certificates
         user = self.request.user
-        allowed_roles = ['DOCTOR', 'NURSE', 'STAFF', 'ADMIN', 'DENTIST']
-        if not (user.is_staff or user.role in allowed_roles):
+        staff_roles = ['DOCTOR', 'NURSE', 'STAFF', 'ADMIN', 'DENTIST']
+        
+        if not (user.is_staff or user.role in staff_roles):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("Insufficient permissions to create medical certificates.")
 
-        # Certificates created by non-doctors are set to 'pending' by default
-        # Check which status field exists
-        model_fields = [field.name for field in MedicalCertificate._meta.get_fields()]
-        
         status_to_set = 'draft' if user.role in ['STAFF', 'NURSE'] else 'pending'
-        
         extra_data = {
-            'issued_by': user,
-            'issued_at': timezone.now()
+            'created_by': user,
+            'issuance_status': status_to_set
         }
-        
-        if 'approval_status' in model_fields:
-            extra_data['approval_status'] = status_to_set
-        elif 'status' in model_fields:
-            extra_data['status'] = status_to_set
 
         instance = serializer.save(**extra_data)
         
-        # Send email notifications for newly created pending certificates
-        if get_certificate_status(instance) == 'pending':
+        if instance.issuance_status == 'pending':
+            instance.submitted_at = timezone.now()
+            instance.save()
             try:
                 EmailService.send_medical_certificate_notification(instance, 'created')
             except Exception as e:
@@ -159,15 +120,12 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
         patient = certificate.patient
         age = calculate_age(patient.date_of_birth) if patient.date_of_birth else 'N/A'
         
-        # Prepare course and year information
         course_and_year = "N/A"
         if hasattr(patient, 'user'):
             course_id = getattr(patient.user, 'course', '')
             year_id = getattr(patient.user, 'year_level', '')
-            
             course_name = get_program_name(course_id)
             year_name = get_year_level_name(year_id)
-            
             if course_name and year_name:
                 course_and_year = f"{course_name} - {year_name}"
             elif course_name:
@@ -183,74 +141,49 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
             'date': certificate.created_at.strftime('%B %d, %Y'),
             'visit_date': certificate.created_at.strftime('%B %d, %Y'),
             'diagnosis': certificate.diagnosis,
-            # Map requirement_reason to diagnosis (Purpose/Requirement in UI)
             'requirement_reason': certificate.diagnosis,
             'recommendations': certificate.recommendations,
             'valid_from': certificate.valid_from.strftime('%B %d, %Y') if certificate.valid_from else '',
             'valid_until': certificate.valid_until.strftime('%B %d, %Y') if certificate.valid_until else '',
             'additional_notes': certificate.additional_notes,
-            # Fitness status fields
-            'fitness_status': getattr(certificate, 'get_fitness_status_display', lambda: 'Fit')(),
-            'fitness_reason': getattr(certificate, 'fitness_reason', ''),
-            'is_fit': getattr(certificate, 'fitness_status', 'fit') == 'fit',
-            'is_not_fit': getattr(certificate, 'fitness_status', 'fit') == 'not_fit',
-            # Physician information
-            'doctor_name': f"{certificate.issued_by.get_full_name()}" if certificate.issued_by else 'Clinic Physician',
-            'doctor_title': getattr(certificate.issued_by, 'title', 'University Physician'),
-            'doctor_license': getattr(certificate.issued_by, 'license_number', 'N/A'),
+            'fitness_status': certificate.get_fitness_status_display(),
+            'fitness_reason': certificate.fitness_reason,
+            'is_fit': certificate.fitness_status == 'physically_fit',
+            'is_not_fit': certificate.fitness_status == 'physically_unfit',
+            'doctor_name': f"{certificate.issuing_doctor.get_full_name()}" if certificate.issuing_doctor else 'Clinic Physician',
+            'doctor_title': getattr(certificate.issuing_doctor, 'title', 'University Physician') if certificate.issuing_doctor else 'University Physician',
+            'doctor_license': getattr(certificate.issuing_doctor, 'license_number', 'N/A') if certificate.issuing_doctor else 'N/A',
             'STATIC_URL': '/static/',
         }
 
-    @action(detail=True, methods=['get'])
-    def render(self, request, pk=None):
-        certificate = self.get_object()
-        
-        # Get the template content
-        template_content = certificate.template.content
-        
-        # Create context for template rendering
-        context = self._get_certificate_context(certificate)
-        
-        # Render the template
-        try:
-            template = Template(template_content)
-            rendered_html = template.render(Context(context))
-            return Response({'html': rendered_html})
-        except Exception as e:
-            return Response(
-                {'error': f'Error rendering certificate: {str(e)}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
     @action(detail=True, methods=['post'])
-    def approve(self, request, pk=None):
-        """Exclusive authority for Doctor role to approve certificates."""
+    def issue(self, request, pk=None):
+        """Exclusive authority for Doctor role to issue certificates."""
         certificate = self.get_object()
         
         if get_certificate_status(certificate) not in ['pending', 'draft']:
             return Response(
-                {'detail': 'Only pending or draft certificates can be approved.'},
+                {'detail': 'Only pending or draft certificates can be issued.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
             
         if not (request.user.role == 'DOCTOR' or request.user.is_superuser):
             return Response(
-                {'detail': 'Crucially, only the Doctor role holds the exclusive authority to approve medical certificates.'},
+                {'detail': 'Crucially, only the Doctor role holds the exclusive authority to issue medical certificates.'},
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        set_certificate_status(certificate, 'approved')
-        certificate.approved_by = request.user
-        certificate.approved_at = timezone.now()
+        set_certificate_status(certificate, 'issued')
+        certificate.issuing_doctor = request.user
+        certificate.issued_at = timezone.now()
         certificate.save()
 
-        # Send email notification
         try:
             EmailService.send_medical_certificate_notification(certificate, 'approved')
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
-            logger.error(f"Failed to send certificate approval email: {e}")
+            logger.error(f"Failed to send certificate issuance email: {e}")
         
         serializer = self.get_serializer(certificate)
         return Response(serializer.data)
@@ -273,11 +206,10 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
             )
 
         set_certificate_status(certificate, 'rejected')
-        certificate.approved_by = request.user
-        certificate.approved_at = timezone.now()
+        certificate.issuing_doctor = request.user
+        certificate.issued_at = timezone.now()
         certificate.save()
 
-        # Send email notification
         try:
             EmailService.send_medical_certificate_notification(certificate, 'rejected')
         except Exception as e:
@@ -290,7 +222,7 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def submit(self, request, pk=None):
-        """Nurses and Staff submit certificates for Doctor approval."""
+        """Nurses and Staff submit certificates for Doctor review."""
         certificate = self.get_object()
         
         if get_certificate_status(certificate) != 'draft':
@@ -300,10 +232,9 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
             )
 
         set_certificate_status(certificate, 'pending')
-        certificate.issued_at = timezone.now()
+        certificate.submitted_at = timezone.now()
         certificate.save()
 
-        # Send email notification (Created notification type handles both student and doctor notifications)
         try:
             EmailService.send_medical_certificate_notification(certificate, 'created')
         except Exception as e:
@@ -325,22 +256,17 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Get fitness assessment data
         fitness_status = request.data.get('fitness_status')
         fitness_reason = request.data.get('fitness_reason', '')
         
-        if not fitness_status or fitness_status not in ['fit', 'not_fit']:
+        if not fitness_status or fitness_status not in ['physically_fit', 'physically_unfit']:
             return Response(
-                {'detail': 'Valid fitness_status (fit/not_fit) is required.'},
+                {'detail': 'Valid fitness_status (physically_fit/physically_unfit) is required.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Update certificate
-        model_fields = [field.name for field in MedicalCertificate._meta.get_fields()]
-        if 'fitness_status' in model_fields:
-            certificate.fitness_status = fitness_status
-            certificate.fitness_reason = fitness_reason
-            
+        certificate.fitness_status = fitness_status
+        certificate.fitness_reason = fitness_reason
         certificate.save()
         
         serializer = self.get_serializer(certificate)
@@ -349,10 +275,7 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def render_pdf(self, request, pk=None):
         certificate = self.get_object()
-        
-        # Prepare context using consolidated builder
         context = self._get_certificate_context(certificate)
-        
         template_content = certificate.template.content or "<p>Certificate</p>"
         template = Template(template_content)
         rendered_html = template.render(Context(context))
@@ -369,8 +292,22 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
         else:
             return HttpResponse('Error generating PDF', status=500)
 
+    @action(detail=True, methods=['get'])
+    def render(self, request, pk=None):
+        certificate = self.get_object()
+        template_content = certificate.template.content
+        context = self._get_certificate_context(certificate)
+        try:
+            template = Template(template_content)
+            rendered_html = template.render(Context(context))
+            return Response({'html': rendered_html})
+        except Exception as e:
+            return Response(
+                {'error': f'Error rendering certificate: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
     def destroy(self, request, *args, **kwargs):
-        """Only allow Admins and Doctors to delete medical certificates."""
         user = request.user
         if not (user.is_staff or user.role in ['ADMIN', 'DOCTOR']):
             return Response(
