@@ -34,15 +34,20 @@ class IsStaffOrReadOnly(permissions.BasePermission):
     message = "Only Administrators and Clinic Staff can manage report templates. Your clinical role allows viewing and generating reports only."
 
     def has_permission(self, request, view):
+        if not request.user.is_authenticated:
+            return False
+            
+        is_clinical = request.user.role in ['DOCTOR', 'DENTIST', 'NURSE']
+        is_staff = request.user.is_staff or request.user.role in ['ADMIN', 'STAFF']
+        
         if request.method in permissions.SAFE_METHODS:
-            return request.user.is_authenticated and (
-                request.user.is_staff or 
-                request.user.role in ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE']
-            )
-        return request.user.is_authenticated and (
-            request.user.is_staff or 
-            request.user.role in ['ADMIN', 'STAFF']
-        )
+            return is_clinical or is_staff
+            
+        # Allow clinical roles to perform generative actions via POST
+        if hasattr(view, 'action') and view.action in ['generate', 'preview', 'run_now']:
+            return is_clinical or is_staff
+            
+        return is_staff
 
 class ReportPagination(PageNumberPagination):
     page_size = 20

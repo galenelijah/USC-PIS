@@ -28,24 +28,26 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
             return value
             
         ranges = {
-            'temperature': (32.0, 42.0),
-            'respiratory_rate': (6, 50),
-            'height': (50, 250),
-            'weight': (10, 500),
-            'bmi': (5, 100),
-            'heart_rate': (30, 220)
+            'temperature': (32.0, 42.0, "Body Temperature (Celsius)"),
+            'respiratory_rate': (6, 50, "Respiratory Rate"),
+            'height': (50, 250, "Height"),
+            'weight': (10, 500, "Weight"),
+            'bmi': (5, 100, "BMI"),
+            'heart_rate': (30, 220, "Heart Rate / Pulse")
         }
         
-        for field, (min_val, max_val) in ranges.items():
+        for field, (min_val, max_val, label) in ranges.items():
             if field in value and value[field] is not None and value[field] != '':
                 try:
                     val = float(value[field])
+                    if val <= 0:
+                        raise serializers.ValidationError(f"{label} cannot be 0 or negative.")
                     if val < min_val:
-                        raise serializers.ValidationError(f"{field.replace('_', ' ').title()} is too low (min {min_val}).")
+                        raise serializers.ValidationError(f"{label} is too low (min {min_val}).")
                     if val > max_val:
-                        raise serializers.ValidationError(f"{field.replace('_', ' ').title()} is too high (max {max_val}).")
+                        raise serializers.ValidationError(f"{label} is too high (max {max_val}).")
                 except (ValueError, TypeError):
-                    pass
+                    raise serializers.ValidationError(f"Invalid numeric value for {label}.")
         
         # Blood pressure regex and range validation
         if 'blood_pressure' in value and value['blood_pressure']:
@@ -56,10 +58,12 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
             
             try:
                 sys, dia = map(int, bp_str.split('/'))
+                if sys <= 0 or dia <= 0:
+                    raise serializers.ValidationError("Blood Pressure parameters cannot be 0 or negative.")
                 if sys < 60 or sys > 260:
-                    raise serializers.ValidationError("Systolic blood pressure must be between 60 and 260.")
+                    raise serializers.ValidationError("Systolic blood pressure must be between 60 and 260 mmHg.")
                 if dia < 30 or dia > 150:
-                    raise serializers.ValidationError("Diastolic blood pressure must be between 30 and 150.")
+                    raise serializers.ValidationError("Diastolic blood pressure must be between 30 and 150 mmHg.")
             except (ValueError, TypeError):
                 raise serializers.ValidationError("Invalid blood pressure values.")
                 
