@@ -761,7 +761,7 @@ def dashboard_stats(request):
         from medical_certificates.models import MedicalCertificate
         from notifications.models import Notification
         
-        pending_certs = MedicalCertificate.objects.filter(approval_status='pending').count()
+        pending_certs = MedicalCertificate.objects.filter(issuance_status='pending').count()
         unread_notifs = Notification.objects.filter(recipient=user, status__in=['PENDING', 'SENT', 'DELIVERED']).count()
         
         pending_requests = pending_certs + unread_notifs

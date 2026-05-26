@@ -44,7 +44,7 @@ class USCPISIntegrationValidationTests(APITestCase):
         # Try to issue a medical certificate - path is /api/medical-certificates/certificates/
         cert_data = {
             "patient": self.patient.id, 
-            "fitness_status": "fit", 
+            "fitness_status": "physically_fit", 
             "recommendations": "Test",
             "template": self.template.id,
             "valid_from": "2026-04-24",
@@ -132,9 +132,11 @@ class USCPISIntegrationValidationTests(APITestCase):
         # 3. Staff tries to issue Medical Certificate (Should be Allowed for administrative staff)
         cert_data = {
             "patient": self.patient.id,
-            "status": "fit",
-            "remarks": "Admin issuance",
-            "issued_by": self.doctor.id # Staff issuing on behalf of doctor
+            "template": self.template.id,
+            "valid_from": "2026-05-26",
+            "valid_until": "2026-05-30",
+            "fitness_status": "physically_fit",
+            "additional_notes": "Admin issuance",
         }
         response_staff_cert = self.client.post('/api/medical-certificates/certificates/', cert_data)
         self.assertEqual(response_staff_cert.status_code, status.HTTP_201_CREATED)

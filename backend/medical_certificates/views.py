@@ -121,7 +121,7 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
         age = calculate_age(patient.date_of_birth) if patient.date_of_birth else 'N/A'
         
         course_and_year = "N/A"
-        if hasattr(patient, 'user'):
+        if patient.user:
             course_id = getattr(patient.user, 'course', '')
             year_id = getattr(patient.user, 'year_level', '')
             course_name = get_program_name(course_id)

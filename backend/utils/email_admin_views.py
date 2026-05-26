@@ -639,15 +639,15 @@ def _test_certificate_email(email, dry_run, notification_type='created'):
                 self.id = 999
                 self.purpose = "Testing"
                 self.created_at = timezone.now()
-                self.approval_status = 'approved'
-                self.approved_by = MockUser()
-                self.issued_by = MockUser()
+                self.issuance_status = 'issued'
+                self.issuing_doctor = MockUser()
+                self.created_by = MockUser()
                 self.diagnosis = "Mock diagnosis for testing"
                 self.recommendations = "Mock recommendations"
                 self.valid_from = timezone.now().date()
-                self.fitness_status = 'fit'
+                self.fitness_status = 'physically_fit'
             def get_fitness_status_display(self):
-                return "Fit"
+                return "Physically Fit"
         
         mock_cert = MockCertificate()
         EmailService.send_medical_certificate_notification(mock_cert, notification_type)
