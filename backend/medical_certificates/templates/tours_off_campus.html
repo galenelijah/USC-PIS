@@ -135,14 +135,19 @@
             of <span class="placeholder">{{ course_and_year }}</span> 
             had undergone a complete physical examination and was found to be 
             <span class="fit-status">
-                {% if is_fit %}<span class="selected-status">physically fit</span>{% else %}physically fit{% endif %} / 
-                {% if is_not_fit %}<span class="selected-status">unfit</span>{% else %}unfit{% endif %}
+                {% if is_fit %}
+                    <span class="selected-status">physically fit</span>
+                {% elif is_not_fit %}
+                    <span class="selected-status">physically unfit</span>
+                {% else %}
+                    <span class="selected-status">physically fit</span>
+                {% endif %}
             </span>
             on the date of examination.
         </p>
         
         <p>
-            This is issued upon his/her request as part of his/her requirement for: 
+            This is issued as part of his/her requirement for: 
             <br><br>
             <div class="reason-box">
                 {{ requirement_reason }}
@@ -152,9 +157,16 @@
 
     <table class="signature-table">
         <tr>
-            <td width="65%"></td>
+            <td width="60%"></td>
+            <td align="center" style="padding-bottom: 5px;">
+                <strong>{{ doctor_name|upper }}</strong>
+            </td>
+        </tr>
+        <tr>
+            <td width="60%"></td>
             <td align="center" style="border-top: 1.5pt solid black; padding-top: 5px;">
-                <strong>School Physician</strong>
+                <strong>School Physician</strong><br>
+                <span style="font-size: 10pt;">License No: {{ doctor_license }}</span>
             </td>
         </tr>
     </table>
