@@ -69,6 +69,7 @@ def get_client_ip(request):
     else:
         ip = request.META.get('REMOTE_ADDR')
     return ip
+@api_view(['GET'])
 @permission_classes([AllowAny])
 @ensure_csrf_cookie
 def get_csrf_token(request):
