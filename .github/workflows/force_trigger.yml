@@ -1,4 +1,4 @@
-name: Debug Trigger
+name: Force CI Trigger
 
 on:
   push:
@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  debug:
+  ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Hello
-        run: echo "GitHub Actions is working"
+      - name: Ping
+        run: echo "Force trigger at $(date)"
