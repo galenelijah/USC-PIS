@@ -544,14 +544,28 @@ LOGGING = {
 # Celery Configuration
 # Prioritize REDIS_URL (Heroku) over the local default
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', os.environ.get('REDIS_URL', 'redis://localhost:6379/0'))
-# Fix for Heroku Redis SSL (common issue with rediss://)
+
+# Robust fix for Heroku Redis SSL (rediss:// protocol)
 if CELERY_BROKER_URL.startswith('rediss://'):
-    CELERY_BROKER_URL += "?ssl_cert_reqs=none"
+    # Append ssl_cert_reqs=none only if not already present
+    if 'ssl_cert_reqs' not in CELERY_BROKER_URL:
+        separator = '&' if '?' in CELERY_BROKER_URL else '?'
+        CELERY_BROKER_URL += f"{separator}ssl_cert_reqs=none"
+    
+    # Celery 5.x specific SSL settings for Redis
+    CELERY_REDIS_BACKEND_USE_SSL = {
+        'ssl_cert_reqs': None
+    }
+    CELERY_BROKER_USE_SSL = {
+        'ssl_cert_reqs': None
+    }
 
 # Only use result backend if explicitly configured
 CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', os.environ.get('REDIS_URL'))
 if CELERY_RESULT_BACKEND and CELERY_RESULT_BACKEND.startswith('rediss://'):
-    CELERY_RESULT_BACKEND += "?ssl_cert_reqs=none"
+    if 'ssl_cert_reqs' not in CELERY_RESULT_BACKEND:
+        separator = '&' if '?' in CELERY_RESULT_BACKEND else '?'
+        CELERY_RESULT_BACKEND += f"{separator}ssl_cert_reqs=none"
 
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'

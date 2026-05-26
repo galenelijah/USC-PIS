@@ -74,10 +74,13 @@ def audit_log_save(sender, instance, created, **kwargs):
     else:
         changes = {'status': 'new', 'description': str(instance)}
 
-    log_activity_task.delay(
-        actor_id, action_type, target_model, target_object_id, 
-        changes, get_current_ip(), get_current_user_agent()
-    )
+    try:
+        log_activity_task.delay(
+            actor_id, action_type, target_model, target_object_id, 
+            changes, get_current_ip(), get_current_user_agent()
+        )
+    except Exception as e:
+        logger.error(f"Failed to queue audit log: {e}")
 
 @receiver(post_delete)
 def audit_log_delete(sender, instance, **kwargs):
@@ -93,23 +96,32 @@ def audit_log_delete(sender, instance, **kwargs):
     
     changes = {'status': 'deleted', 'description': str(instance)}
 
-    log_activity_task.delay(
-        actor_id, action_type, target_model, target_object_id, 
-        changes, get_current_ip(), get_current_user_agent()
-    )
+    try:
+        log_activity_task.delay(
+            actor_id, action_type, target_model, target_object_id, 
+            changes, get_current_ip(), get_current_user_agent()
+        )
+    except Exception as e:
+        logger.error(f"Failed to queue audit log (delete): {e}")
 
 @receiver(user_logged_in)
 def audit_log_login(sender, request, user, **kwargs):
-    log_activity_task.delay(
-        user.id, 'LOGIN', 'User', user.id, 
-        {'status': 'success'}, get_current_ip(), get_current_user_agent()
-    )
+    try:
+        log_activity_task.delay(
+            user.id, 'LOGIN', 'User', user.id, 
+            {'status': 'success'}, get_current_ip(), get_current_user_agent()
+        )
+    except Exception as e:
+        logger.error(f"Failed to queue audit log (login): {e}")
 
 @receiver(user_logged_out)
 def audit_log_logout(sender, request, user, **kwargs):
     if user:
-        log_activity_task.delay(
-            user.id, 'LOGOUT', 'User', user.id, 
-            {'status': 'success'}, get_current_ip(), get_current_user_agent()
-        )
+        try:
+            log_activity_task.delay(
+                user.id, 'LOGOUT', 'User', user.id, 
+                {'status': 'success'}, get_current_ip(), get_current_user_agent()
+            )
+        except Exception as e:
+            logger.error(f"Failed to queue audit log (logout): {e}")
 
