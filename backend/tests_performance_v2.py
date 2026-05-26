@@ -18,7 +18,7 @@ class USCPISPerformanceBenchmarks(TestCase):
         self.template = CertificateTemplate.objects.create(name="T", content="T")
         self.cert = MedicalCertificate.objects.create(
             patient=self.patient, template=self.template, diagnosis="Perf Diagnosis",
-            valid_from="2026-04-25", valid_until="2026-04-26", issued_by=self.doctor
+            valid_from="2026-04-25", valid_until="2026-04-26", created_by=self.doctor
         )
         self.client.login(email="doctor@usc.edu.ph", password="password")
 
