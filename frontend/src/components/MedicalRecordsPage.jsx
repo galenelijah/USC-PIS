@@ -34,7 +34,9 @@ import {
   Select,
   MenuItem,
   IconButton,
-  Tooltip
+  Tooltip,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -89,6 +91,8 @@ function TabPanel(props) {
 }
 
 const MedicalRecordsPage = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [medicalRecords, setMedicalRecords] = useState([]);
   const [filteredMedicalRecords, setFilteredMedicalRecords] = useState([]);
   const [patients, setPatients] = useState([]);

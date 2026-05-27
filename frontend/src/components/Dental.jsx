@@ -40,7 +40,9 @@ import {
   Divider,
   InputAdornment,
   Avatar,
-  Autocomplete
+  Autocomplete,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -78,6 +80,8 @@ import PatientDocumentUpload from './PatientDocumentUpload';
 import { extractErrorMessage } from '../utils/errorUtils';
 
 const Dental = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [dentalRecords, setDentalRecords] = useState([]);
   const [patients, setPatients] = useState([]);
   const [procedures, setProcedures] = useState([]);

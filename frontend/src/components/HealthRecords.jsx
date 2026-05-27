@@ -30,7 +30,9 @@ import {
   Divider,
   Autocomplete,
   Avatar,
-  Tooltip
+  Tooltip,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import InfoTooltip from './utils/InfoTooltip';
@@ -93,6 +95,8 @@ function TabPanel(props) {
 }
 
 const HealthRecords = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [records, setRecords] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [patients, setPatients] = useState([]);
