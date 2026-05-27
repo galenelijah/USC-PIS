@@ -335,11 +335,16 @@ const Notifications = () => {
 
     const getNotificationIcon = (type) => {
         switch (type) {
+            case 'APPOINTMENT_REMINDER': return <Schedule />;
+            case 'MEDICATION_REMINDER': return <Schedule />;
             case 'HEALTH_CAMPAIGN': return <Campaign />;
             case 'CLINIC_UPDATE': return <NotificationImportant />;
-            case 'FOLLOW_UP': return <Schedule />;
+            case 'FOLLOW_UP': return <CheckCircle />;
+            case 'VACCINATION_REMINDER': return <Schedule />;
             case 'DENTAL_REMINDER': return <Schedule />;
+            case 'MEDICAL_CERTIFICATE': return <NotificationsIcon />;
             case 'SYSTEM_ALERT': return <NotificationImportant />;
+            case 'CUSTOM': return <NotificationsIcon />;
             default: return <NotificationsIcon />;
         }
     };
@@ -385,9 +390,9 @@ const Notifications = () => {
     // Notification types for filters
     const notificationTypes = [
         { value: 'HEALTH_CAMPAIGN', label: 'Health Campaign' },
+        { value: 'MEDICAL_CERTIFICATE', label: 'Medical Certificate' },
+        { value: 'FOLLOW_UP', label: 'Patient Feedback' },
         { value: 'CLINIC_UPDATE', label: 'Clinic Update' },
-        { value: 'FOLLOW_UP', label: 'Feedback/Follow-up' },
-        { value: 'DENTAL_REMINDER', label: 'Dental Reminder' },
         { value: 'SYSTEM_ALERT', label: 'System Alert' },
     ];
 

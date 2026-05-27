@@ -1,29 +1,36 @@
 # Session Summary - May 27, 2026 (COMPREHENSIVE FINAL)
 
 ## 1. Authentication & Identity Hardening
-- **Automated ID Extraction:** Implemented a regex-based parser in `UserRegistrationSerializer` to derive the institutional ID number from the USC email username. This ensures 100% data consistency with university records.
-- **Registration Security:** Refactored the onboarding flow to programmatically ignore client-provided `role` fields. New users are defaulted to the base patient role (`STUDENT`) unless they are recognized via the `SafeEmail` whitelist (Fast-Pass for clinical staff).
-- **RBAC Enforcement:** Restricted high-privilege role promotions to a dedicated admin-only endpoint. Removed manual role selection from the React registration UI and converted the ID number field to a Read-Only element in the profile setup wizard.
-- **Route Decommissioning:** Retired the manual `/role-selection` route and its associated logic, moving to a fully automated identity resolution model.
+- **Automated ID Extraction:** Implemented a regex-based parser in `UserRegistrationSerializer` to derive the institutional ID number from the USC email username.
+- **Intelligent Role Assignment:** Updated `_determine_role_from_email` to distinguish between students (numeric prefix) and faculty (alphabetic prefix). This ensures new faculty accounts are not misidentified as students.
+- **Registration Security:** Refactored the onboarding flow to programmatically ignore client-provided `role` fields.
+- **Onboarding Hardening:** Made Emergency Contact Name and Number mandatory fields in `ProfileSetup.jsx` and the backend view.
+- **Data Persistence:** Fixed a bug where profile setup was accidentally overwriting the automatically captured USC ID with an empty string.
 
 ## 2. Clinical Data Integrity & QA Audit
-- **Temporal Date Trapping:** Added strict validation to block the submission of future dates for medical/dental records and consultations. This includes `maxDate` restrictions on frontend pickers and `ValidationError` triggers in backend serializers.
-- **Vitals Physiological Gating:** Hardened vital signs validation to enforce medically realistic boundaries (e.g., Temperature 32-42°C, Systolic 60-260 mmHg) and reject zero or negative inputs.
-- **Dentist Interface Optimization:** Implemented conditional rendering for the **DENTIST** role, hiding non-essential medical assessment fields (HEENT, Heart, Lungs, etc.) to streamline dental consultations while maintaining systemic record visibility.
-- **Real-time BMI Sync:** Verified the `useEffect` hook for real-time BMI calculation in the frontend and its corresponding autonomous save logic in the backend models.
+- **Temporal Date Trapping:** Added strict validation to block the submission of future dates for medical/dental records and consultations.
+- **Vitals Physiological Gating:** Hardened vital signs validation to enforce medically realistic boundaries (e.g., Temperature 32-42°C).
+- **Dentist Interface Optimization:** Implemented conditional rendering for the **DENTIST** role, hiding non-essential medical assessment fields.
+- **Real-time BMI Sync:** Verified and fixed the `useEffect` hook for real-time BMI calculation in the frontend.
 
 ## 3. Medical Certificate Module Enhancements
-- **Date Logic Fixes:** Resolved off-by-one errors by standardizing on `YYYY-MM-DD` and `dayjs`. Implemented `minDate` restrictions to prevent backdating of certificates.
-- **Strict Clinical Approval:** Reinforced that only the **DOCTOR** role holds the authority to "Issue" or "Reject" certificates. Admins can view records but cannot perform final clinical approval.
-- **Advanced Audit Logging:** Improved the audit log to capture granular lifecycle events: `CERTIFICATE_CREATED`, `CERTIFICATE_SUBMITTED`, `CERTIFICATE_ISSUED`, and `CERTIFICATE_REJECTED` with full actor metadata.
+- **Date Logic Fixes:** Resolved off-by-one errors by standardizing on `YYYY-MM-DD` and `dayjs`.
+- **Retrospective Issuance:** Adjusted serializer constraints to allow certificates to be issued for past consultation dates while still blocking future ranges.
+- **Strict Clinical Approval:** Reinforced that only the **DOCTOR** role holds the authority to "Issue" or "Reject" certificates.
 
 ## 4. UI/UX & Notification Streamlining
-- **Unified Delivery Status:** Merged "Sent" and "Delivered" statuses into a single, unambiguous **"Delivered"** label. Standardized on a Success (Green) theme globally.
-- **Consolidated Statistics:** Refactored the system health dashboard to aggregate dispatched communications under the unified "Delivered" metric, improving reporting accuracy for clinic administrators.
+- **Unified Delivery Status:** Merged "Sent" and "Delivered" statuses into a single, unambiguous **"Delivered"** label.
+- **Filter Synchronization:** Implemented a custom `NotificationFilter` on the backend to correctly handle combined status queries.
+- **API Gating:** Resolved `403 Forbidden` console errors by gating the global patient list fetch (`patientService.getAll()`) to only clinical and administrative roles.
+
+## 5. Bug Fixes & Deployment Stability
+- **500 Error Resolution:** Fixed `AttributeError` in `DentalRecord.save` (invalid `vital_signs` access) and `MedicalRecordSerializer` (missing `get_record_type`).
+- **Build Fix:** Resolved a Vite transformation failure in `HealthRecords.jsx` caused by a duplicate `user` variable declaration.
+- **Import Error:** Fixed a `ReferenceError` in `ProfileSetup.jsx` by adding the missing `useEffect` import.
 
 ## Next Steps
 - Final review of all system documentation in preparation for the SQA audit.
 - Prepare a comprehensive walkthrough of the hardened role promotion and automated identity registration sequence for the thesis panel.
 
 **Generated by:** Gemini CLI
-**Date:** May 27, 2026 (End of Day)
+**Date:** May 27, 2026 (Final Audit)
