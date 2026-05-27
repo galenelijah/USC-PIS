@@ -175,10 +175,37 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
                     options={patients}
                     getOptionLabel={(option) => {
                       if (!option) return '';
-                      return `${option.first_name} ${option.last_name}`;
+                      const name = `${option.first_name || ''} ${option.last_name || ''}`.trim();
+                      const id = option.usc_id || option.id_number || option.student_id;
+                      return `${name}${id ? ` (${id})` : ''}`;
                     }}
                     value={selectedPatient}
                     onChange={handlePatientChange}
+                    isOptionEqualToValue={(option, value) => option.id === value?.id}
+                    filterOptions={(options, { inputValue }) => {
+                      return options.filter(option => {
+                        const name = `${option.first_name || ''} ${option.last_name || ''}`.toLowerCase();
+                        const email = (option.email || '').toLowerCase();
+                        const uscId = (option.usc_id || option.id_number || option.student_id || '').toLowerCase();
+                        const search = inputValue.toLowerCase();
+                        return name.includes(search) || email.includes(search) || uscId.includes(search);
+                      });
+                    }}
+                    renderOption={(props, option) => (
+                      <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: '0.8rem' }}>
+                          {option.first_name?.[0]}{option.last_name?.[0]}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="body2" fontWeight="medium">
+                            {option.first_name} {option.last_name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {option.usc_id || option.id_number || option.student_id || 'No ID'}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    )}
                     renderInput={(params) => (
                       <TextField 
                         {...params} 
@@ -186,7 +213,7 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
                         placeholder="Start typing patient name, email, or USC ID..."
                         required 
                         error={!!errors.patient}
-                        helperText={errors.patient?.message}
+                        helperText={errors.patient?.message || "Search by name, email, or USC ID"}
                         InputProps={{
                           ...params.InputProps,
                           startAdornment: (

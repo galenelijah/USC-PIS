@@ -129,9 +129,11 @@ const MedicalCertificateDetail = ({
             <Button onClick={onReject} color="error" variant="outlined">
               Reject
             </Button>
-            <Button onClick={onIssue} color="success" variant="contained">
-              Issue Certificate
-            </Button>
+            {userRole === 'DOCTOR' && (
+              <Button onClick={onIssue} color="success" variant="contained">
+                Issue Certificate
+              </Button>
+            )}
           </>
         )}
         {canPrint && (
