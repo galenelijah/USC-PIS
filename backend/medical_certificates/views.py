@@ -15,6 +15,8 @@ from io import BytesIO
 from django.http import HttpResponse
 from datetime import date
 from rest_framework.permissions import IsAuthenticated
+from authentication.tasks import log_activity_task
+from authentication.middleware import get_current_ip, get_current_user_agent
 
 
 def get_certificate_status(certificate):
@@ -102,6 +104,18 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
 
         instance = serializer.save(**extra_data)
         
+        # Audit Log: Certificate Created
+        try:
+            log_activity_task.delay(
+                user.id, 'CERTIFICATE_CREATED', 'MedicalCertificate', instance.id,
+                {'status': instance.issuance_status, 'patient': str(instance.patient)},
+                get_current_ip(), get_current_user_agent()
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to log certificate creation: {e}")
+
         if instance.issuance_status == 'pending':
             instance.submitted_at = timezone.now()
             instance.save()
@@ -178,6 +192,18 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
         certificate.issued_at = timezone.now()
         certificate.save()
 
+        # Audit Log: Certificate Issued
+        try:
+            log_activity_task.delay(
+                request.user.id, 'CERTIFICATE_ISSUED', 'MedicalCertificate', certificate.id,
+                {'status': 'issued', 'doctor': request.user.get_full_name()},
+                get_current_ip(), get_current_user_agent()
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to log certificate issuance: {e}")
+
         try:
             EmailService.send_medical_certificate_notification(certificate, 'approved')
         except Exception as e:
@@ -210,6 +236,18 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
         certificate.issued_at = timezone.now()
         certificate.save()
 
+        # Audit Log: Certificate Rejected
+        try:
+            log_activity_task.delay(
+                request.user.id, 'CERTIFICATE_REJECTED', 'MedicalCertificate', certificate.id,
+                {'status': 'rejected', 'doctor': request.user.get_full_name()},
+                get_current_ip(), get_current_user_agent()
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to log certificate rejection: {e}")
+
         try:
             EmailService.send_medical_certificate_notification(certificate, 'rejected')
         except Exception as e:
@@ -234,6 +272,18 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
         set_certificate_status(certificate, 'pending')
         certificate.submitted_at = timezone.now()
         certificate.save()
+
+        # Audit Log: Certificate Submitted
+        try:
+            log_activity_task.delay(
+                request.user.id, 'CERTIFICATE_SUBMITTED', 'MedicalCertificate', certificate.id,
+                {'status': 'pending', 'submitted_by': request.user.get_full_name()},
+                get_current_ip(), get_current_user_agent()
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to log certificate submission: {e}")
 
         try:
             EmailService.send_medical_certificate_notification(certificate, 'created')

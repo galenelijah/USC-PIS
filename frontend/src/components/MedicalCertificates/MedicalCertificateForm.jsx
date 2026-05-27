@@ -22,6 +22,9 @@ import {
   Clear as ClearIcon,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { createMedicalCertificateSchema } from '../../utils/validationSchemas';
@@ -78,8 +81,8 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
         template: certificate.template || (templates.length > 0 ? templates[0].id : ''),
         diagnosis: certificate.diagnosis,
         recommendations: certificate.recommendations,
-        valid_from: certificate.valid_from ? new Date(certificate.valid_from) : null,
-        valid_until: certificate.valid_until ? new Date(certificate.valid_until) : null,
+        valid_from: certificate.valid_from ? dayjs(certificate.valid_from) : null,
+        valid_until: certificate.valid_until ? dayjs(certificate.valid_until) : null,
         additional_notes: certificate.additional_notes || '',
         fitness_status: certificate.fitness_status || 'physically_fit',
         fitness_reason: certificate.fitness_reason || '',
@@ -113,7 +116,13 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
   const handleFormSubmit = async (data) => {
     try {
       setError(null);
-      await onSubmit(data);
+      // Format dates to YYYY-MM-DD to avoid timezone shifting issues
+      const formattedData = {
+        ...data,
+        valid_from: data.valid_from ? dayjs(data.valid_from).format('YYYY-MM-DD') : null,
+        valid_until: data.valid_until ? dayjs(data.valid_until).format('YYYY-MM-DD') : null,
+      };
+      await onSubmit(formattedData);
     } catch (err) {
       setError('Failed to save medical certificate');
       console.error('Error saving certificate:', err);
@@ -130,184 +139,208 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
   }
 
   return (
-    <Paper sx={{ p: 3 }}>
-      <form onSubmit={handleSubmit(handleFormSubmit)}>
-        <Grid container spacing={3}>
-          {error && (
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <Paper sx={{ p: 3 }}>
+        <form onSubmit={handleSubmit(handleFormSubmit)}>
+          <Grid container spacing={3}>
+            {error && (
+              <Grid item xs={12}>
+                <Alert severity="error">{error}</Alert>
+              </Grid>
+            )}
+
+            {certificate && certificate.issuance_status !== 'draft' && (
+              <Grid item xs={12}>
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                    Updating Medical Assessment
+                  </Typography>
+                  <Typography variant="body2">
+                    You are updating an existing medical assessment. Changes to fitness status (Physically Fit / Physically Unfit) and reasons will be reflected in the final issued certificate.
+                  </Typography>
+                </Alert>
+              </Grid>
+            )}
+
             <Grid item xs={12}>
-              <Alert severity="error">{error}</Alert>
-            </Grid>
-          )}
-
-          {certificate && certificate.issuance_status !== 'draft' && (
-            <Grid item xs={12}>
-              <Alert severity="info" sx={{ mb: 2 }}>
-                <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                  Updating Medical Assessment
-                </Typography>
-                <Typography variant="body2">
-                  You are updating an existing medical assessment. Changes to fitness status (Physically Fit / Physically Unfit) and reasons will be reflected in the final issued certificate.
-                </Typography>
-              </Alert>
-            </Grid>
-          )}
-
-          <Grid item xs={12}>
-            <Typography variant="subtitle2" color="primary" gutterBottom sx={{ mb: 2 }}>
-              🔍 Patient Search & Selection
-            </Typography>
-            
-            <Controller
-              name="patient"
-              control={control}
-              render={({ field }) => (
-                <Autocomplete
-                  options={patients}
-                  getOptionLabel={(option) => {
-                    if (!option) return '';
-                    return `${option.first_name} ${option.last_name}`;
-                  }}
-                  value={selectedPatient}
-                  onChange={handlePatientChange}
-                  renderInput={(params) => (
-                    <TextField 
-                      {...params} 
-                      label="Search and Select Patient" 
-                      placeholder="Start typing patient name, email, or USC ID..."
-                      required 
-                      error={!!errors.patient}
-                      helperText={errors.patient?.message}
-                      InputProps={{
-                        ...params.InputProps,
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <SearchIcon color="primary" />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  )}
-                  popupIcon={null}
-                />
-              )}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Controller
-              name="template"
-              control={control}
-              render={({ field }) => (
-                <FormControl fullWidth required error={!!errors.template}>
-                  <InputLabel>Template</InputLabel>
-                  <Select
-                    {...field}
-                    label="Template"
-                    value={field.value || ''}
-                  >
-                    {templates.map((template) => (
-                      <MenuItem key={template.id} value={template.id}>
-                        {template.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {errors.template && (
-                    <Typography variant="caption" color="error" sx={{ mt: 1 }}>
-                      {errors.template.message}
-                    </Typography>
-                  )}
-                </FormControl>
-              )}
-            />
-          </Grid>
-
-          <Grid item xs={12}>
-            <Controller
-              name="diagnosis"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  multiline
-                  rows={2}
-                  label="Purpose/Requirement"
-                  placeholder="Enter the purpose or requirement for this medical certificate..."
-                  error={!!errors.diagnosis}
-                  helperText={errors.diagnosis?.message}
-                />
-              )}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Controller
-              name="valid_from"
-              control={control}
-              render={({ field }) => (
-                <DatePicker
-                  {...field}
-                  label="Valid From"
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      required: true,
-                      error: !!errors.valid_from,
-                      helperText: errors.valid_from?.message,
-                    },
-                  }}
-                />
-              )}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Controller
-              name="valid_until"
-              control={control}
-              render={({ field }) => (
-                <DatePicker
-                  {...field}
-                  label="Valid Until"
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      required: true,
-                      error: !!errors.valid_until,
-                      helperText: errors.valid_until?.message,
-                    },
-                  }}
-                />
-              )}
-            />
-          </Grid>
-
-          {userRole === 'DOCTOR' && (
-            <Grid item xs={12}>
+              <Typography variant="subtitle2" color="primary" gutterBottom sx={{ mb: 2 }}>
+                🔍 Patient Search & Selection
+              </Typography>
+              
               <Controller
-                name="fitness_status"
+                name="patient"
                 control={control}
                 render={({ field }) => (
-                  <FormControl fullWidth required error={!!errors.fitness_status}>
-                    <InputLabel>Medical Fitness Status</InputLabel>
+                  <Autocomplete
+                    options={patients}
+                    getOptionLabel={(option) => {
+                      if (!option) return '';
+                      return `${option.first_name} ${option.last_name}`;
+                    }}
+                    value={selectedPatient}
+                    onChange={handlePatientChange}
+                    renderInput={(params) => (
+                      <TextField 
+                        {...params} 
+                        label="Search and Select Patient" 
+                        placeholder="Start typing patient name, email, or USC ID..."
+                        required 
+                        error={!!errors.patient}
+                        helperText={errors.patient?.message}
+                        InputProps={{
+                          ...params.InputProps,
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <SearchIcon color="primary" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    )}
+                    popupIcon={null}
+                  />
+                )}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Controller
+                name="template"
+                control={control}
+                render={({ field }) => (
+                  <FormControl fullWidth required error={!!errors.template}>
+                    <InputLabel>Template</InputLabel>
                     <Select
                       {...field}
-                      label="Medical Fitness Status"
-                      value={field.value || 'physically_fit'}
+                      label="Template"
+                      value={field.value || ''}
                     >
-                      <MenuItem value="physically_fit">Physically Fit</MenuItem>
-                      <MenuItem value="physically_unfit">Physically Unfit</MenuItem>
+                      {templates.map((template) => (
+                        <MenuItem key={template.id} value={template.id}>
+                          {template.name}
+                        </MenuItem>
+                      ))}
                     </Select>
+                    {errors.template && (
+                      <Typography variant="caption" color="error" sx={{ mt: 1 }}>
+                        {errors.template.message}
+                      </Typography>
+                    )}
                   </FormControl>
                 )}
               />
             </Grid>
-          )}
 
-          {userRole === 'DOCTOR' && fitnessStatus === 'physically_unfit' && (
             <Grid item xs={12}>
               <Controller
-                name="fitness_reason"
+                name="diagnosis"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    multiline
+                    rows={2}
+                    label="Purpose/Requirement"
+                    placeholder="Enter the purpose or requirement for this medical certificate..."
+                    error={!!errors.diagnosis}
+                    helperText={errors.diagnosis?.message}
+                  />
+                )}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Controller
+                name="valid_from"
+                control={control}
+                render={({ field }) => (
+                  <DatePicker
+                    {...field}
+                    label="Valid From"
+                    minDate={dayjs().startOf('day')}
+                    slotProps={{
+                      textField: {
+                        fullWidth: true,
+                        required: true,
+                        error: !!errors.valid_from,
+                        helperText: errors.valid_from?.message,
+                      },
+                    }}
+                  />
+                )}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Controller
+                name="valid_until"
+                control={control}
+                render={({ field }) => (
+                  <DatePicker
+                    {...field}
+                    label="Valid Until"
+                    minDate={watch('valid_from') || dayjs().startOf('day')}
+                    slotProps={{
+                      textField: {
+                        fullWidth: true,
+                        required: true,
+                        error: !!errors.valid_until,
+                        helperText: errors.valid_until?.message,
+                      },
+                    }}
+                  />
+                )}
+              />
+            </Grid>
+
+            {userRole === 'DOCTOR' && (
+              <Grid item xs={12}>
+                <Controller
+                  name="fitness_status"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControl fullWidth required error={!!errors.fitness_status}>
+                      <InputLabel>Medical Fitness Status</InputLabel>
+                      <Select
+                        {...field}
+                        label="Medical Fitness Status"
+                        value={field.value || 'physically_fit'}
+                      >
+                        <MenuItem value="physically_fit">Physically Fit</MenuItem>
+                        <MenuItem value="physically_unfit">Physically Unfit</MenuItem>
+                      </Select>
+                    </FormControl>
+                  )}
+                />
+              </Grid>
+            )}
+
+            {userRole === 'DOCTOR' && fitnessStatus === 'physically_unfit' && (
+              <Grid item xs={12}>
+                <Controller
+                  name="fitness_reason"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      multiline
+                      rows={3}
+                      label="Reason for Physically Unfit Status"
+                      required
+                      placeholder="Provide clinical justification for determining 'Physically Unfit' status..."
+                      error={!!errors.fitness_reason}
+                      helperText={errors.fitness_reason?.message}
+                    />
+                  )}
+                />
+              </Grid>
+            )}
+
+            <Grid item xs={12}>
+              <Controller
+                name="additional_notes"
                 control={control}
                 render={({ field }) => (
                   <TextField
@@ -315,49 +348,29 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
                     fullWidth
                     multiline
                     rows={3}
-                    label="Reason for Physically Unfit Status"
-                    required
-                    placeholder="Provide clinical justification for determining 'Physically Unfit' status..."
-                    error={!!errors.fitness_reason}
-                    helperText={errors.fitness_reason?.message}
+                    label="Additional Remarks / Recommendations"
+                    placeholder="Additional medical recommendations or restrictions..."
+                    error={!!errors.additional_notes}
+                    helperText={errors.additional_notes?.message}
                   />
                 )}
               />
             </Grid>
-          )}
 
-          <Grid item xs={12}>
-            <Controller
-              name="additional_notes"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  multiline
-                  rows={3}
-                  label="Additional Remarks / Recommendations"
-                  placeholder="Additional medical recommendations or restrictions..."
-                  error={!!errors.additional_notes}
-                  helperText={errors.additional_notes?.message}
-                />
-              )}
-            />
+            <Grid item xs={12}>
+              <Stack direction="row" spacing={2} justifyContent="flex-end">
+                <Button onClick={onCancel} variant="outlined">
+                  Cancel
+                </Button>
+                <Button type="submit" variant="contained" color="primary">
+                  {certificate ? 'Update Assessment' : 'Create Certificate'}
+                </Button>
+              </Stack>
+            </Grid>
           </Grid>
-
-          <Grid item xs={12}>
-            <Stack direction="row" spacing={2} justifyContent="flex-end">
-              <Button onClick={onCancel} variant="outlined">
-                Cancel
-              </Button>
-              <Button type="submit" variant="contained" color="primary">
-                {certificate ? 'Update Assessment' : 'Create Certificate'}
-              </Button>
-            </Stack>
-          </Grid>
-        </Grid>
-      </form>
-    </Paper>
+        </form>
+      </Paper>
+    </LocalizationProvider>
   );
 };
 
