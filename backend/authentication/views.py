@@ -734,7 +734,7 @@ class CompleteProfileSetupView(APIView):
             
             # Validate required fields (more lenient validation)
             validation_errors = []
-            required_fields = ['first_name', 'last_name', 'sex', 'phone']
+            required_fields = ['first_name', 'last_name', 'sex', 'phone', 'emergency_contact', 'emergency_contact_number']
             
             if user.role == User.Role.STUDENT:
                 required_fields.extend(['birthday', 'course', 'year_level', 'school'])

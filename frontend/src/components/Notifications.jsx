@@ -362,7 +362,16 @@ const Notifications = () => {
             const matchesSearch = notification.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                                 notification.message?.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesType = !typeFilter || notification.notification_type === typeFilter;
-            const matchesStatus = !statusFilter || notification.status === statusFilter;
+            
+            // Fix: Handle both SENT and DELIVERED as 'Delivered' for filtering
+            let matchesStatus = !statusFilter;
+            if (statusFilter) {
+                if (statusFilter === 'SENT') {
+                    matchesStatus = ['SENT', 'DELIVERED'].includes(notification.status);
+                } else {
+                    matchesStatus = notification.status === statusFilter;
+                }
+            }
             
             return matchesSearch && matchesType && matchesStatus;
         } catch (error) {

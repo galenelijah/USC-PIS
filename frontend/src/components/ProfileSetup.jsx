@@ -199,8 +199,8 @@ const createValidationSchema = (role) => {
     address_permanent: commonValidation.requiredText('Permanent address'),
     phone: commonValidation.phone('Phone number'),
     email: commonValidation.email,
-    contact_emergency_name: commonValidation.optionalText,
-    contact_emergency_number: commonValidation.phoneOptional('Emergency contact number'),
+    contact_emergency_name: commonValidation.requiredText('Emergency contact name'),
+    contact_emergency_number: commonValidation.phone('Emergency contact number'),
   };
 
   // Role-specific validation
@@ -560,7 +560,7 @@ const ProfileSetup = () => {
             <Grid item xs={12} sm={6}>
               <MyTextField
                 key={`${stepKey}-contact_emergency_number`}
-                label="Emergency Contact Number"
+                label="Emergency Contact Number *"
                 name="contact_emergency_number"
                 control={control}
                 required

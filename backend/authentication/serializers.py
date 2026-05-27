@@ -95,7 +95,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     def _determine_role_from_email(self, email):
         """
-        Determine user role based on SafeEmail whitelist or default to STUDENT.
+        Determine user role based on SafeEmail whitelist or automated extraction.
+        Numeric prefix -> STUDENT (e.g., 21100727@usc.edu.ph)
+        Alphabetical/Mixed prefix -> FACULTY (e.g., gscaballero@usc.edu.ph)
         Client-provided role preference is ignored for automated security gating.
         """
         if not email:
@@ -110,8 +112,16 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         except Exception:
             pass
 
-        # 2. Base role for all new standard registrations
-        return User.Role.STUDENT
+        # 2. Automated Role Resolution: Prefix analysis
+        prefix = email.split('@')[0]
+        
+        # If prefix is purely numeric, it's a student ID
+        if re.match(r'^\d+$', prefix):
+            return User.Role.STUDENT
+        
+        # If prefix contains any letters, default to FACULTY context
+        # (Admins can later upgrade to DOCTOR, NURSE, etc. if needed)
+        return User.Role.FACULTY
 
     def validate_password(self, value):
         """Validate password with enhanced security checks."""

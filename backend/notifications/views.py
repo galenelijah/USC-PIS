@@ -29,6 +29,31 @@ from .serializers import (
 )
 from .services import NotificationService, CampaignService
 from .permissions import IsOwnerOrMedicalStaff, IsMedicalStaff, CanManageNotifications
+import django_filters
+
+
+class NotificationFilter(django_filters.FilterSet):
+    """Custom filter for notifications"""
+    status = django_filters.CharFilter(method='filter_status')
+    search = django_filters.CharFilter(method='filter_search')
+
+    class Meta:
+        model = Notification
+        fields = ['notification_type', 'priority', 'status', 'delivery_method']
+
+    def filter_status(self, queryset, name, value):
+        if value == 'SENT':
+            # Handle both SENT and DELIVERED as 'Delivered'
+            return queryset.filter(status__in=['SENT', 'DELIVERED'])
+        return queryset.filter(status=value)
+
+    def filter_search(self, queryset, name, value):
+        if value:
+            return queryset.filter(
+                Q(title__icontains=value) | 
+                Q(message__icontains=value)
+            )
+        return queryset
 
 
 class NotificationPagination(PageNumberPagination):
@@ -43,7 +68,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
     serializer_class = NotificationSerializer
     pagination_class = NotificationPagination
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['notification_type', 'priority', 'status', 'delivery_method']
+    filterset_class = NotificationFilter
     ordering = ['-created_at']
     
     def get_queryset(self):

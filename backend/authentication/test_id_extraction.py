@@ -55,3 +55,29 @@ class USCPISAuthExtractionTests(TestCase):
         user = self.serializer.create(data)
         self.assertEqual(user.id_number, "21100727") # Should stay as extracted value
         self.assertNotEqual(user.id_number, "9999999")
+
+    def test_role_assignment_faculty_for_alpha_prefix(self):
+        """Test that alpha/mixed prefixes are assigned the FACULTY role."""
+        data = {
+            "email": "gscaballero@usc.edu.ph",
+            "password": "StrongPassword123!",
+            "password2": "StrongPassword123!"
+        }
+        
+        user = self.serializer.create(data)
+        self.assertEqual(user.role, User.Role.FACULTY)
+        self.assertIsNone(user.id_number)
+
+    def test_role_assignment_safelist_override(self):
+        """Test that SafeList still overrides the default faculty assignment."""
+        # Add email to safelist as DOCTOR
+        SafeEmail.objects.create(email="admin@usc.edu.ph", role=User.Role.DOCTOR, is_active=True)
+        
+        data = {
+            "email": "admin@usc.edu.ph",
+            "password": "StrongPassword123!",
+            "password2": "StrongPassword123!"
+        }
+        
+        user = self.serializer.create(data)
+        self.assertEqual(user.role, User.Role.DOCTOR) # Should be DOCTOR from SafeList, not FACULTY default
