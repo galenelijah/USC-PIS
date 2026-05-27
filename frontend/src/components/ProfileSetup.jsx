@@ -336,7 +336,7 @@ const ProfileSetup = () => {
           nationality: '',
           religion: '',
           address_present: '',
-          id_number: '',
+          id_number: currentUser?.id_number || '',
           course: '',
           year_level: '',
           school: '',

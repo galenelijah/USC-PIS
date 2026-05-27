@@ -237,7 +237,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             # Timestamps
             'created_at', 'updated_at'
         )
-        read_only_fields = ('id', 'email', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'email', 'role', 'id_number', 'created_at', 'updated_at')
 
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(required=True)
