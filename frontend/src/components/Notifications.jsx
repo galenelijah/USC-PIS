@@ -86,6 +86,7 @@ const Notifications = () => {
     const [stats, setStats] = useState(null);
     const [menuAnchor, setMenuAnchor] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [searchInput, setSearchInput] = useState('');
     const [typeFilter, setTypeFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [currentUser, setCurrentUser] = useState(null);
@@ -489,8 +490,11 @@ const Notifications = () => {
                                     fullWidth
                                     size="small"
                                     placeholder="Search notifications..."
-                                    value={searchTerm}
-                                    onChange={(e) => debouncedSearch(e.target.value)}
+                                    value={searchInput}
+                                    onChange={(e) => {
+                                        setSearchInput(e.target.value);
+                                        debouncedSearch(e.target.value);
+                                    }}
                                     InputProps={{
                                         startAdornment: <Search sx={{ color: 'action.active', mr: 1 }} />
                                     }}

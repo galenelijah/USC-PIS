@@ -21,6 +21,18 @@
 ## 4. UI/UX & Notification Streamlining
 - **Unified Delivery Status:** Merged "Sent" and "Delivered" statuses into a single, unambiguous **"Delivered"** label.
 - **Filter Synchronization:** Implemented a custom `NotificationFilter` on the backend to correctly handle combined status queries.
+- **Search Optimization:** Fixed responsiveness issues in the notification search bar by implementing instantaneous visual updates decoupled from the debounced filter logic.
+- **Data Integrity:** Corrected legacy notification records and hardcoded test views to ensure all Medical Certificate notifications are correctly categorized under the `MEDICAL_CERTIFICATE` type rather than `HEALTH_CAMPAIGN`.
+- **Refined Type Mapping:** Pruned non-existent notification types from the inbox filters to ensure 100% accuracy with actual system data:
+
+| Filter Label | Backend Type | Description |
+| :--- | :--- | :--- |
+| **Health Campaign** | `HEALTH_CAMPAIGN` | Global and targeted health advisories from the clinic. |
+| **Medical Certificate** | `MEDICAL_CERTIFICATE` | Notifications regarding created, issued, or rejected certificates. |
+| **Patient Feedback** | `FOLLOW_UP` | Automated requests for feedback after clinical consultations. |
+| **Clinic Update** | `CLINIC_UPDATE` | General administrative updates (e.g., welcome messages). |
+| **System Alert** | `SYSTEM_ALERT` | Critical system-level notifications and role change alerts. |
+
 - **API Gating:** Resolved `403 Forbidden` console errors by gating the global patient list fetch (`patientService.getAll()`) to only clinical and administrative roles.
 
 ## 5. Bug Fixes & Deployment Stability

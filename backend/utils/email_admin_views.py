@@ -300,7 +300,7 @@ def test_notification_system(request):
                 user=user,
                 title='Medical Certificate Approved',
                 message='Your medical certificate has been approved by the University Physician. You can now download it from your health records.',
-                notification_type='HEALTH_CAMPAIGN',
+                notification_type='MEDICAL_CERTIFICATE',
                 action_url='/health-records'
             )
             return JsonResponse({'success': True, 'message': f'Cert approved notification sent to {user.email}'})

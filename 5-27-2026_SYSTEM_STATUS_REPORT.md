@@ -27,6 +27,16 @@
 - **Status:** **OPERATIONAL**
 - **Status Merging:** Unified "Sent" and "Delivered" statuses into a single **"Delivered"** label with consistent Green (Success) branding.
 - **Filter Resolution:** Fixed the "Delivered" filter in the notification inbox by implementing a custom backend FilterSet that correctly aggregates both `SENT` and `DELIVERED` internal states.
+- **Search Performance:** Resolved lag in the notification search bar by decoupling the UI input state from the debounced filter state, ensuring smooth typing while maintaining efficient data fetching.
+- **Refined Type Mapping:** Overhauled the notification types filter and categorized existing database records to reflect only active categories:
+
+| Filter Label | Backend Type | Description |
+| :--- | :--- | :--- |
+| **Health Campaign** | `HEALTH_CAMPAIGN` | Global and targeted health advisories from the clinic. |
+| **Medical Certificate** | `MEDICAL_CERTIFICATE` | Notifications regarding created, issued, or rejected certificates. |
+| **Patient Feedback** | `FOLLOW_UP` | Automated requests for feedback after clinical consultations. |
+| **Clinic Update** | `CLINIC_UPDATE` | General administrative updates (e.g., welcome messages). |
+| **System Alert** | `SYSTEM_ALERT` | Critical system-level notifications and role change alerts. |
 
 ### 5. Stability & Build Integrity
 - **500 Error Resolution:** Fixed critical backend crashes in `DentalRecord.save` and `MedicalRecordSerializer` related to invalid attribute access and missing methods.
