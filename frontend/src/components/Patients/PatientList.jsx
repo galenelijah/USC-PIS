@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import {
   Table,
   TableBody,
@@ -14,6 +14,7 @@ import {
   Avatar,
   useTheme,
   useMediaQuery,
+  TablePagination,
 } from '@mui/material';
 import { getSexLabel } from '../../utils/fieldMappers';
 import { ProgramsChoices } from '../static/choices';
@@ -33,13 +34,13 @@ const PatientRow = memo(({ patient, onClick }) => (
     onClick={() => onClick(patient)}
     sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
   >
-    <TableCell>{patient.usc_id || 'N/A'}</TableCell>
-    <TableCell>{`${patient.first_name} ${patient.last_name}`}</TableCell>
-    <TableCell>{getCourseLabel(patient.course)}</TableCell>
-    <TableCell>{patient.date_of_birth}</TableCell>
-    <TableCell>{getSexLabel(patient.gender)}</TableCell>
-    <TableCell>{patient.email}</TableCell>
-    <TableCell>{patient.phone_number}</TableCell>
+    <TableCell sx={{ whiteSpace: 'nowrap' }}>{patient.usc_id || 'N/A'}</TableCell>
+    <TableCell sx={{ whiteSpace: 'nowrap' }}>{`${patient.first_name} ${patient.last_name}`}</TableCell>
+    <TableCell sx={{ whiteSpace: 'nowrap' }}>{getCourseLabel(patient.course)}</TableCell>
+    <TableCell sx={{ whiteSpace: 'nowrap' }}>{patient.date_of_birth}</TableCell>
+    <TableCell sx={{ whiteSpace: 'nowrap' }}>{getSexLabel(patient.gender)}</TableCell>
+    <TableCell sx={{ whiteSpace: 'nowrap' }}>{patient.email}</TableCell>
+    <TableCell sx={{ whiteSpace: 'nowrap' }}>{patient.phone_number}</TableCell>
   </TableRow>
 ));
 
@@ -70,24 +71,24 @@ const PatientCard = memo(({ patient, onClick }) => (
         </Box>
       </Box>
       
-      <Box className="mobile-table-row">
-        <Typography className="mobile-table-label">Email:</Typography>
-        <Typography className="mobile-table-value">{patient.email}</Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>Email:</Typography>
+        <Typography variant="caption">{patient.email}</Typography>
       </Box>
       
-      <Box className="mobile-table-row">
-        <Typography className="mobile-table-label">Phone:</Typography>
-        <Typography className="mobile-table-value">{patient.phone_number || 'N/A'}</Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>Phone:</Typography>
+        <Typography variant="caption">{patient.phone_number || 'N/A'}</Typography>
       </Box>
       
-      <Box className="mobile-table-row">
-        <Typography className="mobile-table-label">Date of Birth:</Typography>
-        <Typography className="mobile-table-value">{patient.date_of_birth}</Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>Date of Birth:</Typography>
+        <Typography variant="caption">{patient.date_of_birth}</Typography>
       </Box>
       
-      <Box className="mobile-table-row">
-        <Typography className="mobile-table-label">Gender:</Typography>
-        <Typography className="mobile-table-value">{getSexLabel(patient.gender)}</Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>Gender:</Typography>
+        <Typography variant="caption">{getSexLabel(patient.gender)}</Typography>
       </Box>
     </CardContent>
   </Card>
@@ -98,32 +99,49 @@ PatientCard.displayName = 'PatientCard';
 const PatientList = memo(({ patients, onPatientClick }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Sort patients by creation date (newest first)
   const sortedPatients = useMemo(() => {
     if (!patients || patients.length === 0) return [];
     return [...patients].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   }, [patients]);
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const paginatedPatients = useMemo(() => {
+    return sortedPatients.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  }, [sortedPatients, page, rowsPerPage]);
+
   return (
     <Box>
-
-        {/* Desktop Table View */}
-        <TableContainer component={Paper} className="desktop-table">
-          <Table>
+      {/* Desktop Table View */}
+      <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+        <TableContainer component={Paper} elevation={1} sx={{ overflowX: 'auto' }}>
+          <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell>USC ID</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Course</TableCell>
-                <TableCell>Date of Birth</TableCell>
-                <TableCell>Gender</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Phone</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', bgcolor: 'grey.50' }}>USC ID</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', bgcolor: 'grey.50' }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', bgcolor: 'grey.50' }}>Course</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', bgcolor: 'grey.50' }}>Date of Birth</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', bgcolor: 'grey.50' }}>Gender</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', bgcolor: 'grey.50' }}>Email</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', bgcolor: 'grey.50' }}>Phone</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {sortedPatients.length > 0 ? (
-                sortedPatients.map((patient) => (
+              {paginatedPatients.length > 0 ? (
+                paginatedPatients.map((patient) => (
                   <PatientRow 
                     key={patient.id} 
                     patient={patient} 
@@ -134,7 +152,7 @@ const PatientList = memo(({ patients, onPatientClick }) => {
                 <TableRow>
                   <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                     <Typography variant="body1" color="text.secondary">
-                      No patients found in the system.
+                      No patients found.
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -142,29 +160,56 @@ const PatientList = memo(({ patients, onPatientClick }) => {
             </TableBody>
           </Table>
         </TableContainer>
-
-        {/* Mobile Card View */}
-        <Box sx={{ display: { xs: 'block', md: 'none' } }}>
-          {sortedPatients.length > 0 ? (
-            sortedPatients.map((patient) => (
-              <PatientCard 
-                key={patient.id} 
-                patient={patient} 
-                onClick={onPatientClick}
-              />
-            ))
-          ) : (
-            <Card sx={{ p: 4, textAlign: 'center' }}>
-              <Typography variant="body1" color="text.secondary">
-                No patients found in the system.
-              </Typography>
-            </Card>
-          )}
-        </Box>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25, 50]}
+          component="div"
+          count={sortedPatients.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
       </Box>
+
+      {/* Mobile Card View */}
+      <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="subtitle2" color="text.secondary">
+            Showing {paginatedPatients.length} of {sortedPatients.length} patients
+          </Typography>
+        </Box>
+        
+        {paginatedPatients.length > 0 ? (
+          paginatedPatients.map((patient) => (
+            <PatientCard 
+              key={patient.id} 
+              patient={patient} 
+              onClick={onPatientClick}
+            />
+          ))
+        ) : (
+          <Card sx={{ p: 4, textAlign: 'center' }}>
+            <Typography variant="body1" color="text.secondary">
+              No patients found.
+            </Typography>
+          </Card>
+        )}
+        
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 20]}
+          component="div"
+          count={sortedPatients.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          sx={{ mt: 2 }}
+        />
+      </Box>
+    </Box>
   );
 });
 
 PatientList.displayName = 'PatientList';
 
-export default PatientList; 
+export default PatientList;

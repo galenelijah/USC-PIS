@@ -32,7 +32,8 @@ import {
   Avatar,
   Tooltip,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  TablePagination
 } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import InfoTooltip from './utils/InfoTooltip';
@@ -115,6 +116,19 @@ const HealthRecords = () => {
   const [selectedMedicalRecordId, setSelectedMedicalRecordId] = useState(null);
   const [openMedicalRecordModal, setOpenMedicalRecordModal] = useState(false);
   const [openTemplateDialog, setOpenTemplateDialog] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const paginatedRecords = filteredRecords.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   const handleOpenUpload = (record) => {
     setCurrentRecord(record); // Track the record being uploaded to
@@ -1035,99 +1049,110 @@ Treatment: ${r.treatment || 'N/A'}
           <ClinicalAnalytics records={records} />
         </Box>
       ) : (
-        <TableContainer component={Paper} sx={{ mt: 2 }}>
-          <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Date</TableCell>
-              <TableCell>Patient</TableCell>
-              <TableCell>ID Number</TableCell>
-              <TableCell>Concern</TableCell>
-              <TableCell>Diagnosis</TableCell>
-              <TableCell>Treatment</TableCell>
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-            <TableBody>
-              {filteredRecords.length > 0 ? (
-                filteredRecords.map((record) => (
-                  <TableRow key={record.id}>
-                    <TableCell>{dayjs(record.visit_date).format('MMM DD, YYYY hh:mm A')}</TableCell>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight="medium">
-                        {record.patient_name || `Patient ID: ${record.patient}`}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" color="text.secondary">
-                        {record.patient_usc_id || 'N/A'}
-                      </Typography>
-                    </TableCell>
-                    
-                    <TableCell>{record.concern || 'N/A'}</TableCell>
-                    <TableCell>{record.diagnosis || 'No diagnosis'}</TableCell>
-                    <TableCell>{record.treatment || 'No treatment'}</TableCell>
-                    <TableCell align="right">
-                      {/* Workflow Automation Suggestions */}
-                      {canEditRecords && (() => {
-                        const suggestions = getFollowUpSuggestions(record);
-                        return suggestions.length > 0 && (
-                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1, alignItems: 'center' }}>
-                            <Tooltip title="Appears when diagnosis contains 'sick' or treatment includes 'rest'">
-                              <InfoOutlinedIcon sx={{ fontSize: 16, color: 'text.secondary', mr: 0.5 }} />
-                            </Tooltip>
-                            {suggestions.map((suggestion, index) => (
-                              <Chip
-                                key={index}
-                                label={suggestion.action}
-                                size="small"
-                                color={suggestion.type === 'follow-up' ? 'primary' : 
-                                       suggestion.type === 'certificate' ? 'secondary' : 'default'}
-                                onClick={() => handleAutomationAction(suggestion.action, record)}
-                                sx={{ 
-                                  fontSize: '0.7rem',
-                                  height: 20,
-                                  cursor: 'pointer',
-                                  '&:hover': {
-                                    opacity: 0.8
-                                  }
-                                }}
-                              />
-                            ))}
-                          </Box>
-                        );
-                      })()}
+        <Box sx={{ mt: 2 }}>
+          <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+            <Table stickyHeader>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>Date</TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>Patient</TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>ID Number</TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap', minWidth: 200 }}>Concern</TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap', minWidth: 200 }}>Diagnosis</TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap', minWidth: 200 }}>Treatment</TableCell>
+                <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+              <TableBody>
+                {paginatedRecords.length > 0 ? (
+                  paginatedRecords.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>{dayjs(record.visit_date).format('MMM DD, YYYY hh:mm A')}</TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                        <Typography variant="body2" fontWeight="medium">
+                          {record.patient_name || `Patient ID: ${record.patient}`}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                        <Typography variant="body2" color="text.secondary">
+                          {record.patient_usc_id || 'N/A'}
+                        </Typography>
+                      </TableCell>
                       
-                      {/* Regular Action Buttons */}
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Tooltip title="Upload Scanned Document">
-                          <IconButton onClick={() => handleOpenUpload(record)} disabled={!canEditRecords}>
-                            <UploadIcon color="primary" />
+                      <TableCell sx={{ minWidth: 200 }}>{record.concern || 'N/A'}</TableCell>
+                      <TableCell sx={{ minWidth: 200 }}>{record.diagnosis || 'No diagnosis'}</TableCell>
+                      <TableCell sx={{ minWidth: 200 }}>{record.treatment || 'No treatment'}</TableCell>
+                      <TableCell align="right">
+                        {/* Workflow Automation Suggestions */}
+                        {canEditRecords && (() => {
+                          const suggestions = getFollowUpSuggestions(record);
+                          return suggestions.length > 0 && (
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1, alignItems: 'center' }}>
+                              <Tooltip title="Appears when diagnosis contains 'sick' or treatment includes 'rest'">
+                                <InfoOutlinedIcon sx={{ fontSize: 16, color: 'text.secondary', mr: 0.5 }} />
+                              </Tooltip>
+                              {suggestions.map((suggestion, index) => (
+                                <Chip
+                                  key={index}
+                                  label={suggestion.action}
+                                  size="small"
+                                  color={suggestion.type === 'follow-up' ? 'primary' : 
+                                         suggestion.type === 'certificate' ? 'secondary' : 'default'}
+                                  onClick={() => handleAutomationAction(suggestion.action, record)}
+                                  sx={{ 
+                                    fontSize: '0.7rem',
+                                    height: 20,
+                                    cursor: 'pointer',
+                                    '&:hover': {
+                                      opacity: 0.8
+                                    }
+                                  }}
+                                />
+                              ))}
+                            </Box>
+                          );
+                        })()}
+                        
+                        {/* Regular Action Buttons */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
+                          <Tooltip title="Upload Scanned Document">
+                            <IconButton onClick={() => handleOpenUpload(record)} disabled={!canEditRecords}>
+                              <UploadIcon color="primary" />
+                            </IconButton>
+                          </Tooltip>
+                          <Button size="small" onClick={() => { setSelectedMedicalRecordId(record.id); setOpenMedicalRecordModal(true); }}>
+                            View
+                          </Button>
+                          <IconButton onClick={() => handleOpenEditDialog(record)} disabled={!canEditRecords}>
+                            <EditIcon />
                           </IconButton>
-                        </Tooltip>
-                        <Button size="small" onClick={() => { setSelectedMedicalRecordId(record.id); setOpenMedicalRecordModal(true); }}>
-                          View
-                        </Button>
-                        <IconButton onClick={() => handleOpenEditDialog(record)} disabled={!canEditRecords}>
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton onClick={() => handleDeleteRecord(record.id)} disabled={!canEditRecords}>
-                          <DeleteIcon />
-                        </IconButton>
-                      </Box>
+                          <IconButton onClick={() => handleDeleteRecord(record.id)} disabled={!canEditRecords}>
+                            <DeleteIcon />
+                          </IconButton>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center">
+                      No records found
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    No records found
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50]}
+            component="div"
+            count={filteredRecords.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        </Box>
       )}
 
       {/* Create/Edit Dialog */}

@@ -42,7 +42,8 @@ import {
   Avatar,
   Autocomplete,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  TablePagination
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -101,6 +102,8 @@ const Dental = () => {
   const [error, setError] = useState(null);
   const [formError, setFormError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Document upload state
   const [openUploadDialog, setOpenUploadDialog] = useState(false);
@@ -827,9 +830,10 @@ const Dental = () => {
         </Paper>
 
         {/* Records Display */}
-        {filteredRecords.length > 0 ? (
+        {paginatedRecords.length > 0 ? (
+          <>
           <Grid container spacing={3}>
-            {filteredRecords.map((record) => (
+            {paginatedRecords.map((record) => (
               <Grid item xs={12} md={6} lg={4} key={record.id}>
                 <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                   <CardContent sx={{ flexGrow: 1 }}>
@@ -925,6 +929,16 @@ const Dental = () => {
               </Grid>
             ))}
           </Grid>
+          <TablePagination
+            rowsPerPageOptions={[6, 12, 24, 48]}
+            component="div"
+            count={filteredRecords.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+          </>
         ) : (
           <Paper sx={{ p: 4, textAlign: 'center' }}>
             <Typography variant="h6" color="text.secondary">

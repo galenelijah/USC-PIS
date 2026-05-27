@@ -18,6 +18,7 @@ import {
   CardContent,
   CardActions,
   CardMedia,
+  TablePagination
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -60,6 +61,20 @@ const HealthInfo = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [viewerImages, setViewerImages] = useState([]);
   const [imageIndex, setImageIndex] = useState(0);
+
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(6);
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const paginatedHealthInfo = healthInfo.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   useEffect(() => { dispatch(fetchHealthInfo()); }, [dispatch]);
   useEffect(() => {
@@ -259,7 +274,7 @@ const HealthInfo = () => {
         {error && <Typography color="error">Error: {error}</Typography>}
         
         <Grid container spacing={3}>
-          {healthInfo.map((info) => (
+          {paginatedHealthInfo.map((info) => (
             <Grid item xs={12} md={6} lg={4} key={info.id}>
               <Card 
                 elevation={2}
@@ -390,6 +405,20 @@ const HealthInfo = () => {
             </Grid>
           ))}
         </Grid>
+        
+        {healthInfo.length > 0 && (
+          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
+            <TablePagination
+              rowsPerPageOptions={[6, 12, 24, 48]}
+              component="div"
+              count={healthInfo.length}
+              rowsPerPage={rowsPerPage}
+              page={page}
+              onPageChange={handleChangePage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+            />
+          </Box>
+        )}
         
         {healthInfo.length === 0 && !loading && (
           <Typography variant="body1" color="text.secondary" textAlign="center" sx={{ py: 4 }}>

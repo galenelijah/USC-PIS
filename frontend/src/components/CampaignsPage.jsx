@@ -36,7 +36,8 @@ import {
   Badge,
   Stack,
   FormHelperText,
-  Skeleton
+  Skeleton,
+  TablePagination
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -84,6 +85,9 @@ const CampaignsPage = () => {
   const [fieldErrors, setFieldErrors] = useState({});
   const [editLoading, setEditLoading] = useState(false);
   const [menuCampaign, setMenuCampaign] = useState(null);
+  
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(6);
 
   // Viewer state
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -634,7 +638,10 @@ const CampaignsPage = () => {
               fullWidth
               placeholder="Search campaigns..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPage(0);
+              }}
               InputProps={{
                 startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
               }}
@@ -646,7 +653,10 @@ const CampaignsPage = () => {
               <Select
                 value={filterType}
                 label="Campaign Type *"
-                onChange={(e) => setFilterType(e.target.value)}
+                onChange={(e) => {
+                  setFilterType(e.target.value);
+                  setPage(0);
+                }}
               >
                 <MenuItem value="ALL">All Types</MenuItem>
                 {CAMPAIGN_TYPES.map(type => (
@@ -761,12 +771,12 @@ const CampaignsPage = () => {
         <Grid container spacing={3}>
           {(() => {
             try {
-              if (!Array.isArray(filteredCampaigns)) {
-                console.warn('filteredCampaigns is not an array:', filteredCampaigns);
+              if (!Array.isArray(paginatedCampaigns)) {
+                console.warn('paginatedCampaigns is not an array:', paginatedCampaigns);
                 return null;
               }
               
-              return filteredCampaigns.map((campaign) => {
+              return paginatedCampaigns.map((campaign) => {
             // Safety check for campaign object
             if (!campaign || typeof campaign !== 'object' || !campaign.id) {
               console.warn('Invalid campaign object:', campaign);
@@ -1024,6 +1034,20 @@ const CampaignsPage = () => {
       })()}
     </Grid>
   )}
+      
+      {filteredCampaigns.length > 0 && (
+        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
+          <TablePagination
+            rowsPerPageOptions={[6, 12, 24, 48]}
+            component="div"
+            count={filteredCampaigns.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        </Box>
+      )}
 
       {/* Action Menu */}
       <Menu
