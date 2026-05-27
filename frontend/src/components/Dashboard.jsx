@@ -842,19 +842,21 @@ const Dashboard = memo(({ user }) => {
 
       <Grid item xs={12} md={8}>
         <Paper sx={{ 
-          p: 4, 
+          p: { xs: 2, sm: 3, md: 4 }, 
           height: '100%', 
           borderRadius: 3,
           bgcolor: 'white',
           boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+          overflow: 'hidden'
         }}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} sx={{ flexWrap: 'wrap', gap: 2 }}>
             <Typography variant="h4" fontWeight="bold" sx={{ 
               color: 'text.primary',
               display: 'flex',
-              alignItems: 'center'
+              alignItems: 'center',
+              fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' }
             }}>
-              <CampaignIcon sx={{ mr: 2, fontSize: 40, color: 'primary.main' }} />
+              <CampaignIcon sx={{ mr: { xs: 1, sm: 2 }, fontSize: { xs: 32, sm: 40 }, color: 'primary.main' }} />
               Health Campaigns
             </Typography>
             <Button
@@ -863,6 +865,7 @@ const Dashboard = memo(({ user }) => {
               variant="contained"
               color="primary"
               endIcon={<ArrowForwardIcon />}
+              size="small"
             >
               View All
             </Button>
@@ -873,7 +876,7 @@ const Dashboard = memo(({ user }) => {
           {stats.latestCampaigns && stats.latestCampaigns.length > 0 ? (
             <Grid container spacing={3}>
               {stats.latestCampaigns.slice(0, 4).map((campaign, index) => (
-                <Grid item xs={12} md={6} key={campaign.id || index}>
+                <Grid item xs={12} sm={6} key={campaign.id || index}>
                   <Box 
                     onClick={() => {
                       if (campaign.id) {
@@ -882,7 +885,7 @@ const Dashboard = memo(({ user }) => {
                       }
                     }}
                     sx={{ 
-                      p: 3, 
+                      p: { xs: 2, sm: 3 }, 
                       borderRadius: 3, 
                       bgcolor: 'grey.50',
                       border: '1px solid',
@@ -892,6 +895,7 @@ const Dashboard = memo(({ user }) => {
                       display: 'flex',
                       flexDirection: 'column',
                       cursor: 'pointer',
+                      overflow: 'hidden',
                       '&:hover': {
                         bgcolor: 'grey.100',
                         transform: 'translateY(-2px)',
@@ -901,20 +905,26 @@ const Dashboard = memo(({ user }) => {
                   >
                     <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
                       <Avatar sx={{ 
-                        width: 48, 
-                        height: 48, 
+                        width: { xs: 40, sm: 48 }, 
+                        height: { xs: 40, sm: 48 }, 
                         bgcolor: 'primary.main', 
-                        mr: 2,
+                        mr: { xs: 1.5, sm: 2 },
                         border: '2px solid',
                         borderColor: 'primary.light'
                       }}>
-                        <CampaignIcon sx={{ fontSize: 28, color: 'white' }} />
+                        <CampaignIcon sx={{ fontSize: { xs: 20, sm: 28 }, color: 'white' }} />
                       </Avatar>
                       <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                         <Typography variant="h6" fontWeight="bold" sx={{ 
                           lineHeight: 1.3, 
                           mb: 1,
-                          color: 'text.primary'
+                          color: 'text.primary',
+                          fontSize: { xs: '0.9rem', sm: '1.1rem', md: '1.25rem' },
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical'
                         }}>
                           {campaign.title}
                         </Typography>
@@ -924,8 +934,8 @@ const Dashboard = memo(({ user }) => {
                               size="small"
                               label={campaign.campaign_type.replace('_', ' ')}
                               sx={{ 
-                                fontSize: '0.75rem', 
-                                height: 22,
+                                fontSize: '0.7rem', 
+                                height: 20,
                                 bgcolor: 'primary.main',
                                 color: 'white'
                               }}
@@ -934,14 +944,15 @@ const Dashboard = memo(({ user }) => {
                         </Box>
                       </Box>
                     </Box>
-                    <Typography variant="body1" sx={{ 
+                    <Typography variant="body2" sx={{ 
                       color: 'text.secondary',
                       lineHeight: 1.5,
                       display: '-webkit-box',
                       WebkitLineClamp: 3,
                       WebkitBoxOrient: 'vertical',
                       overflow: 'hidden',
-                      flexGrow: 1
+                      flexGrow: 1,
+                      fontSize: { xs: '0.8rem', sm: '0.875rem' }
                     }}>
                       {campaign.summary || campaign.description?.substring(0, 120)}
                       {(campaign.summary || campaign.description)?.length > 120 ? '...' : ''}
@@ -966,20 +977,22 @@ const Dashboard = memo(({ user }) => {
 
       <Grid item xs={12} md={4}>
         <Paper sx={{ 
-          p: 4, 
+          p: { xs: 2, sm: 3, md: 4 }, 
           height: '100%', 
           borderRadius: 3,
           bgcolor: 'white',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+          boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+          overflow: 'hidden'
         }}>
           <Box>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
               <Typography variant="h5" fontWeight="bold" sx={{ 
                 color: 'text.primary',
                 display: 'flex',
-                alignItems: 'center'
+                alignItems: 'center',
+                fontSize: { xs: '1.25rem', sm: '1.5rem' }
               }}>
-                <InfoIcon sx={{ mr: 1.5, fontSize: 32 }} />
+                <InfoIcon sx={{ mr: 1.5, fontSize: { xs: 24, sm: 32 } }} />
                 Health Information
               </Typography>
             </Box>
@@ -991,12 +1004,13 @@ const Dashboard = memo(({ user }) => {
                 {stats.recentHealthInfoPosts.slice(0, 3).map((post, index) => (
                   <Box key={post.id || index} sx={{ 
                     mb: 3, 
-                    p: 3, 
+                    p: { xs: 2, sm: 3 }, 
                     borderRadius: 3, 
                     bgcolor: 'grey.50',
                     border: '1px solid',
                     borderColor: 'grey.200',
                     transition: 'all 0.3s ease',
+                    overflow: 'hidden',
                     '&:hover': {
                       bgcolor: 'grey.100',
                       transform: 'translateY(-2px)',
@@ -1005,20 +1019,26 @@ const Dashboard = memo(({ user }) => {
                   }}>
                     <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
                       <Avatar sx={{ 
-                        width: 40, 
-                        height: 40, 
+                        width: { xs: 32, sm: 40 }, 
+                        height: { xs: 32, sm: 40 }, 
                         bgcolor: 'secondary.main', 
                         mr: 2,
                         border: '2px solid',
                         borderColor: 'secondary.light'
                       }}>
-                        <ArticleIcon sx={{ fontSize: 24, color: 'white' }} />
+                        <ArticleIcon sx={{ fontSize: { xs: 18, sm: 24 }, color: 'white' }} />
                       </Avatar>
                       <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                         <Typography variant="subtitle1" fontWeight="bold" sx={{ 
                           lineHeight: 1.3, 
-                          mb: 1,
-                          color: 'text.primary'
+                          mb: 0.5,
+                          color: 'text.primary',
+                          fontSize: { xs: '0.875rem', sm: '1rem' },
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical'
                         }}>
                           {post.title}
                         </Typography>
@@ -1026,8 +1046,8 @@ const Dashboard = memo(({ user }) => {
                           size="small"
                           label={post.category || 'Health Info'}
                           sx={{ 
-                            fontSize: '0.75rem', 
-                            height: 20,
+                            fontSize: '0.65rem', 
+                            height: 18,
                             bgcolor: 'secondary.main',
                             color: 'white'
                           }}
@@ -1040,7 +1060,8 @@ const Dashboard = memo(({ user }) => {
                       display: '-webkit-box',
                       WebkitLineClamp: 2,
                       WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden'
+                      overflow: 'hidden',
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' }
                     }}>
                       {post.description?.substring(0, 80)}
                       {post.description?.length > 80 ? '...' : ''}

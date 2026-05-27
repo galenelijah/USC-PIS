@@ -889,7 +889,7 @@ Treatment: ${r.treatment || 'N/A'}
               </Button>
 
               {/* Export Actions */}
-            <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+            <Box sx={{ ml: { xs: 0, sm: 'auto' }, display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: { xs: 'flex-start', sm: 'flex-end' } }}>
               <Button
                 variant="outlined"
                 startIcon={<CsvIcon />}
@@ -940,21 +940,31 @@ Treatment: ${r.treatment || 'N/A'}
         />
 
         <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexDirection: { xs: 'column', sm: 'row' } }}>
             <DatePicker
               label="From Date"
               value={startDate}
               onChange={setStartDate}
-              slotProps={{ textField: { size: 'small' } }}
-              sx={{ width: 170 }}
+              slotProps={{ 
+                textField: { 
+                  size: 'small',
+                  InputLabelProps: { shrink: true }
+                } 
+              }}
+              sx={{ width: { xs: '100%', sm: 170 } }}
               maxDate={endDate || dayjs()}
             />
             <DatePicker
               label="To Date"
               value={endDate}
               onChange={setEndDate}
-              slotProps={{ textField: { size: 'small' } }}
-              sx={{ width: 170 }}
+              slotProps={{ 
+                textField: { 
+                  size: 'small',
+                  InputLabelProps: { shrink: true }
+                } 
+              }}
+              sx={{ width: { xs: '100%', sm: 170 } }}
               minDate={startDate}
               maxDate={dayjs()}
             />

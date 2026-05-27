@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Snackbar, Alert } from '@mui/material';
-import eventBus from '../utils/eventBus';
+import eventBus from '../../utils/eventBus';
 
 /**
  * Global notification component that listens for 'app_notification' events.

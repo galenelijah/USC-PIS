@@ -754,34 +754,47 @@ const MedicalRecordsPage = () => {
               </Grid>
             )}
             
-            <Grid item xs={12} md={2}>
+            <Grid item xs={12} sm={6} md={2}>
               <DatePicker
                 label="From Date"
                 value={startDate}
                 onChange={setStartDate}
-                slotProps={{ textField: { fullWidth: true, size: 'small' } }}
+                slotProps={{ 
+                  textField: { 
+                    fullWidth: true, 
+                    size: 'small',
+                    InputLabelProps: { shrink: true }
+                  } 
+                }}
                 maxDate={endDate || dayjs()}
               />
             </Grid>
             
-            <Grid item xs={12} md={2}>
+            <Grid item xs={12} sm={6} md={2}>
               <DatePicker
                 label="To Date"
                 value={endDate}
                 onChange={setEndDate}
-                slotProps={{ textField: { fullWidth: true, size: 'small' } }}
+                slotProps={{ 
+                  textField: { 
+                    fullWidth: true, 
+                    size: 'small',
+                    InputLabelProps: { shrink: true }
+                  } 
+                }}
                 minDate={startDate}
                 maxDate={dayjs()}
               />
             </Grid>
 
             <Grid item xs={12} md={3}>
-              <Stack direction="row" spacing={1}>
+              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
                 <Button
                   variant="outlined"
                   startIcon={<ClearIcon />}
                   onClick={clearFilters}
                   size="small"
+                  fullWidth={isMobile}
                 >
                   Clear
                 </Button>

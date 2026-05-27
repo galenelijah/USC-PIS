@@ -48,6 +48,7 @@ import {
   Visibility as ViewIcon,
   Search as SearchIcon,
   FilterList as FilterIcon,
+  FilterListOff as FilterListOffIcon,
   ExpandMore as ExpandMoreIcon,
   CloudUpload as UploadIcon,
   Download as DownloadIcon,
@@ -674,14 +675,14 @@ const Dental = () => {
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box p={3}>
         {/* Header */}
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} sx={{ flexWrap: 'wrap', gap: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Typography variant="h4" gutterBottom>
+            <Typography variant="h4" sx={{ mb: 0, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
               Dental Consultation Management
             </Typography>
             <InfoTooltip title="Create, search, and manage dental consultations. Filter, export, and print as needed." />
           </Box>
-          <Box display="flex" gap={2} alignItems="center">
+          <Box display="flex" gap={1} alignItems="center" sx={{ flexWrap: 'wrap', justifyContent: { xs: 'flex-start', sm: 'flex-end' } }}>
             {/* Export Buttons */}
             <Button
               variant="outlined"
@@ -717,9 +718,9 @@ const Dental = () => {
                 variant="contained"
                 startIcon={<AddIcon />}
                 onClick={() => handleOpenDialog()}
-                sx={{ bgcolor: '#1976d2' }}
+                sx={{ bgcolor: '#1976d2', whiteSpace: 'nowrap' }}
               >
-                New Dental Consultation
+                New Consultation
               </Button>
             )}
           </Box>
@@ -738,11 +739,12 @@ const Dental = () => {
         )}
 
         {/* Search and Filters */}
-        <Paper sx={{ p: 2, mb: 3 }}>
+        <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: 3 }}>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={3}>
+            <Grid item xs={12} sm={6} md={3}>
               <TextField
                 fullWidth
+                size="small"
                 placeholder="Search consultations..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -755,32 +757,45 @@ const Dental = () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
-              <Box display="flex" gap={1} alignItems="center">
+            <Grid item xs={12} sm={6} md={4.5}>
+              <Box display="flex" gap={1} alignItems="center" sx={{ flexDirection: { xs: 'column', sm: 'row' } }}>
                 <DatePicker
                   label="From Date"
                   value={startDate}
                   onChange={(date) => setStartDate(date)}
-                  slotProps={{ textField: { fullWidth: true, size: 'small' } }}
+                  slotProps={{ 
+                    textField: { 
+                      fullWidth: true, 
+                      size: 'small',
+                      InputLabelProps: { shrink: true }
+                    } 
+                  }}
                   maxDate={endDate || dayjs()}
                 />
                 <DatePicker
                   label="To Date"
                   value={endDate}
                   onChange={(date) => setEndDate(date)}
-                  slotProps={{ textField: { fullWidth: true, size: 'small' } }}
+                  slotProps={{ 
+                    textField: { 
+                      fullWidth: true, 
+                      size: 'small',
+                      InputLabelProps: { shrink: true }
+                    } 
+                  }}
                   minDate={startDate}
                   maxDate={dayjs()}
                 />
               </Box>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid item xs={12} sm={6} md={2.5}>
               <FormControl fullWidth size="small">
-                <InputLabel>Procedure</InputLabel>
+                <InputLabel shrink>Procedure</InputLabel>
                 <Select
                   value={procedureFilter}
                   label="Procedure"
                   onChange={(e) => setProcedureFilter(e.target.value)}
+                  notched
                 >
                   <MenuItem value="">All Procedures</MenuItem>
                   {procedures.map((proc) => (
@@ -791,14 +806,16 @@ const Dental = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={2}>
-              <Box display="flex" gap={1} justifyContent="flex-end">
+            <Grid item xs={12} sm={6} md={2}>
+              <Box display="flex" gap={1} justifyContent={{ xs: 'flex-start', md: 'flex-end' }}>
                 <Button
-                  startIcon={<FilterIcon />}
+                  startIcon={<FilterListOffIcon />}
                   onClick={clearFilters}
                   size="small"
+                  variant="outlined"
+                  fullWidth={isMobile}
                 >
-                  Clear
+                  Clear Filters
                 </Button>
               </Box>
             </Grid>

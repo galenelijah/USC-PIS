@@ -1268,7 +1268,7 @@ const MedicalHistoryPage = () => {
             {/* Date Range Filters */}
             <Grid item xs={12} md={4}>
               <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexDirection: { xs: 'column', sm: 'row' } }}>
                   <DatePicker
                     label="From Date"
                     value={startDate}
@@ -1276,7 +1276,8 @@ const MedicalHistoryPage = () => {
                     slotProps={{ 
                       textField: { 
                         size: 'small',
-                        sx: { flex: 1 }
+                        fullWidth: true,
+                        InputLabelProps: { shrink: true }
                       } 
                     }}
                     maxDate={endDate || dayjs()}
@@ -1288,14 +1289,15 @@ const MedicalHistoryPage = () => {
                     slotProps={{ 
                       textField: { 
                         size: 'small',
-                        sx: { flex: 1 }
+                        fullWidth: true,
+                        InputLabelProps: { shrink: true }
                       } 
                     }}
                     minDate={startDate}
                     maxDate={dayjs()}
                   />
                   {(startDate || endDate) && (
-                    <IconButton onClick={clearDateFilters} size="small" title="Clear dates">
+                    <IconButton onClick={clearDateFilters} size="small" title="Clear dates" sx={{ alignSelf: { xs: 'flex-end', sm: 'center' } }}>
                       <ClearIcon />
                     </IconButton>
                   )}
@@ -1305,7 +1307,7 @@ const MedicalHistoryPage = () => {
             
             {/* Action Buttons */}
             <Grid item xs={12} md={4}>
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', height: '100%' }}>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', justifyContent: { xs: 'flex-start', md: 'flex-end' }, height: '100%' }}>
                 {isStaffOrMedical && (
                   <Button
                     variant="contained"
