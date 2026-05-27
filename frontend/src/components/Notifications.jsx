@@ -325,8 +325,8 @@ const Notifications = () => {
     const getStatusColor = (status) => {
         switch (status?.toUpperCase()) {
             case 'READ': return 'success';
-            case 'DELIVERED': return 'info';
-            case 'SENT': return 'primary';
+            case 'DELIVERED': return 'success';
+            case 'SENT': return 'success';
             case 'PENDING': return 'warning';
             case 'FAILED': return 'error';
             default: return 'default';
@@ -383,8 +383,7 @@ const Notifications = () => {
     ];
 
     const statuses = [
-        { value: 'SENT', label: 'Sent' },
-        { value: 'DELIVERED', label: 'Delivered' },
+        { value: 'SENT', label: 'Delivered' },
         { value: 'READ', label: 'Read' },
         { value: 'FAILED', label: 'Failed' },
     ];

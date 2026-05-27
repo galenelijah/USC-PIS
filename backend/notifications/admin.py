@@ -130,7 +130,7 @@ class NotificationAdmin(admin.ModelAdmin):
     def status_badge(self, obj):
         colors = {
             'PENDING': 'orange',
-            'SENT': 'blue',
+            'SENT': 'green',
             'DELIVERED': 'green',
             'READ': 'darkgreen',
             'FAILED': 'red',

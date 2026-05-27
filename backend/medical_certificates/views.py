@@ -181,7 +181,7 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
             
-        if not (request.user.role == 'DOCTOR' or request.user.is_superuser):
+        if not (request.user.role == 'DOCTOR'):
             return Response(
                 {'detail': 'Crucially, only the Doctor role holds the exclusive authority to issue medical certificates.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -225,7 +225,7 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
             
-        if not (request.user.role == 'DOCTOR' or request.user.is_superuser):
+        if not (request.user.role == 'DOCTOR'):
             return Response(
                 {'detail': 'Crucially, only the Doctor role holds the exclusive authority to reject medical certificates.'},
                 status=status.HTTP_403_FORBIDDEN

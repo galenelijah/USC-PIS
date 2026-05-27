@@ -49,7 +49,7 @@ const MedicalCertificateDetail = ({
   const [previewHtml, setPreviewHtml] = useState('');
   const [error, setError] = useState(null);
 
-  const canApproveReject = userRole === 'DOCTOR' || userRole === 'ADMIN';
+  const canApproveReject = userRole === 'DOCTOR';
   const isStudent = userRole === 'STUDENT' || userRole === 'FACULTY';
   
   // Medical professionals can always edit for fitness status changes

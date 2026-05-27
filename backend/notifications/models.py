@@ -64,7 +64,7 @@ class Notification(models.Model):
     
     STATUS_CHOICES = [
         ('PENDING', 'Pending'),
-        ('SENT', 'Sent'),
+        ('SENT', 'Delivered'),
         ('DELIVERED', 'Delivered'),
         ('READ', 'Read'),
         ('FAILED', 'Failed'),
@@ -173,7 +173,7 @@ class NotificationLog(models.Model):
     LOG_ACTIONS = [
         ('CREATED', 'Created'),
         ('SCHEDULED', 'Scheduled'),
-        ('SENT', 'Sent'),
+        ('SENT', 'Delivered'),
         ('DELIVERED', 'Delivered'),
         ('READ', 'Read'),
         ('FAILED', 'Failed'),

@@ -565,12 +565,12 @@ const EmailAdministration = () => {
         tooltip = 'Waiting for scheduled time or email provider response.';
         break;
       case 'SENT':
-        label = 'Email Sent';
-        color = 'info';
+        label = 'Delivered';
+        color = 'success';
         tooltip = 'Notification successfully sent via email.';
         break;
       case 'DELIVERED':
-        label = method === 'EMAIL' ? 'Email Sent' : 'In-App Delivered';
+        label = 'Delivered';
         color = 'success';
         tooltip = method === 'EMAIL' 
           ? 'Email successfully accepted by the mail server.' 
@@ -847,7 +847,7 @@ const EmailAdministration = () => {
                         color={
                           log.action === 'FAILED' ? 'error' : 
                           log.action === 'SENT' ? 'success' : 
-                          log.action === 'DELIVERED' ? 'info' : 'default'
+                          log.action === 'DELIVERED' ? 'success' : 'default'
                         } 
                       />
                     </TableCell>

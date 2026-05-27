@@ -206,8 +206,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
         
         status_counts = queryset.aggregate(
             pending=Count(Case(When(status='PENDING', then=1), output_field=IntegerField())),
-            sent=Count(Case(When(status='SENT', then=1), output_field=IntegerField())),
-            delivered=Count(Case(When(status='DELIVERED', then=1), output_field=IntegerField())),
+            delivered=Count(Case(When(status__in=['SENT', 'DELIVERED'], then=1), output_field=IntegerField())),
             read=Count(Case(When(status='READ', then=1), output_field=IntegerField())),
             failed=Count(Case(When(status='FAILED', then=1), output_field=IntegerField()))
         )
@@ -242,7 +241,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
         stats_data = {
             'total_notifications': total_notifications,
             'pending_notifications': status_counts['pending'],
-            'sent_notifications': status_counts['sent'],
+            'sent_notifications': 0, # Map to 0 since we combined it into delivered
             'delivered_notifications': status_counts['delivered'],
             'read_notifications': status_counts['read'],
             'failed_notifications': status_counts['failed'],
