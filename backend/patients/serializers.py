@@ -19,6 +19,9 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
         """Get USC ID number from the related user"""
         return obj.patient.user.id_number if obj.patient.user and obj.patient.user.id_number else None
 
+    def get_record_type(self, obj):
+        return 'MEDICAL'
+
     def validate_visit_date(self, value):
         """Temporal Date Trapping: Block future dates for clinical events."""
         from django.utils import timezone

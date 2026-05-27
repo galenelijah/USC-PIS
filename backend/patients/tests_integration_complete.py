@@ -75,7 +75,7 @@ class USCPISIntegrationValidationTests(APITestCase):
         self.client.force_authenticate(user=self.doctor)
         cert_data = {
             "patient": self.patient.id,
-            "fitness_status": "fit",
+            "fitness_status": "physically_fit",
             "recommendations": "Cleared to return to class.",
             "template": self.template.id,
             "valid_from": "2026-04-24",
@@ -83,7 +83,7 @@ class USCPISIntegrationValidationTests(APITestCase):
         }
         response = self.client.post('/api/medical-certificates/certificates/', cert_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data['fitness_status'], 'fit')
+        self.assertEqual(response.data['fitness_status'], 'physically_fit')
         
         print("[IT-02 PASS] Certificate Pipeline: Complete workflow verified.")
 

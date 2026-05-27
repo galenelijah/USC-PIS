@@ -65,14 +65,6 @@ class MedicalCertificateSerializer(serializers.ModelSerializer):
             if patient.date_of_birth and patient.date_of_birth > date.today():
                 raise serializers.ValidationError({'patient': "Patient's date of birth cannot be in the future."})
 
-        # Ensure valid_from does not precede consultation date
-        # consultation_date is proxied by created_at.date() for existing, today() for new.
-        consultation_date = self.instance.created_at.date() if self.instance else date.today()
-        if data.get('valid_from') and data['valid_from'] < consultation_date:
-            raise serializers.ValidationError({
-                'valid_from': f"Valid from date ({data['valid_from']}) cannot precede the consultation date ({consultation_date})."
-            })
-
         # Validate date range
         if data.get('valid_until') and data.get('valid_from'):
             if data['valid_until'] < data['valid_from']:

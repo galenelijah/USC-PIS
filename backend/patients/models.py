@@ -101,7 +101,10 @@ class MedicalRecord(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.patient} - {self.visit_date}"
+        # Format visit_date as YYYY-MM-DD for consistency in strings and tests
+        if self.visit_date:
+            return f"{self.patient} - {self.visit_date.strftime('%Y-%m-%d')}"
+        return f"{self.patient} - No Visit Date"
 
 class DentalRecord(models.Model):
     PROCEDURE_CHOICES = [
@@ -217,22 +220,6 @@ class DentalRecord(models.Model):
         ordering = ['-visit_date']
 
     def save(self, *args, **kwargs):
-        # Calculate BMI automatically if height and weight are provided
-        if self.vital_signs and isinstance(self.vital_signs, dict):
-            try:
-                height = self.vital_signs.get('height')
-                weight = self.vital_signs.get('weight')
-                if height is not None and weight is not None:
-                    h_val = float(height)
-                    w_val = float(weight)
-                    if h_val > 0 and w_val > 0:
-                        # Assume height > 3 is in cm, otherwise meters
-                        h_m = h_val if h_val < 3.0 else h_val / 100.0
-                        bmi = w_val / (h_m ** 2)
-                        self.vital_signs['bmi'] = round(bmi, 2)
-            except (TypeError, ValueError):
-                pass
-
         # Ensure visit_date is an aware datetime if it's a plain date
         if self.visit_date and not isinstance(self.visit_date, datetime.datetime) and isinstance(self.visit_date, datetime.date):
             self.visit_date = timezone.make_aware(datetime.datetime.combine(self.visit_date, datetime.time.min))
