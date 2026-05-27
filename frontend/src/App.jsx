@@ -102,10 +102,10 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && userRoles.isAdminOrStaffOrDoctor) {
       loadPatients();
     }
-  }, [isAuthenticated, loadPatients]);
+  }, [isAuthenticated, loadPatients, userRoles.isAdminOrStaffOrDoctor]);
 
   function FeedbackFormWrapper() {
     const { medicalRecordId } = useParams();
