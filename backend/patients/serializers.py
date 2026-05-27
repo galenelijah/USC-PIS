@@ -19,8 +19,12 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
         """Get USC ID number from the related user"""
         return obj.patient.user.id_number if obj.patient.user and obj.patient.user.id_number else None
 
-    def get_record_type(self, obj):
-        return 'MEDICAL'
+    def validate_visit_date(self, value):
+        """Temporal Date Trapping: Block future dates for clinical events."""
+        from django.utils import timezone
+        if value > timezone.now():
+            raise serializers.ValidationError("Clinical visit dates cannot be in the future.")
+        return value
 
     def validate_vital_signs(self, value):
         """Validate vital signs content with realistic clinical ranges"""
@@ -95,6 +99,13 @@ class DentalRecordSerializer(serializers.ModelSerializer):
     def get_record_type(self, obj):
         return 'DENTAL'
 
+    def validate_visit_date(self, value):
+        """Temporal Date Trapping: Block future dates for clinical events."""
+        from django.utils import timezone
+        if value > timezone.now():
+            raise serializers.ValidationError("Dental visit dates cannot be in the future.")
+        return value
+
     def validate_tooth_numbers(self, value):
         """Validate tooth numbers format"""
         if value:
@@ -144,6 +155,13 @@ class ConsultationSerializer(serializers.ModelSerializer):
 
     def get_record_type(self, obj):
         return 'CONSULTATION'
+
+    def validate_date_time(self, value):
+        """Temporal Date Trapping: Block future dates for clinical events."""
+        from django.utils import timezone
+        if value > timezone.now():
+            raise serializers.ValidationError("Consultation dates cannot be in the future.")
+        return value
 
 class PatientSerializer(serializers.ModelSerializer):
     medical_records = MedicalRecordSerializer(many=True, read_only=True)

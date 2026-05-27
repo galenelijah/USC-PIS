@@ -4,7 +4,7 @@ User Management Views for Admin Role Updates
 
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.core.paginator import Paginator
@@ -221,80 +221,60 @@ def request_role(request):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdminUser])
 def update_user_role(request, user_id):
     """
-    Update a user's role.
-    - Admins can update any user's role.
-    - Users can only update their own role if it is currently STUDENT.
-    - Users cannot assign themselves the ADMIN role.
+    Administrative endpoint to update a user's role.
+    Strictly restricted to Admin users via IsAdminUser to block privilege escalation.
+    Used for promoting users to DOCTOR, DENTIST, NURSE, or STAFF roles.
     """
     try:
         user = get_object_or_404(User, id=user_id)
         new_role = request.data.get('role')
         
-        # Check permissions
-        is_admin = request.user.role == User.Role.ADMIN
-        is_self = request.user.id == user.id
+        # Security: Self-update logic removed to prevent escalation.
+        # Only users with is_staff=True (ADMINs) can reach this block.
         
-        if not is_admin and not is_self:
-            return Response({
-                'error': 'Permission denied. Only admins can update other users.'
-            }, status=status.HTTP_403_FORBIDDEN)
-            
-        if not is_admin:
-            # Security checks for self-updates
-            if user.role != User.Role.STUDENT:
-                return Response({
-                    'error': 'Role has already been set and cannot be changed. Please contact an admin.'
-                }, status=status.HTTP_400_BAD_REQUEST)
-                
-            if new_role == User.Role.ADMIN:
-                return Response({
-                    'error': 'Cannot assign ADMIN role to yourself.'
-                }, status=status.HTTP_403_FORBIDDEN)
-        
-        # Validate role exists
+        # Validate role exists in system schema
         if not new_role or new_role not in [choice[0] for choice in User.Role.choices]:
             return Response({
                 'error': 'Invalid role provided'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Prevent self-demotion from admin (even if is_admin is true)
-        if is_self and request.user.role == User.Role.ADMIN and new_role != User.Role.ADMIN:
+        # Critical Protection: Prevent administrators from accidentally demoting themselves
+        if request.user.id == user.id and request.user.role == User.Role.ADMIN and new_role != User.Role.ADMIN:
             return Response({
-                'error': 'Cannot change your own admin role'
+                'error': 'Administrators cannot demote themselves to maintain system integrity.'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         old_role = user.role
         user.role = new_role
         
-        # Clear any pending role requests upon admin assignment
+        # Reset pending requests upon official administrative assignment
         user.requested_role = None
         
-        # Update staff/superuser status based on role
+        # Synchronize Django internal permissions (is_staff/is_superuser) with system role
         if new_role == User.Role.ADMIN:
             user.is_staff = True
             user.is_superuser = True
         elif new_role in [User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE, User.Role.STAFF]:
             user.is_staff = True
             user.is_superuser = False
-        else:  # STUDENT or FACULTY
+        else:  # PATIENT context (STUDENT or FACULTY)
             user.is_staff = False
             user.is_superuser = False
         
         user.save()
         
         serializer = UserProfileSerializer(user)
-        
         return Response({
-            'message': f'User role updated from {old_role} to {new_role}',
+            'message': f'User role updated from {old_role} to {new_role} by administrator.',
             'user': serializer.data
         })
         
     except Exception as e:
         return Response({
-            'error': f'Failed to update user role: {str(e)}'
+            'error': f'Administrative role update failed: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])

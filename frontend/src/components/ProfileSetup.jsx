@@ -211,7 +211,6 @@ const createValidationSchema = (role) => {
         nationality: commonValidation.requiredText('Nationality'),
         religion: commonValidation.optionalText,
         address_present: commonValidation.requiredText('Present address'),
-        id_number: commonValidation.idNumber('ID Number'),
         course: commonValidation.requiredText('Course'),
         year_level: commonValidation.requiredText('Year Level'),
         school: commonValidation.optionalText,
@@ -1057,13 +1056,14 @@ const ProfileSetup = () => {
                     <Grid item xs={12} sm={6}>
                       <MyTextField
                         key={`${stepKey}-id_number`}
-                        label="USC ID Number *"
+                        label="USC ID Number"
                         name="id_number"
                         control={control}
-                        required
+                        value={currentUser?.id_number || ''}
+                        disabled
                         error={!!errors?.id_number}
-                        helperText={errors?.id_number?.message}
-                        hint="Your USC ID (digits only)"
+                        helperText={errors?.id_number?.message || "Automatically captured from institutional email"}
+                        hint="Your USC ID (Fixed)"
                       />
                     </Grid>
                     <Grid item xs={12} sm={6}>

@@ -172,13 +172,12 @@ export const registerSchema = yup.object().shape({
     .string()
     .required('Please confirm your password')
     .oneOf([yup.ref('password')], 'Passwords do not match'),
-  role: yup.string().nullable().notRequired(),
 });
 
 // Medical Record schema
 export const medicalRecordSchema = yup.object().shape({
   patient: commonValidation.requiredText('Patient selection'),
-  visit_date: yup.date().required('Visit date is required').nullable().typeError('Invalid date format'),
+  visit_date: commonValidation.pastDate('Visit date'),
   concern: commonValidation.requiredText("Student's concern"),
   diagnosis: commonValidation.requiredText('Diagnosis'),
   treatment: commonValidation.requiredText('Treatment plan'),
@@ -308,7 +307,7 @@ export const feedbackSchema = yup.object().shape({
 // Consultation schema
 export const consultationSchema = yup.object().shape({
   patient: commonValidation.requiredText('Patient selection'),
-  date_time: commonValidation.visitDate('Consultation date and time'),
+  date_time: commonValidation.pastDate('Consultation date and time'),
   chief_complaints: commonValidation.requiredText('Chief complaints'),
   treatment_plan: commonValidation.requiredText('Treatment plan'),
   remarks: commonValidation.optionalText,

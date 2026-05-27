@@ -16,7 +16,6 @@ import ErrorBoundary from './components/ErrorBoundary';
 import Login from './components/Login';
 import Register from './components/Register';
 import VerifyEmail from './components/VerifyEmail';
-import RoleSelection from './components/RoleSelection';
 
 // Lazy loading for non-critical components
 const PatientsPage = lazy(() => import('./components/Patients/PatientsPage'));
@@ -161,18 +160,6 @@ const App = () => {
             element={
               <RequireAuth isAuthenticated={isAuthenticated}>
                 <VerifyEmail />
-              </RequireAuth>
-            } 
-          />
-
-          {/* Role Selection Route - For Faculty/Staff after verification */}
-          <Route 
-            path="/role-selection" 
-            element={
-              <RequireAuth isAuthenticated={isAuthenticated}>
-                <RequireVerification>
-                  <RoleSelection />
-                </RequireVerification>
               </RequireAuth>
             } 
           />

@@ -11,21 +11,14 @@ import {
   Divider,
   Button,
   Stack,
-  alpha,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
-  FormControl,
-  FormLabel
+  alpha
 } from '@mui/material'
 import {
   PersonAdd,
   Email,
   Lock,
   CheckCircle,
-  ArrowBack,
-  School,
-  MedicalServices
+  ArrowBack
 } from '@mui/icons-material'
 import MyTextField from './forms/MyTextField'
 import MyPassField from './forms/MyPassField'
@@ -67,7 +60,13 @@ const Register = () =>{
     const onSubmit = async (data) => {
         setServerError('');
         setSuccessMessage('');
-        const userData = { ...data }; 
+        
+        // Payload Refactoring: Transmit only core registration keys
+        const userData = { 
+            email: data.email,
+            password: data.password,
+            password2: data.password2
+        }; 
         
         try {
             // First, register the user
@@ -85,13 +84,9 @@ const Register = () =>{
                 if (loginUser.fulfilled.match(loginAction)) {
                     const user = loginAction.payload.user || loginAction.payload;
                     const isVerified = loginAction.payload.is_verified ?? user?.is_verified;
-                    const isTextEmail = user?.email && !/^\d+$/.test(user.email.split('@')[0]);
 
                     if (!isVerified) {
                         navigate('/verify-email');
-                    } else if (isTextEmail && user.role === 'STUDENT') {
-                        // Text emails default to STUDENT but need role selection
-                        navigate('/role-selection');
                     } else if (user && user.completeSetup === false) {
                         navigate('/profile-setup');
                     } else {
@@ -270,7 +265,7 @@ const Register = () =>{
                                         />
                                     </Box>
 
-                                    {/* Automatic Role Assignment Info */}
+                                    {/* Onboarding UX: Automatic Role Assignment Info */}
                                     <Alert 
                                         severity="info" 
                                         sx={{ 
@@ -281,10 +276,10 @@ const Register = () =>{
                                         }}
                                     >
                                         <Typography variant="body2">
-                                            <strong>Verification Required:</strong><br/>
-                                            • All new accounts must verify their @usc.edu.ph email.<br/>
-                                            • Students are automatically assigned their role based on email.<br/>
-                                            • Faculty/Staff will select their role after email verification.
+                                            <strong>Onboarding Information:</strong><br/>
+                                            • Accounts are automatically assigned as Students/Patients based on email prefix.<br/>
+                                            • Clinical staff authorizations (Doctor, Nurse, etc.) are managed solely by system administrators.<br/>
+                                            • All new accounts require @usc.edu.ph email verification.
                                         </Typography>
                                     </Alert>
 

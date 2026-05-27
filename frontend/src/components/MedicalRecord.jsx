@@ -582,6 +582,7 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                                                         } 
                                                     }}
                                                     disabled={!canEdit}
+                                                    maxDate={dayjs()}
                                                 />
                                             )}
                                         />
@@ -643,55 +644,57 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                     </Paper>
                 </Grid>
 
-                {/* Physical Examination Section */}
-                <Grid item xs={12}>
-                    <Paper sx={{ 
-                        p: 3, 
-                        mb: 2,
-                        borderLeft: `5px solid #ed6c02`,
-                        boxShadow: 3
-                    }}>
-                        <Typography variant="h6" gutterBottom sx={{ color: '#ed6c02', display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <MedicalServicesIcon /> Physical Examination
-                        </Typography>
-                        <Divider sx={{ mb: 3 }} />
-                        <Grid container spacing={3}>
-                            {[
-                                { name: 'general_appearance', label: 'General Appearance', rows: 3 },
-                                { name: 'skin', label: 'Skin', rows: 2 },
-                                { name: 'heent', label: 'HEENT', rows: 2 },
-                                { name: 'heart', label: 'Heart', rows: 2 },
-                                { name: 'lungs', label: 'Lungs', rows: 2 },
-                                { name: 'abdomen', label: 'Abdomen', rows: 2 },
-                                { name: 'extremities', label: 'Extremities', rows: 2 },
-                                { name: 'neurological', label: 'Neurological', rows: 2 }
-                            ].map((p) => (
-                                <Grid item xs={12} md={p.name === 'general_appearance' ? 12 : 6} key={p.name}>
-                                    {readOnly ? (
-                                        <DisplayField label={p.label} value={watch(`physical_examination.${p.name}`)} multiline rows={p.rows} />
-                                    ) : (
-                                        <Controller
-                                            name={`physical_examination.${p.name}`}
-                                            control={control}
-                                            render={({ field }) => (
-                                                <TextField
-                                                    {...field}
-                                                    fullWidth
-                                                    multiline
-                                                    rows={p.rows}
-                                                    label={p.label}
-                                                    disabled={!canEdit}
-                                                    error={!!errors.physical_examination?.[p.name]}
-                                                    helperText={errors.physical_examination?.[p.name]?.message}
-                                                />
-                                            )}
-                                        />
-                                    )}
-                                </Grid>
-                            ))}
-                        </Grid>
-                    </Paper>
-                </Grid>
+                {/* Physical Examination Section - Dentist Interface Gating: Hide non-essential inputs for DENTIST */}
+                {user?.role !== 'DENTIST' && (
+                    <Grid item xs={12}>
+                        <Paper sx={{ 
+                            p: 3, 
+                            mb: 2, 
+                            borderLeft: `5px solid #ed6c02`,
+                            boxShadow: 3
+                        }}>
+                            <Typography variant="h6" gutterBottom sx={{ color: '#ed6c02', display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <MedicalServicesIcon /> Physical Examination
+                            </Typography>
+                            <Divider sx={{ mb: 3 }} />
+                            <Grid container spacing={3}>
+                                {[
+                                    { name: 'general_appearance', label: 'General Appearance', rows: 3 },
+                                    { name: 'skin', label: 'Skin', rows: 2 },
+                                    { name: 'heent', label: 'HEENT', rows: 2 },
+                                    { name: 'heart', label: 'Heart', rows: 2 },
+                                    { name: 'lungs', label: 'Lungs', rows: 2 },
+                                    { name: 'abdomen', label: 'Abdomen', rows: 2 },
+                                    { name: 'extremities', label: 'Extremities', rows: 2 },
+                                    { name: 'neurological', label: 'Neurological', rows: 2 }
+                                ].map((p) => (
+                                    <Grid item xs={12} md={p.name === 'general_appearance' ? 12 : 6} key={p.name}>
+                                        {readOnly ? (
+                                            <DisplayField label={p.label} value={watch(`physical_examination.${p.name}`)} multiline rows={p.rows} />
+                                        ) : (
+                                            <Controller
+                                                name={`physical_examination.${p.name}`}
+                                                control={control}
+                                                render={({ field }) => (
+                                                    <TextField
+                                                        {...field}
+                                                        fullWidth
+                                                        multiline
+                                                        rows={p.rows}
+                                                        label={p.label}
+                                                        disabled={!canEdit}
+                                                        error={!!errors.physical_examination?.[p.name]}
+                                                        helperText={errors.physical_examination?.[p.name]?.message}
+                                                    />
+                                                )}
+                                            />
+                                        )}
+                                    </Grid>
+                                ))}
+                            </Grid>
+                        </Paper>
+                    </Grid>
+                )}
 
                 {/* Attachments Section */}
                 {(medicalRecordId || !readOnly) && (

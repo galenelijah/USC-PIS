@@ -93,12 +93,10 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Emergency contact number must be between 7 and 15 digits.")
         return value
 
-    def _determine_role_from_email(self, email, role_preference=None):
+    def _determine_role_from_email(self, email):
         """
-        Determine user role based on email pattern:
-        - Students: emails consisting ONLY of numbers (e.g., 21100727@usc.edu.ph) -> Always STUDENT
-        - Staff/Faculty: emails containing any text/letters (e.g., elfabian@usc.edu.ph, j.doe2@usc.edu.ph) -> STAFF/FACULTY
-        - Safe List: Check if email is pre-authorized with a specific role (Overrides pattern)
+        Determine user role based on SafeEmail whitelist or default to STUDENT.
+        Client-provided role preference is ignored for automated security gating.
         """
         if not email:
             return User.Role.STUDENT
@@ -112,22 +110,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         except Exception:
             pass
 
-        # Extract the part before @ symbol
-        email_username = email.split('@')[0].lower()
-        
-        # 2. Students only have number emails (purely digits)
-        if email_username.isdigit():
-            return User.Role.STUDENT
-        
-        # 3. Email has text (contains non-digits), so it is Staff or Faculty
-        # If the user specifically chose a role (FACULTY or STAFF), respect it
-        if role_preference in [User.Role.FACULTY, User.Role.STAFF, User.Role.DOCTOR, User.Role.DENTIST, User.Role.NURSE]:
-            return role_preference
-            
-        # Return STUDENT as base role for all new registrations without preference
-        # This triggers role-selection for text-based emails in the frontend
+        # 2. Base role for all new standard registrations
         return User.Role.STUDENT
-    
+
     def validate_password(self, value):
         """Validate password with enhanced security checks."""
         if not value:
@@ -146,40 +131,63 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Passwords don't match")
         return data
 
+    def _extract_id_from_email(self, email):
+        """
+        Securely extract the institutional ID number from the email prefix.
+        Example: '21100727@usc.edu.ph' -> '21100727'
+        Example: '6090146@usc.edu.ph' -> '6090146'
+        """
+        if not email:
+            return None
+        
+        # Extract prefix before @usc.edu.ph
+        prefix = email.split('@')[0]
+        
+        # Regex to capture purely numeric IDs typically used for students
+        match = re.match(r'^(\d+)$', prefix)
+        if match:
+            return match.group(1)
+        
+        return None
+
     def create(self, validated_data):
         # Extract and remove password2 from validated data
         validated_data.pop('password2', None)
         
-        # Get email and determine role automatically based on email pattern
+        # Get email and determine role automatically
         email = validated_data.get('email')
         password = validated_data.get('password')
-        role_preference = validated_data.get('role')
         
-        # Auto-assign role based on email pattern and optional preference
-        role = self._determine_role_from_email(email, role_preference)
+        # Automated Role Gating: Ignore any role field passed from client
+        role = self._determine_role_from_email(email)
         
-        # Remove role from validated_data if it exists (we use the determined role)
+        # Automated ID Extraction: Parse institutional ID from email prefix
+        # This prevents manual typing and ensures absolute data consistency
+        id_number = self._extract_id_from_email(email)
+        
+        # Force remove role and id_number from validated_data to prevent injection
         validated_data.pop('role', None)
+        validated_data.pop('id_number', None)
         
         try:
-            # Create user with minimal required fields
+            # Create user with programmatically assigned role and ID
             user = User.objects.create_user(
                 email=email,
-                username=email,  # Set username to email
+                username=email,
                 password=password,
                 role=role,
+                id_number=id_number, # Automatically assigned
                 first_name=validated_data.get('first_name', ''),
                 last_name=validated_data.get('last_name', ''),
-                completeSetup=False  # Explicitly set to False
+                completeSetup=False
             )
             
-            # Success! Return the user
             return user
         except Exception as e:
             import traceback
             print(f"Error creating user: {str(e)}")
             print(traceback.format_exc())
-            raise  # Re-raise to let the view handle it
+            raise
 
 class UserProfileSerializer(serializers.ModelSerializer):
     completeSetup = serializers.SerializerMethodField()

@@ -40,11 +40,7 @@ const VerifyEmail = () => {
   useEffect(() => {
     // If user is already verified, redirect
     if (user?.is_verified) {
-      const isTextEmail = user?.email && !/^\d+$/.test(user.email.split('@')[0]);
-      
-      if (isTextEmail && user.role === 'STUDENT') {
-        navigate('/role-selection');
-      } else if (user.completeSetup === false) {
+      if (user.completeSetup === false) {
         navigate('/profile-setup');
       } else {
         navigate('/home');
@@ -86,11 +82,7 @@ const VerifyEmail = () => {
       // Navigate after a short delay
       setTimeout(() => {
         const user = response.data.user;
-        const isTextEmail = user?.email && !/^\d+$/.test(user.email.split('@')[0]);
-
-        if (isTextEmail && user.role === 'STUDENT') {
-          navigate('/role-selection');
-        } else if (user.completeSetup === false) {
+        if (user.completeSetup === false) {
           navigate('/profile-setup');
         } else {
           navigate('/home');

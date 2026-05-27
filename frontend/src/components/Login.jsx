@@ -67,13 +67,8 @@ const Login = () => {
     if (loginUser.fulfilled.match(resultAction)) {
       const user = resultAction.payload.user || resultAction.payload;
       const isVerified = resultAction.payload.is_verified ?? user?.is_verified;
-      const isTextEmail = user?.email && !/^\d+$/.test(user.email.split('@')[0]);
-      
       if (!isVerified) {
         navigate('/verify-email');
-      } else if (isTextEmail && user.role === 'STUDENT') {
-        // Text emails that are still STUDENT role need to pick FACULTY or STAFF
-        navigate('/role-selection');
       } else if (user && user.completeSetup === false) {
         navigate('/profile-setup');
       } else {
