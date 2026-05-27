@@ -161,8 +161,6 @@ const HealthRecords = () => {
     
   ];
 
-  const user = useSelector(selectCurrentUser);
-
   useEffect(() => {
     fetchHealthRecords();
     
