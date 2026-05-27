@@ -35,7 +35,12 @@
 
 - **API Gating:** Resolved `403 Forbidden` console errors by gating the global patient list fetch (`patientService.getAll()`) to only clinical and administrative roles.
 
-## 5. Bug Fixes & Deployment Stability
+## 5. Layout & Visual Refinement
+- **Sidebar UX:** Integrated custom scrollbars and hover-scrolling to improve navigation ergonomics.
+- **Header Aesthetics:** Softened drop-shadows and standardized a "borderRadius: 0" aesthetic for a cleaner, more professional institutional look.
+- **Responsiveness Merge:** Successfully merged layout improvements from the May 25 baseline, resolving edge-case clipping and shadow spill issues on compact viewports.
+
+## 6. Bug Fixes & Deployment Stability
 - **500 Error Resolution:** Fixed `AttributeError` in `DentalRecord.save` (invalid `vital_signs` access) and `MedicalRecordSerializer` (missing `get_record_type`).
 - **Build Fix:** Resolved a Vite transformation failure in `HealthRecords.jsx` caused by a duplicate `user` variable declaration.
 - **Import Error:** Fixed a `ReferenceError` in `ProfileSetup.jsx` by adding the missing `useEffect` import.

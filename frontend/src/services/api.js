@@ -1,5 +1,7 @@
 import axios from 'axios';
 import logger from '../utils/logger';
+import eventBus from '../utils/eventBus';
+import { extractErrorMessage } from '../utils/errorUtils';
 
 // Consistent token key
 const TOKEN_KEY = 'Token';
@@ -97,6 +99,19 @@ api.interceptors.response.use(
 // Helper function to handle API errors
 export const handleApiError = (error) => {
   logger.error('API Error:', error);
+  
+  // Extract user-friendly message
+  const message = extractErrorMessage(error);
+  
+  // Dispatch global notification event if it's not a background polling error 
+  // or a common 401/403 which are handled by redirect logic
+  if (error.response?.status !== 401 && error.response?.status !== 403) {
+    eventBus.dispatch('app_notification', {
+      message: message,
+      severity: 'error'
+    });
+  }
+
   if (error.response) {
     // The request was made and the server responded with a status code
     // that falls out of the range of 2xx

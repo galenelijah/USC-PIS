@@ -18,33 +18,41 @@ import {
   Person as PersonIcon,
   Settings as SettingsIcon,
   ExitToApp as LogoutIcon,
+  Help as HelpIcon,
   Menu as MenuIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout, logoutUser } from '../../features/authentication/authSlice';
-import { fetchUnreadCount, selectUnreadCount } from '../../features/notificationSlice';
+import { notificationService } from '../../services/api';
 
 const Header = ({ handleDrawerToggle }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector(state => state.auth?.user);
-  const unreadCount = useSelector(selectUnreadCount);
   
   const [anchorEl, setAnchorEl] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const open = Boolean(anchorEl);
   
   // Load unread notification count
   useEffect(() => {
     if (user) {
-      dispatch(fetchUnreadCount());
+      loadUnreadCount();
       // Refresh count every 30 seconds
-      const interval = setInterval(() => {
-        dispatch(fetchUnreadCount());
-      }, 30000);
+      const interval = setInterval(loadUnreadCount, 30000);
       return () => clearInterval(interval);
     }
-  }, [user, dispatch]);
+  }, [user]);
+
+  const loadUnreadCount = async () => {
+    try {
+      const response = await notificationService.getUnreadNotifications();
+      setUnreadCount(response.data?.length || 0);
+    } catch (error) {
+      console.error('Error loading unread count:', error);
+    }
+  };
 
   const handleProfileMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -100,6 +108,7 @@ const Header = ({ handleDrawerToggle }) => {
         </Typography>
         
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          
           <Tooltip title="Notifications">
             <IconButton 
               color="inherit" 

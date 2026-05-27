@@ -34,7 +34,7 @@ button {
   
   /* Improve touch targets on mobile */
   button {
-    min-height: 44px;
+    min-height: 48px;
   }
   
   /* Better spacing for form elements */
