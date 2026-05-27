@@ -45,7 +45,7 @@ import {
   Check as CheckIcon,
   Check,
 } from '@mui/icons-material';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { authService, campaignService, healthInfoService } from '../services/api';
 import { useDispatch } from 'react-redux';
 import { logout } from '../features/authentication/authSlice';
@@ -55,6 +55,7 @@ import PageHeader from './utils/PageHeader';
 
 const Dashboard = memo(({ user }) => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalPatients: 0,
     totalRecords: 0,

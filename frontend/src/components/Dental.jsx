@@ -403,9 +403,20 @@ const Dental = () => {
     
     const procedureMatch = procedureFilter ? record.procedure_performed === procedureFilter : true;
     return searchMatch && procedureMatch && dateMatch;
-    });
+  });
 
-    const clearFilters = () => {
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const paginatedRecords = filteredRecords.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  const clearFilters = () => {
     setSearchTerm('');
     setStartDate(null);
     setEndDate(null);

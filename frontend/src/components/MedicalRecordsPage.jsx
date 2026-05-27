@@ -104,6 +104,8 @@ const MedicalRecordsPage = () => {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [procedureFilter, setProcedureFilter] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   
   const user = useSelector(state => state.auth.user);
   const isStaffOrMedical = user?.role && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
@@ -212,7 +214,19 @@ const MedicalRecordsPage = () => {
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
+    setPage(0);
   };
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const paginatedMedicalRecords = filteredMedicalRecords.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   const formatDate = (dateString) => {
     if (!dateString) return { formatted: 'N/A', relative: 'N/A' };
@@ -931,7 +945,7 @@ const MedicalRecordsPage = () => {
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {filteredMedicalRecords.map((record) => (
+                          {paginatedMedicalRecords.map((record) => (
                             <TableRow 
                               key={record.id} 
                               hover
@@ -996,8 +1010,17 @@ const MedicalRecordsPage = () => {
                         </TableBody>
                       </Table>
                     </TableContainer>
-                  )}
-                </Box>
+                    <TablePagination
+                      rowsPerPageOptions={[5, 10, 25, 50]}
+                      component="div"
+                      count={filteredMedicalRecords.length}
+                      rowsPerPage={rowsPerPage}
+                      page={page}
+                      onPageChange={handleChangePage}
+                      onRowsPerPageChange={handleChangeRowsPerPage}
+                    />
+                  </Box>
+                )}
               </Paper>
             </TabPanel>
 

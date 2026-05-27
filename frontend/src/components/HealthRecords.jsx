@@ -128,8 +128,6 @@ const HealthRecords = () => {
     setPage(0);
   };
 
-  const paginatedRecords = filteredRecords.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-
   const handleOpenUpload = (record) => {
     setCurrentRecord(record); // Track the record being uploaded to
     setSelectedPatientForUpload({
@@ -555,6 +553,8 @@ Treatment: ${r.treatment || 'N/A'}
     // Medical-only page; no type filtering needed
     return searchMatch && dateMatch;
   });
+
+  const paginatedRecords = filteredRecords.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   const clearFilters = () => {
     setSearchTerm('');
