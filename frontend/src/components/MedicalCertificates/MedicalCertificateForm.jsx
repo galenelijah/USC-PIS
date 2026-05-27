@@ -93,14 +93,21 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
   const fetchFormData = async () => {
     try {
       setLoading(true);
-      const [patientsRes, templatesRes] = await Promise.all([
-        patientService.getAll(),
-        medicalCertificateService.getAllTemplates(),
-      ]);
-      const patientsData = patientsRes.data || [];
-      const templatesData = templatesRes.data || [];
-      setPatients(patientsData);
+      
+      // Only privileged roles can fetch the patient list
+      const isPrivileged = userRole && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(userRole);
+      
+      const promises = [medicalCertificateService.getAllTemplates()];
+      if (isPrivileged) {
+        promises.push(patientService.getAll());
+      }
+      
+      const results = await Promise.all(promises);
+      const templatesData = results[0].data || [];
+      const patientsData = isPrivileged ? (results[1].data || []) : [];
+      
       setTemplates(templatesData);
+      setPatients(patientsData);
       
       if (!certificate && templatesData.length > 0) {
         setValue('template', templatesData[0].id);

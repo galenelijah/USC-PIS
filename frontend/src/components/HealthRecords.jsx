@@ -161,11 +161,19 @@ const HealthRecords = () => {
     
   ];
 
+  const user = useSelector(selectCurrentUser);
+
   useEffect(() => {
     fetchHealthRecords();
-    fetchPatients();
+    
+    // Only privileged roles should fetch the global patient list
+    const isPrivileged = user && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
+    if (isPrivileged) {
+      fetchPatients();
+    }
+    
     fetchDocuments();
-  }, []);
+  }, [user]);
 
   const fetchHealthRecords = async () => {
     setLoading(true);

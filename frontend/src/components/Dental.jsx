@@ -133,11 +133,17 @@ const Dental = () => {
 
   useEffect(() => {
     fetchDentalRecords();
-    fetchPatients();
+    
+    // Only privileged roles should fetch the global patient list
+    const isPrivileged = user && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
+    if (isPrivileged) {
+      fetchPatients();
+    }
+    
     fetchProcedures();
     fetchToothConditions();
     fetchGlobalDocuments();
-  }, []);
+  }, [user]);
 
   const fetchGlobalDocuments = async () => {
     setLoadingDocs(true);
