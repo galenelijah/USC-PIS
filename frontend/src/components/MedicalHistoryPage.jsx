@@ -643,7 +643,7 @@ const MedicalHistoryPage = () => {
               <Grid item xs={12} md={3}>
                 <TextField
                   fullWidth
-                  label="Filter insights"
+                  label="Filter by Diagnosis"
                   variant="outlined"
                   size="small"
                   value={insightsSearchTerm}
@@ -655,7 +655,8 @@ const MedicalHistoryPage = () => {
                       </InputAdornment>
                     ),
                   }}
-                  placeholder="Filter by diagnosis..."
+                  placeholder="e.g. Hypertension, Fever..."
+                  helperText="Search for specific conditions"
                 />
               </Grid>
 
@@ -668,6 +669,7 @@ const MedicalHistoryPage = () => {
                   onChange={(e) => setInsightsRecordType(e.target.value)}
                   variant="outlined"
                   size="small"
+                  helperText="Record type origin"
                 >
                   <MenuItem value="ALL">All Records</MenuItem>
                   <MenuItem value="MEDICAL">Medical Only</MenuItem>
@@ -699,16 +701,67 @@ const MedicalHistoryPage = () => {
                     )}
                   </Box>
                 </LocalizationProvider>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                  Date range for insights
+                </Typography>
               </Grid>
-              
+
               <Grid item xs={12} md={3}>
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', height: '100%' }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end', height: '100%' }}>
+                  <Typography variant="body2" fontWeight="bold" color="primary">
+                    {filteredInsightsRecords.length} Records Found
+                  </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Analyzing {filteredInsightsRecords.length} records
+                    Based on your diagnosis filter
                   </Typography>
                 </Box>
               </Grid>
-            </Grid>
+              </Grid>
+
+              {/* Active Insights Filters Display */}
+              {(insightsSearchTerm || insightsStartDate || insightsEndDate || insightsRecordType !== 'ALL') && (
+              <Box sx={{ mt: 2, pt: 1, borderTop: 1, borderColor: 'divider' }}>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                  Active Insight Filters:
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  {insightsSearchTerm && (
+                    <Chip 
+                      label={`Diagnosis: "${insightsSearchTerm}"`} 
+                      onDelete={() => setInsightsSearchTerm('')} 
+                      size="small" 
+                      color="primary" 
+                      variant="outlined" 
+                    />
+                  )}
+                  {insightsRecordType !== 'ALL' && (
+                    <Chip 
+                      label={`Source: ${insightsRecordType}`} 
+                      onDelete={() => setInsightsRecordType('ALL')} 
+                      size="small" 
+                      color="info" 
+                      variant="outlined" 
+                    />
+                  )}
+                  {insightsStartDate && (
+                    <Chip 
+                      label={`From: ${dayjs(insightsStartDate).format('MMM DD, YYYY')}`} 
+                      onDelete={() => setInsightsStartDate(null)} 
+                      size="small" 
+                      variant="outlined" 
+                    />
+                  )}
+                  {insightsEndDate && (
+                    <Chip 
+                      label={`To: ${dayjs(insightsEndDate).format('MMM DD, YYYY')}`} 
+                      onDelete={() => setInsightsEndDate(null)} 
+                      size="small" 
+                      variant="outlined" 
+                    />
+                  )}
+                </Box>
+              </Box>
+              )}
           </CardContent>
         </Card>
 
