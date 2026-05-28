@@ -62,6 +62,9 @@ import {
   Delete as DeleteIcon,
 } from '@mui/icons-material';
 
+import { reportService } from '../services/reportService';
+import ReportTemplate from './utils/ReportTemplate';
+
 import { Autocomplete } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -522,86 +525,44 @@ const MedicalHistoryPage = () => {
 
   // Export functionality
   const handleExportRecords = () => {
+    if (filteredRecords.length === 0) return;
+
     const exportData = filteredRecords.map(record => ({
-      Date: formatDate(record.visit_date).formatted,
-      Patient: record.patient_name || `Patient ID: ${record.patient}`,
-      Type: record.record_type || 'MEDICAL',
-      Diagnosis: record.diagnosis || 'No diagnosis',
-      Treatment: record.treatment || 'No treatment',
-      'Chief Complaint': record.chief_complaint || 'N/A',
-      Medications: record.medications || 'None listed',
-      Notes: record.notes || 'No notes'
+      'Date': formatDate(record.visit_date).formatted,
+      'Patient': record.patient_name || `ID: ${record.patient}`,
+      'Type': record.record_type || 'MEDICAL',
+      'Diagnosis': record.diagnosis || 'N/A',
+      'Treatment/Plan': record.treatment || record.treatment_performed || 'N/A',
+      'Chief Complaint': record.chief_complaint || record.concern || 'N/A',
+      'Medications': record.medications || 'N/A',
+      'Vital Signs': record.record_type === 'MEDICAL' ? 
+        `BP: ${record.vital_signs?.blood_pressure || 'N/A'}, Temp: ${record.vital_signs?.temperature || 'N/A'}°C` : 'N/A',
+      'Dental Info': record.record_type === 'DENTAL' ? 
+        `Proc: ${record.procedure_performed}, Tooth: ${record.tooth_numbers || 'N/A'}` : 'N/A',
+      'Notes': record.notes || record.clinical_notes || 'N/A'
     }));
 
-    const csvContent = [
-      Object.keys(exportData[0] || {}).join(','),
-      ...exportData.map(record => 
-        Object.values(record).map(value => 
-          `"${String(value).replace(/"/g, '""')}"`
-        ).join(',')
-      )
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `medical-history-${dayjs().format('YYYY-MM-DD')}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    reportService.exportToCSV(exportData, `unified-health-history-${dayjs().format('YYYY-MM-DD')}.csv`);
   };
 
   // Print functionality
-  const handlePrintRecords = () => {
-    const printWindow = window.open('', '_blank');
+  const handlePrintRecords = async () => {
+    const element = document.getElementById('professional-report-template');
+    if (!element) return;
     
-    const patientInfo = selectedPatient 
-      ? `<h2>Medical History for ${selectedPatient.first_name} ${selectedPatient.last_name}</h2>`
-      : '<h2>Medical History Report</h2>';
-    
-    const recordsHtml = filteredRecords.map(record => `
-      <div style="border: 1px solid #ddd; margin: 10px 0; padding: 15px; border-radius: 5px;">
-        <h3 style="color: #667eea; margin: 0 0 10px 0;">${record.diagnosis || 'No diagnosis'}</h3>
-        <p><strong>Date:</strong> ${formatDate(record.visit_date).formatted}</p>
-        <p><strong>Patient:</strong> ${record.patient_name || `Patient ID: ${record.patient}`}</p>
-        <p><strong>Type:</strong> ${record.record_type || 'MEDICAL'}</p>
-        ${record.chief_complaint ? `<p><strong>Chief Complaint:</strong> ${record.chief_complaint}</p>` : ''}
-        ${record.treatment ? `<p><strong>Treatment:</strong> ${record.treatment}</p>` : ''}
-        ${record.medications ? `<p><strong>Medications:</strong> ${record.medications}</p>` : ''}
-        ${record.notes ? `<p><strong>Notes:</strong> ${record.notes}</p>` : ''}
-      </div>
-    `).join('');
-    
-    printWindow.document.open();
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Medical History Report</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            h1, h2 { color: #333; }
-            h3 { color: #667eea; }
-            .header { text-align: center; margin-bottom: 30px; }
-            .date { text-align: right; color: #666; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>USC Patient Information System</h1>
-            ${patientInfo}
-            <p class="date">Generated on: ${dayjs().format('MMMM DD, YYYY')}</p>
-          </div>
-          ${recordsHtml}
-          <p style="margin-top: 30px; font-size: 12px; color: #666;">
-            This report contains ${filteredRecords.length} medical record(s).
-          </p>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.print();
+    setLoading(true);
+    try {
+      const filename = selectedPatient 
+        ? `clinical-report-${selectedPatient.last_name}-${dayjs().format('YYYY-MM-DD')}.pdf`
+        : `clinical-report-${dayjs().format('YYYY-MM-DD')}.pdf`;
+        
+      await reportService.generatePDF(element, filename);
+    } catch (error) {
+      console.error('PDF Generation Error:', error);
+      alert('Failed to generate professional PDF report.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Date filter helpers
@@ -1960,6 +1921,13 @@ const MedicalHistoryPage = () => {
           </TabPanel>
         </>
       )}
+      
+      {/* Professional Report Template (Hidden) */}
+      <ReportTemplate 
+        data={filteredRecords} 
+        patient={selectedPatient} 
+        title="UNIFIED HEALTH HISTORY REPORT"
+      />
     </Box>
   );
 };

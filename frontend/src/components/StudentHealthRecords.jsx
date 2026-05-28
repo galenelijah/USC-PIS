@@ -49,6 +49,8 @@ import { selectCurrentUser } from '../features/authentication/authSlice';
 import dayjs from 'dayjs';
 import InfoTooltip from './utils/InfoTooltip';
 import { healthRecordsService } from '../services/api';
+import { reportService } from '../services/reportService';
+import ReportTemplate from './utils/ReportTemplate';
 
 // Tab panel component for different record types
 function TabPanel(props) {
@@ -206,42 +208,38 @@ const StudentHealthRecords = () => {
       return;
     }
 
-    const exportData = filteredRecords.map(record => ({
-      'Visit Date': dayjs(record.visit_date).format('YYYY-MM-DD'),
-      'Chief Complaint': record.chief_complaint || 'N/A',
-      'Diagnosis': record.diagnosis || 'No diagnosis',
-      'Treatment': record.treatment || 'No treatment',
-      'Notes': record.notes || 'No additional notes',
-      'Blood Pressure': record.blood_pressure || 'N/A',
-      'Temperature': record.temperature || 'N/A',
-      'Pulse Rate': record.pulse_rate || 'N/A',
-      'Medications': record.medications || 'None prescribed',
-      'Created Date': dayjs(record.created_at).format('YYYY-MM-DD HH:mm')
-    }));
+    const data = reportService.prepareDataForExport(filteredRecords, 'MEDICAL');
+    reportService.exportToCSV(data, `my-health-records-${dayjs().format('YYYY-MM-DD-HHmm')}.csv`);
+  };
 
-    const csvContent = [
-      Object.keys(exportData[0]).join(','),
-      ...exportData.map(record => 
-        Object.values(record).map(value => 
-          `"${String(value).replace(/"/g, '""')}"`
-        ).join(',')
-      )
-    ].join('\n');
+  const handlePrintReport = async () => {
+    if (filteredRecords.length === 0) {
+      alert('No records to print');
+      return;
+    }
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `my-health-records-${dayjs().format('YYYY-MM-DD-HHmm')}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    const element = document.getElementById('professional-report-template');
+    if (!element) return;
+    
+    setLoading(true);
+    try {
+      await reportService.generatePDF(element, `my-medical-consultation-report-${dayjs().format('YYYY-MM-DD')}.pdf`);
+    } catch (error) {
+      console.error('PDF Generation Error:', error);
+      alert('Failed to generate professional PDF report.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <Box sx={{ p: 3 }}>
+      {/* Export Template (Hidden) */}
+      <ReportTemplate 
+        data={filteredRecords} 
+        title="MY MEDICAL CONSULTATION REPORT" 
+        reportType="MEDICAL"
+      />
       {/* Header and quick access */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -375,7 +373,17 @@ const StudentHealthRecords = () => {
               size="small"
               sx={{ borderColor: '#2e7d32', color: '#2e7d32', '&:hover': { borderColor: '#1b5e20', bgcolor: '#f1f8e9' } }}
             >
-              Export My Records
+              Export CSV
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<PrintIcon />}
+              onClick={handlePrintReport}
+              disabled={filteredRecords.length === 0}
+              size="small"
+              sx={{ borderColor: '#d32f2f', color: '#d32f2f', '&:hover': { borderColor: '#c62828', bgcolor: '#ffebee' } }}
+            >
+              Print PDF
             </Button>
           </Box>
         </CardContent>

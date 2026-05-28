@@ -68,6 +68,8 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { healthRecordsService, patientService } from '../services/api';
+import { reportService } from '../services/reportService';
+import ReportTemplate from './utils/ReportTemplate';
 import { useSelector } from 'react-redux';
 import { formatDateComprehensive, formatDatePH, formatDateTimePH } from '../utils/dateUtils';
 import InfoTooltip from './utils/InfoTooltip';
@@ -253,288 +255,44 @@ const MedicalRecordsPage = () => {
   };
 
   // Enhanced export functions with multiple formats and comprehensive data
-  const handleExportCSV = (recordType = 'all') => {
-    let exportData = [];
-
-    if (recordType === 'medical' || recordType === 'all') {
-      const medicalExport = filteredMedicalRecords.map(record => ({
-        'Record Type': 'Medical',
-        'Record ID': record.id,
-        'Visit Date': formatDate(record.visit_date).formatted,
-        'Patient Name': record.patient_name || 'Unknown',
-        'USC ID': record.patient_usc_id || 'N/A',
-        'Chief Complaint': record.chief_complaint || 'Not specified',
-        'Present Illness': record.history_present_illness || 'Not documented',
-        'Past Medical History': record.past_medical_history || 'None reported',
-        'Physical Examination': record.physical_examination || 'Not performed',
-        'Vital Signs': `BP: ${record.vital_signs?.blood_pressure || record.blood_pressure || 'N/A'}, Temp: ${record.vital_signs?.temperature || record.temperature || 'N/A'}°C, Heart: ${record.vital_signs?.heart_rate || record.vital_signs?.pulse_rate || record.heart_rate || record.pulse_rate || 'N/A'} bpm, RR: ${record.vital_signs?.respiratory_rate || record.respiratory_rate || 'N/A'}/min`,
-        'Diagnosis': record.diagnosis || 'No diagnosis',
-        'Treatment Plan': record.treatment || 'No treatment',
-        'Medications': record.medications || 'None prescribed',
-        'Clinical Notes': record.notes || 'No additional notes',
-        'Created Date': formatDate(record.created_at).formatted,
-        'Last Updated': formatDate(record.updated_at).formatted
-      }));
-      exportData = [...exportData, ...medicalExport];
-    }
-    
-    // Dental export removed from this page
-    
-    if (exportData.length === 0) {
+  const handleExportCSV = (recordType = 'medical') => {
+    if (filteredMedicalRecords.length === 0) {
       alert('No records to export');
       return;
     }
-    
-    const csvContent = [
-      Object.keys(exportData[0]).join(','),
-      ...exportData.map(record => 
-        Object.values(record).map(value => 
-          `"${String(value).replace(/"/g, '""')}"`
-        ).join(',')
-      )
-    ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${recordType}-records-comprehensive-${dayjs().format('YYYY-MM-DD-HHmm')}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    const data = reportService.prepareDataForExport(filteredMedicalRecords, 'MEDICAL');
+    reportService.exportToCSV(data, `medical-records-${dayjs().format('YYYY-MM-DD-HHmm')}.csv`);
   };
 
   const handleExportExcel = (recordType = 'medical') => {
-    let exportData = [];
-    
-    if (recordType === 'medical' || recordType === 'all') {
-      const medicalExport = filteredMedicalRecords.map(record => ({
-        'Record Type': 'Medical',
-        'ID': record.id,
-        'Visit Date': record.visit_date,
-        'Patient': record.patient_name || 'Unknown',
-        'USC ID': record.patient_usc_id || '',
-        'Chief Complaint': record.chief_complaint || '',
-        'Present Illness History': record.history_present_illness || '',
-        'Past Medical History': record.past_medical_history || '',
-        'Physical Exam': record.physical_examination || '',
-        'Blood Pressure': record.blood_pressure || '',
-        'Temperature (°C)': record.temperature || '',
-        'Pulse Rate (bpm)': record.pulse_rate || '',
-        'Respiratory Rate': record.respiratory_rate || '',
-        'Clinical Diagnosis': record.diagnosis || '',
-        'Treatment Plan': record.treatment || '',
-        'Medications Prescribed': record.medications || '',
-        'Additional Notes': record.notes || '',
-        'Record Created': record.created_at,
-        'Last Modified': record.updated_at
-      }));
-      exportData = [...exportData, ...medicalExport];
-    }
-    
-    // Dental export removed from this page
-    
-    if (exportData.length === 0) {
+    if (filteredMedicalRecords.length === 0) {
       alert('No records to export');
       return;
     }
 
-    // Create tab-separated content for Excel compatibility
-    const tsvContent = [
-      Object.keys(exportData[0]).join('\t'),
-      ...exportData.map(record => 
-        Object.values(record).map(value => 
-          String(value).replace(/\t/g, ' ').replace(/\n/g, ' ')
-        ).join('\t')
-      )
-    ].join('\n');
-
-    const blob = new Blob([tsvContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${recordType}-records-comprehensive-${dayjs().format('YYYY-MM-DD-HHmm')}.xls`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    const data = reportService.prepareDataForExport(filteredMedicalRecords, 'MEDICAL');
+    reportService.exportToExcel(data, `medical-records-${dayjs().format('YYYY-MM-DD-HHmm')}.xls`);
   };
 
-  const handlePrintReport = (recordType = 'medical') => {
-    let recordsToPrint = filteredMedicalRecords;
-    let reportTitle = 'Medical Records Report';
-    
-    if (recordsToPrint.length === 0) {
+  const handlePrintReport = async (recordType = 'medical') => {
+    if (filteredMedicalRecords.length === 0) {
       alert('No records to print');
       return;
     }
 
-    const printWindow = window.open('', '_blank');
-    const printContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>USC-PIS ${reportTitle}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.4; }
-            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #1976d2; padding-bottom: 20px; }
-            .header h1 { color: #1976d2; margin: 10px 0; font-size: 24px; }
-            .header h2 { color: #1976d2; margin: 5px 0; font-size: 20px; }
-            .header p { margin: 5px 0; color: #666; }
-            .summary { background: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px; }
-            .record { border: 1px solid #ddd; margin: 15px 0; padding: 15px; border-radius: 5px; page-break-inside: avoid; }
-            .record-header { background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); padding: 10px; margin: -15px -15px 15px -15px; border-radius: 5px 5px 0 0; }
-            .record-type { display: inline-block; background: #1976d2; color: white; padding: 3px 8px; border-radius: 3px; font-size: 12px; margin-right: 10px; }
-            .record-title { font-weight: bold; color: #1976d2; font-size: 16px; margin-top: 5px; }
-            .record-meta { color: #666; font-size: 14px; margin-top: 5px; }
-            .record-body { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
-            .field-group { margin-bottom: 15px; }
-            .field-group h4 { color: #1976d2; margin-bottom: 8px; font-size: 14px; border-bottom: 1px solid #e0e0e0; padding-bottom: 3px; }
-            .field { margin-bottom: 6px; }
-            .field-label { font-weight: bold; color: #333; display: inline-block; min-width: 120px; }
-            .field-value { color: #666; }
-            .vitals { background: #f0f8ff; padding: 10px; border-radius: 3px; margin: 10px 0; }
-            .footer { text-align: center; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px; color: #666; }
-            @media print { 
-              body { margin: 0; } 
-              .no-print { display: none; }
-              .record { page-break-inside: avoid; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>University of San Carlos</h1>
-            <h2>Patient Information System</h2>
-            <h2>${reportTitle}</h2>
-            <p>Generated on: ${dayjs().format('MMMM DD, YYYY [at] HH:mm')}</p>
-            <p>Total Records: ${recordsToPrint.length}</p>
-          </div>
-          
-          <div class="summary">
-            <h3>Report Summary</h3>
-            <p><strong>Medical Records:</strong> ${filteredMedicalRecords.length}</p>
-            <p><strong>Date Range:</strong> ${startDate && endDate ? `${dayjs(startDate).format('MMM DD, YYYY')} - ${dayjs(endDate).format('MMM DD, YYYY')}` : 'All dates'}</p>
-            <p><strong>Patient Filter:</strong> ${selectedPatient ? selectedPatient.first_name + ' ' + selectedPatient.last_name : 'All patients'}</p>
-          </div>
-          
-          ${recordsToPrint.map(record => {
-            const ismedical = record.chief_complaint !== undefined;
-            return `
-              <div class="record">
-                <div class="record-header">
-                  <span class="record-type">${ismedical ? 'MEDICAL' : 'DENTAL'}</span>
-                  <div class="record-title">${record.patient_name || 'Unknown Patient'}</div>
-                  <div class="record-meta">
-                    Record #${record.id} | Visit: ${formatDate(record.visit_date).formatted} | 
-                    USC ID: ${record.patient_usc_id || 'N/A'}
-                  </div>
-                </div>
-                <div class="record-body">
-                  <div>
-                    ${ismedical ? `
-                      <div class="field-group">
-                        <h4>Clinical Assessment</h4>
-                        <div class="field">
-                          <span class="field-label">Chief Complaint:</span>
-                          <span class="field-value">${record.chief_complaint || 'Not specified'}</span>
-                        </div>
-                        <div class="field">
-                          <span class="field-label">Present Illness:</span>
-                          <span class="field-value">${record.history_present_illness || 'Not documented'}</span>
-                        </div>
-                        <div class="field">
-                          <span class="field-label">Physical Exam:</span>
-                          <span class="field-value">${record.physical_examination || 'Not performed'}</span>
-                        </div>
-                      </div>
-                      <div class="vitals">
-                        <h4>Vital Signs</h4>
-                        <div class="field">
-                          <span class="field-label">Blood Pressure:</span>
-                          <span class="field-value">${record.blood_pressure || 'N/A'}</span>
-                        </div>
-                        <div class="field">
-                          <span class="field-label">Temperature:</span>
-                          <span class="field-value">${record.temperature || 'N/A'}°C</span>
-                        </div>
-                        <div class="field">
-                          <span class="field-label">Heart Rate:</span>
-                          <span class="field-value">${record.vital_signs?.heart_rate || record.vital_signs?.pulse_rate || record.heart_rate || record.pulse_rate || 'N/A'} bpm</span>
-                        </div>
-                        <div class="field">
-                          <span class="field-label">Respiratory Rate:</span>
-                          <span class="field-value">${record.respiratory_rate || 'N/A'}/min</span>
-                        </div>
-                      </div>
-                    ` : `
-                      <div class="field-group">
-                        <h4>Dental Information</h4>
-                        <div class="field">
-                          <span class="field-label">Procedure:</span>
-                          <span class="field-value">${record.procedure_performed_display || 'N/A'}</span>
-                        </div>
-                        <div class="field">
-                          <span class="field-label">Tooth Number:</span>
-                          <span class="field-value">${record.tooth_number || 'N/A'}</span>
-                        </div>
-                        <div class="field">
-                          <span class="field-label">Pain Level:</span>
-                          <span class="field-value">${record.pain_level || 'N/A'}/10</span>
-                        </div>
-                      </div>
-                    `}
-                  </div>
-                  <div>
-                    <div class="field-group">
-                      <h4>Treatment & Diagnosis</h4>
-                      <div class="field">
-                        <span class="field-label">Diagnosis:</span>
-                        <span class="field-value">${record.diagnosis || 'No diagnosis'}</span>
-                      </div>
-                      <div class="field">
-                        <span class="field-label">Treatment:</span>
-                        <span class="field-value">${record.treatment || record.treatment_performed || 'No treatment'}</span>
-                      </div>
-                      ${ismedical ? `
-                        <div class="field">
-                          <span class="field-label">Medications:</span>
-                          <span class="field-value">${record.medications || 'None prescribed'}</span>
-                        </div>
-                        <div class="field">
-                          <span class="field-label">Lab Results:</span>
-                          <span class="field-value">${record.laboratory_results || 'None ordered'}</span>
-                        </div>
-                      ` : ''}
-                      <div class="field">
-                        <span class="field-label">Notes:</span>
-                        <span class="field-value">${record.notes || 'No additional notes'}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            `;
-          }).join('')}
-          
-          <div class="footer">
-            <p>University of San Carlos Patient Information System</p>
-            <p>This report contains confidential medical information</p>
-            <p>Generated by USC-PIS on ${dayjs().format('MMMM DD, YYYY')}</p>
-          </div>
-        </body>
-      </html>
-    `;
+    const element = document.getElementById('professional-report-template');
+    if (!element) return;
     
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-    }, 250);
+    setLoading(true);
+    try {
+      await reportService.generatePDF(element, `medical-consultation-report-${dayjs().format('YYYY-MM-DD')}.pdf`);
+    } catch (error) {
+      console.error('PDF Generation Error:', error);
+      alert('Failed to generate professional PDF report.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Legacy function for backwards compatibility
@@ -1234,6 +992,13 @@ const MedicalRecordsPage = () => {
           </>
         )}
       </Box>
+      
+      {/* Professional Report Template (Hidden) */}
+      <ReportTemplate 
+        data={filteredMedicalRecords} 
+        title="MEDICAL CONSULTATION REPORT" 
+        reportType="MEDICAL"
+      />
     </LocalizationProvider>
   );
 };
