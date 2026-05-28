@@ -42,7 +42,8 @@ def generate_report_task_celery(report_id, is_sync=False):
             'date_end': report.date_range_end,
             'filters': report.filters,
             'export_format': report.export_format,
-            'template_html': template.template_content
+            'template_html': template.template_content,
+            'user': report.generated_by
         }
         
         report.progress_percentage = 50
