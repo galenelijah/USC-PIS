@@ -25,10 +25,19 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
     def validate_visit_date(self, value):
         """Temporal Date Trapping: Block future dates for clinical events."""
         from django.utils import timezone
-        check_date = value.date() if hasattr(value, 'date') else value
-        # Use localtime to compare against the local Philippines date (UTC+8)
-        if value and check_date > timezone.localtime(timezone.now()).date():
-            raise serializers.ValidationError("Clinical visit dates cannot be in the future.")
+        import datetime
+        # Add 1 minute of leeway to account for clock drift between client and server
+        now_with_leeway = timezone.localtime(timezone.now()) + datetime.timedelta(minutes=1)
+        
+        # If value is a datetime, compare full precision; if just a date, compare dates
+        if isinstance(value, datetime.datetime):
+            if timezone.is_naive(value):
+                value = timezone.make_aware(value)
+            if value > now_with_leeway:
+                raise serializers.ValidationError("Clinical visit dates cannot be in the future.")
+        else:
+            if value > now_with_leeway.date():
+                raise serializers.ValidationError("Clinical visit dates cannot be in the future.")
         return value
 
     def validate_vital_signs(self, value):
@@ -107,10 +116,18 @@ class DentalRecordSerializer(serializers.ModelSerializer):
     def validate_visit_date(self, value):
         """Temporal Date Trapping: Block future dates for clinical events."""
         from django.utils import timezone
-        check_date = value.date() if hasattr(value, 'date') else value
-        # Use localtime to compare against the local Philippines date (UTC+8)
-        if value and check_date > timezone.localtime(timezone.now()).date():
-            raise serializers.ValidationError("Dental visit dates cannot be in the future.")
+        import datetime
+        # Add 1 minute of leeway to account for clock drift between client and server
+        now_with_leeway = timezone.localtime(timezone.now()) + datetime.timedelta(minutes=1)
+        
+        if isinstance(value, datetime.datetime):
+            if timezone.is_naive(value):
+                value = timezone.make_aware(value)
+            if value > now_with_leeway:
+                raise serializers.ValidationError("Dental visit dates cannot be in the future.")
+        else:
+            if value > now_with_leeway.date():
+                raise serializers.ValidationError("Dental visit dates cannot be in the future.")
         return value
 
     def validate_tooth_numbers(self, value):
@@ -166,10 +183,18 @@ class ConsultationSerializer(serializers.ModelSerializer):
     def validate_date_time(self, value):
         """Temporal Date Trapping: Block future dates for clinical events."""
         from django.utils import timezone
-        check_date = value.date() if hasattr(value, 'date') else value
-        # Use localtime to compare against the local Philippines date (UTC+8)
-        if value and check_date > timezone.localtime(timezone.now()).date():
-            raise serializers.ValidationError("Consultation dates cannot be in the future.")
+        import datetime
+        # Add 1 minute of leeway to account for clock drift between client and server
+        now_with_leeway = timezone.localtime(timezone.now()) + datetime.timedelta(minutes=1)
+        
+        if isinstance(value, datetime.datetime):
+            if timezone.is_naive(value):
+                value = timezone.make_aware(value)
+            if value > now_with_leeway:
+                raise serializers.ValidationError("Consultation dates cannot be in the future.")
+        else:
+            if value > now_with_leeway.date():
+                raise serializers.ValidationError("Consultation dates cannot be in the future.")
         return value
 
 class PatientSerializer(serializers.ModelSerializer):

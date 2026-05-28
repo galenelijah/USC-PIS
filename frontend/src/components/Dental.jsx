@@ -1027,9 +1027,9 @@ const Dental = () => {
                       value={dayjs(formData.visit_date)}
                       onChange={(date) => handleInputChange('visit_date', dayjs(date).format())}
                       slotProps={{ textField: { fullWidth: true, required: true } }}
-                      maxDate={dayjs()}
                       disableFuture
                       minutesStep={1}
+                      timeSteps={{ minutes: 1 }}
                     />
                   </Grid>
                   <Grid item xs={12}>

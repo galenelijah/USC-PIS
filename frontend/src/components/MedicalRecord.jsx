@@ -582,9 +582,9 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                                                         }
                                                     }}
                                                     disabled={!canEdit}
-                                                    maxDate={dayjs()}
                                                     disableFuture
                                                     minutesStep={1}
+                                                    timeSteps={{ minutes: 1 }}
                                                     />
                                             )}
                                         />

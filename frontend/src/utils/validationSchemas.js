@@ -56,14 +56,25 @@ export const commonValidation = {
     .date()
     .required(`${fieldName} is required`)
     .nullable()
-    .max(new Date(), `${fieldName} cannot be in the future`),
+    .test('no-future', `${fieldName} cannot be in the future`, (value) => {
+      if (!value) return true;
+      // Add 1 minute of leeway to account for client/server clock drift
+      const nowWithLeeway = new Date(new Date().getTime() + 60000);
+      return value <= nowWithLeeway;
+    }),
 
   // Birthdate validation (reasonable age limits)
   birthdate: yup
     .date()
     .required('Date of birth is required')
     .nullable()
-    .max(new Date(), 'Date of birth cannot be in the future')
+    .test('no-future-dob', 'Date of birth cannot be in the future', (value) => {
+      if (!value) return true;
+      const today = new Date();
+      // Reset time for birthdate comparison
+      today.setHours(23, 59, 59, 999);
+      return value <= today;
+    })
     .min(new Date(new Date().getFullYear() - 120, 0, 1), 'Please enter a valid date of birth')
     .test('minimum-age', 'Must be at least 10 years old', function(value) {
       if (!value) return false;

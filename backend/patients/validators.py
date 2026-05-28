@@ -424,9 +424,10 @@ class MedicalRecordValidator:
                 return errors
             
             # Date range validation
-            now = timezone.now()
+            # Add 5 minutes of leeway to account for client/server clock drift
+            now_with_leeway = timezone.now() + datetime.timedelta(minutes=5)
             
-            if visit_date > now:
+            if visit_date > now_with_leeway:
                 errors.append("Visit date/time cannot be in the future")
             elif visit_date.year < 2000:
                 errors.append("Visit date seems too old")
