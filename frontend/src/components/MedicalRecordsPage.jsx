@@ -271,8 +271,6 @@ const MedicalRecordsPage = () => {
         'Diagnosis': record.diagnosis || 'No diagnosis',
         'Treatment Plan': record.treatment || 'No treatment',
         'Medications': record.medications || 'None prescribed',
-        'Laboratory Results': record.laboratory_results || 'None ordered',
-        'Follow-up Instructions': record.follow_up_instructions || 'None specified',
         'Clinical Notes': record.notes || 'No additional notes',
         'Created Date': formatDate(record.created_at).formatted,
         'Last Updated': formatDate(record.updated_at).formatted
@@ -329,8 +327,6 @@ const MedicalRecordsPage = () => {
         'Clinical Diagnosis': record.diagnosis || '',
         'Treatment Plan': record.treatment || '',
         'Medications Prescribed': record.medications || '',
-        'Lab Results': record.laboratory_results || '',
-        'Follow-up Instructions': record.follow_up_instructions || '',
         'Additional Notes': record.notes || '',
         'Record Created': record.created_at,
         'Last Modified': record.updated_at
@@ -488,10 +484,6 @@ const MedicalRecordsPage = () => {
                         <div class="field">
                           <span class="field-label">Pain Level:</span>
                           <span class="field-value">${record.pain_level || 'N/A'}/10</span>
-                        </div>
-                        <div class="field">
-                          <span class="field-label">Cost:</span>
-                          <span class="field-value">${formatCurrency(record.cost)}</span>
                         </div>
                       </div>
                     `}

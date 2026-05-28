@@ -589,9 +589,7 @@ Treatment: ${r.treatment || 'N/A'}
       'Temperature (°C)': record.vital_signs?.temperature || 'N/A',
       'Heart Rate (bpm)': record.vital_signs?.heart_rate || record.vital_signs?.pulse_rate || 'N/A',
       'Respiratory Rate': record.vital_signs?.respiratory_rate || 'N/A',
-      'Medications': record.medications || 'None prescribed',
-      'Laboratory Results': record.laboratory_results || 'None ordered',
-      'Follow-up Instructions': record.follow_up_instructions || 'None specified'
+      'Medications': record.medications || 'None prescribed'
     }));
 
     const csvContent = [
@@ -641,9 +639,7 @@ Treatment: ${r.treatment || 'N/A'}
       'Temperature': record.temperature || '',
       'Pulse Rate': record.pulse_rate || '',
       'Respiratory Rate': record.respiratory_rate || '',
-      'Medications': record.medications || '',
-      'Lab Results': record.laboratory_results || '',
-      'Follow-up': record.follow_up_instructions || ''
+      'Medications': record.medications || ''
     }));
 
     const tsvContent = [
@@ -790,10 +786,6 @@ Treatment: ${r.treatment || 'N/A'}
                     <div class="field">
                       <span class="field-label">Medications:</span>
                       <span class="field-value">${record.medications || 'None prescribed'}</span>
-                    </div>
-                    <div class="field">
-                      <span class="field-label">Lab Results:</span>
-                      <span class="field-value">${record.laboratory_results || 'None ordered'}</span>
                     </div>
                     <div class="field">
                       <span class="field-label">Follow-up:</span>

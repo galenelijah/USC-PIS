@@ -66,7 +66,8 @@ import {
   InsertDriveFile as CsvIcon,
   Assessment as ReportIcon,
   Description as FileIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  Info as InfoIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
@@ -124,10 +125,6 @@ const Dental = () => {
     tooth_numbers: '',
     diagnosis: '',
     referral_to: '',
-    periodontal_screening: '',
-    occlusion: '',
-    tmd_assessment: '',
-    soft_tissue_exam: '',
     clinical_notes: '',
     pain_level: null,
   });
@@ -232,10 +229,6 @@ const Dental = () => {
         tooth_numbers: '',
         diagnosis: '',
         referral_to: '',
-        periodontal_screening: '',
-        occlusion: '',
-        tmd_assessment: '',
-        soft_tissue_exam: '',
         clinical_notes: '',
         pain_level: null,
       });
@@ -435,11 +428,7 @@ const Dental = () => {
       'Treatment': record.treatment_performed || 'N/A',
       'Referral To': record.referral_to || 'N/A',
       'Pain Level': record.pain_level || 'N/A',
-      'Cost': formatCurrency(record.cost),
-      'Insurance Covered': record.insurance_covered ? 'Yes' : 'No',
-      'Follow-up Required': record.follow_up_required ? 'Yes' : 'No',
-      'Follow-up Date': record.follow_up_date ? formatDate(record.follow_up_date) : 'N/A',
-      'Notes': record.notes || 'N/A',
+      'Notes': record.clinical_notes || 'N/A',
       'Created': formatDate(record.created_at),
       'Last Updated': formatDate(record.updated_at)
     }));
@@ -488,10 +477,6 @@ const Dental = () => {
         'Clinical Diagnosis': record.diagnosis || '',
         'Treatment Performed': record.treatment_performed || '',
         'Pain Assessment (1-10)': record.pain_level || '',
-        'Total Cost (₱)': record.cost || 0,
-        'Insurance Coverage': record.insurance_covered ? 'Covered' : 'Not Covered',
-        'Follow-up Required': record.follow_up_required ? 'Yes' : 'No',
-        'Follow-up Date': record.follow_up_date ? formatDate(record.follow_up_date) : '',
         'Clinical Notes': record.clinical_notes || '',
         'Record Created': formatDate(record.created_at),
         'Last Modified': formatDate(record.updated_at)
@@ -627,20 +612,8 @@ const Dental = () => {
                     <span class="field-value">${record.pain_level || 'N/A'}/10</span>
                   </div>
                   <div class="field">
-                    <span class="field-label">Cost:</span>
-                    <span class="field-value">${formatCurrency(record.cost)}</span>
-                  </div>
-                  <div class="field">
-                    <span class="field-label">Insurance:</span>
-                    <span class="field-value">${record.insurance_covered ? 'Covered' : 'Not Covered'}</span>
-                  </div>
-                  <div class="field">
-                    <span class="field-label">Follow-up:</span>
-                    <span class="field-value">${record.follow_up_required ? `Required (${formatDate(record.follow_up_date)})` : 'Not Required'}</span>
-                  </div>
-                  <div class="field">
                     <span class="field-label">Notes:</span>
-                    <span class="field-value">${record.notes || 'No additional notes'}</span>
+                    <span class="field-value">${record.clinical_notes || 'No additional notes'}</span>
                   </div>
                 </div>
               </div>
@@ -1083,49 +1056,6 @@ const Dental = () => {
                     />
                   </Grid>
 
-                  {/* Institutional Exam Fields */}
-                  <Grid item xs={12}>
-                    <Typography variant="subtitle2" color="primary" sx={{ mt: 1, mb: 1, fontWeight: 'bold' }}>
-                      Clinical Examination (Institutional Standard)
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Periodontal Screening"
-                      value={formData.periodontal_screening}
-                      onChange={(e) => handleInputChange('periodontal_screening', e.target.value)}
-                      placeholder="Gum health summary..."
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Occlusion Assessment"
-                      value={formData.occlusion}
-                      onChange={(e) => handleInputChange('occlusion', e.target.value)}
-                      placeholder="Bite/Alignment..."
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="TMD Assessment"
-                      value={formData.tmd_assessment}
-                      onChange={(e) => handleInputChange('tmd_assessment', e.target.value)}
-                      placeholder="Joint/Muscle findings..."
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Soft Tissue Exam"
-                      value={formData.soft_tissue_exam}
-                      onChange={(e) => handleInputChange('soft_tissue_exam', e.target.value)}
-                      placeholder="Tongue, cheeks, etc..."
-                    />
-                  </Grid>
-
                   <Grid item xs={12}>
                     <TextField
                       fullWidth
@@ -1155,6 +1085,17 @@ const Dental = () => {
                       multiline
                       rows={3}
                       required={false}
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <Tooltip title="Note any oral health conditions, such as gingivitis, debris, tooth stains, calculus, or other clinical observations.">
+                              <IconButton size="small">
+                                <InfoIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </InputAdornment>
+                        ),
+                      }}
                     />
                   </Grid>
                 </Grid>
@@ -1241,43 +1182,6 @@ const Dental = () => {
                       {selectedRecord.diagnosis}
                     </Typography>
                   </Grid>
-
-                  {/* Institutional Exam Details */}
-                  {(selectedRecord.periodontal_screening || selectedRecord.occlusion || 
-                    selectedRecord.tmd_assessment || selectedRecord.soft_tissue_exam) && (
-                    <>
-                      <Grid item xs={12}>
-                        <Divider sx={{ my: 1 }} />
-                        <Typography variant="subtitle1" color="primary" sx={{ fontWeight: 'bold' }}>
-                          Clinical Examination
-                        </Typography>
-                      </Grid>
-                      {selectedRecord.periodontal_screening && (
-                        <Grid item xs={12} sm={6}>
-                          <Typography variant="subtitle2" color="text.secondary">Periodontal Screening</Typography>
-                          <Typography variant="body2" gutterBottom>{selectedRecord.periodontal_screening}</Typography>
-                        </Grid>
-                      )}
-                      {selectedRecord.occlusion && (
-                        <Grid item xs={12} sm={6}>
-                          <Typography variant="subtitle2" color="text.secondary">Occlusion</Typography>
-                          <Typography variant="body2" gutterBottom>{selectedRecord.occlusion}</Typography>
-                        </Grid>
-                      )}
-                      {selectedRecord.tmd_assessment && (
-                        <Grid item xs={12} sm={6}>
-                          <Typography variant="subtitle2" color="text.secondary">TMD Assessment</Typography>
-                          <Typography variant="body2" gutterBottom>{selectedRecord.tmd_assessment}</Typography>
-                        </Grid>
-                      )}
-                      {selectedRecord.soft_tissue_exam && (
-                        <Grid item xs={12} sm={6}>
-                          <Typography variant="subtitle2" color="text.secondary">Soft Tissue Exam</Typography>
-                          <Typography variant="body2" gutterBottom>{selectedRecord.soft_tissue_exam}</Typography>
-                        </Grid>
-                      )}
-                    </>
-                  )}
 
                   {selectedRecord.referral_to && (
                     <Grid item xs={12}>

@@ -216,7 +216,6 @@ const StudentHealthRecords = () => {
       'Temperature': record.temperature || 'N/A',
       'Pulse Rate': record.pulse_rate || 'N/A',
       'Medications': record.medications || 'None prescribed',
-      'Follow-up Instructions': record.follow_up_instructions || 'None specified',
       'Created Date': dayjs(record.created_at).format('YYYY-MM-DD HH:mm')
     }));
 
