@@ -587,6 +587,18 @@ class ReportDataService:
             
             total = feedback_qs.count()
             
+            # Robust Role Classification: Default to Student unless explicitly Staff/Faculty
+            student_count = 0
+            staff_count = 0
+            for f in feedback_qs.select_related('patient__user'):
+                role = getattr(f.patient.user, 'role', 'STUDENT') if f.patient and f.patient.user else 'STUDENT'
+                if role in ['STAFF', 'FACULTY']:
+                    staff_count += 1
+                else:
+                    student_count += 1
+            
+            student_pct = (student_count / total * 100) if total > 0 else 0
+            
             # Calculate response rate (total feedback / total visits)
             medical_count = MedicalRecord.objects.filter(visit_date__range=(date_start, date_end)).count()
             dental_count = DentalRecord.objects.filter(visit_date__range=(date_start, date_end)).count()
@@ -597,6 +609,7 @@ class ReportDataService:
                 return {
                     'total_responses': 0, 'avg_rating': 0, 'satisfaction_score': 0,
                     'response_rate': 0, 'total_visits': total_visits,
+                    'student_count': 0, 'staff_count': 0, 'student_percentage': 0,
                     'date_range_start': date_start, 'date_range_end': date_end,
                     'recent_comments': [], 'rating_distribution': []
                 }
@@ -633,8 +646,12 @@ class ReportDataService:
             # Apply customization to rating distribution
             rating_distribution = ReportDataService._apply_customization(rating_distribution, filters or {})
 
-            return {                'total_responses': total, 
+            return {
+                'total_responses': total, 
                 'total_visits': total_visits,
+                'student_count': student_count,
+                'staff_count': staff_count,
+                'student_percentage': round(float(student_pct), 1),
                 'response_rate': round(float(response_rate), 1),
                 'avg_rating': round(float(avg), 1), 
                 'satisfaction_score': round(float(avg/5*100), 1),
@@ -646,7 +663,8 @@ class ReportDataService:
                 'recent_comments': comments,
                 'date_range_start': date_start,
                 'date_range_end': date_end,
-                'generated_at': timezone.now()
+                'generated_at': timezone.now(),
+                'report_type': 'FEEDBACK_ANALYSIS'
             }
         except Exception as e: 
             logger.error(f"Error in get_feedback_analysis_data: {str(e)}")
@@ -1955,8 +1973,8 @@ class ReportExportService:
                 
                 if isinstance(report_data, dict):
                     analytics['summary'] = {
-                        'total': report_data.get('total_visits', report_data.get('total_count', report_data.get('record_count', 0))),
-                        'student_pct': report_data.get('student_percentage', 70), 
+                        'total': report_data.get('total_responses', report_data.get('total_visits', report_data.get('total_count', report_data.get('record_count', 0)))),
+                        'student_pct': report_data.get('student_percentage', report_data.get('student_pct', 70)), 
                         'staff_count': report_data.get('staff_count', report_data.get('faculty_count', 0))
                     }
                     

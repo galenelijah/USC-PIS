@@ -1815,8 +1815,8 @@ const MedicalHistoryPage = () => {
               </CardContent>
             </Card>
 
-            <TableContainer component={Paper} elevation={1}>
-              <Table size="small">
+            <TableContainer component={Paper} elevation={1} sx={{ overflowX: 'auto' }}>
+              <Table size="small" sx={{ minWidth: 800 }}>
                 <TableHead sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 'bold' }}>Date</TableCell>

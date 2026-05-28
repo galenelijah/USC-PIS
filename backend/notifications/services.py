@@ -20,7 +20,7 @@ from .models import (
     SystemEmailConfiguration
 )
 from .tasks import send_email_task
-from authentication.models import User
+from authentication.models import User, AuditLog
 from patients.models import Patient
 
 logger = logging.getLogger(__name__)
@@ -309,12 +309,33 @@ class NotificationService:
             created_by=created_by
         )
         
-        # Log creation
+        # Log creation in NotificationLog
         NotificationLog.objects.create(
             notification=notification,
             action='CREATED',
             details=f'Notification created for {recipient.email}'
         )
+
+        # Audit High-Priority or Clinical State Changes (Panel Recommendation 2.d)
+        if priority in ['HIGH', 'URGENT'] or notification_type in ['MEDICAL_CERTIFICATE', 'SYSTEM_ALERT']:
+            try:
+                AuditLog.objects.create(
+                    actor=created_by or recipient, # Fallback to recipient for system-generated
+                    actor_email=(created_by.email if created_by else recipient.email),
+                    actor_role=(created_by.role if created_by else 'SYSTEM'),
+                    action_type='CREATE',
+                    target_model='Notification',
+                    target_object_id=str(notification.id),
+                    changes_summary={
+                        'type': notification_type,
+                        'title': title,
+                        'recipient': recipient.email,
+                        'priority': priority,
+                        'clinical_context': (patient.get_full_name() if patient else 'System')
+                    }
+                )
+            except Exception as e:
+                logger.error(f"Failed to create AuditLog for notification: {str(e)}")
         
         # If not scheduled, send immediately
         if not scheduled_at:

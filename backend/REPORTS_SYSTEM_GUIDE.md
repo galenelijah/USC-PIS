@@ -38,17 +38,24 @@ The USC-PIS Reports System provides comprehensive analytics and reporting capabi
 - Patient satisfaction metrics and rating distributions (1-5 stars).
 - Qualitative theme analysis and recent comment tracking.
 
-### 5. Medical & Dental Statistics
-- Top diagnoses and common procedures breakdown.
-- Demographic distribution (age/gender) and preventive care rates.
+### 5. Medical & Dental Statistics (V2.0 Analytical)
+- **Engine**: `USCMedicalAnalyticalReport` and `USCDentalAnalyticalReport`.
+- **Top Diagnoses/Procedures**: Programmatically generated Bar/Doughnut charts integrated directly into the PDF.
+- **Student Analytics**: Per Panel Recommendation 3.a.i, includes Course and Academic Year Level distribution summaries.
+- **Clinical Details**: Dental reports focus on **Referral and Findings**; Medical reports include Vitals (BP/T) and **BMI classification**.
 
 ### 6. Health Campaign Performance
 - Analysis of health campaign reach, engagement, and effectiveness.
 - Participant demographics and feedback.
 
-### 7. User Activity Report
+### 7. Unified Health History (Patient-Centric)
+- **Engine**: `USCUnifiedHistoryReport`.
+- **Consolidated Timeline**: Aggregates Medical visits, Dental consultations, Medical Certificates, and Patient Documents into a single, chronological timeline.
+- **Color-Coded Status**: Visual indicators for different record types (Blue for Medical, Green for Dental, Gold for Certificates).
+
+### 8. User Activity & Audit Report
 - Tracking of system usage, logins, and staff actions.
-- Role-based activity distribution.
+- **Communication Trail**: Includes audit logs for high-priority notifications and clinical alerts.
 
 ## Web Interface Usage
 

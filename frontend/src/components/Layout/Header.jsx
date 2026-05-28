@@ -16,7 +16,6 @@ import {
 import {
   Notifications as NotificationsIcon,
   Person as PersonIcon,
-  Settings as SettingsIcon,
   ExitToApp as LogoutIcon,
   Menu as MenuIcon,
 } from '@mui/icons-material';
@@ -185,12 +184,6 @@ const Header = ({ handleDrawerToggle }) => {
             <PersonIcon fontSize="small" />
           </ListItemIcon>
           My Profile
-        </MenuItem>
-        <MenuItem onClick={handleMenuClose}>
-          <ListItemIcon>
-            <SettingsIcon fontSize="small" />
-          </ListItemIcon>
-          Settings
         </MenuItem>
         <Divider />
         <MenuItem onClick={handleLogout}>

@@ -829,7 +829,7 @@ Treatment: ${r.treatment || 'N/A'}
       ) : (
         <Box sx={{ mt: 2 }}>
           <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
-            <Table stickyHeader>
+            <Table stickyHeader sx={{ minWidth: 1200 }}>
             <TableHead>
               <TableRow>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>Date</TableCell>

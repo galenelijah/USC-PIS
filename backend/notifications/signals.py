@@ -6,6 +6,8 @@ from datetime import timedelta
 from authentication.models import User
 from patients.models import Patient, MedicalRecord, DentalRecord, Consultation
 from medical_certificates.models import MedicalCertificate
+from feedback.models import Feedback
+from file_uploads.models import PatientDocument
 from .models import NotificationPreference, NotificationTemplate
 from .services import NotificationService, NotificationTemplateService
 
@@ -31,9 +33,7 @@ def handle_user_updates(sender, instance, created, **kwargs):
             }
         )
     else:
-        # Check if password was changed (handled by check_password or raw update)
-        # For simplicity, we trigger on profile update, but we can detect critical mutations
-        # We use a lower priority for generic profile updates
+        # Security/Profile updates - Notify the user
         NotificationService.create_notification(
             recipient=instance,
             notification_type='SYSTEM_ALERT',
@@ -157,6 +157,48 @@ def consultation_notification(sender, instance, created, **kwargs):
             patient=instance.patient,
             metadata={'consultation_id': instance.id}
         )
+
+@receiver(post_save, sender=Feedback)
+def feedback_notification(sender, instance, created, **kwargs):
+    """Notify clinic staff when new feedback is submitted by a student/faculty"""
+    if created:
+        staff_users = User.objects.filter(role__in=['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'])
+        for staff in staff_users:
+            NotificationService.create_notification(
+                recipient=staff,
+                title="New Feedback Received",
+                message=f"Patient {instance.patient.get_full_name()} submitted feedback (Rating: {instance.rating}/5).",
+                notification_type='CLINIC_UPDATE',
+                priority='LOW',
+                delivery_method='IN_APP',
+                metadata={'feedback_id': instance.id},
+                action_url='/admin-feedback',
+                action_text='View Feedback'
+            )
+
+@receiver(post_save, sender=PatientDocument)
+def patient_document_notification(sender, instance, created, **kwargs):
+    """Notify clinic staff when a document is uploaded, especially by a student"""
+    if created:
+        # Only notify if uploaded by someone other than staff (e.g., the student themselves)
+        # Or if it's a critical document type like LAB_RESULT
+        is_student_upload = instance.uploaded_by and instance.uploaded_by.role in ['STUDENT', 'FACULTY']
+        is_critical = instance.document_type in ['LAB_RESULT', 'XRAY']
+        
+        if is_student_upload or is_critical:
+            staff_users = User.objects.filter(role__in=['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'])
+            for staff in staff_users:
+                NotificationService.create_notification(
+                    recipient=staff,
+                    title="New Document Uploaded",
+                    message=f"A new {instance.get_document_type_display()} has been uploaded for {instance.patient.get_full_name()}.",
+                    notification_type='CLINIC_UPDATE',
+                    priority='MEDIUM',
+                    delivery_method='IN_APP',
+                    metadata={'document_id': instance.id, 'patient_id': instance.patient.id},
+                    action_url='/students',
+                    action_text='View Records'
+                )
 
 @receiver(post_save, sender=Patient)
 def send_welcome_notification(sender, instance, created, **kwargs):

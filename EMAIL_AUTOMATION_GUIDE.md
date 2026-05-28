@@ -21,13 +21,14 @@ Status: ✅ OPERATIONAL & MONITORED
 
 ### 1. **Automated Clinical Triggers**
 - **Welcome Emails**: Sent instantly on registration via Gmail API.
-- **Certificate Workflow**: Real-time notifications for creation, approval, and rejection.
+- **Certificate Workflow**: Real-time notifications for creation, approval, and rejection. Students are notified of status changes; Doctors are alerted to pending assessments.
+- **Visit Logs**: Patients receive in-app alerts when clinic visits (Medical/Dental) are committed or updated.
 - **Feedback Loop**: Automatically triggered 24 hours after a medical or dental visit.
 
 ### 2. **Administrative Automation**
+- **Staff Alerts**: Instant notifications for clinic personnel (Admins, Doctors, Nurses) when students submit feedback or upload critical documents (Lab Results/X-Rays).
 - **Health Diagnostics**: 7 core infrastructure checks run every 6 hours.
-- **Staff Alerts**: Instant notifications for clinic personnel when actions are required.
-- **System Logs**: Every email event is cryptographically logged for auditing, including Gmail API response IDs.
+- **System Logs**: Every email event and **high-priority notification** (URGENT/Clinical State) is cryptographically logged in the `AuditLog` table for compliance auditing.
 
 ## 🛠️ **Administration Dashboard (/email-administration)**
 
