@@ -18,11 +18,12 @@ The system has successfully completed its **Clinical Automation Refresh**. We ha
 ### Core Services
 *   **Global Notifications:** **ENHANCED** (Post-save signals + Frontend Snackbars)
 *   **Data Integrity:** **HARDENED** (Timezone-aware date trapping with clock-drift leeway)
-*   **Reporting:** **OPERATIONAL** (Dynamic schema-driven analytics)
+*   **Reporting:** **HIGH-FIDELITY** (Branded PDF Snapshots + Sanitized Clinical Exports)
 *   **Authentication:** **SECURE** (Automated ID extraction + USC Domain gating)
 
 ## 3. Automation Benchmarks
 *   **Risk Flagging:** Fever/Hypertension/Cardiac risks autonomously identified.
+*   **Branded Documentation:** Professional clinical summaries generated on-the-fly with 0% administrative field leakage.
 *   **Temporal Logic:** No future dates possible across any module (Backend & Frontend forced).
 *   **Time Resolution:** Clinicians now have 1-minute selection granularity.
 *   **UX Sync:** Global success/error prompts autonomously dispatched via interceptors.

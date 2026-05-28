@@ -36,10 +36,13 @@ The USC-PIS has reached **Full Maturity & Operational Stability** and is 100% co
 *   **State Locking:** Rejected certificates are permanently locked (400/403 API trapping).
 *   **Dynamic PDF Engine:** Automated generation of USC-branded clinical certificates with dynamic physician positioning.
 
-### 6. Reporting System & Analytics (v2.1)
-*   **Status:** Fully Dynamic & Delegated
+### 6. Reporting System & Analytics (v2.2)
+*   **Status:** High-Fidelity & Branded
+*   **Professional Exports:** Implemented `jsPDF` and `html2canvas` for high-fidelity PDF snapshots that include USC institutional branding and clinical headers.
+*   **Data Sanitization:** Automated exclusion of financial (cost) and administrative (follow-up) fields from clinical exports to maintain professional patient summaries.
+*   **Multi-Format:** Standardized support for PDF (Professional), CSV (Standard), and Excel (Data-Rich) exports across all clinical pages.
 *   **Customizable Filtering:** Schema-driven filters allow deep demographic pivoting (School, Course, Year Level) alongside quantitative (Star Rating) and contextual (Campaign ID) metric isolation.
-*   **Interactive UI:** Integrated Chart.js previews (Pie, Bar, Line) before raw PDF/Excel export.
+*   **Interactive UI:** Integrated Chart.js previews (Pie, Bar, Line) before raw export.
 
 ### 7. Deployment & DevOps
 *   **Status:** Automated & Resilient

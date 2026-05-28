@@ -1101,15 +1101,15 @@ const Dental = () => {
             )}
           </DialogContent>
         </Dialog>
-      {/* Export Template (Hidden) */}
-      <ReportTemplate 
-        data={filteredRecords} 
-        title="DENTAL CONSULTATION REPORT" 
-        reportType="DENTAL"
-      />
+        {/* Export Template (Hidden) */}
+        <ReportTemplate 
+          data={filteredRecords} 
+          title="DENTAL CONSULTATION REPORT" 
+          reportType="DENTAL"
+        />
       </Box>
-      </LocalizationProvider>
-      );
-      };
+    </LocalizationProvider>
+  );
+};
 
-      export default DentalRecords;
+export default Dental;
