@@ -4,19 +4,37 @@ import dayjs from 'dayjs';
 
 /**
  * Professional Clinical Report Template for PDF Generation
- * Enhanced for USC Thesis Panel Requirements: Institutional Branding + Analytical Summary
+ * Enhanced for USC Thesis Panel Requirements: Institutional Branding + Analytical Summary + Diagrams
  */
 const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
   if (!data || !Array.isArray(data)) return null;
 
-  // Calculate Analytical Metrics for the report header
+  // 1. Calculate Analytical Metrics
   const totalVisits = data.length;
   const uniquePatients = new Set(data.map(r => r.patient)).size;
   const latestVisit = data.length > 0 ? dayjs(data[0].visit_date).format('MMM DD, YYYY') : 'N/A';
   
-  // Categorize for summary (if available in data)
+  // Categorize for summary
   const studentVisits = data.filter(r => (r.patient_role || '').toUpperCase() === 'STUDENT').length;
   const facultyVisits = totalVisits - studentVisits;
+
+  // 2. Data for Diagrams (Bar Chart: Distribution of Diagnoses/Procedures)
+  const distributionData = {};
+  data.forEach(item => {
+    const key = reportType === 'DENTAL' 
+      ? (item.procedure_performed_display || item.procedure_performed || 'Other')
+      : (item.diagnosis || 'Other');
+    
+    // Clean key (truncate long diagnoses for chart)
+    const cleanKey = key.length > 25 ? key.substring(0, 25) + '...' : key;
+    distributionData[cleanKey] = (distributionData[cleanKey] || 0) + 1;
+  });
+
+  const sortedDistribution = Object.entries(distributionData)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5); // Top 5
+
+  const maxFreq = Math.max(...sortedDistribution.map(d => d[1]), 1);
 
   return (
     <Box 
@@ -27,7 +45,7 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
         padding: '15mm',
         backgroundColor: '#ffffff',
         color: '#000000',
-        fontFamily: "'Times New Roman', serif", // More formal for academic/clinical reports
+        fontFamily: "'Times New Roman', serif",
         position: 'absolute',
         left: '-9999px', // Hide from view
         top: 0,
@@ -59,12 +77,12 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
         </Box>
         <Box sx={{ textAlign: 'right' }}>
           <Typography variant="body2"><strong>Date Generated:</strong> {dayjs().format('MMMM DD, YYYY')}</Typography>
-          <Typography variant="body2"><strong>Confidentiality:</strong> Level 3 (Restricted)</Typography>
+          <Typography variant="body2"><strong>Classification:</strong> OFFICIAL MEDICAL RECORD</Typography>
         </Box>
       </Box>
 
       {/* Analytical Summary Grid (Metric Cards) */}
-      <Grid container spacing={1} sx={{ mb: 4 }}>
+      <Grid container spacing={1} sx={{ mb: 3 }}>
         <Grid item xs={3}>
           <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', bgcolor: '#f8f9fa' }}>
             <Typography variant="caption" sx={{ color: '#666', fontWeight: 'bold' }}>TOTAL RECORDS</Typography>
@@ -73,13 +91,13 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
         </Grid>
         <Grid item xs={3}>
           <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', bgcolor: '#f8f9fa' }}>
-            <Typography variant="caption" sx={{ color: '#666', fontWeight: 'bold' }}>PATIENTS</Typography>
+            <Typography variant="caption" sx={{ color: '#666', fontWeight: 'bold' }}>UNIQUE PATIENTS</Typography>
             <Typography variant="h6" sx={{ color: '#1976d2', fontWeight: 'bold' }}>{uniquePatients || 'Multiple'}</Typography>
           </Paper>
         </Grid>
         <Grid item xs={3}>
           <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', bgcolor: '#f8f9fa' }}>
-            <Typography variant="caption" sx={{ color: '#666', fontWeight: 'bold' }}>STUDENT %</Typography>
+            <Typography variant="caption" sx={{ color: '#666', fontWeight: 'bold' }}>STUDENT RATIO</Typography>
             <Typography variant="h6" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
               {totalVisits > 0 ? Math.round((studentVisits / totalVisits) * 100) : '0'}%
             </Typography>
@@ -93,7 +111,79 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
         </Grid>
       </Grid>
 
-      {/* Patient Profile (If single patient) */}
+      {/* Analytical Diagrams Section (Visual representation like dashboard) */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1.5, color: '#003366' }}>
+          VISUAL DATA ANALYTICS
+        </Typography>
+        <Grid container spacing={2}>
+          {/* Distribution Bar Chart */}
+          <Grid item xs={7}>
+            <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
+              <Typography variant="caption" sx={{ fontWeight: 'bold', mb: 2, display: 'block' }}>
+                TOP 5 {reportType === 'DENTAL' ? 'PROCEDURES' : 'DIAGNOSES'} BY FREQUENCY
+              </Typography>
+              <Box sx={{ mt: 2 }}>
+                {sortedDistribution.map(([label, freq], idx) => (
+                  <Box key={idx} sx={{ mb: 1.5 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                      <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>{label}</Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 'bold' }}>{freq}</Typography>
+                    </Box>
+                    <Box sx={{ width: '100%', height: 12, bgcolor: '#f0f0f0', borderRadius: 1, overflow: 'hidden' }}>
+                      <Box 
+                        sx={{ 
+                          width: `${(freq / maxFreq) * 100}%`, 
+                          height: '100%', 
+                          bgcolor: '#1976d2',
+                          transition: 'width 1s ease-in-out'
+                        }} 
+                      />
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+            </Paper>
+          </Grid>
+
+          {/* Classification Doughnut-like Chart */}
+          <Grid item xs={5}>
+            <Paper variant="outlined" sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <Typography variant="caption" sx={{ fontWeight: 'bold', mb: 2, display: 'block', width: '100%', textAlign: 'left' }}>
+                PATIENT CLASSIFICATION
+              </Typography>
+              <Box sx={{ 
+                position: 'relative', 
+                width: 100, 
+                height: 100, 
+                borderRadius: '50%', 
+                background: `conic-gradient(#1976d2 0% ${Math.round((studentVisits/totalVisits)*100)}%, #e67e22 ${Math.round((studentVisits/totalVisits)*100)}% 100%)`,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                mb: 2,
+                mt: 1
+              }}>
+                <Box sx={{ width: 60, height: 60, bgcolor: 'white', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                  <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>{totalVisits}</Typography>
+                </Box>
+              </Box>
+              <Box sx={{ width: '100%' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                  <Box sx={{ width: 10, height: 10, bgcolor: '#1976d2', mr: 1, borderRadius: '2px' }} />
+                  <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>STUDENTS: {studentVisits} ({Math.round((studentVisits/totalVisits)*100)}%)</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Box sx={{ width: 10, height: 10, bgcolor: '#e67e22', mr: 1, borderRadius: '2px' }} />
+                  <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>FACULTY/STAFF: {facultyVisits} ({Math.round((facultyVisits/totalVisits)*100)}%)</Typography>
+                </Box>
+              </Box>
+            </Paper>
+          </Grid>
+        </Grid>
+      </Box>
+
+      {/* Patient Profile (If single patient filter is active) */}
       {patient && (
         <Box sx={{ mb: 4, border: '1px solid #003366', borderRadius: 1, overflow: 'hidden' }}>
           <Box sx={{ bgcolor: '#003366', color: 'white', px: 2, py: 0.5 }}>
@@ -142,7 +232,7 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {data.slice(0, 15).map((record, index) => ( // Show first 15 for the summary view
+            {data.slice(0, 10).map((record, index) => ( // Reduced to 10 to fit diagrams on page 1
               <TableRow key={index} sx={{ '&:nth-of-type(even)': { bgcolor: '#fafafa' } }}>
                 <TableCell sx={{ verticalAlign: 'top' }}>
                   <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
@@ -195,14 +285,14 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
         </Table>
       </TableContainer>
 
-      {data.length > 15 && (
+      {data.length > 10 && (
         <Typography variant="caption" sx={{ display: 'block', mt: 1, textAlign: 'center', fontStyle: 'italic' }}>
-          Showing first 15 records. Please refer to full digital history for complete logs.
+          Showing top 10 records for summary view. Refer to digital logs for exhaustive history.
         </Typography>
       )}
 
       {/* Signature & Validation */}
-      <Box sx={{ mt: 'auto', pt: 6, display: 'flex', justifyContent: 'flex-end' }}>
+      <Box sx={{ mt: 'auto', pt: 4, display: 'flex', justifyContent: 'flex-end' }}>
         <Box sx={{ width: '60mm', textAlign: 'center' }}>
           <Divider sx={{ mb: 1, borderBottomWidth: 2 }} />
           <Typography variant="body2" sx={{ fontWeight: 'bold' }}>AUTHORIZED CLINIC STAFF</Typography>
@@ -222,10 +312,10 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
         justifyContent: 'space-between'
       }}>
         <Typography variant="caption" color="text.secondary">
-          CONFIDENTIAL PATIENT INFORMATION - FOR OFFICIAL USE ONLY
+          CONFIDENTIAL PATIENT INFORMATION - USC HEALTH SERVICES
         </Typography>
         <Typography variant="caption" color="text.secondary">
-          USC-PIS v2.0 | Form ACA-HSD-04F
+          Form ACA-HSD-04F | USC-PIS v2.0
         </Typography>
       </Box>
     </Box>
