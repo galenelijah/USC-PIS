@@ -1476,7 +1476,7 @@ const Reports = () => {
             </Box>
 
             <TableContainer component={Paper} sx={{ borderRadius: 2, overflowX: 'auto' }}>
-              <Table>
+              <Table sx={{ minWidth: 1200 }}>
                 <TableHead>
                   <TableRow sx={{ backgroundColor: '#f8f9fa' }}>
                     <TableCell sx={{ fontWeight: 600, color: '#1976d2' }}>📋 Report Details</TableCell>

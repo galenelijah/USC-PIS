@@ -675,7 +675,7 @@ const MedicalRecordsPage = () => {
                     </Box>
                   ) : (
                     <TableContainer sx={{ overflowX: 'auto' }}>
-                      <Table sx={{ minWidth: 800 }}>
+                      <Table sx={{ minWidth: 1200 }}>
                         <TableHead>
                           <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
                             <TableCell sx={{ fontWeight: 'bold', minWidth: 120 }}>

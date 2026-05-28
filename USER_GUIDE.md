@@ -291,6 +291,13 @@ The Patients page now features a powerful filtering system to help staff manage 
 3. **Active Filters**: Applied filters appear as removable chips below the search bar.
 4. **Combined Search**: You can use the search bar (name/email/ID) simultaneously with active filters.
 
+### Responsive UI & Data Accessibility (May 2026 Update) 📱
+To ensure the system remains usable on smaller screens and mobile devices, we have implemented specialized responsive features for high-density data.
+
+1. **Horizontal Table Scrolling**: On narrow screens, clinical tables (Patients, Health Records, Consultation History) now feature smooth horizontal scrolling. This prevents data from being cut off or columns from becoming illegible.
+2. **Mobile Record Cards**: Some pages automatically switch to a "Card View" on mobile devices, providing a better touch-friendly experience while maintaining full data visibility.
+3. **Optimized Layouts**: Dashboard panels and clinical forms are designed with a flexible grid system that adapts to tablet and desktop viewports seamlessly.
+
 ### Automatic Patient List Management 📋
 
 The system automatically manages who appears in the "Patients" list to ensure administrative clarity.

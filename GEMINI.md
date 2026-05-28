@@ -38,3 +38,7 @@ python3 manage.py test tests_unit_v2 tests_integration_v2 tests_performance_v2 -
 - `/backend/medical_certificates`: PDF generation and fitness assessment.
 - `/backend/health_info`: Campaigns and health alerts.
 - `/backend/feedback`: Patient surveys and analytics.
+
+## 6. UI & Communication Standards
+- **Responsiveness**: All clinical tables must use `TableContainer` with `overflowX: 'auto'` and a minimum width (typically 1000px-1200px) to ensure accessibility on mobile/tablet.
+- **Notifications**: See `NOTIFICATION_SYSTEM_GUIDE.md` for the multi-tiered alert architecture and audit logging requirements.

@@ -141,7 +141,7 @@ const ConsultationHistory = () => {
       </Box>
       
       <TableContainer component={Paper} sx={{ maxHeight: 440, overflowX: 'auto' }}>
-        <Table stickyHeader sx={{ minWidth: 1000 }}>
+        <Table stickyHeader sx={{ minWidth: 1200 }}>
           <TableHead>
             <TableRow>
               {isClinicStaff && <TableCell sx={{ fontWeight: 'bold' }}>Patient</TableCell>}

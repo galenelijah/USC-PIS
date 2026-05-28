@@ -127,7 +127,7 @@ const PatientList = memo(({ patients, onPatientClick }) => {
       {/* Desktop Table View */}
       <Box sx={{ display: { xs: 'none', md: 'block' } }}>
         <TableContainer component={Paper} elevation={1} sx={{ overflowX: 'auto' }}>
-          <Table stickyHeader sx={{ minWidth: 1000 }}>
+          <Table stickyHeader sx={{ minWidth: 1200 }}>
             <TableHead>
               <TableRow>
                 <TableCell sx={{ fontWeight: 'bold', bgcolor: 'grey.50' }}>USC ID</TableCell>

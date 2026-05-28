@@ -246,7 +246,7 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole, refreshTri
 
       {/* Desktop Table View */}
       <TableContainer component={Paper} sx={{ display: { xs: 'none', md: 'block' } }}>
-        <Table>
+        <Table sx={{ minWidth: 1200 }}>
           <TableHead>
             <TableRow>
               <TableCell>Patient Name</TableCell>

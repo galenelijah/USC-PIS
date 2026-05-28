@@ -1,5 +1,52 @@
 ---
 
+# Session Changes (2026-05-28)
+
+This session focused on hardening the clinical notification ecosystem, ensuring accurate patient classification in reports, and enhancing UI responsiveness for all clinical tables.
+
+## Key Accomplishments
+- **Multi-Tiered Notification System**:
+  - Implemented a robust notification architecture with **Persistent Dashboard Logs**, **Hard Inline Validation Banners**, and **Context-Aware Snackbars**.
+  - Centralized clinical notification triggers in `backend/notifications/signals.py`, covering Medical, Dental, Consultation, Feedback, and Document Upload events.
+  - Added **Clinic Staff Alerts**: Doctors and Nurses now receive instant notifications when students submit feedback or upload critical documents (Lab Results/X-Rays).
+  - **Audit Integration**: Every high-priority or clinical-state notification is now mirrored in the `AuditLog` table for immutable institutional auditability.
+- **Reporting Fidelity & Classification Fix**:
+  - Resolved a long-standing bug where students were misclassified as "Faculty/Staff" in reports.
+  - Enhanced `get_feedback_analysis_data` with robust role classification, defaulting to "Student" for any non-staff feedback, ensuring engagement metrics are accurately captured.
+  - **Surgical Demographic Profiling**: Updated report templates to only show "Patient Demographic Profiles" in individual contexts, keeping institutional summaries clean and focused.
+  - **Analytical Reports**: Integrated BMI classification, Medication (Rx) logs, and dynamic bar/doughnut charts into clinical PDFs.
+- **UI Responsiveness & Accessibility**:
+  - **Horizontal Table Scrolling**: Added `minWidth` and scrollable containers to all major clinical tables (Patients, Health Records, Consultation History, Audit Logs) to prevent data truncation on smaller viewports.
+  - **Streamlined Navigation**: Removed the redundant "Settings" button from the profile dropdown menu in the Header to simplify the user interface.
+  - **Improved Feedback Banners**: Created `ValidationBanner.jsx` to provide blocking, high-visibility summaries of form-level errors (e.g., physiological temperature bounds or future date traps).
+- **Documentation Overhaul**:
+  - Created `NOTIFICATION_SYSTEM_GUIDE.md`: A comprehensive guide to the multi-tiered alert ecosystem.
+  - Updated `REPORTS_SYSTEM_GUIDE.md`: Documented the V2.0 analytical engine and patient-centric unified history.
+  - Updated `EMAIL_AUTOMATION_GUIDE.md`: Integrated the new staff alert and audit logging workflows.
+
+## Modified Files
+- `backend/notifications/signals.py` & `services.py`: Consolidated triggers and integrated audit logging.
+- `backend/reports/services.py`: Hardened classification logic and expanded analytical datasets.
+- `frontend/src/components/Patients/PatientList.jsx`: Added horizontal scroll support.
+- `frontend/src/components/HealthRecords.jsx`: Enhanced table responsiveness.
+- `frontend/src/components/ConsultationHistory.jsx`: Optimized table layout for smaller screens.
+- `frontend/src/components/MedicalHistoryPage.jsx`: Added scrollable audit trails.
+- `frontend/src/components/Layout/Header.jsx`: Removed redundant "Settings" menu item.
+- `NOTIFICATION_SYSTEM_GUIDE.md`: New clinical notification documentation.
+
+## Rationale
+- **Accountability**: Automated audit logging of system-to-user communications ensures institutional compliance and patient safety.
+- **Data Integrity**: Accurate role classification is critical for the university's data-driven clinical assessments.
+- **Inclusivity**: Horizontal scrolling and responsive cards ensure the system remains usable across different institutional hardware and mobile devices.
+
+## Verify Quickly
+- **Notifications**: Upload a document as a student and verify all clinic staff receive a dashboard alert.
+- **Audit Logs**: Check the "Health Insights" audit trail to verify high-priority notifications are being cryptographically logged.
+- **Responsive UI**: Shrink the browser window on the Patients page and verify you can horizontally scroll the table.
+- **Classification**: Generate a Feedback Analysis report and verify it correctly shows student vs staff ratios.
+
+---
+
 # Session Changes (2026-05-22)
 
 This session focused on UI simplification through the removal of redundant fields, restoration of professional email workflows, and streamlining of campaign management.
