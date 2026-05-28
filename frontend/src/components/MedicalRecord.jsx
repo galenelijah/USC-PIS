@@ -68,12 +68,15 @@ const defaultUserData = {
     medications: [],
 };
 
-// Schema imported from validationSchemas.js
+import ValidationBanner from './common/ValidationBanner';
+
+// ... (rest of imports)
 
 const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) => {
     const [loading, setLoading] = useState(false);
     const [globalError, setGlobalError] = useState(null);
     const [success, setSuccess] = useState(false);
+    const [showValidationBanner, setShowValidationBanner] = useState(false);
     
     // Attachments state
     const [attachments, setAttachments] = useState([]);
@@ -439,20 +442,9 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
     };
 
     return (
-        <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ maxWidth: 1200, mx: 'auto' }}>
+        <Box component="form" onSubmit={handleSubmit(onSubmit, () => setShowValidationBanner(true))} sx={{ maxWidth: 1200, mx: 'auto' }}>
+            <ValidationBanner errors={errors} show={showValidationBanner} />
             {globalError && <Alert severity="error" sx={{ mb: 2 }}>{globalError}</Alert>}
-            {Object.keys(errors).length > 0 && (
-                <Alert severity="error" sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2">Please fix the following errors:</Typography>
-                    <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                        {Object.entries(errors).map(([key, error]) => (
-                            <li key={key}>
-                                {error.message || (typeof error === 'object' && Object.values(error).map(e => e.message).join(', '))}
-                            </li>
-                        ))}
-                    </ul>
-                </Alert>
-            )}
             {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
             <Grid container spacing={3}>

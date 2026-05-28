@@ -31,12 +31,15 @@ import { createMedicalCertificateSchema } from '../../utils/validationSchemas';
 import { medicalCertificateService } from '../../services/api';
 import { patientService } from '../../services/api';
 
+import ValidationBanner from '../common/ValidationBanner';
+
 const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRole = null }) => {
   const [patients, setPatients] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedPatient, setSelectedPatient] = useState(null);
+  const [showValidationBanner, setShowValidationBanner] = useState(false);
   
   const getDefaultValues = () => {
     const baseValues = {
@@ -148,7 +151,8 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Paper sx={{ p: 3 }}>
-        <form onSubmit={handleSubmit(handleFormSubmit)}>
+        <form onSubmit={handleSubmit(handleFormSubmit, () => setShowValidationBanner(true))}>
+          <ValidationBanner errors={errors} show={showValidationBanner} />
           <Grid container spacing={3}>
             {error && (
               <Grid item xs={12}>

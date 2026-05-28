@@ -83,8 +83,18 @@ api.interceptors.response.use(
     const isSilent = response.config.params?.silent === true || response.config.headers?.['X-Silent'] === 'true';
 
     if (isMutation && !isAuth && !isSilent && response.status >= 200 && response.status < 300) {
+      let message = response.data?.message || 'Changes saved successfully';
+      
+      // Context-specific overrides
+      const url = response.config.url;
+      if (url.includes('/patients/medical-records/')) message = 'Medical Record Committed Successfully';
+      else if (url.includes('/patients/dental-records/')) message = 'Dental Record Committed Successfully';
+      else if (url.includes('/medical-certificates/')) message = 'Medical Certificate Workflow Updated';
+      else if (url.includes('/reports/templates/') && url.includes('/generate/')) message = 'Report Export Initialized';
+      else if (url.includes('/auth/profile/me/')) message = 'Profile Security Settings Updated';
+
       eventBus.dispatch('app_notification', {
-        message: response.data?.message || 'Changes saved successfully',
+        message: message,
         severity: 'success'
       });
     }
@@ -92,14 +102,32 @@ api.interceptors.response.use(
     return response;
   },
   error => {
-    // Check for HTML responses in error cases
+    // Handle Network Errors (Timeout / Offline)
+    if (!error.response) {
+      eventBus.dispatch('app_notification', {
+        message: 'Network Error: Please check your internet connection or server status.',
+        severity: 'error'
+      });
+      return Promise.reject(error);
+    }
+
+    // Check for HTML responses in error cases (often redirection to login)
     if (error.response?.headers?.['content-type']?.includes('text/html')) {
       if (error.response.status === 401 || error.response.status === 403) {
         // Clear token and redirect to login only if not trying to login/register
         if (!error.config.url.includes('/auth/login/') && !error.config.url.includes('/auth/register/')) {
           saveToken(null);
           localStorage.removeItem(USER_KEY);
-          window.location.href = '/';
+          
+          eventBus.dispatch('app_notification', {
+            message: 'Session expired. Re-authenticating...',
+            severity: 'warning'
+          });
+
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 2000);
+          
           return Promise.reject(new Error('Session expired. Please log in again.'));
         }
       }
@@ -111,6 +139,11 @@ api.interceptors.response.use(
       eventBus.dispatch('app_notification', {
         message: `Validation Error: ${message}`,
         severity: 'warning'
+      });
+    } else if (error.response?.status === 403) {
+      eventBus.dispatch('app_notification', {
+        message: 'Access Denied: You do not have permission to perform this update.',
+        severity: 'error'
       });
     } else {
       // General API Error handling

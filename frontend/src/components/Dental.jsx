@@ -85,6 +85,8 @@ import { dentalRecordService, patientService, patientDocumentService } from '../
 import PatientDocumentUpload from './PatientDocumentUpload';
 import { extractErrorMessage } from '../utils/errorUtils';
 
+import ValidationBanner from './common/ValidationBanner';
+
 const Dental = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -109,6 +111,8 @@ const Dental = () => {
   const [success, setSuccess] = useState(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [validationErrors, setValidationErrors] = useState({});
+  const [showValidationBanner, setShowValidationBanner] = useState(false);
 
   // Document upload state
   const [openUploadDialog, setOpenUploadDialog] = useState(false);
@@ -216,6 +220,8 @@ const Dental = () => {
 
   const handleOpenDialog = (record = null) => {
     setFormError(null);
+    setValidationErrors({});
+    setShowValidationBanner(false);
     if (record) {
       setSelectedRecord(record);
       setFormData({
@@ -322,6 +328,33 @@ const Dental = () => {
 
   const handleSubmit = async () => {
     setFormError(null);
+    setValidationErrors({});
+    setShowValidationBanner(false);
+
+    // Manual Validation
+    const errors = {};
+    if (!formData.patient) errors.patient = { message: 'Patient selection is required' };
+    if (!formData.visit_date) errors.visit_date = { message: 'Visit date is required' };
+    
+    // Future Date Trapping
+    if (formData.visit_date && dayjs(formData.visit_date).isAfter(dayjs().add(1, 'minute'))) {
+        errors.visit_date = { message: 'Visit date cannot be in the future' };
+    }
+
+    if (!formData.procedure_performed) errors.procedure_performed = { message: 'Procedure performed is required' };
+    if (!formData.diagnosis) errors.diagnosis = { message: 'Diagnosis is required' };
+    
+    // Physiological Bounds for Pain Level
+    if (formData.pain_level !== null && (formData.pain_level < 1 || formData.pain_level > 10)) {
+        errors.pain_level = { message: 'Pain level must be between 1 and 10' };
+    }
+
+    if (Object.keys(errors).length > 0) {
+        setValidationErrors(errors);
+        setShowValidationBanner(true);
+        return;
+    }
+
     try {
       const submitData = {
         ...formData,
@@ -775,6 +808,7 @@ const Dental = () => {
           </DialogTitle>
           <DialogContent>
               <Box sx={{ mb: 2 }}>
+                <ValidationBanner errors={validationErrors} show={showValidationBanner} />
                 {formError && (
                   <Alert severity="error" sx={{ mb: 2 }} onClose={() => setFormError(null)}>
                     {formError}

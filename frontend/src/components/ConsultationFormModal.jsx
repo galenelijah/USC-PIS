@@ -19,8 +19,11 @@ import { consultationService, patientService } from '../services/api';
 import { extractErrorMessage } from '../utils/errorUtils';
 import logger from '../utils/logger';
 
+import ValidationBanner from './common/ValidationBanner';
+
 const ConsultationFormModal = ({ open, onClose, consultationData, onSave, readOnly = false }) => {
   const [formError, setFormError] = useState(null);
+  const [showValidationBanner, setShowValidationBanner] = useState(false);
   const {
     control,
     handleSubmit,
@@ -102,8 +105,9 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave, readOn
       <DialogTitle>
         {readOnly ? 'View Consultation' : (isEditMode ? 'Edit Consultation' : 'Add New Consultation')}
       </DialogTitle>
-      <form onSubmit={handleSubmit(onSubmitForm)} noValidate>
+      <form onSubmit={handleSubmit(onSubmitForm, () => setShowValidationBanner(true))} noValidate>
         <DialogContent>
+          <ValidationBanner errors={errors} show={showValidationBanner} />
           {formError && (
             <Box sx={{ mb: 2 }}>
               <Alert severity="error" onClose={() => setFormError(null)}>

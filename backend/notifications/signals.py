@@ -12,7 +12,7 @@ from .services import NotificationService, NotificationTemplateService
 
 @receiver(post_save, sender=User)
 def handle_user_updates(sender, instance, created, **kwargs):
-    """Create preferences for new users and notify on profile completion"""
+    """Create preferences for new users and notify on profile completion/security updates"""
     if created:
         NotificationPreference.objects.get_or_create(
             user=instance,
@@ -31,18 +31,84 @@ def handle_user_updates(sender, instance, created, **kwargs):
             }
         )
     else:
-        # Notify user when their profile is updated
-        # We use a silent flag in metadata to prevent recursion if needed, 
-        # but create_notification doesn't trigger User save.
+        # Check if password was changed (handled by check_password or raw update)
+        # For simplicity, we trigger on profile update, but we can detect critical mutations
+        # We use a lower priority for generic profile updates
         NotificationService.create_notification(
             recipient=instance,
             notification_type='SYSTEM_ALERT',
-            title="Profile Updated",
-            message="Your account profile has been successfully updated.",
-            priority='LOW',
+            title="Account Information Updated",
+            message="Your account profile or security settings have been successfully updated.",
+            priority='MEDIUM',
             delivery_method='IN_APP',
             metadata={'action': 'profile_update'}
         )
+
+@receiver(post_save, sender=MedicalCertificate)
+def medical_certificate_notification_central(sender, instance, created, **kwargs):
+    """
+    Centralized notifications for Medical Certificates.
+    Notifies students on issuance/rejection and doctors on pending requests.
+    """
+    if created:
+        # Notify patient when certificate is created (In-App only for draft/pending)
+        if instance.patient.user:
+            NotificationService.create_notification(
+                recipient=instance.patient.user,
+                title="Medical Certificate Created",
+                message=f"A new medical certificate record has been created for you by {instance.created_by.get_full_name()}.",
+                notification_type="MEDICAL_CERTIFICATE",
+                delivery_method='IN_APP',
+                metadata={'certificate_id': instance.id},
+                patient=instance.patient
+            )
+            
+    # Handle status-specific notifications
+    if instance.issuance_status == 'issued' and instance.issuing_doctor:
+        if instance.patient.user:
+            # Check for duplicate issuance notifications
+            from .models import Notification
+            if not Notification.objects.filter(recipient=instance.patient.user, title="Medical Certificate Issued", metadata__certificate_id=instance.id).exists():
+                NotificationService.create_notification(
+                    recipient=instance.patient.user,
+                    title="Medical Certificate Issued",
+                    message=f"Your medical certificate is ready! Issued by {instance.issuing_doctor.get_full_name()}. It can now be claimed at the clinic or viewed in your health records.",
+                    notification_type="MEDICAL_CERTIFICATE",
+                    delivery_method='BOTH', # Push to email as well for issuance
+                    priority='HIGH',
+                    metadata={'certificate_id': instance.id},
+                    action_url='/health-insights',
+                    action_text='View Certificate',
+                    patient=instance.patient
+                )
+    elif instance.issuance_status == 'rejected' and instance.issuing_doctor:
+        if instance.patient.user:
+            NotificationService.create_notification(
+                recipient=instance.patient.user,
+                title="Medical Certificate Rejected",
+                message=f"Your medical certificate request has been rejected by {instance.issuing_doctor.get_full_name()}. Please contact the clinic for details.",
+                notification_type="MEDICAL_CERTIFICATE",
+                delivery_method='IN_APP',
+                priority='MEDIUM',
+                metadata={'certificate_id': instance.id},
+                patient=instance.patient
+            )
+    elif instance.issuance_status == 'pending':
+        # Notify doctors/staff when certificate is pending issuance
+        doctors = User.objects.filter(role__in=['DOCTOR', 'ADMIN', 'NURSE']).exclude(id=instance.created_by_id)
+        for doctor in doctors:
+            NotificationService.create_notification(
+                recipient=doctor,
+                title="Certificate Pending Issuance",
+                message=f"A medical certificate for {instance.patient.get_full_name()} requires review.",
+                notification_type="MEDICAL_CERTIFICATE",
+                delivery_method='IN_APP',
+                priority='MEDIUM',
+                metadata={'certificate_id': instance.id},
+                action_url='/medical-certificates',
+                action_text='Review',
+                patient=instance.patient
+            )
 
 @receiver(post_save, sender=MedicalRecord)
 def medical_record_notification(sender, instance, created, **kwargs):
