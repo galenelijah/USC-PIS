@@ -1,48 +1,43 @@
-# Session Summary - May 28, 2026
+# Session Summary - May 28, 2026 (COMPREHENSIVE FINAL)
 
-## 1. Health Insights Pagination & UX
-- **Global Pagination Strategy:** Implemented client-side pagination across the `MedicalHistoryPage.jsx` component.
-- **Independent Tab States:** Added separate page and rows-per-page states for the **Unified History** (timeline) and **Document Archive** (table) tabs to maintain user context during navigation.
-- **Search & Filter Reset:** Enhanced the `filterRecords` logic to automatically reset pagination to the first page whenever search terms, patient filters, or date ranges are adjusted.
-- **Performance Optimization:** Refactored document filtering to use a dedicated `filteredDocuments` state, reducing redundant calculations during the render cycle.
+## 1. Health Insights & Document Management
+- **Independent Pagination:** Implemented dual-tab `TablePagination` for the `/health-insights` page, allowing independent navigation for the **Unified History** timeline and **Document Archive**.
+- **Centralized Search logic:** Updated `filterRecords` to automatically reset pagination to the first page when search terms or date filters change, preventing "empty page" states.
+- **Performance:** Optimized document rendering by moving filtering logic to a dedicated `filteredDocuments` state.
 
-## 2. Automated Clinical Risk Alerts (Vitals 2.0)
-- **Real-time Assessment:** Implemented automated vitals monitoring within the `MedicalRecord` model's save process.
-- **Smart Alerting:** The system now autonomously evaluates physiological data and flags risks:
-    - **Fever Detection:** Flags Temperatures ≥ 37.5°C (Warning) and ≥ 38.0°C (Critical).
-    - **Hypertension Gating:** Automatically detects Stage 1 (≥ 130/80) and Stage 2 (≥ 140/90) Hypertension.
-    - **Cardiac Monitoring:** Identifies Tachycardia (> 100 bpm) and Bradycardia (< 50 bpm).
-- **Visual Risk Indicators:** Added dynamic "Vitals (Alerts Found)" chips to the patient timeline and detailed alert banners within the expanded record view.
+## 2. Automated Clinical Intelligence (Vitals 2.0)
+- **Real-time Risk Alerts:** Implemented automated vitals monitoring within the `MedicalRecord` model.
+- **Smart Flagging:** The system now autonomously detects and visually highlights:
+    - **Fever:** Temperatures ≥ 37.5°C (Warning) and ≥ 38.0°C (Critical).
+    - **Hypertension:** Stage 1 (≥ 130/80) and Stage 2 (≥ 140/90).
+    - **Cardiac Risks:** Tachycardia (> 100 bpm) and Bradycardia (< 50 bpm).
+- **UI Feedback:** Added dynamic "AlertFound" chips and detailed risk banners in the patient history.
 
-## 3. Dental Scope Simplification & Optimization
-- **Dental Scope Simplification & Optimization:** 
-    - Refactored the Dental module to focus strictly on **Consultations and Referrals**, reflecting the actual clinical scope of the USC clinic.
-    - **Institutional Alignment:** Re-introduced critical clinical exam fields from the official USC Dental Form (DentalAndMedicalForms.pdf), including **Periodontal Screening**, **Occlusion Assessment**, **TMD Assessment**, and **Soft Tissue Exam**.
-    - Simplified the `Dental.jsx` component by removing the multi-tab interface (Basic/Clinical/Treatment) in favor of a clean, single-view form.
-    - Removed over 10 redundant fields, including oral hygiene status, gum condition, anesthesia types, materials used, and insurance billing.
-    - Streamlined the "Findings / Diagnosis" and "Referral" workflow to prioritize speed and clinical accuracy.
-- **Backend Hardening:** Updated `DentalRecord` procedure choices and adjusted model validators to support the simplified scope.
+## 3. Institutional Dental Alignment
+- **Scope Optimization:** Refactored the Dental module to focus strictly on **Consultations and Referrals**, matching the USC clinic's operational scope.
+- **Official Field Integration:** Re-introduced critical examination fields from the official USC Dental Form (ACA-HSD-04F):
+    - **Periodontal Screening**
+    - **Occlusion Assessment**
+    - **TMD Assessment**
+    - **Soft Tissue Exam**
+- **UX Simplification:** Collapsed the complex multi-tab dental form into a single, high-speed clinical entry view.
 
-## 4. Global Notification & Alert Loop
-- **Backend Trigger System:** Implemented Django `post_save` signals in the `notifications` app to automatically log in-app alerts whenever a Medical Record, Dental Record, or Consultation is created/updated.
-- **Axios Feedback Interceptor:** Enhanced the global API interceptor in `api.js` to provide immediate visual feedback:
-    - **Success Toasts:** Successful mutations (POST/PUT/DELETE) now trigger a green "Changes saved successfully" snackbar.
-    - **Validation Feedback:** Capture HTTP 400 errors to instantly render detailed validation warnings in yellow alert banners.
-- **State Synchronicity:** The system now provides a real-time "heartbeat" for all user actions, ensuring users are never left wondering if their data was saved.
+## 4. Global Communication & Feedback Loop
+- **Instant Toast Overlays:** Integrated global Material-UI `Snackbar` system with Axios interceptors.
+- **Behavioral Cues:**
+    - **Success:** Green alerts for all successful data mutations (Saves/Updates/Deletes).
+    - **Validation:** Instant yellow warnings for HTTP 400 errors, surfacing specific backend reasons.
+- **Automated Alerts:** Added Django signals to log in-app notifications whenever clinical records are modified, ensuring patients are informed of updates.
 
-## 5. Rigid Date-Trapping Logic
-- **Defense-in-Depth Strategy:** Implemented multi-layer date validation to ensure no future dates are recorded for clinical or profile data.
-- **Backend Hardening:** Added `validate_birthday` and `validate_visit_date` hooks to all relevant DRF serializers to act as the final source of truth.
-- **Timezone Correction (Bug Fix):** Refactored date comparisons to use `timezone.localtime(timezone.now()).date()` instead of UTC-based `now()`. This ensures that users in the Philippines (UTC+8) do not receive false "future date" errors during early morning hours.
-- **Frontend UI Locking:** Applied `disableFuture` and `maxDate` properties to all Material-UI `DatePicker` components, visually greying out and locking future calendar grids across Profile Setup, Medical, and Dental views.
+## 5. Temporal Precision & Date Trapping (Bug Fixes)
+- **Defense-in-Depth Date Trapping:** Multi-layer validation (DRF Serializers + MUI DatePickers) prevents future dates for birthdays and logs.
+- **Timezone-Aware Validation:** Fixed a critical bug where PHST (UTC+8) users were flagged for "future dates" in the early morning. Used `timezone.localtime()` for all comparisons.
+- **Clock Drift Leeway:** Added 1-60 second backend leeway to account for minor client/server clock drift, eliminating "rounding error" rejections.
+- **1-Minute Precision:** Upgraded all `DateTimePicker` components to support 1-minute steps (`minutesStep={1}`), replacing the default 5-minute increments.
 
-## 6. Documentation & System Status
-- **Documentation Refresh:** Updated all core system documentation to reflect the May 28, 2026 status.
-- **System Synchronization:** Updated the Comprehensive Status Report and Current System Status to include the new Clinical Risk Alert engine, Notification Loop, and Date Trapping logic.
-
-## Next Steps
-- Finalize the SQA Audit verification for the new Vitals Alerting logic.
-- Prepare the system handover documentation for the clinical staff, highlighting the simplified dental interface.
+## 6. System Verification
+- **Testing:** Verified that all `patients.test_models` pass with the new validation logic and field structures.
+- **Migrations:** Applied and verified database migrations for the new institutional dental fields.
 
 **Generated by:** Gemini CLI
-**Date:** May 28, 2026
+**Date:** May 28, 2026 (Clinical Automation Refresh)

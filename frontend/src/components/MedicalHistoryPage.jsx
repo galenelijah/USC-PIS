@@ -30,7 +30,8 @@ import {
   Collapse,
   IconButton,
   LinearProgress,
-  TablePagination
+  TablePagination,
+  MenuItem
 } from '@mui/material';
 import InfoTooltip from './utils/InfoTooltip';
 import {
@@ -140,10 +141,25 @@ const MedicalHistoryPage = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPatient, setSelectedPatient] = useState(null);
+  const [selectedRecordType, setSelectedRecordType] = useState('ALL');
+  
+  // Document Archive Filter States
+  const [docSearchTerm, setDocSearchTerm] = useState('');
+  const [docRecordType, setDocRecordType] = useState('ALL');
+  const [docStartDate, setDocStartDate] = useState(null);
+  const [docEndDate, setDocEndDate] = useState(null);
+
+  // Health Insights Filter States
+  const [insightsSearchTerm, setInsightsSearchTerm] = useState('');
+  const [insightsRecordType, setInsightsRecordType] = useState('ALL');
+  const [insightsStartDate, setInsightsStartDate] = useState(null);
+  const [insightsEndDate, setInsightsEndDate] = useState(null);
+  
   const [tabValue, setTabValue] = useState(0);
   const [expandedRecord, setExpandedRecord] = useState(null);
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
+  const [filteredInsightsRecords, setFilteredInsightsRecords] = useState([]);
   const [showAllergyAlert, setShowAllergyAlert] = useState(false);
   
   // Pagination state
@@ -182,8 +198,16 @@ const MedicalHistoryPage = () => {
   }, []);
 
   useEffect(() => {
-    filterRecords();
-  }, [searchTerm, records, documents, selectedPatient, tabValue, startDate, endDate]);
+    filterHistoryRecords();
+  }, [searchTerm, records, selectedPatient, startDate, endDate, selectedRecordType]);
+
+  useEffect(() => {
+    filterDocRecords();
+  }, [docSearchTerm, documents, selectedPatient, docStartDate, docEndDate, docRecordType]);
+
+  useEffect(() => {
+    filterInsightsRecords();
+  }, [insightsSearchTerm, records, selectedPatient, insightsStartDate, insightsEndDate, insightsRecordType]);
 
   const fetchRecords = async () => {
     setLoading(true);
@@ -307,12 +331,16 @@ const MedicalHistoryPage = () => {
     }
   };
 
-  const filterRecords = () => {
-    // Reset pages when filters change
+  const filterHistoryRecords = () => {
+    // Reset page when filters change
     setHistoryPage(0);
-    setDocsPage(0);
 
     let filtered = records;
+
+    // Filter by record type
+    if (selectedRecordType !== 'ALL') {
+      filtered = filtered.filter(record => record.record_type === selectedRecordType);
+    }
 
     // Filter by selected patient (for staff/medical)
     if (selectedPatient) {
@@ -357,16 +385,27 @@ const MedicalHistoryPage = () => {
       );
     }
 
-    // Health Insights tab shows all records (medical + dental)
-
-    // Sort by date (newest first) without mutating original state
+    // Sort by date (newest first)
     filtered = [...filtered].sort((a, b) => new Date(b.visit_date) - new Date(a.visit_date));
 
     setFilteredRecords(filtered);
+  };
 
-    // Filter documents similarly
+  const filterDocRecords = () => {
+    // Reset page when filters change
+    setDocsPage(0);
+
     let filteredDocs = Array.isArray(documents) ? documents : [];
     
+    // Filter by record type
+    if (docRecordType !== 'ALL') {
+      filteredDocs = filteredDocs.filter(doc => {
+        if (docRecordType === 'MEDICAL') return !!doc.medical_record;
+        if (docRecordType === 'DENTAL') return !!doc.dental_record;
+        return true;
+      });
+    }
+
     if (selectedPatient) {
       filteredDocs = filteredDocs.filter(doc => {
         const patientId = doc.patient?.id || doc.patient;
@@ -374,8 +413,8 @@ const MedicalHistoryPage = () => {
       });
     }
 
-    if (searchTerm.trim() !== '') {
-      const lowerSearch = searchTerm.toLowerCase();
+    if (docSearchTerm.trim() !== '') {
+      const lowerSearch = docSearchTerm.toLowerCase();
       filteredDocs = filteredDocs.filter(doc => 
         (doc.patient_name || '').toLowerCase().includes(lowerSearch) ||
         (doc.document_type_display || '').toLowerCase().includes(lowerSearch) ||
@@ -384,18 +423,66 @@ const MedicalHistoryPage = () => {
       );
     }
 
-    if (startDate) {
+    if (docStartDate) {
       filteredDocs = filteredDocs.filter(doc => 
-        dayjs(doc.uploaded_at).isAfter(dayjs(startDate).subtract(1, 'day'))
+        dayjs(doc.uploaded_at).isAfter(dayjs(docStartDate).subtract(1, 'day'))
       );
     }
-    if (endDate) {
+    if (docEndDate) {
       filteredDocs = filteredDocs.filter(doc => 
-        dayjs(doc.uploaded_at).isBefore(dayjs(endDate).add(1, 'day'))
+        dayjs(doc.uploaded_at).isBefore(dayjs(docEndDate).add(1, 'day'))
       );
     }
 
     setFilteredDocuments(filteredDocs);
+  };
+
+  const filterInsightsRecords = () => {
+    let filtered = records;
+
+    // Filter by record type
+    if (insightsRecordType !== 'ALL') {
+      filtered = filtered.filter(record => record.record_type === insightsRecordType);
+    }
+
+    // Filter by selected patient (for staff/medical)
+    if (selectedPatient) {
+      filtered = filtered.filter(record => {
+        const patientId = record.patient?.id || record.patient;
+        return String(patientId) === String(selectedPatient.id);
+      });
+    }
+
+    // Filter by search term
+    if (insightsSearchTerm.trim() !== '') {
+      const lowerSearch = insightsSearchTerm.toLowerCase();
+      filtered = filtered.filter(record => {
+        return (record.patient_name || '').toLowerCase().includes(lowerSearch) ||
+          (record.diagnosis || '').toLowerCase().includes(lowerSearch) ||
+          (record.treatment || '').toLowerCase().includes(lowerSearch) ||
+          (record.chief_complaint || '').toLowerCase().includes(lowerSearch) ||
+          (record.medications || '').toLowerCase().includes(lowerSearch) ||
+          (record.procedure_performed || '').toLowerCase().includes(lowerSearch) ||
+          (record.notes || '').toLowerCase().includes(lowerSearch);
+      });
+    }
+
+    // Filter by date range
+    if (insightsStartDate) {
+      filtered = filtered.filter(record => 
+        dayjs(record.visit_date).isAfter(dayjs(insightsStartDate).subtract(1, 'day'))
+      );
+    }
+    if (insightsEndDate) {
+      filtered = filtered.filter(record => 
+        dayjs(record.visit_date).isBefore(dayjs(insightsEndDate).add(1, 'day'))
+      );
+    }
+
+    // Sort by date (newest first)
+    filtered = [...filtered].sort((a, b) => new Date(b.visit_date) - new Date(a.visit_date));
+
+    setFilteredInsightsRecords(filtered);
   };
 
   const handleTabChange = (event, newValue) => {
@@ -525,10 +612,14 @@ const MedicalHistoryPage = () => {
 
   // Check for allergies in selected patient's records
   const checkForAllergies = () => {
-    if (!selectedPatient || !filteredRecords.length) return [];
+    if (!selectedPatient || !records.length) return [];
     
     const allergies = [];
-    filteredRecords.forEach(record => {
+    records.forEach(record => {
+      // Ensure we only check records for the selected patient
+      const patientId = record.patient?.id || record.patient;
+      if (String(patientId) !== String(selectedPatient.id)) return;
+
       if (record.notes?.toLowerCase().includes('allerg') || 
           record.diagnosis?.toLowerCase().includes('allerg') ||
           record.medications?.toLowerCase().includes('allerg')) {
@@ -543,183 +634,257 @@ const MedicalHistoryPage = () => {
   };
 
   const renderHealthInsights = () => {
-    if (filteredRecords.length === 0) {
-      return (
-        <Box sx={{ textAlign: 'center', py: 4 }}>
-          <Typography variant="h6" color="text.secondary">
-            No health data available
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Health insights will appear here once you have medical records.
-          </Typography>
-        </Box>
-      );
-    }
-
-    const insights = generateHealthInsights();
-
     return (
       <Box>
-        <Typography variant="h5" gutterBottom fontWeight="bold" color="primary">
-          Your Health Insights
-        </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-          Personalized insights based on your medical history to help you understand your health better.
-        </Typography>
+        {/* Insights Specific Search and Filters */}
+        <Card elevation={2} sx={{ mb: 4 }}>
+          <CardContent>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={3}>
+                <TextField
+                  fullWidth
+                  label="Filter insights"
+                  variant="outlined"
+                  size="small"
+                  value={insightsSearchTerm}
+                  onChange={(e) => setInsightsSearchTerm(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
+                  }}
+                  placeholder="Filter by diagnosis..."
+                />
+              </Grid>
 
-        <Grid container spacing={3}>
-          {/* Health Summary */}
-          <Grid item xs={12} md={6}>
-            <Card elevation={2} sx={{ height: 'fit-content' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom color="primary">
-                  📊 Health Summary
-                </Typography>
-                <List dense>
-                  <ListItem>
-                    <ListItemIcon><CalendarIcon color="primary" /></ListItemIcon>
-                    <ListItemText 
-                      primary="Total Visits" 
-                      secondary={`${insights.totalVisits} medical records`}
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemIcon><MedicalIcon color="primary" /></ListItemIcon>
-                    <ListItemText 
-                      primary="Last Visit" 
-                      secondary={insights.lastVisit || 'No recent visits'}
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemIcon><TimelineIcon color="primary" /></ListItemIcon>
-                    <ListItemText 
-                      primary="Health Trend" 
-                      secondary={insights.trend}
-                    />
-                  </ListItem>
-                </List>
-              </CardContent>
-            </Card>
-          </Grid>
+              <Grid item xs={12} md={2}>
+                <TextField
+                  select
+                  fullWidth
+                  label="Data Source"
+                  value={insightsRecordType}
+                  onChange={(e) => setInsightsRecordType(e.target.value)}
+                  variant="outlined"
+                  size="small"
+                >
+                  <MenuItem value="ALL">All Records</MenuItem>
+                  <MenuItem value="MEDICAL">Medical Only</MenuItem>
+                  <MenuItem value="DENTAL">Dental Only</MenuItem>
+                </TextField>
+              </Grid>
 
-          {/* Common Conditions */}
-          <Grid item xs={12} md={6}>
-            <Card elevation={2} sx={{ height: 'fit-content' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom color="primary">
-                  🏥 Health Patterns
-                </Typography>
-                {insights.commonConditions.length > 0 ? (
-                  <Box>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Most frequently addressed conditions:
-                    </Typography>
-                    <Stack spacing={1}>
-                      {insights.commonConditions.map((condition, index) => (
-                        <Chip 
-                          key={index}
-                          label={`${condition.condition} (${condition.count} times)`}
-                          color="primary"
-                          variant="outlined"
-                          size="small"
-                        />
-                      ))}
-                    </Stack>
+              <Grid item xs={12} md={4}>
+                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    <DatePicker
+                      label="From"
+                      value={insightsStartDate}
+                      onChange={setInsightsStartDate}
+                      slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                      disableFuture
+                    />
+                    <DatePicker
+                      label="To"
+                      value={insightsEndDate}
+                      onChange={setInsightsEndDate}
+                      slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                      disableFuture
+                    />
+                    {(insightsStartDate || insightsEndDate) && (
+                      <IconButton onClick={() => { setInsightsStartDate(null); setInsightsEndDate(null); }} size="small">
+                        <ClearIcon />
+                      </IconButton>
+                    )}
                   </Box>
-                ) : (
-                  <Typography variant="body2" color="text.secondary">
-                    No recurring conditions identified.
+                </LocalizationProvider>
+              </Grid>
+              
+              <Grid item xs={12} md={3}>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', height: '100%' }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Analyzing {filteredInsightsRecords.length} records
                   </Typography>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Health Recommendations */}
-          <Grid item xs={12}>
-            <Card elevation={2}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom color="primary">
-                  💡 Personalized Recommendations
-                </Typography>
-                <Grid container spacing={2}>
-                  {insights.recommendations.map((rec, index) => (
-                    <Grid item xs={12} md={6} key={index}>
-                      <Alert severity={rec.type} sx={{ borderRadius: 2 }}>
-                        <Typography variant="body2" fontWeight="medium">
-                          {rec.title}
-                        </Typography>
-                        <Typography variant="body2">
-                          {rec.description}
-                        </Typography>
-                      </Alert>
-                    </Grid>
-                  ))}
-                </Grid>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Health Timeline Chart */}
-          <Grid item xs={12}>
-            <Card elevation={2}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom color="primary">
-                  📈 Visit Frequency
-                </Typography>
-                <Box sx={{ mt: 2 }}>
-                  {insights.monthlyVisits.map((month, index) => (
-                    <Box key={index} sx={{ mb: 2 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                        <Typography variant="body2">{month.month}</Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {month.visits} visit{month.visits !== 1 ? 's' : ''}
-                        </Typography>
-                      </Box>
-                      <LinearProgress
-                        variant="determinate"
-                        value={(month.visits / Math.max(...insights.monthlyVisits.map(m => m.visits))) * 100}
-                        sx={{
-                          height: 6,
-                          borderRadius: 3,
-                          backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                          '& .MuiLinearProgress-bar': {
-                            backgroundColor: '#667eea',
-                            borderRadius: 3,
-                          }
-                        }}
-                      />
-                    </Box>
-                  ))}
                 </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+
+        {filteredInsightsRecords.length === 0 ? (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography variant="h6" color="text.secondary">
+              No health data available for the selected filters
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Adjust your filters to see insights based on your medical history.
+            </Typography>
+          </Box>
+        ) : (
+          <>
+            <Typography variant="h5" gutterBottom fontWeight="bold" color="primary">
+              Your Health Insights
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+              Personalized insights based on your medical history to help you understand your health better.
+            </Typography>
+
+            <Grid container spacing={3}>
+              {/* Health Summary */}
+              <Grid item xs={12} md={6}>
+                <Card elevation={2} sx={{ height: 'fit-content' }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom color="primary">
+                      📊 Health Summary
+                    </Typography>
+                    <List dense>
+                      <ListItem>
+                        <ListItemIcon><CalendarIcon color="primary" /></ListItemIcon>
+                        <ListItemText 
+                          primary="Total Visits" 
+                          secondary={`${generateHealthInsights(filteredInsightsRecords).totalVisits} medical records`}
+                        />
+                      </ListItem>
+                      <ListItem>
+                        <ListItemIcon><MedicalIcon color="primary" /></ListItemIcon>
+                        <ListItemText 
+                          primary="Last Visit" 
+                          secondary={generateHealthInsights(filteredInsightsRecords).lastVisit || 'No recent visits'}
+                        />
+                      </ListItem>
+                      <ListItem>
+                        <ListItemIcon><TimelineIcon color="primary" /></ListItemIcon>
+                        <ListItemText 
+                          primary="Health Trend" 
+                          secondary={generateHealthInsights(filteredInsightsRecords).trend}
+                        />
+                      </ListItem>
+                    </List>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Common Conditions */}
+              <Grid item xs={12} md={6}>
+                <Card elevation={2} sx={{ height: 'fit-content' }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom color="primary">
+                      🏥 Health Patterns
+                    </Typography>
+                    {generateHealthInsights(filteredInsightsRecords).commonConditions.length > 0 ? (
+                      <Box>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Most frequently addressed conditions:
+                        </Typography>
+                        <Stack spacing={1}>
+                          {generateHealthInsights(filteredInsightsRecords).commonConditions.map((condition, index) => (
+                            <Chip 
+                              key={index}
+                              label={`${condition.condition} (${condition.count} times)`}
+                              color="primary"
+                              variant="outlined"
+                              size="small"
+                            />
+                          ))}
+                        </Stack>
+                      </Box>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        No recurring conditions identified.
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Health Recommendations */}
+              <Grid item xs={12}>
+                <Card elevation={2}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom color="primary">
+                      💡 Personalized Recommendations
+                    </Typography>
+                    <Grid container spacing={2}>
+                      {generateHealthInsights(filteredInsightsRecords).recommendations.map((rec, index) => (
+                        <Grid item xs={12} md={6} key={index}>
+                          <Alert severity={rec.type} sx={{ borderRadius: 2 }}>
+                            <Typography variant="body2" fontWeight="medium">
+                              {rec.title}
+                            </Typography>
+                            <Typography variant="body2">
+                              {rec.description}
+                            </Typography>
+                          </Alert>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Health Timeline Chart */}
+              <Grid item xs={12}>
+                <Card elevation={2}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom color="primary">
+                      📈 Visit Frequency
+                    </Typography>
+                    <Box sx={{ mt: 2 }}>
+                      {generateHealthInsights(filteredInsightsRecords).monthlyVisits.map((month, index) => (
+                        <Box key={index} sx={{ mb: 2 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography variant="body2">{month.month}</Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {month.visits} visit{month.visits !== 1 ? 's' : ''}
+                            </Typography>
+                          </Box>
+                          <LinearProgress
+                            variant="determinate"
+                            value={(month.visits / Math.max(...generateHealthInsights(filteredInsightsRecords).monthlyVisits.map(m => m.visits))) * 100}
+                            sx={{
+                              height: 6,
+                              borderRadius: 3,
+                              backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                              '& .MuiLinearProgress-bar': {
+                                backgroundColor: '#667eea',
+                                borderRadius: 3,
+                              }
+                            }}
+                          />
+                        </Box>
+                      ))}
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          </>
+        )}
       </Box>
     );
   };
 
-  const generateHealthInsights = () => {
+  const generateHealthInsights = (data = []) => {
     const insights = {
-      totalVisits: filteredRecords.length,
-      lastVisit: filteredRecords.length > 0 ? formatDate(filteredRecords[0].visit_date).formatted : null,
-      trend: getTrend(),
-      commonConditions: getCommonConditions(),
-      recommendations: getRecommendations(),
-      monthlyVisits: getMonthlyVisits()
+      totalVisits: data.length,
+      lastVisit: data.length > 0 ? formatDate(data[0].visit_date).formatted : null,
+      trend: getTrend(data),
+      commonConditions: getCommonConditions(data),
+      recommendations: getRecommendations(data),
+      monthlyVisits: getMonthlyVisits(data)
     };
     return insights;
   };
 
-  const getTrend = () => {
-    if (filteredRecords.length < 2) return 'Insufficient data for trend analysis';
+  const getTrend = (data = []) => {
+    if (data.length < 2) return 'Insufficient data for trend analysis';
     
-    const recentVisits = filteredRecords.filter(r => 
+    const recentVisits = data.filter(r => 
       dayjs(r.visit_date).isAfter(dayjs().subtract(6, 'month'))
     ).length;
     
-    const olderVisits = filteredRecords.filter(r => 
+    const olderVisits = data.filter(r => 
       dayjs(r.visit_date).isBetween(dayjs().subtract(12, 'month'), dayjs().subtract(6, 'month'))
     ).length;
     
@@ -732,9 +897,9 @@ const MedicalHistoryPage = () => {
     }
   };
 
-  const getCommonConditions = () => {
+  const getCommonConditions = (data = []) => {
     const conditions = {};
-    filteredRecords.forEach(record => {
+    data.forEach(record => {
       if (record.diagnosis) {
         conditions[record.diagnosis] = (conditions[record.diagnosis] || 0) + 1;
       }
@@ -747,7 +912,7 @@ const MedicalHistoryPage = () => {
       .map(([condition, count]) => ({ condition, count }));
   };
 
-  const getRecommendations = () => {
+  const getRecommendations = (data = []) => {
     const recommendations = [
       {
         type: 'info',
@@ -757,7 +922,7 @@ const MedicalHistoryPage = () => {
     ];
 
     // Add specific recommendations based on conditions
-    const hasRecentVisits = filteredRecords.some(r => 
+    const hasRecentVisits = data.some(r => 
       dayjs(r.visit_date).isAfter(dayjs().subtract(3, 'month'))
     );
     
@@ -769,7 +934,7 @@ const MedicalHistoryPage = () => {
       });
     }
 
-    const commonDiagnoses = getCommonConditions();
+    const commonDiagnoses = getCommonConditions(data);
     if (commonDiagnoses.length > 0) {
       recommendations.push({
         type: 'info',
@@ -778,7 +943,7 @@ const MedicalHistoryPage = () => {
       });
     }
 
-    if (filteredRecords.length >= 5) {
+    if (data.length >= 5) {
       recommendations.push({
         type: 'success',
         title: 'Good Health Monitoring',
@@ -789,9 +954,9 @@ const MedicalHistoryPage = () => {
     return recommendations;
   };
 
-  const getMonthlyVisits = () => {
+  const getMonthlyVisits = (data = []) => {
     const months = {};
-    filteredRecords.forEach(record => {
+    data.forEach(record => {
       const month = dayjs(record.visit_date).format('MMM YYYY');
       months[month] = (months[month] || 0) + 1;
     });
@@ -1344,172 +1509,6 @@ const MedicalHistoryPage = () => {
         </Box>
       )}
 
-      {/* Search and Filters */}
-      <Card elevation={2} sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom color="primary">
-            🔍 Search & Filters
-          </Typography>
-          <Grid container spacing={2}>
-            {/* Search Box */}
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label="Search medical records"
-                variant="outlined"
-                size="small"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
-                }}
-                placeholder="Search by diagnosis, treatment, medications..."
-              />
-            </Grid>
-            
-            {/* Date Range Filters */}
-            <Grid item xs={12} md={4}>
-              <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexDirection: { xs: 'column', sm: 'row' } }}>
-                  <DatePicker
-                    label="From Date"
-                    value={startDate}
-                    onChange={setStartDate}
-                    slotProps={{
-                      textField: {
-                        size: 'small',
-                        fullWidth: true,
-                        InputLabelProps: { shrink: true }
-                      }
-                    }}
-                    maxDate={endDate || dayjs()}
-                    disableFuture
-                  />
-                  <DatePicker
-                    label="To Date"
-                    value={endDate}
-                    onChange={setEndDate}
-                    slotProps={{
-                      textField: {
-                        size: 'small',
-                        fullWidth: true,
-                        InputLabelProps: { shrink: true }
-                      }
-                    }}
-                    minDate={startDate}
-                    maxDate={dayjs()}
-                    disableFuture
-                  />
-                  {(startDate || endDate) && (
-                    <IconButton onClick={clearDateFilters} size="small" title="Clear dates" sx={{ alignSelf: { xs: 'flex-end', sm: 'center' } }}>
-                      <ClearIcon />
-                    </IconButton>
-                  )}
-                </Box>
-              </LocalizationProvider>
-            </Grid>
-            
-            {/* Action Buttons */}
-            <Grid item xs={12} md={4}>
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', justifyContent: { xs: 'flex-start', md: 'flex-end' }, height: '100%' }}>
-                {isStaffOrMedical && (
-                  <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    size="small"
-                    onClick={() => window.open('/health-records', '_blank')}
-                    sx={{
-                      background: 'linear-gradient(45deg, #667eea 30%, #764ba2 90%)',
-                      '&:hover': {
-                        background: 'linear-gradient(45deg, #5a6fd8 30%, #6a4190 90%)',
-                      }
-                    }}
-                  >
-                    New Record
-                  </Button>
-                )}
-                <Button
-                  variant="outlined"
-                  startIcon={<CertificateIcon />}
-                  size="small"
-                  disabled={filteredRecords.length === 0}
-                  onClick={() => window.open('/medical-certificates', '_blank')}
-                >
-                  Certificate
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<PrintIcon />}
-                  size="small"
-                  disabled={filteredRecords.length === 0}
-                  onClick={handlePrintRecords}
-                >
-                  Print
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<ExportIcon />}
-                  size="small"
-                  disabled={filteredRecords.length === 0}
-                  onClick={handleExportRecords}
-                >
-                  Export
-                </Button>
-              </Box>
-            </Grid>
-          </Grid>
-          
-          {/* Active Filters Display */}
-          {(searchTerm || selectedPatient || startDate || endDate) && (
-            <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: 'divider' }}>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Active filters:
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                {searchTerm && (
-                  <Chip 
-                    label={`Search: "${searchTerm}"`} 
-                    onDelete={() => setSearchTerm('')} 
-                    size="small" 
-                    color="primary"
-                    variant="outlined"
-                  />
-                )}
-                {selectedPatient && (
-                  <Chip 
-                    label={`Patient: ${selectedPatient.first_name} ${selectedPatient.last_name}`} 
-                    onDelete={() => setSelectedPatient(null)} 
-                    size="small" 
-                    color="secondary"
-                    variant="outlined"
-                  />
-                )}
-                {startDate && (
-                  <Chip 
-                    label={`From: ${dayjs(startDate).format('MMM DD, YYYY')}`} 
-                    onDelete={() => setStartDate(null)} 
-                    size="small" 
-                    variant="outlined"
-                  />
-                )}
-                {endDate && (
-                  <Chip 
-                    label={`To: ${dayjs(endDate).format('MMM DD, YYYY')}`} 
-                    onDelete={() => setEndDate(null)} 
-                    size="small" 
-                    variant="outlined"
-                  />
-                )}
-              </Box>
-            </Box>
-          )}
-        </CardContent>
-      </Card>
-
       {/* Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="medical history tabs">
@@ -1527,6 +1526,136 @@ const MedicalHistoryPage = () => {
       ) : (
         <>
           <TabPanel value={tabValue} index={0}>
+            {/* Tab-Specific Search and Filters */}
+            <Card elevation={2} sx={{ mb: 3 }}>
+              <CardContent>
+                <Grid container spacing={2}>
+                  {/* Search Box */}
+                  <Grid item xs={12} md={3}>
+                    <TextField
+                      fullWidth
+                      label="Search history"
+                      variant="outlined"
+                      size="small"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <SearchIcon />
+                          </InputAdornment>
+                        ),
+                      }}
+                      placeholder="Search records..."
+                    />
+                  </Grid>
+
+                  {/* Record Type Filter */}
+                  <Grid item xs={12} md={2}>
+                    <TextField
+                      select
+                      fullWidth
+                      label="Record Type"
+                      value={selectedRecordType}
+                      onChange={(e) => setSelectedRecordType(e.target.value)}
+                      variant="outlined"
+                      size="small"
+                    >
+                      <MenuItem value="ALL">All Records</MenuItem>
+                      <MenuItem value="MEDICAL">Medical Only</MenuItem>
+                      <MenuItem value="DENTAL">Dental Only</MenuItem>
+                    </TextField>
+                  </Grid>
+                  
+                  {/* Date Range Filters */}
+                  <Grid item xs={12} md={4}>
+                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexDirection: { xs: 'column', sm: 'row' } }}>
+                        <DatePicker
+                          label="From"
+                          value={startDate}
+                          onChange={setStartDate}
+                          slotProps={{
+                            textField: {
+                              size: 'small',
+                              fullWidth: true,
+                              InputLabelProps: { shrink: true }
+                            }
+                          }}
+                          maxDate={endDate || dayjs()}
+                          disableFuture
+                        />
+                        <DatePicker
+                          label="To"
+                          value={endDate}
+                          onChange={setEndDate}
+                          slotProps={{
+                            textField: {
+                              size: 'small',
+                              fullWidth: true,
+                              InputLabelProps: { shrink: true }
+                            }
+                          }}
+                          minDate={startDate}
+                          maxDate={dayjs()}
+                          disableFuture
+                        />
+                        {(startDate || endDate) && (
+                          <IconButton onClick={() => { setStartDate(null); setEndDate(null); }} size="small" title="Clear dates">
+                            <ClearIcon />
+                          </IconButton>
+                        )}
+                      </Box>
+                    </LocalizationProvider>
+                  </Grid>
+                  
+                  {/* Action Buttons */}
+                  <Grid item xs={12} md={3}>
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', height: '100%' }}>
+                      <Button
+                        variant="outlined"
+                        startIcon={<PrintIcon />}
+                        size="small"
+                        disabled={filteredRecords.length === 0}
+                        onClick={handlePrintRecords}
+                      >
+                        Print
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        startIcon={<ExportIcon />}
+                        size="small"
+                        disabled={filteredRecords.length === 0}
+                        onClick={handleExportRecords}
+                      >
+                        Export
+                      </Button>
+                    </Box>
+                  </Grid>
+                </Grid>
+                
+                {/* Active Filters Display */}
+                {(searchTerm || startDate || endDate || selectedRecordType !== 'ALL') && (
+                  <Box sx={{ mt: 2, pt: 1, borderTop: 1, borderColor: 'divider' }}>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      {searchTerm && (
+                        <Chip label={`Search: ${searchTerm}`} onDelete={() => setSearchTerm('')} size="small" variant="outlined" />
+                      )}
+                      {selectedRecordType !== 'ALL' && (
+                        <Chip label={`Type: ${selectedRecordType}`} onDelete={() => setSelectedRecordType('ALL')} size="small" color="info" variant="outlined" />
+                      )}
+                      {startDate && (
+                        <Chip label={`From: ${dayjs(startDate).format('MMM DD, YYYY')}`} onDelete={() => setStartDate(null)} size="small" variant="outlined" />
+                      )}
+                      {endDate && (
+                        <Chip label={`To: ${dayjs(endDate).format('MMM DD, YYYY')}`} onDelete={() => setEndDate(null)} size="small" variant="outlined" />
+                      )}
+                    </Box>
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Summary Cards - Mobile Optimized */}
             {filteredRecords.length > 0 && (
               <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -1584,6 +1713,94 @@ const MedicalHistoryPage = () => {
           </TabPanel>
 
           <TabPanel value={tabValue} index={1}>
+            {/* Document Specific Search and Filters */}
+            <Card elevation={2} sx={{ mb: 3 }}>
+              <CardContent>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={4}>
+                    <TextField
+                      fullWidth
+                      label="Search documents"
+                      variant="outlined"
+                      size="small"
+                      value={docSearchTerm}
+                      onChange={(e) => setDocSearchTerm(e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <SearchIcon />
+                          </InputAdornment>
+                        ),
+                      }}
+                      placeholder="Search filename, type, description..."
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} md={3}>
+                    <TextField
+                      select
+                      fullWidth
+                      label="Linked To"
+                      value={docRecordType}
+                      onChange={(e) => setDocRecordType(e.target.value)}
+                      variant="outlined"
+                      size="small"
+                    >
+                      <MenuItem value="ALL">All Documents</MenuItem>
+                      <MenuItem value="MEDICAL">Medical Records</MenuItem>
+                      <MenuItem value="DENTAL">Dental Records</MenuItem>
+                    </TextField>
+                  </Grid>
+
+                  <Grid item xs={12} md={5}>
+                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                        <DatePicker
+                          label="Uploaded From"
+                          value={docStartDate}
+                          onChange={setDocStartDate}
+                          slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                          disableFuture
+                        />
+                        <DatePicker
+                          label="Uploaded To"
+                          value={docEndDate}
+                          onChange={setDocEndDate}
+                          slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                          disableFuture
+                        />
+                        {(docStartDate || docEndDate) && (
+                          <IconButton onClick={() => { setDocStartDate(null); setDocEndDate(null); }} size="small">
+                            <ClearIcon />
+                          </IconButton>
+                        )}
+                      </Box>
+                    </LocalizationProvider>
+                  </Grid>
+                </Grid>
+
+                {/* Active Filters Display */}
+                {(docSearchTerm || docStartDate || docEndDate || docRecordType !== 'ALL') && (
+                  <Box sx={{ mt: 2, pt: 1, borderTop: 1, borderColor: 'divider' }}>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      {docSearchTerm && (
+                        <Chip label={`Search: ${docSearchTerm}`} onDelete={() => setDocSearchTerm('')} size="small" variant="outlined" />
+                      )}
+                      {docRecordType !== 'ALL' && (
+                        <Chip label={`Linked: ${docRecordType}`} onDelete={() => setDocRecordType('ALL')} size="small" color="info" variant="outlined" />
+                      )}
+                      {docStartDate && (
+                        <Chip label={`From: ${dayjs(docStartDate).format('MMM DD, YYYY')}`} onDelete={() => setDocStartDate(null)} size="small" variant="outlined" />
+                      )}
+                      {docEndDate && (
+                        <Chip label={`To: ${dayjs(docEndDate).format('MMM DD, YYYY')}`} onDelete={() => setDocEndDate(null)} size="small" variant="outlined" />
+                      )}
+                    </Box>
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
+
             <TableContainer component={Paper} elevation={1}>
               <Table size="small">
                 <TableHead sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}>

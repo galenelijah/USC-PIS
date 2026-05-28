@@ -18,8 +18,10 @@ The USC-PIS has reached **Full Maturity & Operational Stability** and is 100% co
 *   **Status Tracking:** Implemented automated backend signals that log in-app notifications whenever a medical or dental record is created or updated, ensuring patients are always informed of changes to their health record.
 
 ### 3. Rigid Date-Trapping & Data Integrity
-*   **Status:** Time-Locked
+*   **Status:** Time-Locked & Precise
 *   **Validation:** Multi-layer validation (Backend Serializers + Frontend DatePickers) ensures no future dates can be saved for birthdays or clinical events.
+*   **Precision Fix:** Implemented `timezone.localtime()` and clock-drift leeway (60s) to eliminate false-positive "future date" errors for PHST (UTC+8) users.
+*   **Time Resolution:** Upgraded all clinical time pickers to support **1-minute precision** (replacing the 5-minute default), ensuring high-fidelity clinical logging.
 *   **UI Locking:** Future calendar dates are visually greyed out across all platform forms to prevent user error.
 
 ### 4. Simplified Dental Consultation Scope
