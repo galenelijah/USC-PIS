@@ -1104,6 +1104,7 @@ const Dental = () => {
         {/* Export Template (Hidden) */}
         <ReportTemplate 
           data={filteredRecords} 
+          patient={patients.find(p => p.id === filteredRecords[0]?.patient)}
           title="DENTAL CONSULTATION REPORT" 
           reportType="DENTAL"
         />

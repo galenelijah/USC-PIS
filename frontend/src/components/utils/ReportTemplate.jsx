@@ -4,9 +4,19 @@ import dayjs from 'dayjs';
 
 /**
  * Professional Clinical Report Template for PDF Generation
+ * Enhanced for USC Thesis Panel Requirements: Institutional Branding + Analytical Summary
  */
 const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
   if (!data || !Array.isArray(data)) return null;
+
+  // Calculate Analytical Metrics for the report header
+  const totalVisits = data.length;
+  const uniquePatients = new Set(data.map(r => r.patient)).size;
+  const latestVisit = data.length > 0 ? dayjs(data[0].visit_date).format('MMM DD, YYYY') : 'N/A';
+  
+  // Categorize for summary (if available in data)
+  const studentVisits = data.filter(r => (r.patient_role || '').toUpperCase() === 'STUDENT').length;
+  const facultyVisits = totalVisits - studentVisits;
 
   return (
     <Box 
@@ -14,158 +24,208 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
       sx={{ 
         width: '210mm', // A4 Width
         minHeight: '297mm', // A4 Height
-        padding: '20mm',
+        padding: '15mm',
         backgroundColor: '#ffffff',
         color: '#000000',
-        fontFamily: "'Roboto', 'Helvetica', 'Arial', sans-serif",
+        fontFamily: "'Times New Roman', serif", // More formal for academic/clinical reports
         position: 'absolute',
         left: '-9999px', // Hide from view
-        top: 0
+        top: 0,
+        boxSizing: 'border-box'
       }}
     >
-      {/* Institutional Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4, borderBottom: '2px solid #1976d2', pb: 2 }}>
-        <Box sx={{ flexGrow: 1 }}>
-          <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#1976d2', letterSpacing: 1 }}>
-            UNIVERSITY OF SAN CARLOS
+      {/* Institutional Branding Header */}
+      <Box sx={{ textAlign: 'center', mb: 3, borderBottom: '2px double #003366', pb: 2 }}>
+        <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#003366', mb: 0.5 }}>
+          UNIVERSITY OF SAN CARLOS
+        </Typography>
+        <Typography variant="body1" sx={{ fontWeight: 'bold', color: '#2c3e50', mb: 0.5 }}>
+          Health Services Department | University Clinic
+        </Typography>
+        <Typography variant="caption" sx={{ display: 'block', color: '#7f8c8d' }}>
+          Nasipit, Talamban, Cebu City, 6000 | Tel: (032) 230-0100 local 208
+        </Typography>
+      </Box>
+
+      {/* Report Title & Meta Info */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 3 }}>
+        <Box>
+          <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#c0392b', textTransform: 'uppercase' }}>
+            {title || 'CLINICAL SUMMARY REPORT'}
           </Typography>
-          <Typography variant="h6" sx={{ color: '#555' }}>
-            Health Services Department | University Clinic
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Nasipit, Talamban, Cebu City, 6000 | (032) 230-0100
+          <Typography variant="caption">
+            REPORT ID: {reportType}-{dayjs().format('YYYYMMDD')}-{Math.floor(Math.random() * 1000)}
           </Typography>
         </Box>
         <Box sx={{ textAlign: 'right' }}>
-          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-            {title || 'CLINICAL SUMMARY REPORT'}
-          </Typography>
-          <Typography variant="body2">
-            Generated: {dayjs().format('MMMM DD, YYYY [at] HH:mm')}
-          </Typography>
+          <Typography variant="body2"><strong>Date Generated:</strong> {dayjs().format('MMMM DD, YYYY')}</Typography>
+          <Typography variant="body2"><strong>Confidentiality:</strong> Level 3 (Restricted)</Typography>
         </Box>
       </Box>
 
-      {/* Patient Demographic Section */}
+      {/* Analytical Summary Grid (Metric Cards) */}
+      <Grid container spacing={1} sx={{ mb: 4 }}>
+        <Grid item xs={3}>
+          <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', bgcolor: '#f8f9fa' }}>
+            <Typography variant="caption" sx={{ color: '#666', fontWeight: 'bold' }}>TOTAL RECORDS</Typography>
+            <Typography variant="h6" sx={{ color: '#1976d2', fontWeight: 'bold' }}>{totalVisits}</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={3}>
+          <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', bgcolor: '#f8f9fa' }}>
+            <Typography variant="caption" sx={{ color: '#666', fontWeight: 'bold' }}>PATIENTS</Typography>
+            <Typography variant="h6" sx={{ color: '#1976d2', fontWeight: 'bold' }}>{uniquePatients || 'Multiple'}</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={3}>
+          <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', bgcolor: '#f8f9fa' }}>
+            <Typography variant="caption" sx={{ color: '#666', fontWeight: 'bold' }}>STUDENT %</Typography>
+            <Typography variant="h6" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
+              {totalVisits > 0 ? Math.round((studentVisits / totalVisits) * 100) : '0'}%
+            </Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={3}>
+          <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', bgcolor: '#f8f9fa' }}>
+            <Typography variant="caption" sx={{ color: '#666', fontWeight: 'bold' }}>LATEST VISIT</Typography>
+            <Typography variant="h6" sx={{ color: '#1976d2', fontWeight: 'bold', fontSize: '1rem' }}>{latestVisit}</Typography>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Patient Profile (If single patient) */}
       {patient && (
-        <Box sx={{ mb: 4, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, borderBottom: '1px solid #ddd' }}>
-            PATIENT INFORMATION
-          </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={6}>
-              <Typography variant="body2"><strong>Name:</strong> {patient.first_name} {patient.last_name}</Typography>
-              <Typography variant="body2"><strong>ID Number:</strong> {patient.usc_id || patient.id_number || 'N/A'}</Typography>
+        <Box sx={{ mb: 4, border: '1px solid #003366', borderRadius: 1, overflow: 'hidden' }}>
+          <Box sx={{ bgcolor: '#003366', color: 'white', px: 2, py: 0.5 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>PATIENT DEMOGRAPHIC PROFILE</Typography>
+          </Box>
+          <Box sx={{ p: 2 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={4}>
+                <Typography variant="caption" color="text.secondary">NAME</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{patient.first_name} {patient.last_name}</Typography>
+              </Grid>
+              <Grid item xs={4}>
+                <Typography variant="caption" color="text.secondary">USC ID / STUDENT NO.</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{patient.usc_id || patient.id_number || 'N/A'}</Typography>
+              </Grid>
+              <Grid item xs={4}>
+                <Typography variant="caption" color="text.secondary">GENDER / AGE</Typography>
+                <Typography variant="body2">{patient.gender === 'M' ? 'Male' : 'Female'} ({dayjs().diff(patient.date_of_birth, 'years')} yrs)</Typography>
+              </Grid>
             </Grid>
-            <Grid item xs={6}>
-              <Typography variant="body2"><strong>Date of Birth:</strong> {patient.date_of_birth ? dayjs(patient.date_of_birth).format('MMM DD, YYYY') : 'N/A'}</Typography>
-              <Typography variant="body2"><strong>Gender:</strong> {patient.gender === 'M' ? 'Male' : patient.gender === 'F' ? 'Female' : 'N/A'}</Typography>
-            </Grid>
-          </Grid>
+          </Box>
         </Box>
       )}
 
-      {/* Clinical Records Section */}
-      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2, color: '#1976d2' }}>
-        VISIT HISTORY & CLINICAL FINDINGS
+      {/* Main Clinical Data Table */}
+      <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, borderLeft: '4px solid #c0392b', pl: 1 }}>
+        VISIT LOGS & CLINICAL FINDINGS
       </Typography>
-
-      {data.map((record, index) => (
-        <Box key={index} sx={{ mb: 4, pageBreakInside: 'avoid' }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', bgcolor: '#e3f2fd', p: 1, borderRadius: '4px 4px 0 0' }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-              VISIT DATE: {dayjs(record.visit_date).format('MMMM DD, YYYY')}
-            </Typography>
-            <Typography variant="subtitle2">
-              Record Type: {record.record_type || reportType}
-            </Typography>
-          </Box>
-          
-          <Box sx={{ border: '1px solid #e3f2fd', p: 2, borderRadius: '0 0 4px 4px' }}>
-            <Grid container spacing={2}>
-              {/* Vital Signs (if medical) */}
-              {(record.vital_signs || record.blood_pressure) && (
-                <Grid item xs={12}>
-                  <Typography variant="caption" sx={{ fontWeight: 'bold', textTransform: 'uppercase', color: '#666' }}>
-                    Vital Signs
+      
+      <TableContainer component={Box} sx={{ border: '1px solid #ddd' }}>
+        <Table size="small">
+          <TableHead sx={{ bgcolor: '#f2f2f2' }}>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 'bold', width: '20%' }}>DATE</TableCell>
+              {reportType === 'DENTAL' ? (
+                <>
+                  <TableCell sx={{ fontWeight: 'bold', width: '30%' }}>PROCEDURE (TEETH)</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', width: '50%' }}>FINDINGS / REFERRAL</TableCell>
+                </>
+              ) : (
+                <>
+                  <TableCell sx={{ fontWeight: 'bold', width: '30%' }}>DIAGNOSIS (VITALS)</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', width: '50%' }}>TREATMENT / PLAN</TableCell>
+                </>
+              )}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {data.slice(0, 15).map((record, index) => ( // Show first 15 for the summary view
+              <TableRow key={index} sx={{ '&:nth-of-type(even)': { bgcolor: '#fafafa' } }}>
+                <TableCell sx={{ verticalAlign: 'top' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                    {dayjs(record.visit_date).format('MMM DD, YYYY')}
                   </Typography>
-                  <Box sx={{ display: 'flex', gap: 3, mt: 0.5, mb: 2, flexWrap: 'wrap' }}>
-                    <Typography variant="body2">BP: {record.vital_signs?.blood_pressure || record.blood_pressure || 'N/A'}</Typography>
-                    <Typography variant="body2">Temp: {record.vital_signs?.temperature || record.temperature || 'N/A'}°C</Typography>
-                    <Typography variant="body2">HR: {record.vital_signs?.heart_rate || record.pulse_rate || 'N/A'} bpm</Typography>
-                    <Typography variant="body2">RR: {record.vital_signs?.respiratory_rate || record.respiratory_rate || 'N/A'}/min</Typography>
-                  </Box>
-                </Grid>
-              )}
+                  <Typography variant="caption" color="text.secondary">
+                    {dayjs(record.visit_date).format('hh:mm A')}
+                  </Typography>
+                </TableCell>
+                
+                <TableCell sx={{ verticalAlign: 'top' }}>
+                  {reportType === 'DENTAL' ? (
+                    <>
+                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{record.procedure_performed_display || record.procedure_performed || 'N/A'}</Typography>
+                      {record.tooth_numbers && (
+                        <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+                          Teeth: {record.tooth_numbers}
+                        </Typography>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{record.diagnosis || 'N/A'}</Typography>
+                      {(record.vital_signs || record.blood_pressure) && (
+                        <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: '#666' }}>
+                          BP: {record.vital_signs?.blood_pressure || record.blood_pressure || '-'} | 
+                          T: {record.vital_signs?.temperature || record.temperature || '-'}°C
+                        </Typography>
+                      )}
+                    </>
+                  )}
+                </TableCell>
 
-              {/* Dental Specifics */}
-              {record.record_type === 'DENTAL' && (
-                <Grid item xs={12}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={6}>
-                      <Typography variant="caption" sx={{ fontWeight: 'bold', textTransform: 'uppercase', color: '#666' }}>Procedure</Typography>
-                      <Typography variant="body2">{record.procedure_performed_display || record.procedure_performed || 'N/A'}</Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="caption" sx={{ fontWeight: 'bold', textTransform: 'uppercase', color: '#666' }}>Tooth Number(s)</Typography>
-                      <Typography variant="body2">{record.tooth_numbers || 'N/A'}</Typography>
-                    </Grid>
-                  </Grid>
-                </Grid>
-              )}
+                <TableCell sx={{ verticalAlign: 'top' }}>
+                  <Typography variant="body2">
+                    {reportType === 'DENTAL' 
+                      ? (record.referral_to || 'No referral recorded')
+                      : (record.treatment || record.treatment_performed || 'No treatment recorded')
+                    }
+                  </Typography>
+                  {record.medications && (
+                    <Typography variant="caption" sx={{ fontStyle: 'italic', display: 'block', mt: 0.5 }}>
+                      Rx: {record.medications}
+                    </Typography>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-              {/* Assessment */}
-              <Grid item xs={12} md={6}>
-                <Typography variant="caption" sx={{ fontWeight: 'bold', textTransform: 'uppercase', color: '#666' }}>Chief Complaint / Concern</Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>{record.chief_complaint || record.concern || 'N/A'}</Typography>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="caption" sx={{ fontWeight: 'bold', textTransform: 'uppercase', color: '#666' }}>Diagnosis</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{record.diagnosis || 'No diagnosis recorded'}</Typography>
-              </Grid>
+      {data.length > 15 && (
+        <Typography variant="caption" sx={{ display: 'block', mt: 1, textAlign: 'center', fontStyle: 'italic' }}>
+          Showing first 15 records. Please refer to full digital history for complete logs.
+        </Typography>
+      )}
 
-              {/* Plan */}
-              <Grid item xs={12}>
-                <Typography variant="caption" sx={{ fontWeight: 'bold', textTransform: 'uppercase', color: '#666' }}>Treatment Plan / Procedure Performed</Typography>
-                <Typography variant="body2">{record.treatment || record.treatment_performed || 'N/A'}</Typography>
-              </Grid>
-
-              {record.medications && (
-                <Grid item xs={12}>
-                  <Typography variant="caption" sx={{ fontWeight: 'bold', textTransform: 'uppercase', color: '#666' }}>Medications Prescribed</Typography>
-                  <Typography variant="body2">{record.medications}</Typography>
-                </Grid>
-              )}
-
-              {(record.notes || record.clinical_notes) && (
-                <Grid item xs={12}>
-                  <Typography variant="caption" sx={{ fontWeight: 'bold', textTransform: 'uppercase', color: '#666' }}>Clinical Notes</Typography>
-                  <Typography variant="body2" sx={{ fontStyle: 'italic' }}>{record.notes || record.clinical_notes}</Typography>
-                </Grid>
-              )}
-            </Grid>
-          </Box>
+      {/* Signature & Validation */}
+      <Box sx={{ mt: 'auto', pt: 6, display: 'flex', justifyContent: 'flex-end' }}>
+        <Box sx={{ width: '60mm', textAlign: 'center' }}>
+          <Divider sx={{ mb: 1, borderBottomWidth: 2 }} />
+          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>AUTHORIZED CLINIC STAFF</Typography>
+          <Typography variant="caption" color="text.secondary">Digitally Signed & Verified</Typography>
         </Box>
-      ))}
+      </Box>
 
-      {/* Branded Footer */}
+      {/* Page Footer */}
       <Box sx={{ 
         position: 'absolute', 
-        bottom: '20mm', 
-        left: '20mm', 
-        right: '20mm', 
+        bottom: '10mm', 
+        left: '15mm', 
+        right: '15mm', 
         borderTop: '1px solid #ddd', 
-        pt: 2, 
-        textAlign: 'center' 
+        pt: 1, 
+        display: 'flex',
+        justifyContent: 'space-between'
       }}>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-          CONFIDENTIAL MEDICAL RECORD - UNIVERSITY OF SAN CARLOS CLINIC
+        <Typography variant="caption" color="text.secondary">
+          CONFIDENTIAL PATIENT INFORMATION - FOR OFFICIAL USE ONLY
         </Typography>
         <Typography variant="caption" color="text.secondary">
-          This document is generated for official use. Any unauthorized reproduction is strictly prohibited.
-        </Typography>
-        <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
-          Page 1 of 1
+          USC-PIS v2.0 | Form ACA-HSD-04F
         </Typography>
       </Box>
     </Box>

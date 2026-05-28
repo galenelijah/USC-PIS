@@ -129,7 +129,7 @@ class ReportService {
         'Procedure': record.procedure_performed_display || record.procedure_performed || 'N/A',
         'Tooth #': record.tooth_numbers || 'N/A',
         'Diagnosis': record.diagnosis || 'N/A',
-        'Treatment': record.treatment_performed || 'N/A',
+        'Referral': record.referral_to || 'N/A',
         'Notes': record.clinical_notes || 'N/A'
       }));
     }

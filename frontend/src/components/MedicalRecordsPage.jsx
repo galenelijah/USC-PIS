@@ -996,6 +996,7 @@ const MedicalRecordsPage = () => {
       {/* Professional Report Template (Hidden) */}
       <ReportTemplate 
         data={filteredMedicalRecords} 
+        patient={selectedPatient || (filteredMedicalRecords.length > 0 ? patients.find(p => p.id === filteredMedicalRecords[0].patient) : null)}
         title="MEDICAL CONSULTATION REPORT" 
         reportType="MEDICAL"
       />
