@@ -123,20 +123,9 @@ const Dental = () => {
     procedure_performed: '',
     tooth_numbers: '',
     diagnosis: '',
-    treatment_performed: '',
-    treatment_plan: '',
     referral_to: '',
-    oral_hygiene_status: '',
-    gum_condition: '',
     clinical_notes: '',
     pain_level: null,
-    anesthesia_used: false,
-    anesthesia_type: '',
-    materials_used: '',
-    next_appointment_recommended: null,
-    home_care_instructions: '',
-    cost: null,
-    insurance_covered: false
   });
 
   useEffect(() => {
@@ -227,9 +216,6 @@ const Dental = () => {
       setFormData({
         ...record,
         visit_date: dayjs(record.visit_date).format(),
-        next_appointment_recommended: record.next_appointment_recommended 
-          ? dayjs(record.next_appointment_recommended).format('YYYY-MM-DD') 
-          : null
       });
       setIsEditing(true);
     } else {
@@ -241,20 +227,9 @@ const Dental = () => {
         procedure_performed: '',
         tooth_numbers: '',
         diagnosis: '',
-        treatment_performed: '',
-        treatment_plan: '',
         referral_to: '',
-        oral_hygiene_status: '',
-        gum_condition: '',
         clinical_notes: '',
         pain_level: null,
-        anesthesia_used: false,
-        anesthesia_type: '',
-        materials_used: '',
-        next_appointment_recommended: null,
-        home_care_instructions: '',
-        cost: null,
-        insurance_covered: false
       });
       setIsEditing(false);
     }
@@ -346,7 +321,6 @@ const Dental = () => {
       const submitData = {
         ...formData,
         visit_date: dayjs(formData.visit_date).format(),
-        next_appointment_recommended: formData.next_appointment_recommended || null
       };
 
       if (isEditing) {
@@ -998,292 +972,139 @@ const Dental = () => {
                   </Alert>
                 )}
                 <Alert severity="info" sx={{ mb: 2 }}>
-                  Note: The clinic primarily provides dental consultations. Complex procedures or surgeries may require external referral.
+                  Note: The clinic primarily provides dental consultations and referrals.
                 </Alert>
-                <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
-                  <Tab label="Basic Information" />
-                  <Tab label="Clinical Details" />
-                  <Tab label="Treatment & Follow-up" />
-                </Tabs>
               
-              {/* Basic Information Tab */}
-              {tabValue === 0 && (
-                <Box sx={{ mt: 3 }}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
-                      <Autocomplete
-                        options={patients}
-                        getOptionLabel={(option) => {
-                          const name = `${option.first_name || ''} ${option.last_name || ''}`.trim();
-                          const id = option.usc_id || option.id_number || option.student_id;
-                          return `${name}${id ? ` (${id})` : ''}`;
-                        }}
-                        value={patients.find(p => p.id === formData.patient) || null}
-                        onChange={(event, newValue) => handleInputChange('patient', newValue ? newValue.id : '')}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Select Patient"
-                            required
-                            helperText="Search by name or USC ID"
-                          />
-                        )}
-                        renderOption={(props, option) => (
-                          <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: '0.8rem' }}>
-                              {option.first_name?.[0]}{option.last_name?.[0]}
-                            </Avatar>
-                            <Box>
-                              <Typography variant="body2" fontWeight="medium">
-                                {option.first_name} {option.last_name}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {option.usc_id || option.id_number || option.student_id || 'No ID'}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        )}
-                        isOptionEqualToValue={(option, value) => option.id === value?.id}
-                        filterOptions={(options, { inputValue }) => {
-                          return options.filter(option => {
-                            const name = `${option.first_name || ''} ${option.last_name || ''}`.toLowerCase();
-                            const email = (option.email || '').toLowerCase();
-                            const uscId = (option.usc_id || option.id_number || option.student_id || '').toLowerCase();
-                            const search = inputValue.toLowerCase();
-                            return name.includes(search) || email.includes(search) || uscId.includes(search);
-                          });
-                        }}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <DateTimePicker
-                        label="Visit Date & Time *"
-                        value={dayjs(formData.visit_date)}
-                        onChange={(date) => handleInputChange('visit_date', dayjs(date).format())}
-                        slotProps={{ textField: { fullWidth: true, required: true } }}
-                        maxDate={dayjs()}
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Concern / Reason for Visit *"
-                        value={formData.concern}
-                        onChange={(e) => handleInputChange('concern', e.target.value)}
-                        multiline
-                        rows={2}
-                        required
-                        placeholder="What is the student's concern or reason for the visit?"
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Alert severity="info">
-                        Supporting documents (X-rays, dental charts) can be added after you save this record.
-                      </Alert>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth required>
-                        <InputLabel>Procedure *</InputLabel>
-                        <Select
-                          value={formData.procedure_performed}
-                          label="Procedure *"
-                          onChange={(e) => handleInputChange('procedure_performed', e.target.value)}
-                        >
-                          {procedures.map((proc) => (
-                            <MenuItem key={proc.value} value={proc.value}>
-                              {proc.label}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="Tooth Numbers"
-                        value={formData.tooth_numbers}
-                        onChange={(e) => handleInputChange('tooth_numbers', e.target.value)}
-                        placeholder="e.g., 11,12,21"
-                        helperText="Use FDI notation, comma-separated"
-                        required={false}
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Diagnosis *"
-                        value={formData.diagnosis}
-                        onChange={(e) => handleInputChange('diagnosis', e.target.value)}
-                        multiline
-                        rows={3}
-                        required
-                        placeholder="Clinical findings and diagnosis..."
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Treatment Performed *"
-                        value={formData.treatment_performed}
-                        onChange={(e) => handleInputChange('treatment_performed', e.target.value)}
-                        multiline
-                        rows={3}
-                        required
-                        placeholder="Procedures, medications, and care provided during this visit..."
-                      />
-                    </Grid>
-                  </Grid>
-                </Box>
-              )}
-              
-              {/* Clinical Details Tab */}
-              {tabValue === 1 && (
-                <Box sx={{ mt: 3 }}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth required>
-                        <InputLabel>Oral Hygiene Status</InputLabel>
-                        <Select
-                          value={formData.oral_hygiene_status}
-                          label="Oral Hygiene Status"
-                          onChange={(e) => handleInputChange('oral_hygiene_status', e.target.value)}
-                        >
-                          <MenuItem value="EXCELLENT">Excellent</MenuItem>
-                          <MenuItem value="GOOD">Good</MenuItem>
-                          <MenuItem value="FAIR">Fair</MenuItem>
-                          <MenuItem value="POOR">Poor</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth required>
-                        <InputLabel>Gum Condition</InputLabel>
-                        <Select
-                          value={formData.gum_condition}
-                          label="Gum Condition"
-                          onChange={(e) => handleInputChange('gum_condition', e.target.value)}
-                        >
-                          <MenuItem value="HEALTHY">Healthy</MenuItem>
-                          <MenuItem value="GINGIVITIS">Gingivitis</MenuItem>
-                          <MenuItem value="PERIODONTITIS">Periodontitis</MenuItem>
-                          <MenuItem value="INFLAMMATION">Inflammation</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Pain Level (1-10)"
-                        required
-                        type="number"
-                        value={formData.pain_level || ''}
-                        onChange={(e) => handleInputChange('pain_level', e.target.value ? parseInt(e.target.value) : null)}
-                        inputProps={{ min: 1, max: 10 }}
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Clinical Notes"
-                        value={formData.clinical_notes}
-                        onChange={(e) => handleInputChange('clinical_notes', e.target.value)}
-                        multiline
-                        rows={3}
-                        required={false}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={formData.anesthesia_used}
-                            onChange={(e) => handleInputChange('anesthesia_used', e.target.checked)}
-                          />
-                        }
-                        label="Anesthesia Used"
-                      />
-                    </Grid>
-                    {formData.anesthesia_used && (
-                      <Grid item xs={12} sm={6}>
+              <Box sx={{ mt: 3 }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Autocomplete
+                      options={patients}
+                      getOptionLabel={(option) => {
+                        const name = `${option.first_name || ''} ${option.last_name || ''}`.trim();
+                        const id = option.usc_id || option.id_number || option.student_id;
+                        return `${name}${id ? ` (${id})` : ''}`;
+                      }}
+                      value={patients.find(p => p.id === formData.patient) || null}
+                      onChange={(event, newValue) => handleInputChange('patient', newValue ? newValue.id : '')}
+                      renderInput={(params) => (
                         <TextField
-                          fullWidth
-                          label="Anesthesia Type"
+                          {...params}
+                          label="Select Patient"
                           required
-                          value={formData.anesthesia_type}
-                          onChange={(e) => handleInputChange('anesthesia_type', e.target.value)}
+                          helperText="Search by name or USC ID"
                         />
-                      </Grid>
-                    )}
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Materials Used"
-                        value={formData.materials_used}
-                        onChange={(e) => handleInputChange('materials_used', e.target.value)}
-                        multiline
-                        rows={2}
-                        required={false}
-                      />
-                    </Grid>
+                      )}
+                      renderOption={(props, option) => (
+                        <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: '0.8rem' }}>
+                            {option.first_name?.[0]}{option.last_name?.[0]}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="body2" fontWeight="medium">
+                              {option.first_name} {option.last_name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {option.usc_id || option.id_number || option.student_id || 'No ID'}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      )}
+                      isOptionEqualToValue={(option, value) => option.id === value?.id}
+                    />
                   </Grid>
-                </Box>
-              )}
-              
-              {/* Treatment & Follow-up Tab */}
-              {tabValue === 2 && (
-                <Box sx={{ mt: 3 }}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Treatment Plan"
-                        value={formData.treatment_plan}
-                        onChange={(e) => handleInputChange('treatment_plan', e.target.value)}
-                        multiline
-                        rows={3}
-                        required={false}
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Home Care Instructions"
-                        value={formData.home_care_instructions}
-                        onChange={(e) => handleInputChange('home_care_instructions', e.target.value)}
-                        multiline
-                        rows={3}
-                        required={false}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="Cost"
-                        type="number"
-                        required
-                        value={formData.cost || ''}
-                        onChange={(e) => handleInputChange('cost', e.target.value ? parseFloat(e.target.value) : null)}
-                        inputProps={{ min: 0, step: 'any' }}
-                        InputProps={{
-                          startAdornment: <InputAdornment position="start">₱</InputAdornment>,
-                        }}
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <FormControlLabel
-                        required
-                        control={
-                          <Switch
-                            checked={formData.insurance_covered}
-                            onChange={(e) => handleInputChange('insurance_covered', e.target.checked)}
-                          />
-                        }
-                        label="Insurance Covered"
-                      />
-                    </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <DateTimePicker
+                      label="Visit Date & Time *"
+                      value={dayjs(formData.visit_date)}
+                      onChange={(date) => handleInputChange('visit_date', dayjs(date).format())}
+                      slotProps={{ textField: { fullWidth: true, required: true } }}
+                      maxDate={dayjs()}
+                    />
                   </Grid>
-                </Box>
-              )}
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Concern / Reason for Visit *"
+                      value={formData.concern}
+                      onChange={(e) => handleInputChange('concern', e.target.value)}
+                      multiline
+                      rows={2}
+                      required
+                      placeholder="What is the student's concern or reason for the visit?"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth required>
+                      <InputLabel>Procedure *</InputLabel>
+                      <Select
+                        value={formData.procedure_performed}
+                        label="Procedure *"
+                        onChange={(e) => handleInputChange('procedure_performed', e.target.value)}
+                      >
+                        {procedures.map((proc) => (
+                          <MenuItem key={proc.value} value={proc.value}>
+                            {proc.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Tooth Numbers"
+                      value={formData.tooth_numbers}
+                      onChange={(e) => handleInputChange('tooth_numbers', e.target.value)}
+                      placeholder="e.g., 11,12,21"
+                      helperText="Optional: Use FDI notation if specific teeth are involved"
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Findings / Diagnosis *"
+                      value={formData.diagnosis}
+                      onChange={(e) => handleInputChange('diagnosis', e.target.value)}
+                      multiline
+                      rows={3}
+                      required
+                      placeholder="Clinical findings and dental diagnosis..."
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Referral To"
+                      value={formData.referral_to}
+                      onChange={(e) => handleInputChange('referral_to', e.target.value)}
+                      placeholder="Name of clinic or specialist if referring out..."
+                      helperText="Specify the destination clinic or specialist"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Pain Level (1-10)"
+                      type="number"
+                      value={formData.pain_level || ''}
+                      onChange={(e) => handleInputChange('pain_level', e.target.value ? parseInt(e.target.value) : null)}
+                      inputProps={{ min: 1, max: 10 }}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Additional Clinical Notes"
+                      value={formData.clinical_notes}
+                      onChange={(e) => handleInputChange('clinical_notes', e.target.value)}
+                      multiline
+                      rows={3}
+                      required={false}
+                    />
+                  </Grid>
+                </Grid>
+              </Box>
             </Box>
           </DialogContent>
           <DialogActions>
@@ -1291,7 +1112,7 @@ const Dental = () => {
             <Button 
               onClick={handleSubmit} 
               variant="contained"
-              disabled={!formData.patient || !formData.procedure_performed || !formData.concern}
+              disabled={!formData.patient || !formData.procedure_performed || !formData.concern || !formData.diagnosis}
             >
               {isEditing ? 'Update' : 'Create'}
             </Button>
@@ -1360,30 +1181,12 @@ const Dental = () => {
                   </Grid>
                   <Grid item xs={12}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Diagnosis
+                      Findings / Diagnosis
                     </Typography>
                     <Typography variant="body1" gutterBottom>
                       {selectedRecord.diagnosis}
                     </Typography>
                   </Grid>
-                  <Grid item xs={12}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Treatment Performed
-                    </Typography>
-                    <Typography variant="body1" gutterBottom>
-                      {selectedRecord.treatment_performed}
-                    </Typography>
-                  </Grid>
-                  {selectedRecord.treatment_plan && (
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Treatment Plan
-                      </Typography>
-                      <Typography variant="body1" gutterBottom>
-                        {selectedRecord.treatment_plan}
-                      </Typography>
-                    </Grid>
-                  )}
                   {selectedRecord.referral_to && (
                     <Grid item xs={12}>
                       <Typography variant="subtitle2" color="text.secondary">
@@ -1394,32 +1197,6 @@ const Dental = () => {
                       </Typography>
                     </Grid>
                   )}
-                  {selectedRecord.clinical_notes && (
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Clinical Notes
-                      </Typography>
-                      <Typography variant="body1" gutterBottom>
-                        {selectedRecord.clinical_notes}
-                      </Typography>
-                    </Grid>
-                  )}
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Oral Hygiene Status
-                    </Typography>
-                    <Typography variant="body1" gutterBottom>
-                      {selectedRecord.oral_hygiene_status || 'N/A'}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Gum Condition
-                    </Typography>
-                    <Typography variant="body1" gutterBottom>
-                      {selectedRecord.gum_condition || 'N/A'}
-                    </Typography>
-                  </Grid>
                   {selectedRecord.pain_level && (
                     <Grid item xs={12} sm={6}>
                       <Typography variant="subtitle2" color="text.secondary">
@@ -1433,26 +1210,13 @@ const Dental = () => {
                       </Box>
                     </Grid>
                   )}
-                  {selectedRecord.cost && (
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Cost
-                      </Typography>
-                      <Typography variant="body1" gutterBottom>
-                        {formatCurrency(selectedRecord.cost)}
-                        {selectedRecord.insurance_covered && (
-                          <Chip label="Insured" size="small" sx={{ ml: 1 }} />
-                        )}
-                      </Typography>
-                    </Grid>
-                  )}
-                  {selectedRecord.home_care_instructions && (
+                  {selectedRecord.clinical_notes && (
                     <Grid item xs={12}>
                       <Typography variant="subtitle2" color="text.secondary">
-                        Home Care Instructions
+                        Additional Clinical Notes
                       </Typography>
                       <Typography variant="body1" gutterBottom>
-                        {selectedRecord.home_care_instructions}
+                        {selectedRecord.clinical_notes}
                       </Typography>
                     </Grid>
                   )}

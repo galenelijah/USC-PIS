@@ -229,9 +229,9 @@ class DentalRecordModelTest(TestCase):
         record = DentalRecord.objects.create(
             patient=self.patient,
             visit_date=date.today(),
-            procedure_performed='EXTRACTION',
-            diagnosis='Impacted tooth',
-            treatment_performed='Tooth extraction',
+            procedure_performed='CONSULTATION',
+            diagnosis='Consultation findings',
+            treatment_performed='Consultation advice',
             created_by=self.user
         )
         

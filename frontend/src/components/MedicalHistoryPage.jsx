@@ -29,7 +29,8 @@ import {
   ListItemText,
   Collapse,
   IconButton,
-  LinearProgress
+  LinearProgress,
+  TablePagination
 } from '@mui/material';
 import InfoTooltip from './utils/InfoTooltip';
 import {
@@ -98,6 +99,7 @@ const MedicalHistoryPage = () => {
   const [medicalMap, setMedicalMap] = useState({});
   const [dentalMap, setDentalMap] = useState({});
   const [filteredRecords, setFilteredRecords] = useState([]);
+  const [filteredDocuments, setFilteredDocuments] = useState([]);
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingDocs, setLoadingDocs] = useState(false);
@@ -144,6 +146,30 @@ const MedicalHistoryPage = () => {
   const [endDate, setEndDate] = useState(null);
   const [showAllergyAlert, setShowAllergyAlert] = useState(false);
   
+  // Pagination state
+  const [historyPage, setHistoryPage] = useState(0);
+  const [historyRowsPerPage, setHistoryRowsPerPage] = useState(10);
+  const [docsPage, setDocsPage] = useState(0);
+  const [docsRowsPerPage, setDocsRowsPerPage] = useState(10);
+
+  const handleHistoryChangePage = (event, newPage) => {
+    setHistoryPage(newPage);
+  };
+
+  const handleHistoryChangeRowsPerPage = (event) => {
+    setHistoryRowsPerPage(parseInt(event.target.value, 10));
+    setHistoryPage(0);
+  };
+
+  const handleDocsChangePage = (event, newPage) => {
+    setDocsPage(newPage);
+  };
+
+  const handleDocsChangeRowsPerPage = (event) => {
+    setDocsRowsPerPage(parseInt(event.target.value, 10));
+    setDocsPage(0);
+  };
+
   const user = useSelector(state => state.auth.user);
   const isStaffOrMedical = user?.role && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
   const isStudent = ['STUDENT', 'FACULTY'].includes(user?.role);
@@ -157,7 +183,7 @@ const MedicalHistoryPage = () => {
 
   useEffect(() => {
     filterRecords();
-  }, [searchTerm, records, selectedPatient, tabValue, startDate, endDate]);
+  }, [searchTerm, records, documents, selectedPatient, tabValue, startDate, endDate]);
 
   const fetchRecords = async () => {
     setLoading(true);
@@ -282,6 +308,10 @@ const MedicalHistoryPage = () => {
   };
 
   const filterRecords = () => {
+    // Reset pages when filters change
+    setHistoryPage(0);
+    setDocsPage(0);
+
     let filtered = records;
 
     // Filter by selected patient (for staff/medical)
@@ -333,6 +363,39 @@ const MedicalHistoryPage = () => {
     filtered = [...filtered].sort((a, b) => new Date(b.visit_date) - new Date(a.visit_date));
 
     setFilteredRecords(filtered);
+
+    // Filter documents similarly
+    let filteredDocs = Array.isArray(documents) ? documents : [];
+    
+    if (selectedPatient) {
+      filteredDocs = filteredDocs.filter(doc => {
+        const patientId = doc.patient?.id || doc.patient;
+        return String(patientId) === String(selectedPatient.id);
+      });
+    }
+
+    if (searchTerm.trim() !== '') {
+      const lowerSearch = searchTerm.toLowerCase();
+      filteredDocs = filteredDocs.filter(doc => 
+        (doc.patient_name || '').toLowerCase().includes(lowerSearch) ||
+        (doc.document_type_display || '').toLowerCase().includes(lowerSearch) ||
+        (doc.description || '').toLowerCase().includes(lowerSearch) ||
+        (doc.original_filename || '').toLowerCase().includes(lowerSearch)
+      );
+    }
+
+    if (startDate) {
+      filteredDocs = filteredDocs.filter(doc => 
+        dayjs(doc.uploaded_at).isAfter(dayjs(startDate).subtract(1, 'day'))
+      );
+    }
+    if (endDate) {
+      filteredDocs = filteredDocs.filter(doc => 
+        dayjs(doc.uploaded_at).isBefore(dayjs(endDate).add(1, 'day'))
+      );
+    }
+
+    setFilteredDocuments(filteredDocs);
   };
 
   const handleTabChange = (event, newValue) => {
@@ -847,9 +910,11 @@ const MedicalHistoryPage = () => {
       );
     }
 
+    const paginatedRecords = filteredRecords.slice(historyPage * historyRowsPerPage, historyPage * historyRowsPerPage + historyRowsPerPage);
+
     return (
       <Stack spacing={2}>
-        {filteredRecords.map((record) => (
+        {paginatedRecords.map((record) => (
           <Card 
             key={record.composite_id} 
             elevation={2} 
@@ -960,9 +1025,10 @@ const MedicalHistoryPage = () => {
                       {record.vital_signs && Object.values(record.vital_signs).some(v => v) && (
                         <Chip 
                           icon={<VitalIcon />} 
-                          label="Vitals Recorded" 
+                          label={record.vital_signs.has_alerts ? "Vitals (Alerts Found)" : "Vitals Recorded"} 
                           size="small" 
-                          variant="outlined"
+                          variant={record.vital_signs.has_alerts ? "filled" : "outlined"}
+                          color={record.vital_signs.has_alerts ? "error" : "default"}
                         />
                       )}
                       {record.medications && (
@@ -1088,6 +1154,23 @@ const MedicalHistoryPage = () => {
                           <Typography variant="body2" fontWeight="medium" gutterBottom>
                             Vital Signs:
                           </Typography>
+                          
+                          {/* Automated Alerts Section */}
+                          {record.vital_signs.has_alerts && (
+                            <Box sx={{ mb: 2 }}>
+                              {record.vital_signs.alerts.map((alert, idx) => (
+                                <Alert 
+                                  key={idx} 
+                                  severity={alert.level === 'CRITICAL' ? 'error' : 'warning'}
+                                  variant="filled"
+                                  sx={{ py: 0, px: 1, mb: 0.5, fontSize: '0.75rem', '& .MuiAlert-icon': { fontSize: '1rem' } }}
+                                >
+                                  {alert.message}
+                                </Alert>
+                              ))}
+                            </Box>
+                          )}
+
                           <List dense>
                             {record.vital_signs.temperature && (
                               <ListItem>
@@ -1121,6 +1204,14 @@ const MedicalHistoryPage = () => {
                                 />
                               </ListItem>
                             )}
+                            {record.vital_signs.bmi && (
+                              <ListItem>
+                                <ListItemText 
+                                  primary="BMI" 
+                                  secondary={record.vital_signs.bmi} 
+                                />
+                              </ListItem>
+                            )}
                           </List>
                         </Grid>
                       )}
@@ -1150,6 +1241,21 @@ const MedicalHistoryPage = () => {
             </CardContent>
           </Card>
         ))}
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25, 50]}
+          component="div"
+          count={filteredRecords.length}
+          rowsPerPage={historyRowsPerPage}
+          page={historyPage}
+          onPageChange={handleHistoryChangePage}
+          onRowsPerPageChange={handleHistoryChangeRowsPerPage}
+          sx={{
+            bgcolor: 'background.paper',
+            borderRadius: 1,
+            boxShadow: 1,
+            mt: 2
+          }}
+        />
       </Stack>
     );
   };
@@ -1489,92 +1595,72 @@ const MedicalHistoryPage = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {(Array.isArray(documents) ? documents : []).filter(doc => {
-                    const searchMatch = !searchTerm || 
-                      (doc.patient_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      (doc.document_type_display || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      (doc.description || '').toLowerCase().includes(searchTerm.toLowerCase());
-                    
-                    let dateMatch = true;
-                    if (startDate) dateMatch = dateMatch && dayjs(doc.uploaded_at).isAfter(dayjs(startDate).subtract(1, 'day'));
-                    if (endDate) dateMatch = dateMatch && dayjs(doc.uploaded_at).isBefore(dayjs(endDate).add(1, 'day'));
-                    
-                    return searchMatch && dateMatch;
-                  }).length > 0 ? (
-                    (Array.isArray(documents) ? documents : []).filter(doc => {
-                      const searchMatch = !searchTerm || 
-                        (doc.patient_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        (doc.document_type_display || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        (doc.description || '').toLowerCase().includes(searchTerm.toLowerCase());
-                      
-                      let dateMatch = true;
-                      if (startDate) dateMatch = dateMatch && dayjs(doc.uploaded_at).isAfter(dayjs(startDate).subtract(1, 'day'));
-                      if (endDate) dateMatch = dateMatch && dayjs(doc.uploaded_at).isBefore(dayjs(endDate).add(1, 'day'));
-                      
-                      return searchMatch && dateMatch;
-                    }).map((doc) => (
-                      <TableRow key={doc.id} hover>
-                        <TableCell>{dayjs(doc.uploaded_at).format('MMM DD, YYYY')}</TableCell>
-                        <TableCell>
-                          <Typography variant="body2" fontWeight="medium">{doc.patient_name}</Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip label={doc.document_type_display} size="small" variant="outlined" color="primary" />
-                        </TableCell>
-                        <TableCell>
-                          {doc.medical_record && medicalMap[doc.medical_record] ? (
-                            <Box>
-                              <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block' }}>
-                                Medical Record
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {medicalMap[doc.medical_record].diagnosis || 'No Diagnosis'} ({dayjs(medicalMap[doc.medical_record].visit_date).format('MMM DD, YYYY')})
-                              </Typography>
-                            </Box>
-                          ) : doc.dental_record && dentalMap[doc.dental_record] ? (
-                            <Box>
-                              <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block' }}>
-                                Dental Record
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {dentalMap[doc.dental_record].diagnosis || 'No Diagnosis'} ({dayjs(dentalMap[doc.dental_record].visit_date).format('MMM DD, YYYY')})
-                              </Typography>
-                            </Box>
-                          ) : (
-                            <Typography variant="caption" color="text.secondary">Standalone File</Typography>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" noWrap sx={{ maxWidth: 300 }}>
-                            {doc.description || 'No description'}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary" display="block">
-                            {doc.original_filename} ({(doc.file_size / 1024).toFixed(1)} KB)
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Stack direction="row" spacing={1} justifyContent="flex-end">
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              startIcon={<DownloadIcon />}
-                              onClick={() => handleDownloadDocument(doc)}
-                            >
-                              Download
-                            </Button>
-                            {isStaffOrMedical && (
-                              <IconButton 
-                                size="small" 
-                                color="error" 
-                                onClick={() => handleDeleteDocument(doc.id)}
-                                title="Delete Document"
-                              >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
+                  {filteredDocuments.length > 0 ? (
+                    filteredDocuments
+                      .slice(docsPage * docsRowsPerPage, docsPage * docsRowsPerPage + docsRowsPerPage)
+                      .map((doc) => (
+                        <TableRow key={doc.id} hover>
+                          <TableCell>{dayjs(doc.uploaded_at).format('MMM DD, YYYY')}</TableCell>
+                          <TableCell>
+                            <Typography variant="body2" fontWeight="medium">{doc.patient_name}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip label={doc.document_type_display} size="small" variant="outlined" color="primary" />
+                          </TableCell>
+                          <TableCell>
+                            {doc.medical_record && medicalMap[doc.medical_record] ? (
+                              <Box>
+                                <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block' }}>
+                                  Medical Record
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {medicalMap[doc.medical_record].diagnosis || 'No Diagnosis'} ({dayjs(medicalMap[doc.medical_record].visit_date).format('MMM DD, YYYY')})
+                                </Typography>
+                              </Box>
+                            ) : doc.dental_record && dentalMap[doc.dental_record] ? (
+                              <Box>
+                                <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block' }}>
+                                  Dental Record
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {dentalMap[doc.dental_record].diagnosis || 'No Diagnosis'} ({dayjs(dentalMap[doc.dental_record].visit_date).format('MMM DD, YYYY')})
+                                </Typography>
+                              </Box>
+                            ) : (
+                              <Typography variant="caption" color="text.secondary">Standalone File</Typography>
                             )}
-                          </Stack>
-                        </TableCell>
-                      </TableRow>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" noWrap sx={{ maxWidth: 300 }}>
+                              {doc.description || 'No description'}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              {doc.original_filename} ({(doc.file_size / 1024).toFixed(1)} KB)
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Stack direction="row" spacing={1} justifyContent="flex-end">
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                startIcon={<DownloadIcon />}
+                                onClick={() => handleDownloadDocument(doc)}
+                              >
+                                Download
+                              </Button>
+                              {isStaffOrMedical && (
+                                <IconButton 
+                                  size="small" 
+                                  color="error" 
+                                  onClick={() => handleDeleteDocument(doc.id)}
+                                  title="Delete Document"
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              )}
+                            </Stack>
+                          </TableCell>
+                        </TableRow>
                     ))
                   ) : (
                     <TableRow>
@@ -1586,6 +1672,15 @@ const MedicalHistoryPage = () => {
                 </TableBody>
               </Table>
             </TableContainer>
+            <TablePagination
+              rowsPerPageOptions={[5, 10, 25, 50]}
+              component="div"
+              count={filteredDocuments.length}
+              rowsPerPage={docsRowsPerPage}
+              page={docsPage}
+              onPageChange={handleDocsChangePage}
+              onRowsPerPageChange={handleDocsChangeRowsPerPage}
+            />
           </TabPanel>
 
           <TabPanel value={tabValue} index={2}>

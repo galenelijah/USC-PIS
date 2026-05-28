@@ -23,27 +23,19 @@
 - **Filter Synchronization:** Implemented a custom `NotificationFilter` on the backend to correctly handle combined status queries.
 - **Search Optimization:** Fixed responsiveness issues in the notification search bar by implementing instantaneous visual updates decoupled from the debounced filter logic.
 - **Data Integrity:** Corrected legacy notification records and hardcoded test views to ensure all Medical Certificate notifications are correctly categorized under the `MEDICAL_CERTIFICATE` type rather than `HEALTH_CAMPAIGN`.
-- **Refined Type Mapping:** Pruned non-existent notification types from the inbox filters to ensure 100% accuracy with actual system data:
+- **Refined Type Mapping:** Pruned non-existent notification types from the inbox filters to ensure 100% accuracy with actual system data.
 
-| Filter Label | Backend Type | Description |
-| :--- | :--- | :--- |
-| **Health Campaign** | `HEALTH_CAMPAIGN` | Global and targeted health advisories from the clinic. |
-| **Medical Certificate** | `MEDICAL_CERTIFICATE` | Notifications regarding created, issued, or rejected certificates. |
-| **Patient Feedback** | `FOLLOW_UP` | Automated requests for feedback after clinical consultations. |
-| **Clinic Update** | `CLINIC_UPDATE` | General administrative updates (e.g., welcome messages). |
-| **System Alert** | `SYSTEM_ALERT` | Critical system-level notifications and role change alerts. |
-
-- **API Gating:** Resolved `403 Forbidden` console errors by gating the global patient list fetch (`patientService.getAll()`) to only clinical and administrative roles.
-
-## 5. Layout & Visual Refinement
-- **Sidebar UX:** Integrated custom scrollbars and hover-scrolling to improve navigation ergonomics.
-- **Header Aesthetics:** Softened drop-shadows and standardized a "borderRadius: 0" aesthetic for a cleaner, more professional institutional look.
-- **Responsiveness Merge:** Successfully merged layout improvements from the May 25 baseline, resolving edge-case clipping and shadow spill issues on compact viewports.
+## 5. Mobile Responsiveness & List Hardening
+- **Pagination & Scrolling:** Implemented `TablePagination` and horizontal scrolling across all key lists (Patients, Health Records, Dental, and Campaigns). This resolves clipping issues on mobile devices where columns were previously inaccessible.
+- **Overflow Prevention:** Applied multi-line text clamping and fluid padding to dashboard cards to prevent content from breaking layout boundaries on standard mobile viewports.
+- **Touch Target Scaling:** Standardized a `min-height: 48px` for all interactive elements to comply with W3C mobile accessibility guidelines.
+- **Layout Merge:** Successfully merged visual improvements into the Sidebar, Header, and Layout components, including custom scrollbars and independent shadow logic.
 
 ## 6. Bug Fixes & Deployment Stability
-- **500 Error Resolution:** Fixed `AttributeError` in `DentalRecord.save` (invalid `vital_signs` access) and `MedicalRecordSerializer` (missing `get_record_type`).
-- **Build Fix:** Resolved a Vite transformation failure in `HealthRecords.jsx` caused by a duplicate `user` variable declaration.
-- **Import Error:** Fixed a `ReferenceError` in `ProfileSetup.jsx` by adding the missing `useEffect` import.
+- **ReferenceError Resolution:** Fixed critical runtime crashes caused by undeclared variables (`isMobile`, `navigate`, `paginatedRecords`, and a `P` minification error) in clinical and dashboard components.
+- **Build Integrity:** Resolved a broken import path in `AppNotification.jsx` and a duplicate symbol declaration in `HealthRecords.jsx` that were causing build failures.
+- **API Gating:** Resolved `403 Forbidden` console errors by gating the global patient list fetch (`patientService.getAll()`) to only clinical and administrative roles.
+- **Global Error Handling:** Integrated an `eventBus` and `AppNotification` snackbar to catch and display unhandled API errors system-wide.
 
 ## Next Steps
 - Final review of all system documentation in preparation for the SQA audit.

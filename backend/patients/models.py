@@ -79,6 +79,7 @@ class MedicalRecord(models.Model):
         # Calculate BMI automatically if height and weight are provided
         if self.vital_signs and isinstance(self.vital_signs, dict):
             try:
+                # 1. BMI Calculation
                 height = self.vital_signs.get('height')
                 weight = self.vital_signs.get('weight')
                 if height is not None and weight is not None:
@@ -89,6 +90,43 @@ class MedicalRecord(models.Model):
                         h_m = h_val if h_val < 3.0 else h_val / 100.0
                         bmi = w_val / (h_m ** 2)
                         self.vital_signs['bmi'] = round(bmi, 2)
+                
+                # 2. Automated Risk Assessment (Vitals Alerts)
+                alerts = []
+                
+                # Temperature Alert (> 37.5°C is feverish, > 38.0°C is high fever)
+                temp = self.vital_signs.get('temperature')
+                if temp:
+                    t_val = float(temp)
+                    if t_val >= 38.0:
+                        alerts.append({'type': 'FEVER', 'level': 'CRITICAL', 'message': f"High Fever detected: {t_val}°C"})
+                    elif t_val >= 37.5:
+                        alerts.append({'type': 'FEVER', 'level': 'WARNING', 'message': f"Low-grade fever: {t_val}°C"})
+
+                # Blood Pressure Alert
+                bp = self.vital_signs.get('blood_pressure')
+                if bp and '/' in str(bp):
+                    try:
+                        sys, dia = map(float, str(bp).split('/'))
+                        if sys >= 140 or dia >= 90:
+                            alerts.append({'type': 'BP', 'level': 'CRITICAL', 'message': f"Hypertension Stage 2: {bp}"})
+                        elif sys >= 130 or dia >= 80:
+                            alerts.append({'type': 'BP', 'level': 'WARNING', 'message': f"Hypertension Stage 1: {bp}"})
+                    except (ValueError, TypeError):
+                        pass
+
+                # Heart Rate Alert (Normal 60-100)
+                hr = self.vital_signs.get('heart_rate') or self.vital_signs.get('pulse_rate')
+                if hr:
+                    hr_val = float(hr)
+                    if hr_val > 100:
+                        alerts.append({'type': 'HR', 'level': 'WARNING', 'message': f"Tachycardia detected: {hr_val} bpm"})
+                    elif hr_val < 50: # Slightly lower than 60 to avoid false positives for athletes
+                        alerts.append({'type': 'HR', 'level': 'WARNING', 'message': f"Bradycardia detected: {hr_val} bpm"})
+
+                self.vital_signs['alerts'] = alerts
+                self.vital_signs['has_alerts'] = len(alerts) > 0
+                
             except (TypeError, ValueError):
                 pass
 
@@ -110,34 +148,15 @@ class DentalRecord(models.Model):
     PROCEDURE_CHOICES = [
         ('CONSULTATION', 'Dental Consultation'),
         ('REFERRAL', 'Referral'),
-        ('CLEANING', 'Dental Cleaning'),
-        ('FILLING', 'Dental Filling'),
-        ('EXTRACTION', 'Tooth Extraction'),
-        ('ROOT_CANAL', 'Root Canal Treatment'),
-        ('CROWN', 'Crown Placement'),
-        ('BRIDGE', 'Bridge Work'),
-        ('IMPLANT', 'Dental Implant'),
-        ('ORTHODONTIC', 'Orthodontic Treatment'),
-        ('PERIODONTAL', 'Periodontal Treatment'),
-        ('PROPHYLAXIS', 'Prophylaxis'),
-        ('FLUORIDE', 'Fluoride Treatment'),
-        ('SEALANT', 'Dental Sealant'),
-        ('WHITENING', 'Teeth Whitening'),
-        ('XRAY', 'Dental X-Ray'),
         ('OTHER', 'Other Procedure'),
     ]
 
     TOOTH_CONDITION_CHOICES = [
         ('HEALTHY', 'Healthy'),
         ('CARIES', 'Caries/Decay'),
-        ('FILLED', 'Filled'),
-        ('CROWN', 'Crown'),
         ('MISSING', 'Missing'),
         ('EXTRACTED', 'Extracted'),
-        ('IMPACTED', 'Impacted'),
-        ('FRACTURED', 'Fractured'),
-        ('SENSITIVE', 'Sensitive'),
-        ('ROOT_CANAL', 'Root Canal Treated'),
+        ('OTHER', 'Other'),
     ]
 
     PRIORITY_CHOICES = [
