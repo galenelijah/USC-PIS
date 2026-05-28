@@ -206,6 +206,12 @@ class DentalRecord(models.Model):
         help_text="Detailed tooth chart with individual tooth conditions"
     )
     
+    # Specific Institutional Consultation Fields
+    periodontal_screening = models.CharField(max_length=100, blank=True, help_text="PSR or general gum health summary")
+    occlusion = models.CharField(max_length=100, blank=True, help_text="Bite/Alignment assessment")
+    tmd_assessment = models.CharField(max_length=100, blank=True, help_text="Temporomandibular joint assessment")
+    soft_tissue_exam = models.TextField(blank=True, help_text="Findings on tongue, cheeks, floor of mouth, etc.")
+    
     # Clinical notes and observations
     clinical_notes = models.TextField(blank=True, help_text="Additional clinical observations")
     pain_level = models.IntegerField(null=True, blank=True, help_text="Pain level on scale of 1-10")

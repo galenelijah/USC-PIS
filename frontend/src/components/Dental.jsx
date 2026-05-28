@@ -124,6 +124,10 @@ const Dental = () => {
     tooth_numbers: '',
     diagnosis: '',
     referral_to: '',
+    periodontal_screening: '',
+    occlusion: '',
+    tmd_assessment: '',
+    soft_tissue_exam: '',
     clinical_notes: '',
     pain_level: null,
   });
@@ -228,6 +232,10 @@ const Dental = () => {
         tooth_numbers: '',
         diagnosis: '',
         referral_to: '',
+        periodontal_screening: '',
+        occlusion: '',
+        tmd_assessment: '',
+        soft_tissue_exam: '',
         clinical_notes: '',
         pain_level: null,
       });
@@ -1072,6 +1080,50 @@ const Dental = () => {
                       placeholder="Clinical findings and dental diagnosis..."
                     />
                   </Grid>
+
+                  {/* Institutional Exam Fields */}
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="primary" sx={{ mt: 1, mb: 1, fontWeight: 'bold' }}>
+                      Clinical Examination (Institutional Standard)
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Periodontal Screening"
+                      value={formData.periodontal_screening}
+                      onChange={(e) => handleInputChange('periodontal_screening', e.target.value)}
+                      placeholder="Gum health summary..."
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Occlusion Assessment"
+                      value={formData.occlusion}
+                      onChange={(e) => handleInputChange('occlusion', e.target.value)}
+                      placeholder="Bite/Alignment..."
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="TMD Assessment"
+                      value={formData.tmd_assessment}
+                      onChange={(e) => handleInputChange('tmd_assessment', e.target.value)}
+                      placeholder="Joint/Muscle findings..."
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Soft Tissue Exam"
+                      value={formData.soft_tissue_exam}
+                      onChange={(e) => handleInputChange('soft_tissue_exam', e.target.value)}
+                      placeholder="Tongue, cheeks, etc..."
+                    />
+                  </Grid>
+
                   <Grid item xs={12}>
                     <TextField
                       fullWidth
@@ -1187,6 +1239,44 @@ const Dental = () => {
                       {selectedRecord.diagnosis}
                     </Typography>
                   </Grid>
+
+                  {/* Institutional Exam Details */}
+                  {(selectedRecord.periodontal_screening || selectedRecord.occlusion || 
+                    selectedRecord.tmd_assessment || selectedRecord.soft_tissue_exam) && (
+                    <>
+                      <Grid item xs={12}>
+                        <Divider sx={{ my: 1 }} />
+                        <Typography variant="subtitle1" color="primary" sx={{ fontWeight: 'bold' }}>
+                          Clinical Examination
+                        </Typography>
+                      </Grid>
+                      {selectedRecord.periodontal_screening && (
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="subtitle2" color="text.secondary">Periodontal Screening</Typography>
+                          <Typography variant="body2" gutterBottom>{selectedRecord.periodontal_screening}</Typography>
+                        </Grid>
+                      )}
+                      {selectedRecord.occlusion && (
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="subtitle2" color="text.secondary">Occlusion</Typography>
+                          <Typography variant="body2" gutterBottom>{selectedRecord.occlusion}</Typography>
+                        </Grid>
+                      )}
+                      {selectedRecord.tmd_assessment && (
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="subtitle2" color="text.secondary">TMD Assessment</Typography>
+                          <Typography variant="body2" gutterBottom>{selectedRecord.tmd_assessment}</Typography>
+                        </Grid>
+                      )}
+                      {selectedRecord.soft_tissue_exam && (
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="subtitle2" color="text.secondary">Soft Tissue Exam</Typography>
+                          <Typography variant="body2" gutterBottom>{selectedRecord.soft_tissue_exam}</Typography>
+                        </Grid>
+                      )}
+                    </>
+                  )}
+
                   {selectedRecord.referral_to && (
                     <Grid item xs={12}>
                       <Typography variant="subtitle2" color="text.secondary">
