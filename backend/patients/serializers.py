@@ -5,12 +5,15 @@ from authentication.validators import email_validator
 class MedicalRecordSerializer(serializers.ModelSerializer):
     patient_name = serializers.SerializerMethodField()
     patient_usc_id = serializers.SerializerMethodField()
+    patient_role = serializers.SerializerMethodField()
+    patient_course = serializers.SerializerMethodField()
+    patient_department = serializers.SerializerMethodField()
     record_type = serializers.SerializerMethodField()
     
     class Meta:
         model = MedicalRecord
-        fields = ['id', 'patient', 'patient_name', 'patient_usc_id', 'record_type', 'visit_date', 'concern', 'diagnosis', 'treatment', 'notes', 'vital_signs', 'physical_examination', 'created_at', 'updated_at', 'created_by']
-        read_only_fields = ['created_at', 'updated_at', 'created_by', 'patient_name', 'patient_usc_id', 'record_type']
+        fields = ['id', 'patient', 'patient_name', 'patient_usc_id', 'patient_role', 'patient_course', 'patient_department', 'record_type', 'visit_date', 'concern', 'diagnosis', 'treatment', 'notes', 'vital_signs', 'physical_examination', 'created_at', 'updated_at', 'created_by']
+        read_only_fields = ['created_at', 'updated_at', 'created_by', 'patient_name', 'patient_usc_id', 'patient_role', 'patient_course', 'patient_department', 'record_type']
     
     def get_patient_name(self, obj):
         return f"{obj.patient.first_name} {obj.patient.last_name}"
@@ -18,6 +21,16 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
     def get_patient_usc_id(self, obj):
         """Get USC ID number from the related user"""
         return obj.patient.user.id_number if obj.patient.user and obj.patient.user.id_number else None
+
+    def get_patient_role(self, obj):
+        """Get patient role from the related user"""
+        return obj.patient.user.role if obj.patient.user else 'STUDENT'
+
+    def get_patient_course(self, obj):
+        return obj.patient.user.course if obj.patient.user else None
+
+    def get_patient_department(self, obj):
+        return obj.patient.user.department if obj.patient.user else None
 
     def get_record_type(self, obj):
         return 'MEDICAL'
@@ -89,6 +102,10 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
 
 class DentalRecordSerializer(serializers.ModelSerializer):
     patient_name = serializers.SerializerMethodField()
+    patient_usc_id = serializers.SerializerMethodField()
+    patient_role = serializers.SerializerMethodField()
+    patient_course = serializers.SerializerMethodField()
+    patient_department = serializers.SerializerMethodField()
     procedure_performed_display = serializers.CharField(source='get_procedure_performed_display', read_only=True)
     affected_teeth_display = serializers.CharField(source='get_affected_teeth_display', read_only=True)
     record_type = serializers.SerializerMethodField()
@@ -96,7 +113,7 @@ class DentalRecordSerializer(serializers.ModelSerializer):
     class Meta:
         model = DentalRecord
         fields = [
-            'id', 'patient', 'patient_name', 'record_type', 'visit_date', 'concern', 'procedure_performed', 
+            'id', 'patient', 'patient_name', 'patient_usc_id', 'patient_role', 'patient_course', 'patient_department', 'record_type', 'visit_date', 'concern', 'procedure_performed', 
             'procedure_performed_display', 'tooth_numbers', 'affected_teeth_display',
             'diagnosis', 'treatment_performed', 'treatment_plan', 'referral_to',
             'oral_hygiene_status', 'gum_condition', 'tooth_chart', 'clinical_notes', 
@@ -105,10 +122,22 @@ class DentalRecordSerializer(serializers.ModelSerializer):
             'xray_images', 'photos', 'documents', 'cost', 'insurance_covered',
             'created_at', 'updated_at', 'created_by'
         ]
-        read_only_fields = ['created_at', 'updated_at', 'created_by', 'patient_name', 'procedure_performed_display', 'affected_teeth_display', 'record_type']
+        read_only_fields = ['created_at', 'updated_at', 'created_by', 'patient_name', 'patient_usc_id', 'patient_role', 'patient_course', 'patient_department', 'procedure_performed_display', 'affected_teeth_display', 'record_type']
 
     def get_patient_name(self, obj):
         return f"{obj.patient.first_name} {obj.patient.last_name}"
+
+    def get_patient_usc_id(self, obj):
+        return obj.patient.user.id_number if obj.patient.user and obj.patient.user.id_number else None
+
+    def get_patient_role(self, obj):
+        return obj.patient.user.role if obj.patient.user else 'STUDENT'
+
+    def get_patient_course(self, obj):
+        return obj.patient.user.course if obj.patient.user else None
+
+    def get_patient_department(self, obj):
+        return obj.patient.user.department if obj.patient.user else None
 
     def get_record_type(self, obj):
         return 'DENTAL'
@@ -163,12 +192,13 @@ class DentalRecordSerializer(serializers.ModelSerializer):
 class ConsultationSerializer(serializers.ModelSerializer):
     patient_name = serializers.SerializerMethodField()
     patient_usc_id = serializers.SerializerMethodField()
+    patient_role = serializers.SerializerMethodField()
     record_type = serializers.SerializerMethodField()
     
     class Meta:
         model = Consultation
-        fields = ['id', 'patient', 'patient_name', 'patient_usc_id', 'record_type', 'date_time', 'concern', 'chief_complaints', 'treatment_plan', 'remarks', 'created_at', 'updated_at', 'created_by']
-        read_only_fields = ['created_at', 'updated_at', 'created_by', 'patient_name', 'patient_usc_id', 'record_type']
+        fields = ['id', 'patient', 'patient_name', 'patient_usc_id', 'patient_role', 'record_type', 'date_time', 'concern', 'chief_complaints', 'treatment_plan', 'remarks', 'created_at', 'updated_at', 'created_by']
+        read_only_fields = ['created_at', 'updated_at', 'created_by', 'patient_name', 'patient_usc_id', 'patient_role', 'record_type']
     
     def get_patient_name(self, obj):
         return f"{obj.patient.first_name} {obj.patient.last_name}"
@@ -176,6 +206,9 @@ class ConsultationSerializer(serializers.ModelSerializer):
     def get_patient_usc_id(self, obj):
         """Get USC ID number from the related user"""
         return obj.patient.user.id_number if obj.patient.user and obj.patient.user.id_number else None
+
+    def get_patient_role(self, obj):
+        return obj.patient.user.role if obj.patient.user else 'STUDENT'
 
     def get_record_type(self, obj):
         return 'CONSULTATION'
@@ -204,6 +237,7 @@ class PatientSerializer(serializers.ModelSerializer):
     
     # Fields from User model
     usc_id = serializers.ReadOnlyField(source='user.id_number')
+    role = serializers.ReadOnlyField(source='user.role')
     middle_name = serializers.ReadOnlyField(source='user.middle_name')
     course = serializers.ReadOnlyField(source='user.course')
     year_level = serializers.ReadOnlyField(source='user.year_level')
@@ -232,7 +266,7 @@ class PatientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Patient
         fields = [
-            'id', 'user', 'usc_id', 'first_name', 'middle_name', 'last_name', 
+            'id', 'user', 'usc_id', 'role', 'first_name', 'middle_name', 'last_name', 
             'date_of_birth', 'gender', 'email', 'phone_number', 'address',
             'course', 'year_level', 'school', 'civil_status', 'nationality', 
             'religion', 'address_permanent', 'phone', 'weight', 'height', 'bmi',

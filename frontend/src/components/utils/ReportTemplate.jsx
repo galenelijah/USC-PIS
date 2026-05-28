@@ -17,8 +17,14 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
     : 'N/A';
   
   // Categorize for summary
-  const studentVisits = data.filter(r => (r.patient_role || '').toUpperCase() === 'STUDENT').length;
+  const studentVisits = data.filter(r => {
+    const role = (r.patient_role || '').toUpperCase();
+    return role === 'STUDENT' || role === 'PATIENT'; // PATIENT role often maps to students in some contexts
+  }).length;
   const facultyVisits = totalVisits - studentVisits;
+
+  // Determine if this is a single-patient report
+  const isSinglePatient = patient && new Set(data.map(r => r.patient)).size <= 1;
 
   // 2. Data for Diagrams
   const distributionData = {};
@@ -199,8 +205,8 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
         </Grid>
       </Box>
 
-      {/* Patient Profile (If single patient filter is active) */}
-      {patient && reportType !== 'FEEDBACK' && (
+      {/* Patient Profile (Only if single patient report) */}
+      {isSinglePatient && patient && reportType !== 'FEEDBACK' && (
         <Box sx={{ mb: 4, border: '1px solid #003366', borderRadius: 1, overflow: 'hidden' }}>
           <Box sx={{ bgcolor: '#003366', color: 'white', px: 2, py: 0.5 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>PATIENT DEMOGRAPHIC PROFILE</Typography>
@@ -263,6 +269,21 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
                   <Typography variant="caption" color="text.secondary">
                     {dayjs(record.visit_date || record.created_at).format('hh:mm A')}
                   </Typography>
+                  {!isSinglePatient && (record.patient_name || record.patient_usc_id) && (
+                    <Box sx={{ mt: 1, borderTop: '1px solid #eee', pt: 0.5 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block' }}>
+                        {record.patient_name}
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontSize: '0.65rem' }}>
+                        ID: {record.patient_usc_id || '—'}
+                      </Typography>
+                      {(record.patient_course || record.patient_department) && (
+                        <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontSize: '0.65rem' }}>
+                          {record.patient_course || record.patient_department}
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
                 </TableCell>
                 
                 {reportType === 'FEEDBACK' ? (
@@ -273,10 +294,10 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
                       </Typography>
                     </TableCell>
                     <TableCell sx={{ verticalAlign: 'top' }}>
-                      <Typography variant="body2">{record.comments || 'No comments'}</Typography>
+                      <Typography variant="body2">{record.comments || '—'}</Typography>
                     </TableCell>
                     <TableCell sx={{ verticalAlign: 'top' }}>
-                      <Typography variant="body2">{record.improvement || 'No suggestions'}</Typography>
+                      <Typography variant="body2">{record.improvement || '—'}</Typography>
                     </TableCell>
                   </>
                 ) : (
@@ -284,36 +305,53 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
                     <TableCell sx={{ verticalAlign: 'top' }}>
                       {reportType === 'DENTAL' ? (
                         <>
-                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{record.procedure_performed_display || record.procedure_performed || 'N/A'}</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{record.procedure_performed_display || record.procedure_performed || '—'}</Typography>
                           {record.tooth_numbers && (
                             <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
                               Teeth: {record.tooth_numbers}
                             </Typography>
                           )}
+                          {record.priority && (
+                            <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: record.priority === 'High' ? 'error.main' : 'text.secondary' }}>
+                              Priority: {record.priority}
+                            </Typography>
+                          )}
                         </>
                       ) : (
                         <>
-                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{record.diagnosis || 'N/A'}</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{record.diagnosis || '—'}</Typography>
                           {(record.vital_signs || record.blood_pressure) && (
-                            <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: '#666' }}>
-                              BP: {record.vital_signs?.blood_pressure || record.blood_pressure || '-'} | 
-                              T: {record.vital_signs?.temperature || record.temperature || '-'}°C
-                            </Typography>
+                            <Box sx={{ mt: 1 }}>
+                              <Typography variant="caption" sx={{ display: 'block', color: '#666' }}>
+                                BP: {record.vital_signs?.blood_pressure || record.blood_pressure || '—'} | 
+                                T: {record.vital_signs?.temperature || record.temperature || '—'}°C
+                              </Typography>
+                              {record.vital_signs?.bmi && (
+                                <Typography variant="caption" sx={{ display: 'block', color: '#666' }}>
+                                  BMI: {record.vital_signs.bmi} ({record.vital_signs.bmi > 25 ? 'High' : 'Normal'})
+                                </Typography>
+                              )}
+                            </Box>
                           )}
                         </>
                       )}
                     </TableCell>
 
                     <TableCell sx={{ verticalAlign: 'top' }}>
-                      <Typography variant="body2">
+                      <Typography variant="body2" sx={{ mb: 1 }}>
                         {reportType === 'DENTAL' 
-                          ? (record.referral_to || 'No referral recorded')
-                          : (record.treatment || record.treatment_performed || 'No treatment recorded')
+                          ? (record.referral_to || record.treatment_performed || '—')
+                          : (record.treatment || record.treatment_performed || '—')
                         }
                       </Typography>
-                      {record.medications && (
-                        <Typography variant="caption" sx={{ fontStyle: 'italic', display: 'block', mt: 0.5 }}>
-                          Rx: {record.medications}
+                      {(record.medications || record.meds) && (
+                        <Typography variant="caption" sx={{ fontStyle: 'italic', display: 'block', borderTop: '1px dashed #ccc', pt: 0.5, mt: 0.5 }}>
+                          Rx: {record.medications || record.meds}
+                        </Typography>
+                      )}
+                      {record.clinical_notes && (
+                        <Typography variant="caption" sx={{ display: 'block', fontStyle: 'italic', color: 'text.secondary', mt: 0.5 }}>
+                          Notes: {record.clinical_notes}
                         </Typography>
                       )}
                     </TableCell>

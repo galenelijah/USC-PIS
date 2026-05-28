@@ -14,6 +14,8 @@ from authentication.models import User
 from feedback.models import Feedback
 from health_info.models import HealthCampaign, CampaignFeedback
 from notifications.models import Notification
+from medical_certificates.models import MedicalCertificate
+from file_uploads.models import PatientDocument
 import logging
 import pandas as pd
 
@@ -255,7 +257,100 @@ class ReportDataService:
         except Exception as e:
             logger.error(f"Error in get_patient_summary_data: {str(e)}")
             return {'error': str(e), 'total_patients': Patient.objects.count()}
-    
+
+    @staticmethod
+    def get_unified_health_history_data(date_start=None, date_end=None, filters=None):
+        """Aggregate all health interactions for a patient into a unified timeline"""
+        try:
+            patient_id = filters.get('patient_id') if filters else None
+            if not patient_id:
+                return {'error': 'Patient ID is required for unified health history'}
+            
+            patient = Patient.objects.select_related('user').get(id=patient_id)
+            history = []
+            
+            # 1. Medical Records
+            mr_qs = patient.medical_records.all()
+            if date_start and date_end:
+                mr_qs = mr_qs.filter(visit_date__range=(date_start, date_end))
+            for mr in mr_qs.order_by('-visit_date'):
+                history.append({
+                    'date': mr.visit_date,
+                    'type': 'MEDICAL',
+                    'title': 'Medical Consultation',
+                    'primary_info': mr.diagnosis or mr.concern or 'General Consultation',
+                    'secondary_info': f"Treatment: {mr.treatment}" if mr.treatment else "",
+                    'meta': mr.vital_signs
+                })
+                
+            # 2. Dental Records
+            dr_qs = patient.dental_records.all()
+            if date_start and date_end:
+                dr_qs = dr_qs.filter(visit_date__range=(date_start, date_end))
+            for dr in dr_qs.order_by('-visit_date'):
+                history.append({
+                    'date': dr.visit_date,
+                    'type': 'DENTAL',
+                    'title': 'Dental Consultation',
+                    'primary_info': dr.diagnosis or dr.concern or 'Dental Consultation',
+                    'secondary_info': f"Procedure: {dr.get_procedure_performed_display()}",
+                    'meta': {'teeth': dr.tooth_numbers, 'referral': dr.referral_to}
+                })
+                
+            # 3. Medical Certificates
+            mc_qs = MedicalCertificate.objects.filter(patient=patient)
+            if date_start and date_end:
+                mc_qs = mc_qs.filter(created_at__range=(date_start, date_end))
+            for mc in mc_qs.order_by('-created_at'):
+                history.append({
+                    'date': mc.created_at.date(),
+                    'type': 'CERTIFICATE',
+                    'title': f"Medical Certificate: {mc.template.name}",
+                    'primary_info': f"Status: {mc.get_fitness_status_display()}",
+                    'secondary_info': f"Reason: {mc.fitness_reason}" if mc.fitness_reason else mc.diagnosis,
+                    'meta': {'valid_until': mc.valid_until}
+                })
+                
+            # 4. Patient Documents
+            doc_qs = PatientDocument.objects.filter(patient=patient)
+            if date_start and date_end:
+                doc_qs = doc_qs.filter(uploaded_at__range=(date_start, date_end))
+            for doc in doc_qs.order_by('-uploaded_at'):
+                history.append({
+                    'date': doc.uploaded_at.date(),
+                    'type': 'DOCUMENT',
+                    'title': doc.get_document_type_display(),
+                    'primary_info': doc.original_filename,
+                    'secondary_info': doc.description or "",
+                    'meta': {'file_size': doc.file_size, 'ext': os.path.splitext(doc.file.name)[1]}
+                })
+
+            # Sort unified history chronologically descending
+            history.sort(key=lambda x: x['date'], reverse=True)
+            
+            # Format dates for JSON serializability
+            for item in history:
+                if isinstance(item['date'], (datetime, timezone.datetime)):
+                    item['date'] = item['date'].strftime('%Y-%m-%d %H:%M')
+                else:
+                    item['date'] = str(item['date'])
+
+            return {
+                'patient_name': patient.first_name + " " + patient.last_name,
+                'usc_id': getattr(patient.user, 'usc_id', 'N/A'),
+                'history': history,
+                'total_interactions': len(history),
+                'breakdown': {
+                    'medical': mr_qs.count(),
+                    'dental': dr_qs.count(),
+                    'certificates': mc_qs.count(),
+                    'documents': doc_qs.count()
+                }
+            }
+        except Exception as e:
+            logger.error(f"Error in get_unified_health_history_data: {str(e)}")
+            return {'error': str(e)}
+
     @staticmethod
     def get_visit_trends_data(date_start=None, date_end=None, filters=None):
         """Get visit trends data with monthly aggregation and detailed metrics"""
@@ -1138,6 +1233,143 @@ class USCPISReportGenerator:
         # Generate with header/footer hook
         doc.build(elements, onFirstPage=self.draw_header_footer, onLaterPages=self.draw_header_footer)
 
+class USCUnifiedHistoryReport:
+    """
+    USC Unified Health History Report Engine.
+    Provides a chronological timeline of all patient interactions across all modules.
+    """
+    def __init__(self, buffer, user_context, patient_info):
+        self.buffer = buffer
+        if hasattr(user_context, 'get_full_name'):
+            self.user = {
+                'name': user_context.get_full_name() or user_context.email,
+                'id': getattr(user_context, 'usc_id', str(user_context.id))
+            }
+        else:
+            self.user = user_context or {'name': 'System', 'id': 'N/A'}
+        
+        self.patient = patient_info
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib import colors
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT
+        self.styles = getSampleStyleSheet()
+        
+        if 'USCTitle' not in self.styles:
+            self.styles.add(ParagraphStyle(
+                name='USCTitle', parent=self.styles['Normal'],
+                fontSize=14, leading=16, alignment=TA_CENTER, textColor=colors.HexColor("#003366"), fontName='Helvetica-Bold'
+            ))
+        if 'TimelineType' not in self.styles:
+            self.styles.add(ParagraphStyle(
+                name='TimelineType', parent=self.styles['Normal'],
+                fontSize=7, leading=8, alignment=TA_CENTER, textColor=colors.whitesmoke, 
+                fontName='Helvetica-Bold', backColor=colors.HexColor("#003366"), borderPadding=2
+            ))
+        if 'WrappedCell' not in self.styles:
+            self.styles.add(ParagraphStyle(
+                name='WrappedCell', parent=self.styles['Normal'],
+                fontSize=8, leading=11, alignment=TA_LEFT, wordWrap='LTR'
+            ))
+
+    def header_footer(self, canvas, doc):
+        from reportlab.lib import colors
+        from reportlab.lib.units import mm
+        from reportlab.lib.pagesizes import A4
+        import datetime
+        canvas.saveState()
+        canvas.setFont('Helvetica-Bold', 12)
+        canvas.drawCentredString(A4[0]/2, A4[1]-15*mm, "UNIVERSITY OF SAN CARLOS")
+        canvas.setFont('Helvetica', 10)
+        canvas.drawCentredString(A4[0]/2, A4[1]-20*mm, "Health Services Department - Patient Health History")
+        canvas.setStrokeColor(colors.HexColor("#003366"))
+        canvas.line(20*mm, A4[1]-23*mm, A4[0]-20*mm, A4[1]-23*mm)
+        
+        # Patient Banner
+        canvas.setFont('Helvetica-Bold', 9)
+        canvas.drawString(20*mm, A4[1]-28*mm, f"Patient: {self.patient.get('name', 'N/A')}")
+        canvas.drawRightString(A4[0]-20*mm, A4[1]-28*mm, f"ID: {self.patient.get('usc_id', 'N/A')}")
+
+        # Footer
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        canvas.line(20*mm, 15*mm, A4[0]-20*mm, 15*mm)
+        canvas.setFont('Helvetica', 7)
+        canvas.drawString(20*mm, 10*mm, f"Generated: {timestamp} | By: {self.user['name']}")
+        canvas.drawRightString(A4[0]-20*mm, 10*mm, f"Page {doc.page} | Confidential Medical Record")
+        canvas.restoreState()
+
+    def build(self, history, breakdown):
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.lib.units import mm
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib import colors
+        
+        doc = SimpleDocTemplate(
+            self.buffer, pagesize=A4,
+            leftMargin=20*mm, rightMargin=20*mm, topMargin=35*mm, bottomMargin=25*mm
+        )
+        
+        elements = []
+        elements.append(Paragraph("UNIFIED HEALTH INTERACTION TIMELINE", self.styles['USCTitle']))
+        elements.append(Spacer(1, 8*mm))
+        
+        # Breakdown Summary
+        summary_data = [
+            ["Medical Consultations", "Dental Consultations", "Medical Certificates", "Uploaded Documents"],
+            [breakdown.get('medical', 0), breakdown.get('dental', 0), breakdown.get('certificates', 0), breakdown.get('documents', 0)]
+        ]
+        summary_table = Table(summary_data, colWidths=[42*mm]*4)
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#f1f1f1")),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.HexColor("#003366")),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,0), 8),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+            ('TOPPADDING', (0,0), (-1,-1), 6),
+        ]))
+        elements.append(summary_table)
+        elements.append(Spacer(1, 10*mm))
+        
+        # Timeline Table
+        header = ['Date/Time', 'Type', 'Interaction Details', 'Notes / Recommendations']
+        table_data = [header]
+        
+        type_colors = {
+            'MEDICAL': colors.HexColor("#1976d2"),
+            'DENTAL': colors.HexColor("#388e3c"),
+            'CERTIFICATE': colors.HexColor("#f57c00"),
+            'DOCUMENT': colors.HexColor("#7b1fa2")
+        }
+
+        for item in history:
+            type_style = ParagraphStyle(
+                name=f"Type_{item['type']}", parent=self.styles['TimelineType'],
+                backColor=type_colors.get(item['type'], colors.grey)
+            )
+            
+            table_data.append([
+                Paragraph(item['date'], self.styles['WrappedCell']),
+                Paragraph(item['type'], type_style),
+                Paragraph(f"<b>{item['title']}</b><br/>{item['primary_info']}", self.styles['WrappedCell']),
+                Paragraph(item['secondary_info'], self.styles['WrappedCell'])
+            ])
+            
+        t = Table(table_data, colWidths=[30*mm, 20*mm, 60*mm, 60*mm], repeatRows=1)
+        t.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#003366")),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,0), 9),
+            ('GRID', (0,0), (-1,-1), 0.2, colors.lightgrey),
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('TOPPADDING', (0,0), (-1,-1), 6),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ]))
+        elements.append(t)
+        
+        doc.build(elements, onFirstPage=self.header_footer, onLaterPages=self.header_footer)
+
 class USCDentalAnalyticalReport:
     """
     USC Dental Section Analytical Report Engine.
@@ -1178,7 +1410,7 @@ class USCDentalAnalyticalReport:
         if 'WrappedCell' not in self.styles:
             self.styles.add(ParagraphStyle(
                 name='WrappedCell', parent=self.styles['Normal'],
-                fontSize=8, leading=10, alignment=TA_LEFT, wordWrap='LTR'
+                fontSize=8, leading=11, alignment=TA_LEFT, wordWrap='LTR'
             ))
 
     def header_footer(self, canvas, doc):
@@ -1292,11 +1524,11 @@ class USCDentalAnalyticalReport:
         for r in records[:500]:
             # Force wrapping via Paragraphs
             table_data.append([
-                Paragraph(str(r.get('date', r.get('visit_date', 'N/A'))), self.styles['WrappedCell']),
-                Paragraph(f"<b>{r.get('name', 'N/A')}</b><br/>{r.get('usc_id', 'N/A')}<br/>{r.get('role', 'N/A')}", self.styles['WrappedCell']),
-                Paragraph(f"<b>Gum:</b> {r.get('gum', r.get('gum_condition', 'N/A'))}<br/>{r.get('diagnosis', 'N/A')}", self.styles['WrappedCell']),
-                Paragraph(str(r.get('teeth', r.get('tooth_numbers', 'N/A'))), self.styles['WrappedCell']),
-                Paragraph(f"<b>{r.get('proc', r.get('procedure_performed', 'N/A'))}</b><br/>Ref to: {r.get('referral', r.get('referral_to', 'N/A'))}", self.styles['WrappedCell'])
+                Paragraph(str(r.get('date', '—')), self.styles['WrappedCell']),
+                Paragraph(f"<b>{r.get('name', '—')}</b><br/>{r.get('usc_id', '—')}<br/>{r.get('role', '—')}", self.styles['WrappedCell']),
+                Paragraph(f"<b>Gum:</b> {r.get('gum', '—')}<br/>{r.get('diagnosis', '—')}", self.styles['WrappedCell']),
+                Paragraph(str(r.get('teeth', '—')), self.styles['WrappedCell']),
+                Paragraph(f"<b>{r.get('proc', '—')}</b><br/>Ref to: {r.get('referral', '—')}", self.styles['WrappedCell'])
             ])
 
         # Strict Column Widths (Sum = 170mm)
@@ -1452,7 +1684,31 @@ class USCMedicalAnalyticalReport:
         elements.append(Paragraph("<b>Section I: Population Health Summary</b>", self.styles['Normal']))
         elements.append(Spacer(1, 2*mm))
         elements.append(self.create_aggregation_dashboard(aggregation_data))
-        elements.append(Spacer(1, 10*mm))
+        elements.append(Spacer(1, 6*mm))
+        
+        # Student Context Summary (Panel Requirement 3.a.i)
+        if aggregation_data.get('student_summary'):
+            summary = aggregation_data['student_summary']
+            if summary.get('courses') or summary.get('year_levels'):
+                elements.append(Paragraph("<b>Student Population Distribution</b>", self.styles['MetricLabel']))
+                elements.append(Spacer(1, 2*mm))
+                
+                # Create a sub-tally table
+                course_txt = ", ".join([f"{k}: {v}" for k, v in list(summary['courses'].items())[:8]])
+                yl_txt = ", ".join([f"{k}: {v}" for k, v in summary['year_levels'].items()])
+                
+                sub_data = [
+                    [Paragraph(f"<b>By Course:</b> {course_txt or 'None'}", self.styles['WrappedCell']),
+                     Paragraph(f"<b>By Year:</b> {yl_txt or 'None'}", self.styles['WrappedCell'])]
+                ]
+                sub_table = Table(sub_data, colWidths=[90*mm, 90*mm])
+                sub_table.setStyle(TableStyle([
+                    ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                    ('GRID', (0,0), (-1,-1), 0.2, colors.lightgrey),
+                    ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#fafafa")),
+                ]))
+                elements.append(sub_table)
+                elements.append(Spacer(1, 8*mm))
         
         # 3. Data Visualization
         elements.append(Paragraph("<b>Section II: Case Distribution Analysis</b>", self.styles['Normal']))
@@ -1470,11 +1726,11 @@ class USCMedicalAnalyticalReport:
         for r in clinical_records[:500]:
             # Force auto-wrapping via Paragraphs
             table_data.append([
-                Paragraph(str(r.get('date', r.get('visit_date', 'N/A'))), self.styles['WrappedCell']),
-                Paragraph(f"<b>{r.get('name', 'N/A')}</b><br/>{r.get('usc_id', 'N/A')}<br/>{r.get('school', r.get('school_department', 'N/A'))}", self.styles['WrappedCell']),
-                Paragraph(f"BP: {r.get('bp', r.get('blood_pressure', 'N/A'))}<br/>T: {r.get('temp', r.get('temperature', 'N/A'))}°C<br/>BMI: {r.get('bmi', 'N/A')}", self.styles['WrappedCell']),
-                Paragraph(f"<b>CC:</b> {r.get('concern', r.get('chief_complaint', 'N/A'))}<br/><b>Diag:</b> {r.get('diagnosis', 'N/A')}", self.styles['WrappedCell']),
-                Paragraph(f"<b>Rx:</b> {r.get('meds', r.get('medications', 'N/A'))}<br/><b>Plan:</b> {r.get('treatment', 'N/A')}", self.styles['WrappedCell'])
+                Paragraph(str(r.get('date', '—')), self.styles['WrappedCell']),
+                Paragraph(f"<b>{r.get('name', '—')}</b><br/>{r.get('usc_id', '—')}<br/>{r.get('school', '—')}", self.styles['WrappedCell']),
+                Paragraph(r.get('vitals', '—'), self.styles['WrappedCell']),
+                Paragraph(f"<b>CC:</b> {r.get('concern', '—')}<br/><b>Diag:</b> {r.get('diagnosis', '—')}", self.styles['WrappedCell']),
+                Paragraph(f"<b>Rx:</b> {r.get('meds', '—')}<br/><b>Plan:</b> {r.get('treatment', '—')}", self.styles['WrappedCell'])
             ])
 
         # Strict Column Widths (Sum = 180mm for optimized A4)
@@ -1547,7 +1803,17 @@ class ReportExportService:
             buffer = BytesIO()
             
             # --- BRANCH TO SPECIALIZED GENERATORS ---
-            if report_type in ['DENTAL_STATISTICS', 'DENTAL_STATS']:
+            if report_type == 'HEALTH_HISTORY':
+                # UNIFIED HISTORY SPECIALIZED REPORT
+                patient_info = {
+                    'name': report_data.get('patient_name', 'N/A'),
+                    'usc_id': report_data.get('usc_id', 'N/A')
+                }
+                generator = USCUnifiedHistoryReport(buffer, user, patient_info)
+                generator.build(report_data.get('history', []), report_data.get('breakdown', {}))
+                return buffer.getvalue()
+                
+            elif report_type in ['DENTAL_STATISTICS', 'DENTAL_STATS']:
                 # DENTAL SPECIALIZED REPORT
                 date_range = f"{report_data.get('date_range_start', 'N/A')} to {report_data.get('date_range_end', 'N/A')}"
                 generator = USCDentalAnalyticalReport(buffer, user, date_range=date_range)
@@ -1575,16 +1841,17 @@ class ReportExportService:
                         dr_qs = dr_qs.filter(visit_date__range=(report_data['date_range_start'], report_data['date_range_end']))
                     
                     for dr in dr_qs.select_related('patient__user').order_by('-visit_date')[:500]:
+                        u = dr.patient.user
                         records.append({
-                            'date': dr.visit_date.strftime('%Y-%m-%d') if dr.visit_date else 'N/A',
-                            'name': dr.patient.user.get_full_name(),
-                            'usc_id': getattr(dr.patient.user, 'usc_id', 'N/A'),
-                            'role': dr.patient.user.role,
-                            'gum': dr.get_gum_condition_display(),
-                            'diagnosis': dr.diagnosis,
-                            'teeth': dr.tooth_numbers,
-                            'proc': dr.get_procedure_performed_display(),
-                            'referral': dr.referral_to or 'None'
+                            'date': dr.visit_date.strftime('%Y-%m-%d') if dr.visit_date else '—',
+                            'name': u.get_full_name() if u else dr.patient.first_name,
+                            'usc_id': getattr(u, 'usc_id', '—'),
+                            'role': u.role if u else '—',
+                            'gum': dr.get_gum_condition_display() or '—',
+                            'diagnosis': dr.diagnosis or '—',
+                            'teeth': dr.tooth_numbers or '—',
+                            'proc': dr.get_procedure_performed_display() or '—',
+                            'referral': dr.referral_to or '—'
                         })
                 
                 generator.build(records, agg_data, proc_data)
@@ -1615,13 +1882,38 @@ class ReportExportService:
                 if 'date_range_start' in report_data and 'date_range_end' in report_data:
                     mr_qs = mr_qs.filter(visit_date__range=(report_data['date_range_start'], report_data['date_range_end']))
                 
+                # Dynamic Student Summary Aggregation
+                student_summary = {
+                    'courses': {}, # { 'BSCpE': count }
+                    'year_levels': {} # { '1st Year': count }
+                }
+
                 bmi_alerts = 0
                 bp_alerts = 0
                 
                 for mr in mr_qs.select_related('patient__user').order_by('-visit_date')[:500]:
+                    p = mr.patient
+                    u = p.user
+                    
+                    # Student Context Tally
+                    if u and u.role in ['STUDENT', 'PATIENT'] and (u.course or u.year_level):
+                        if u.course:
+                            student_summary['courses'][u.course] = student_summary['courses'].get(u.course, 0) + 1
+                        if u.year_level:
+                            yl = f"{u.year_level} Year" if str(u.year_level).isdigit() else u.year_level
+                            student_summary['year_levels'][yl] = student_summary['year_levels'].get(yl, 0) + 1
+
                     vitals = mr.vital_signs or {}
+                    
+                    # Refined Parsing with standard dash fallbacks
+                    def clean_vital(val, suffix=""):
+                        if val is None or str(val).strip().upper() in ["N/A", "NULL", "NONE", "", "0", "0.0"]:
+                            return "—"
+                        return f"{val}{suffix}"
+
                     bmi = vitals.get('bmi', 0)
-                    if bmi and float(bmi) > 25.0: bmi_alerts += 1
+                    if bmi and str(bmi).replace('.','',1).isdigit() and float(bmi) > 25.0: 
+                        bmi_alerts += 1
                     
                     bp = vitals.get('blood_pressure', '')
                     if bp and '/' in str(bp):
@@ -1630,22 +1922,26 @@ class ReportExportService:
                             if sys >= 140 or dia >= 90: bp_alerts += 1
                         except: pass
                     
+                    # Prepare consolidated vitals string with HR/RR
+                    hr = clean_vital(vitals.get('heart_rate') or vitals.get('pulse_rate'), " bpm")
+                    rr = clean_vital(vitals.get('respiratory_rate'), " cpm")
+                    vitals_summary = f"BP: {clean_vital(bp)}<br/>T: {clean_vital(vitals.get('temperature'), '°C')}<br/>BMI: {clean_vital(bmi)}<br/>HR: {hr}<br/>RR: {rr}"
+
                     records.append({
-                        'date': mr.visit_date.strftime('%Y-%m-%d') if mr.visit_date else 'N/A',
-                        'name': mr.patient.user.get_full_name(),
-                        'usc_id': getattr(mr.patient.user, 'usc_id', 'N/A'),
-                        'school': mr.patient.user.department or mr.patient.user.course or 'N/A',
-                        'bp': bp or 'N/A',
-                        'temp': vitals.get('temperature', 'N/A'),
-                        'bmi': bmi or 'N/A',
-                        'concern': mr.concern or mr.chief_complaint or 'N/A',
-                        'diagnosis': mr.diagnosis or 'N/A',
-                        'meds': mr.medications or 'N/A',
-                        'treatment': mr.treatment or 'N/A'
+                        'date': mr.visit_date.strftime('%Y-%m-%d') if mr.visit_date else '—',
+                        'name': u.get_full_name() if u else p.first_name,
+                        'usc_id': getattr(u, 'usc_id', '—'),
+                        'school': (u.department or u.course or '—') if u else '—',
+                        'vitals': vitals_summary,
+                        'concern': mr.concern or mr.chief_complaint or '—',
+                        'diagnosis': mr.diagnosis or '—',
+                        'meds': mr.medications or '—',
+                        'treatment': mr.treatment or '—'
                     })
                 
                 agg_data['bmi_alerts'] = bmi_alerts
                 agg_data['bp_alerts'] = bp_alerts
+                agg_data['student_summary'] = student_summary
                 
                 generator.build_document(records, agg_data, chart_data)
                 return buffer.getvalue()
@@ -1991,6 +2287,9 @@ class ReportGenerationService:
             elif rtype == 'HEALTH_METRICS':
                 data = self.data_service.get_health_metrics_data(date_start, date_end, filters)
                 report_title = title or "Health Metrics Report"
+            elif rtype == 'HEALTH_HISTORY':
+                data = self.data_service.get_unified_health_history_data(date_start, date_end, filters)
+                report_title = title or "Unified Patient Health History"
             else: 
                 logger.warning(f"Unknown report type '{rtype}', using comprehensive analytics fallback")
                 data = self.data_service.get_comprehensive_analytics_data(date_start, date_end, filters)
@@ -2101,6 +2400,7 @@ class ReportGenerationService:
     def generate_campaign_performance_report(self, **kwargs): return self._generate_generic_report('CAMPAIGN_PERFORMANCE', "Campaign Performance", **kwargs)
     def generate_user_activity_report(self, **kwargs): return self._generate_generic_report('USER_ACTIVITY', "User Activity", **kwargs)
     def generate_health_metrics_report(self, **kwargs): return self._generate_generic_report('HEALTH_METRICS', "Health Metrics", **kwargs)
+    def generate_health_history_report(self, **kwargs): return self._generate_generic_report('HEALTH_HISTORY', "Health History", **kwargs)
 
 class ReportSchemaService:
     """Service for providing configuration schemas for customizable reports"""
@@ -2229,6 +2529,18 @@ class ReportSchemaService:
                     {'id': 'unit', 'label': 'Unit', 'default': True}
                 ],
                 'groupable_by': ['metric_name']
+            },
+            'HEALTH_HISTORY': {
+                'filters': [
+                    {'id': 'patient_id', 'label': 'Select Student/Patient', 'type': 'api_select', 'endpoint': '/api/patients/'}
+                ],
+                'fields': [
+                    {'id': 'date', 'label': 'Date/Time', 'default': True},
+                    {'id': 'type', 'label': 'Type', 'default': True},
+                    {'id': 'title', 'label': 'Interaction', 'default': True},
+                    {'id': 'primary_info', 'label': 'Findings/Details', 'default': True}
+                ],
+                'groupable_by': ['type']
             }
         }
         
