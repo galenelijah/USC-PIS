@@ -96,7 +96,8 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     def validate_birthday(self, value):
         """Prevent future dates for patient birthdays."""
         from django.utils import timezone
-        if value and value > timezone.now().date():
+        # Use localtime to compare against the local Philippines date (UTC+8)
+        if value and value > timezone.localtime(timezone.now()).date():
             raise serializers.ValidationError("Birthday cannot be a future date.")
         return value
 
@@ -234,7 +235,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
     def validate_birthday(self, value):
         """Prevent future dates for patient birthdays."""
         from django.utils import timezone
-        if value and value > timezone.now().date():
+        # Use localtime to compare against the local Philippines date (UTC+8)
+        if value and value > timezone.localtime(timezone.now()).date():
             raise serializers.ValidationError("Birthday cannot be a future date.")
         return value
 

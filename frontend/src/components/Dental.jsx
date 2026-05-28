@@ -1029,6 +1029,7 @@ const Dental = () => {
                       slotProps={{ textField: { fullWidth: true, required: true } }}
                       maxDate={dayjs()}
                       disableFuture
+                      minutesStep={1}
                     />
                   </Grid>
                   <Grid item xs={12}>

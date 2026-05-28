@@ -26,7 +26,8 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
         """Temporal Date Trapping: Block future dates for clinical events."""
         from django.utils import timezone
         check_date = value.date() if hasattr(value, 'date') else value
-        if value and check_date > timezone.now().date():
+        # Use localtime to compare against the local Philippines date (UTC+8)
+        if value and check_date > timezone.localtime(timezone.now()).date():
             raise serializers.ValidationError("Clinical visit dates cannot be in the future.")
         return value
 
@@ -107,7 +108,8 @@ class DentalRecordSerializer(serializers.ModelSerializer):
         """Temporal Date Trapping: Block future dates for clinical events."""
         from django.utils import timezone
         check_date = value.date() if hasattr(value, 'date') else value
-        if value and check_date > timezone.now().date():
+        # Use localtime to compare against the local Philippines date (UTC+8)
+        if value and check_date > timezone.localtime(timezone.now()).date():
             raise serializers.ValidationError("Dental visit dates cannot be in the future.")
         return value
 
@@ -165,7 +167,8 @@ class ConsultationSerializer(serializers.ModelSerializer):
         """Temporal Date Trapping: Block future dates for clinical events."""
         from django.utils import timezone
         check_date = value.date() if hasattr(value, 'date') else value
-        if value and check_date > timezone.now().date():
+        # Use localtime to compare against the local Philippines date (UTC+8)
+        if value and check_date > timezone.localtime(timezone.now()).date():
             raise serializers.ValidationError("Consultation dates cannot be in the future.")
         return value
 

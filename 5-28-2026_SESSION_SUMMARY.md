@@ -23,9 +23,22 @@
     - Streamlined the "Findings / Diagnosis" and "Referral" workflow to prioritize speed and clinical accuracy.
 - **Backend Hardening:** Updated `DentalRecord` procedure choices and adjusted model validators to support the simplified scope.
 
-## 4. Documentation & System Status
+## 4. Global Notification & Alert Loop
+- **Backend Trigger System:** Implemented Django `post_save` signals in the `notifications` app to automatically log in-app alerts whenever a Medical Record, Dental Record, or Consultation is created/updated.
+- **Axios Feedback Interceptor:** Enhanced the global API interceptor in `api.js` to provide immediate visual feedback:
+    - **Success Toasts:** Successful mutations (POST/PUT/DELETE) now trigger a green "Changes saved successfully" snackbar.
+    - **Validation Feedback:** Capture HTTP 400 errors to instantly render detailed validation warnings in yellow alert banners.
+- **State Synchronicity:** The system now provides a real-time "heartbeat" for all user actions, ensuring users are never left wondering if their data was saved.
+
+## 5. Rigid Date-Trapping Logic
+- **Defense-in-Depth Strategy:** Implemented multi-layer date validation to ensure no future dates are recorded for clinical or profile data.
+- **Backend Hardening:** Added `validate_birthday` and `validate_visit_date` hooks to all relevant DRF serializers to act as the final source of truth.
+- **Timezone Correction (Bug Fix):** Refactored date comparisons to use `timezone.localtime(timezone.now()).date()` instead of UTC-based `now()`. This ensures that users in the Philippines (UTC+8) do not receive false "future date" errors during early morning hours.
+- **Frontend UI Locking:** Applied `disableFuture` and `maxDate` properties to all Material-UI `DatePicker` components, visually greying out and locking future calendar grids across Profile Setup, Medical, and Dental views.
+
+## 6. Documentation & System Status
 - **Documentation Refresh:** Updated all core system documentation to reflect the May 28, 2026 status.
-- **System Synchronization:** Updated the Comprehensive Status Report and Current System Status to include the new Clinical Risk Alert engine and the optimized Dental workflow.
+- **System Synchronization:** Updated the Comprehensive Status Report and Current System Status to include the new Clinical Risk Alert engine, Notification Loop, and Date Trapping logic.
 
 ## Next Steps
 - Finalize the SQA Audit verification for the new Vitals Alerting logic.

@@ -10,9 +10,9 @@ The system has been further optimized for clinical speed and patient safety. We 
 ## 2. Component Status
 
 ### Clinical Data Management
-*   **Medical Records:** **STABLE** (Added Automated Risk Alerts for Vitals)
-*   **Dental Records:** **STABLE** (Simplified to Consultation/Referral scope)
-*   **Consultations:** **STABLE**
+*   **Medical Records:** **STABLE** (Added Automated Risk Alerts for Vitals + Date Trapping)
+*   **Dental Records:** **STABLE** (Simplified to Consultation/Referral scope + Date Trapping)
+*   **Consultations:** **STABLE** (Added Status Tracking + Date Trapping)
 *   **Medical Certificates:** **STABLE** (Staff-driven Issuance Pipeline)
 
 ### Analytics & Reporting
@@ -22,6 +22,7 @@ The system has been further optimized for clinical speed and patient safety. We 
 
 ### Infrastructure & Security
 *   **Authentication:** **HARDENED** (Automated ID Extraction + SafeList)
+*   **Notifications:** **ENHANCED** (Global Success/Error Toast Loop + Backend Signals)
 *   **Audit Logging:** **OPERATIONAL** (Celery-driven)
 *   **Database:** **STABLE** (PostgreSQL/SQLite dual-support)
 *   **CI/CD:** **OPERATIONAL** (GitHub Actions healthy)
@@ -29,8 +30,9 @@ The system has been further optimized for clinical speed and patient safety. We 
 ## 3. Automation Benchmarks
 *   **BMI Calculation:** Autonomously handled on save.
 *   **Clinical Alerts:** Autonomously assessed on save (Fever, Hypertension, Cardiac).
+*   **Date Verification:** Autonomously trapped at Serializer layer (No future dates).
+*   **User Feedback:** Autonomously dispatched via global Axios interceptor.
 *   **Role Mapping:** Autonomously resolved from email prefix during registration.
-*   **Notification Dispatch:** Autonomously triggered by clinical state changes.
 
 ## 4. Documentation Tracking
 *   **Current Status Updated:** Yes (May 28)
