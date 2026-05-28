@@ -118,7 +118,7 @@ class ReportService {
   /**
    * Formats clinical data for export based on record type
    * @param {Array} records - Raw clinical records
-   * @param {string} type - 'MEDICAL' or 'DENTAL'
+   * @param {string} type - 'MEDICAL', 'DENTAL', or 'FEEDBACK'
    */
   prepareDataForExport(records, type = 'MEDICAL') {
     if (type === 'DENTAL') {
@@ -131,6 +131,17 @@ class ReportService {
         'Diagnosis': record.diagnosis || 'N/A',
         'Referral': record.referral_to || 'N/A',
         'Notes': record.clinical_notes || 'N/A'
+      }));
+    }
+
+    if (type === 'FEEDBACK') {
+      return records.map(record => ({
+        'Date': dayjs(record.created_at).format('YYYY-MM-DD'),
+        'Rating': `${record.rating} Stars`,
+        'Comments': record.comments || 'N/A',
+        'Improvement Suggestions': record.improvement || 'N/A',
+        'Staff Courteous': record.courteous || 'N/A',
+        'Recommend Service': record.recommend || 'N/A'
       }));
     }
 

@@ -3,17 +3,23 @@ import { feedbackService } from '../services/api';
 import { 
   Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, 
   TableRow, CircularProgress, Alert, Box, Chip, TablePagination, Tooltip, TextField,
-  FormControl, InputLabel, Select, MenuItem, Button, Card, CardContent 
+  FormControl, InputLabel, Select, MenuItem, Button, Card, CardContent, Stack, Snackbar
 } from '@mui/material';
 import FilterListOffIcon from '@mui/icons-material/FilterListOff'; 
 import DateRangeIcon from '@mui/icons-material/DateRange';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import PrintIcon from '@mui/icons-material/Print';
 import InfoTooltip from './utils/InfoTooltip';
 import FeedbackAnalytics from './FeedbackAnalytics';
+import { reportService } from '../services/reportService';
+import ReportTemplate from './utils/ReportTemplate';
+import dayjs from 'dayjs';
 
 const AdminFeedbackList = () => {
   const [feedback, setFeedback] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   
@@ -67,6 +73,55 @@ const AdminFeedbackList = () => {
   const handleCommentFilterSelect = (e) => { setCommentFilter(e.target.value); setPage(0); };
   const handleCourteousChange = (e) => { setCourteousFilter(e.target.value); setPage(0); };
   const handleRecommendChange = (e) => { setRecommendFilter(e.target.value); setPage(0); };
+
+  // Export Functions
+  const handleExportCSV = () => {
+    if (filteredFeedback.length === 0) {
+      setError('No feedback records to export');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+    const data = reportService.prepareDataForExport(filteredFeedback, 'FEEDBACK');
+    reportService.exportToCSV(data, `patient-feedback-${dayjs().format('YYYY-MM-DD')}.csv`);
+    setSuccess(`Exported ${filteredFeedback.length} feedback records to CSV`);
+    setTimeout(() => setSuccess(null), 3000);
+  };
+
+  const handleExportExcel = () => {
+    if (filteredFeedback.length === 0) {
+      setError('No feedback records to export');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+    const data = reportService.prepareDataForExport(filteredFeedback, 'FEEDBACK');
+    reportService.exportToExcel(data, `patient-feedback-${dayjs().format('YYYY-MM-DD')}.xls`);
+    setSuccess(`Exported ${filteredFeedback.length} feedback records to Excel`);
+    setTimeout(() => setSuccess(null), 3000);
+  };
+
+  const handlePrintReport = async () => {
+    if (filteredFeedback.length === 0) {
+      setError('No feedback records to print');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    const element = document.getElementById('professional-report-template');
+    if (!element) return;
+
+    setLoading(true);
+    try {
+      await reportService.generatePDF(element, `feedback-analysis-report-${dayjs().format('YYYY-MM-DD')}.pdf`);
+      setSuccess('Professional feedback report generated successfully.');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      console.error('PDF Generation Error:', err);
+      setError('Failed to generate professional PDF report.');
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Table Pagination Action Handlers
   const handlePageChange = (event, newPage) => {
@@ -127,11 +182,44 @@ const AdminFeedbackList = () => {
 
   return (
     <Box sx={{ p: { xs: 1.5, sm: 3 } }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
-        <Typography variant="h4" component="div" sx={{ mb: 0, mr: 1, fontWeight: 'bold', fontSize: { xs: '1.6rem', sm: '2.125rem' } }}>
-          Admin - Patient Feedback Dashboard
-        </Typography>
-        <InfoTooltip title="Filter analytical charts and records globally using matching layout dropdown selections." />
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2, justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="h4" component="div" sx={{ mb: 0, mr: 1, fontWeight: 'bold', fontSize: { xs: '1.6rem', sm: '2.125rem' } }}>
+            Admin - Patient Feedback Dashboard
+          </Typography>
+          <InfoTooltip title="Filter analytical charts and records globally using matching layout dropdown selections." />
+        </Box>
+
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant="outlined"
+            startIcon={<FileDownloadIcon />}
+            onClick={handleExportCSV}
+            size="small"
+            disabled={filteredFeedback.length === 0}
+          >
+            CSV
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<FileDownloadIcon />}
+            onClick={handleExportExcel}
+            size="small"
+            disabled={filteredFeedback.length === 0}
+          >
+            Excel
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<PrintIcon />}
+            onClick={handlePrintReport}
+            size="small"
+            disabled={filteredFeedback.length === 0 || loading}
+          >
+            {loading ? 'Generating...' : 'Print PDF'}
+          </Button>
+        </Stack>
       </Box>
 
       {/* Responsive Global Date-Range Filter Panel */}
@@ -376,6 +464,28 @@ const AdminFeedbackList = () => {
           />
         </Paper>
       )}
+
+      {/* Professional Report Template (Hidden) */}
+      <ReportTemplate 
+        data={filteredFeedback} 
+        title="PATIENT FEEDBACK ANALYSIS REPORT" 
+        reportType="FEEDBACK"
+      />
+
+      <Snackbar
+        open={!!success || !!error}
+        autoHideDuration={4000}
+        onClose={() => { setSuccess(null); setError(null); }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => { setSuccess(null); setError(null); }} 
+          severity={success ? "success" : "error"} 
+          sx={{ width: '100%', boxShadow: 3 }}
+        >
+          {success || error}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
