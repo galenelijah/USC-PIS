@@ -4,14 +4,15 @@ from django.utils import timezone
 from datetime import timedelta
 
 from authentication.models import User
-from patients.models import Patient
+from patients.models import Patient, MedicalRecord, DentalRecord, Consultation
+from medical_certificates.models import MedicalCertificate
 from .models import NotificationPreference, NotificationTemplate
 from .services import NotificationService, NotificationTemplateService
 
 
 @receiver(post_save, sender=User)
-def create_notification_preferences(sender, instance, created, **kwargs):
-    """Create default notification preferences for new users"""
+def handle_user_updates(sender, instance, created, **kwargs):
+    """Create preferences for new users and notify on profile completion"""
     if created:
         NotificationPreference.objects.get_or_create(
             user=instance,
@@ -29,7 +30,67 @@ def create_notification_preferences(sender, instance, created, **kwargs):
                 'timezone': 'UTC'
             }
         )
+    else:
+        # Notify user when their profile is updated
+        # We use a silent flag in metadata to prevent recursion if needed, 
+        # but create_notification doesn't trigger User save.
+        NotificationService.create_notification(
+            recipient=instance,
+            notification_type='SYSTEM_ALERT',
+            title="Profile Updated",
+            message="Your account profile has been successfully updated.",
+            priority='LOW',
+            delivery_method='IN_APP',
+            metadata={'action': 'profile_update'}
+        )
 
+@receiver(post_save, sender=MedicalRecord)
+def medical_record_notification(sender, instance, created, **kwargs):
+    """Notify patient when medical record is created or updated"""
+    if instance.patient.user:
+        action = "created" if created else "updated"
+        NotificationService.create_notification(
+            recipient=instance.patient.user,
+            notification_type='CLINIC_UPDATE',
+            title=f"Medical Record {action.capitalize()}",
+            message=f"A medical record for your visit on {instance.visit_date.strftime('%B %d, %Y')} has been {action}.",
+            priority='MEDIUM',
+            delivery_method='IN_APP',
+            patient=instance.patient,
+            metadata={'record_id': instance.id, 'type': 'MEDICAL'}
+        )
+
+@receiver(post_save, sender=DentalRecord)
+def dental_record_notification(sender, instance, created, **kwargs):
+    """Notify patient when dental record is created or updated"""
+    if instance.patient.user:
+        action = "created" if created else "updated"
+        NotificationService.create_notification(
+            recipient=instance.patient.user,
+            notification_type='CLINIC_UPDATE',
+            title=f"Dental Record {action.capitalize()}",
+            message=f"A dental record for your visit on {instance.visit_date.strftime('%B %d, %Y')} has been {action}.",
+            priority='MEDIUM',
+            delivery_method='IN_APP',
+            patient=instance.patient,
+            metadata={'record_id': instance.id, 'type': 'DENTAL'}
+        )
+
+@receiver(post_save, sender=Consultation)
+def consultation_notification(sender, instance, created, **kwargs):
+    """Notify patient when consultation is created or updated"""
+    if instance.patient.user:
+        action = "created" if created else "updated"
+        NotificationService.create_notification(
+            recipient=instance.patient.user,
+            notification_type='CLINIC_UPDATE',
+            title=f"Consultation {action.capitalize()}",
+            message=f"A consultation record from {instance.date_time.strftime('%B %d, %Y')} has been {action}.",
+            priority='MEDIUM',
+            delivery_method='IN_APP',
+            patient=instance.patient,
+            metadata={'consultation_id': instance.id}
+        )
 
 @receiver(post_save, sender=Patient)
 def send_welcome_notification(sender, instance, created, **kwargs):

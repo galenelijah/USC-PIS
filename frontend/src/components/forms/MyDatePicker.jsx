@@ -28,6 +28,8 @@ const MyDatePicker = ({
             onChange={(newValue) => {
               onChange(newValue ? newValue.toDate() : null);
             }}
+            maxDate={dayjs()}
+            disableFuture
             slotProps={{
               textField: {
                 required,

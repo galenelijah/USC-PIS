@@ -1379,28 +1379,30 @@ const MedicalHistoryPage = () => {
                     label="From Date"
                     value={startDate}
                     onChange={setStartDate}
-                    slotProps={{ 
-                      textField: { 
+                    slotProps={{
+                      textField: {
                         size: 'small',
                         fullWidth: true,
                         InputLabelProps: { shrink: true }
-                      } 
+                      }
                     }}
                     maxDate={endDate || dayjs()}
+                    disableFuture
                   />
                   <DatePicker
                     label="To Date"
                     value={endDate}
                     onChange={setEndDate}
-                    slotProps={{ 
-                      textField: { 
+                    slotProps={{
+                      textField: {
                         size: 'small',
                         fullWidth: true,
                         InputLabelProps: { shrink: true }
-                      } 
+                      }
                     }}
                     minDate={startDate}
                     maxDate={dayjs()}
+                    disableFuture
                   />
                   {(startDate || endDate) && (
                     <IconButton onClick={clearDateFilters} size="small" title="Clear dates" sx={{ alignSelf: { xs: 'flex-end', sm: 'center' } }}>

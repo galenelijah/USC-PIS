@@ -785,6 +785,7 @@ const MedicalRecordsPage = () => {
                   } 
                 }}
                 maxDate={endDate || dayjs()}
+                disableFuture
               />
             </Grid>
             
@@ -802,6 +803,7 @@ const MedicalRecordsPage = () => {
                 }}
                 minDate={startDate}
                 maxDate={dayjs()}
+                disableFuture
               />
             </Grid>
 

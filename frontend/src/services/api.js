@@ -60,7 +60,7 @@ api.interceptors.request.use(request => {
   return Promise.reject(error);
 });
 
-// Add response interceptor for handling HTML responses and authentication
+// Add response interceptor for handling HTML responses, authentication, and global feedback
 api.interceptors.response.use(
   response => {
     // Check if response contains a token and save it
@@ -74,6 +74,19 @@ api.interceptors.response.use(
       const error = new Error('Received HTML response from server. You may need to log in again.');
       error.response = response;
       return Promise.reject(error);
+    }
+
+    // Global Success Feedback
+    // Trigger on mutation methods (POST, PUT, PATCH, DELETE) for successful operations
+    const isMutation = ['post', 'put', 'patch', 'delete'].includes(response.config.method?.toLowerCase());
+    const isAuth = response.config.url.includes('/auth/');
+    const isSilent = response.config.params?.silent === true || response.config.headers?.['X-Silent'] === 'true';
+
+    if (isMutation && !isAuth && !isSilent && response.status >= 200 && response.status < 300) {
+      eventBus.dispatch('app_notification', {
+        message: response.data?.message || 'Changes saved successfully',
+        severity: 'success'
+      });
     }
     
     return response;
@@ -91,6 +104,18 @@ api.interceptors.response.use(
         }
       }
     }
+
+    // Capture response details for validation errors
+    if (error.response?.status === 400) {
+      const message = extractErrorMessage(error);
+      eventBus.dispatch('app_notification', {
+        message: `Validation Error: ${message}`,
+        severity: 'warning'
+      });
+    } else {
+      // General API Error handling
+      handleApiError(error);
+    }
     
     return Promise.reject(error);
   }
@@ -98,46 +123,25 @@ api.interceptors.response.use(
 
 // Helper function to handle API errors
 export const handleApiError = (error) => {
-  logger.error('API Error:', error);
-  
   // Extract user-friendly message
   const message = extractErrorMessage(error);
   
   // Dispatch global notification event if it's not a background polling error 
   // or a common 401/403 which are handled by redirect logic
-  if (error.response?.status !== 401 && error.response?.status !== 403) {
+  const isAuthError = error.response?.status === 401 || error.response?.status === 403;
+  const isValidationError = error.response?.status === 400; // Handled in interceptor now
+
+  if (!isAuthError && !isValidationError) {
     eventBus.dispatch('app_notification', {
-      message: message,
+      message: message || 'An unexpected error occurred',
       severity: 'error'
     });
   }
 
+  logger.error('API Error:', error);
   if (error.response) {
-    // The request was made and the server responded with a status code
-    // that falls out of the range of 2xx
     logger.error('Error data:', error.response.data);
     logger.error('Error status:', error.response.status);
-    logger.error('Error headers:', error.response.headers);
-    
-    // Check for HTML responses
-    const contentType = error.response.headers['content-type'];
-    if (contentType && contentType.includes('text/html')) {
-      logger.error('Received HTML error response');
-      // This likely means the session expired or there's a server error
-      if (error.response.status === 401 || error.response.status === 403) {
-        // Clear token and redirect to login
-        saveToken(null);
-        localStorage.removeItem(USER_KEY);
-        window.location.href = '/';
-        return; // Stop execution
-      }
-    }
-  } else if (error.request) {
-    // The request was made but no response was received
-    logger.error('Error request:', error.request);
-  } else {
-    // Something happened in setting up the request that triggered an Error
-    logger.error('Error message:', error.message);
   }
   throw error;
 };

@@ -93,6 +93,13 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Emergency contact number must be between 7 and 15 digits.")
         return value
 
+    def validate_birthday(self, value):
+        """Prevent future dates for patient birthdays."""
+        from django.utils import timezone
+        if value and value > timezone.now().date():
+            raise serializers.ValidationError("Birthday cannot be a future date.")
+        return value
+
     def _determine_role_from_email(self, email):
         """
         Determine user role based on SafeEmail whitelist or automated extraction.
@@ -222,6 +229,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Emergency contact number must contain only digits.")
             if not (7 <= len(clean_value) <= 15):
                 raise serializers.ValidationError("Emergency contact number must be between 7 and 15 digits.")
+        return value
+
+    def validate_birthday(self, value):
+        """Prevent future dates for patient birthdays."""
+        from django.utils import timezone
+        if value and value > timezone.now().date():
+            raise serializers.ValidationError("Birthday cannot be a future date.")
         return value
 
     class Meta:

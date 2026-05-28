@@ -573,16 +573,17 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                                                     label="Visit Date & Time"
                                                     value={dayjs(field.value)}
                                                     onChange={(newValue) => field.onChange(newValue ? newValue.format() : null)}
-                                                    slotProps={{ 
-                                                        textField: { 
+                                                    slotProps={{
+                                                        textField: {
                                                             fullWidth: true,
                                                             required: true,
                                                             error: !!errors.visit_date,
                                                             helperText: errors.visit_date?.message
-                                                        } 
+                                                        }
                                                     }}
                                                     disabled={!canEdit}
                                                     maxDate={dayjs()}
+                                                    disableFuture
                                                 />
                                             )}
                                         />
