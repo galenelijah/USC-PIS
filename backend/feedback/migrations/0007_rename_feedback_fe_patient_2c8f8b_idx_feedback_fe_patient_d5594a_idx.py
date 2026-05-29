@@ -10,9 +10,19 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RenameIndex(
-            model_name='feedback',
-            new_name='feedback_fe_patient_d5594a_idx',
-            old_name='feedback_fe_patient_2c8f8b_idx',
+        # 🔑 Fix: Using SeparateDatabaseAndState to bypass DuplicateTable/ProgrammingError on Heroku.
+        # The index 'feedback_fe_patient_d5594a_idx' already exists in the production DB, 
+        # but Django's state needs to be updated to match the model.
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.RenameIndex(
+                    model_name='feedback',
+                    new_name='feedback_fe_patient_d5594a_idx',
+                    old_name='feedback_fe_patient_2c8f8b_idx',
+                ),
+            ],
+            database_operations=[
+                # No-op: The index is already named correctly in production.
+            ],
         ),
     ]
