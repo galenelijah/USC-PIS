@@ -39,7 +39,8 @@ import {
   Medication as MedicationIcon,
   LocalHospital as HospitalIcon,
   Favorite as HeartIcon,
-  Insights as InsightsIcon
+  Insights as InsightsIcon,
+  Print as PrintIcon
 } from '@mui/icons-material';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';

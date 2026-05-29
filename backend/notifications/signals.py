@@ -33,6 +33,15 @@ def handle_user_updates(sender, instance, created, **kwargs):
             }
         )
     else:
+        # Check if we should skip notification (e.g., just a last_login update)
+        update_fields = kwargs.get('update_fields')
+        if update_fields:
+            # If only last_login, is_verified, completeSetup or other non-security fields are updated, skip
+            # These are technical updates rather than a user-initiated profile change
+            ignored_fields = {'last_login', 'last_activity', 'is_verified', 'completeSetup'}
+            if all(field in ignored_fields for field in update_fields):
+                return
+
         # Security/Profile updates - Notify the user
         NotificationService.create_notification(
             recipient=instance,

@@ -49,12 +49,14 @@ import { commonValidation } from '../utils/validationSchemas';
 import MyTextField from './forms/MyTextField';
 import MyDatePicker from './forms/MyDatePicker';
 import MySelector from './forms/MySelector';
-import { CivilStatusChoices, SexChoices, ProgramsChoices } from './static/choices.jsx';
+import { CivilStatusChoices, SexChoices, ProgramsChoices, YearLevelChoices, CampusChoices } from './static/choices.jsx';
 
 // Defensive fallbacks for imported arrays
 const safeCivilStatusChoices = CivilStatusChoices || [];
 const safeSexChoices = SexChoices || [];
 const safeProgramsChoices = ProgramsChoices || [];
+const safeYearLevelChoices = YearLevelChoices || [];
+const safeCampusChoices = CampusChoices || [];
 import dayjs from 'dayjs';
 import StepConnector, { stepConnectorClasses } from '@mui/material/StepConnector';
 import { styled } from '@mui/material/styles';
@@ -123,13 +125,43 @@ function ModernStepIcon(props) {
   );
 }
 
-// Steps configuration
-const steps = [
-  { label: 'Personal Information', icon: Person, color: '#667eea' },
-  { label: 'Contact Details', icon: ContactPhone, color: '#764ba2' },
-  { label: 'Academic Information', icon: School, color: '#f093fb' },
-  { label: 'Medical Information', icon: LocalHospital, color: '#f5576c' }
-];
+// Steps configuration - will be determined by user role
+const getStepsForRole = (role) => {
+  const baseSteps = [
+    { label: 'Personal Information', icon: Person, color: '#667eea' },
+    { label: 'Contact Details', icon: ContactPhone, color: '#764ba2' }
+  ];
+  
+  switch (role) {
+    case 'STUDENT':
+      return [
+        ...baseSteps,
+        { label: 'Academic Information', icon: School, color: '#f093fb' },
+        { label: 'Medical Information', icon: LocalHospital, color: '#f5576c' }
+      ];
+    case 'FACULTY':
+      return [
+        ...baseSteps,
+        { label: 'Department Information', icon: Badge, color: '#f093fb' },
+        { label: 'Medical Information', icon: LocalHospital, color: '#f5576c' }
+      ];
+    case 'DOCTOR':
+    case 'DENTIST':
+    case 'NURSE':
+      return [
+        ...baseSteps,
+        { label: 'Professional Information', icon: Badge, color: '#f093fb' }
+      ];
+    case 'ADMIN':
+    case 'STAFF':
+      return [
+        ...baseSteps,
+        { label: 'Additional Information', icon: Badge, color: '#f093fb' }
+      ];
+    default:
+      return baseSteps;
+  }
+};
 
 // Medical options
 const childhoodDiseasesOptions = [
@@ -158,39 +190,105 @@ const illnessesOptions = [
   'Others (please specify)',
 ];
 
-// Validation schema
-const validationSchema = Yup.object().shape({
-  first_name: Yup.string().required('First name is required'),
-  last_name: Yup.string().required('Last name is required'),
-  middle_name: Yup.string().nullable(),
-  sex: Yup.string().required('Sex is required'),
-  civil_status: Yup.string().required('Civil status is required'),
-  birthday: Yup.date().required('Birthday is required').nullable(),
-  nationality: Yup.string().required('Nationality is required'),
-  religion: Yup.string().nullable(),
-  address_permanent: Yup.string().required('Permanent address is required'),
-  address_present: Yup.string().required('Present address is required'),
-  phone: commonValidation.phone('Phone number'),
-  email: Yup.string().email('Invalid email').required('Email is required'),
-  id_number: Yup.string().required('ID Number is required'),
-  course: Yup.string().required('Course is required'),
-  year_level: Yup.string().required('Year Level is required'),
-  school: Yup.string().nullable().notRequired(),
-  weight: commonValidation.positiveNumber('Weight'),
-  height: commonValidation.positiveNumber('Height'),
-  bmi: Yup.string().nullable().notRequired(),
-  father_name: Yup.string().nullable().notRequired(),
-  mother_name: Yup.string().nullable().notRequired(),
-  emergency_contact: Yup.string().nullable().notRequired(),
-  emergency_contact_number: commonValidation.phoneOptional('Emergency contact number')
-});
+// Role-based validation schema
+const createValidationSchema = (role) => {
+  // Base validation for all roles
+  const baseValidation = {
+    first_name: Yup.string().required('First name is required'),
+    last_name: Yup.string().required('Last name is required'),
+    middle_name: Yup.string().nullable(),
+    sex: Yup.string().required('Sex is required'),
+    civil_status: Yup.string().required('Civil status is required'),
+    birthday: Yup.date().required('Birthday is required').nullable(),
+    nationality: Yup.string().required('Nationality is required'),
+    religion: Yup.string().nullable(),
+    address_permanent: Yup.string().required('Permanent address is required'),
+    address_present: Yup.string().required('Present address is required'),
+    phone: commonValidation.phone('Phone number'),
+    email: Yup.string().email('Invalid email').required('Email is required'),
+    emergency_contact: Yup.string().nullable().notRequired(),
+    emergency_contact_number: commonValidation.phoneOptional('Emergency contact number')
+  };
 
-const stepFields = [
-  ['first_name', 'last_name', 'middle_name', 'sex', 'civil_status', 'birthday', 'nationality', 'religion'],
-  ['address_permanent', 'address_present', 'phone', 'email'],
-  ['id_number', 'course', 'year_level', 'school', 'weight', 'height'],
-  [] // Step 3 (Medical) has no required form fields, only state-based selections
-];
+  // Role-specific validation
+  switch (role) {
+    case 'STUDENT':
+      return Yup.object().shape({
+        ...baseValidation,
+        id_number: Yup.string().required('ID Number is required'),
+        course: Yup.string().required('Course is required'),
+        year_level: Yup.string().required('Year Level is required'),
+        school: Yup.string().nullable().notRequired(),
+        weight: commonValidation.positiveNumber('Weight'),
+        height: commonValidation.positiveNumber('Height'),
+        bmi: Yup.string().nullable().notRequired(),
+        father_name: Yup.string().nullable().notRequired(),
+        mother_name: Yup.string().nullable().notRequired(),
+      });
+
+    case 'FACULTY':
+      return Yup.object().shape({
+        ...baseValidation,
+        department: Yup.string().required('Department is required')
+      });
+
+    case 'DOCTOR':
+    case 'DENTIST':
+    case 'NURSE':
+      return Yup.object().shape({
+        ...baseValidation,
+        department: Yup.string().required('Department is required')
+      });
+
+    case 'ADMIN':
+    case 'STAFF':
+      return Yup.object().shape({
+        ...baseValidation,
+        department: Yup.string().required('Department is required')
+      });
+
+    default:
+      return Yup.object().shape(baseValidation);
+  }
+};
+
+// Validation step fields - role-based
+const getStepFieldsForRole = (role) => {
+  const baseFields = [
+    ['first_name', 'last_name', 'middle_name', 'sex', 'civil_status', 'birthday', 'nationality', 'religion'],
+    ['address_permanent', 'address_present', 'phone', 'email']
+  ];
+  
+  switch (role) {
+    case 'STUDENT':
+      return [
+        ...baseFields,
+        ['id_number', 'course', 'year_level', 'school', 'weight', 'height'],
+        [] // Medical information step
+      ];
+    case 'FACULTY':
+      return [
+        ...baseFields,
+        ['department'],
+        [] // Medical information step
+      ];
+    case 'DOCTOR':
+    case 'DENTIST':
+    case 'NURSE':
+      return [
+        ...baseFields,
+        ['department']
+      ];
+    case 'ADMIN':
+    case 'STAFF':
+      return [
+        ...baseFields,
+        ['department']
+      ];
+    default:
+      return baseFields;
+  }
+};
 
 const EditProfile = () => {
   const dispatch = useDispatch();
@@ -202,8 +300,16 @@ const EditProfile = () => {
   const [success, setSuccess] = useState(null);
   const navigate = useNavigate();
   
+  // User role checks
+  const userRole = currentUser?.role;
+  const isStudent = currentUser && ['STUDENT', 'FACULTY'].includes(currentUser.role);
+  
+  // Get role-based configuration
+  const steps = getStepsForRole(userRole);
+  const stepFields = getStepFieldsForRole(userRole);
+  
   const { control, handleSubmit, formState: { errors }, setValue, getValues, watch, trigger, reset } = useForm({
-    resolver: yupResolver(validationSchema),
+    resolver: yupResolver(createValidationSchema(userRole)),
     defaultValues: {
       first_name: '',
       last_name: '',
@@ -228,6 +334,7 @@ const EditProfile = () => {
       mother_name: '',
       emergency_contact: '',
       emergency_contact_number: '',
+      department: '',
     }
   });
 
@@ -291,6 +398,7 @@ const EditProfile = () => {
       mother_name: userData.mother_name || '',
       emergency_contact: userData.emergency_contact || '',
       emergency_contact_number: userData.emergency_contact_number || '',
+      department: userData.department || '',
     });
 
     // Load medical data
@@ -413,483 +521,517 @@ const EditProfile = () => {
     }
   };
 
-  // Render step content (reusing from ProfileSetup with updated keys)
+  const renderPersonalInfo = (stepKey) => (
+    <Box key={stepKey}>
+      <Card elevation={0} sx={{ border: '1px solid', borderColor: alpha('#667eea', 0.2), borderRadius: 3 }}>
+        <CardContent sx={{ p: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+            <Person sx={{ color: '#667eea', fontSize: 28 }} />
+            <Typography variant="h5" fontWeight="bold" color="primary">
+              Personal Information
+            </Typography>
+          </Box>
+          
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6}>
+              <MyTextField
+                key={`${stepKey}-first_name`}
+                label="First Name *"
+                name="first_name"
+                control={control}
+                required
+                error={!!errors?.first_name}
+                helperText={errors?.first_name?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MyTextField
+                key={`${stepKey}-last_name`}
+                label="Last Name *"
+                name="last_name"
+                control={control}
+                required
+                error={!!errors?.last_name}
+                helperText={errors?.last_name?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MyTextField
+                key={`${stepKey}-middle_name`}
+                label="Middle Name"
+                name="middle_name"
+                control={control}
+                error={!!errors?.middle_name}
+                helperText={errors?.middle_name?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MySelector
+                key={`${stepKey}-sex`}
+                label="Sex *"
+                name="sex"
+                control={control}
+                options={safeSexChoices}
+                required
+                error={!!errors?.sex}
+                helperText={errors?.sex?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MySelector
+                key={`${stepKey}-civil_status`}
+                label="Civil Status *"
+                name="civil_status"
+                control={control}
+                options={safeCivilStatusChoices}
+                required
+                error={!!errors?.civil_status}
+                helperText={errors?.civil_status?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MyDatePicker
+                key={`${stepKey}-birthday`}
+                label="Birthday *"
+                name="birthday"
+                control={control}
+                required
+                error={!!errors?.birthday}
+                helperText={errors?.birthday?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MyTextField
+                key={`${stepKey}-nationality`}
+                label="Nationality *"
+                name="nationality"
+                control={control}
+                required
+                error={!!errors?.nationality}
+                helperText={errors?.nationality?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MyTextField
+                key={`${stepKey}-religion`}
+                label="Religion"
+                name="religion"
+                control={control}
+                error={!!errors?.religion}
+                helperText={errors?.religion?.message}
+              />
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+    </Box>
+  );
+
+  const renderContactInfo = (stepKey) => (
+    <Box key={stepKey}>
+      <Card elevation={0} sx={{ border: '1px solid', borderColor: alpha('#764ba2', 0.2), borderRadius: 3 }}>
+        <CardContent sx={{ p: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+            <ContactPhone sx={{ color: '#764ba2', fontSize: 28 }} />
+            <Typography variant="h5" fontWeight="bold" sx={{ color: '#764ba2' }}>
+              Contact Details
+            </Typography>
+          </Box>
+          
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <MyTextField
+                key={`${stepKey}-address_permanent`}
+                label="Permanent Address *"
+                name="address_permanent"
+                control={control}
+                required
+                multiline
+                rows={2}
+                error={!!errors?.address_permanent}
+                helperText={errors?.address_permanent?.message}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <MyTextField
+                key={`${stepKey}-address_present`}
+                label="Present Address *"
+                name="address_present"
+                control={control}
+                required
+                multiline
+                rows={2}
+                error={!!errors?.address_present}
+                helperText={errors?.address_present?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MyTextField
+                key={`${stepKey}-phone`}
+                label="Phone Number *"
+                name="phone"
+                control={control}
+                required
+                error={!!errors?.phone}
+                helperText={errors?.phone?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MyTextField
+                key={`${stepKey}-email`}
+                label="Email Address"
+                name="email"
+                control={control}
+                required
+                error={!!errors?.email}
+                helperText={errors?.email?.message}
+              />
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+    </Box>
+  );
+
+  const renderAcademicInfo = (stepKey) => (
+    <Box key={stepKey}>
+      <Card elevation={0} sx={{ border: '1px solid', borderColor: alpha('#f093fb', 0.2), borderRadius: 3 }}>
+        <CardContent sx={{ p: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+            <School sx={{ color: '#f093fb', fontSize: 28 }} />
+            <Typography variant="h5" fontWeight="bold" sx={{ color: '#f093fb' }}>
+              Academic Information
+            </Typography>
+          </Box>
+          
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6}>
+              <MyTextField
+                key={`${stepKey}-id_number`}
+                label="Student ID Number *"
+                name="id_number"
+                control={control}
+                required
+                error={!!errors?.id_number}
+                helperText={errors?.id_number?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MySelector
+                key={`${stepKey}-course`}
+                label="Course *"
+                name="course"
+                control={control}
+                options={safeProgramsChoices}
+                required
+                error={!!errors?.course}
+                helperText={errors?.course?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MySelector
+                key={`${stepKey}-year_level`}
+                label="Year Level *"
+                name="year_level"
+                control={control}
+                options={safeYearLevelChoices}
+                required
+                error={!!errors?.year_level}
+                helperText={errors?.year_level?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <MySelector
+                key={`${stepKey}-school`}
+                label="School/Campus"
+                name="school"
+                control={control}
+                options={safeCampusChoices}
+                error={!!errors?.school}
+                helperText={errors?.school?.message}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <MyTextField
+                key={`${stepKey}-weight`}
+                label="Weight (kg)"
+                name="weight"
+                control={control}
+                type="number"
+                inputProps={{ min: 1, step: 'any' }}
+                error={!!errors?.weight}
+                helperText={errors?.weight?.message}
+                hint="Required for BMI"
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <MyTextField
+                key={`${stepKey}-height`}
+                label="Height (cm)"
+                name="height"
+                control={control}
+                type="number"
+                inputProps={{ min: 1, step: 'any' }}
+                error={!!errors?.height}
+                helperText={errors?.height?.message}
+                hint="Required for BMI"
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <MyTextField
+                key={`${stepKey}-bmi`}
+                label="BMI"
+                name="bmi"
+                control={control}
+                type="number"
+                disabled
+                error={!!errors?.bmi}
+                helperText={errors?.bmi?.message || "Automatically calculated"}
+              />
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+    </Box>
+  );
+
+  const renderProfessionalInfo = (stepKey) => (
+    <Box key={stepKey}>
+      <Card elevation={0} sx={{ border: '1px solid', borderColor: alpha('#f093fb', 0.2), borderRadius: 3 }}>
+        <CardContent sx={{ p: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+            <Badge sx={{ color: '#f093fb', fontSize: 28 }} />
+            <Typography variant="h5" fontWeight="bold" sx={{ color: '#f093fb' }}>
+              Professional/Department Information
+            </Typography>
+          </Box>
+          
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <MyTextField
+                key={`${stepKey}-department`}
+                label="Department/Unit *"
+                name="department"
+                control={control}
+                required
+                error={!!errors?.department}
+                helperText={errors?.department?.message}
+                placeholder="e.g., College of Engineering, HR Department, etc."
+              />
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+    </Box>
+  );
+
+  const renderMedicalInfo = (stepKey) => (
+    <Box key={stepKey}>
+      <Stack spacing={3}>
+        {/* Emergency Contacts */}
+        <Card elevation={0} sx={{ border: '1px solid', borderColor: alpha('#f5576c', 0.2), borderRadius: 3 }}>
+          <CardContent sx={{ p: 4 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+              <ContactPhone sx={{ color: '#f5576c', fontSize: 28 }} />
+              <Typography variant="h5" fontWeight="bold" sx={{ color: '#f5576c' }}>
+                Emergency Contacts
+              </Typography>
+            </Box>
+            
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={6}>
+                <MyTextField
+                  key={`${stepKey}-father_name`}
+                  label="Father's Name"
+                  name="father_name"
+                  control={control}
+                  error={!!errors?.father_name}
+                  helperText={errors?.father_name?.message}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <MyTextField
+                  key={`${stepKey}-mother_name`}
+                  label="Mother's Name"
+                  name="mother_name"
+                  control={control}
+                  error={!!errors?.mother_name}
+                  helperText={errors?.mother_name?.message}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <MyTextField
+                  key={`${stepKey}-emergency_contact`}
+                  label="Emergency Contact Name"
+                  name="emergency_contact"
+                  control={control}
+                  error={!!errors?.emergency_contact}
+                  helperText={errors?.emergency_contact?.message}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <MyTextField
+                  key={`${stepKey}-emergency_contact_number`}
+                  label="Emergency Contact Number"
+                  name="emergency_contact_number"
+                  control={control}
+                  error={!!errors?.emergency_contact_number}
+                  helperText={errors?.emergency_contact_number?.message}
+                />
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+
+        {/* Medical Information */}
+        <Card elevation={0} sx={{ border: '1px solid', borderColor: alpha('#f5576c', 0.2), borderRadius: 3 }}>
+          <CardContent sx={{ p: 4 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+              <LocalHospital sx={{ color: '#f5576c', fontSize: 28 }} />
+              <Typography variant="h5" fontWeight="bold" sx={{ color: '#f5576c' }}>
+                Medical Information
+              </Typography>
+            </Box>
+
+            {/* Childhood Diseases */}
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h6" gutterBottom fontWeight="medium">
+                Childhood Diseases (Check all that apply)
+              </Typography>
+              <Grid container spacing={1}>
+                {(childhoodDiseasesOptions || []).map((disease) => (
+                  <Grid item xs={12} sm={6} key={`${stepKey}-disease-${disease}`}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={selectedChildhoodDiseases.includes(disease)}
+                          onChange={() => toggleSelection(disease, selectedChildhoodDiseases, setSelectedChildhoodDiseases)}
+                          size="small"
+                        />
+                      }
+                      label={<Typography variant="body2">{disease}</Typography>}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+
+            {/* Special Needs */}
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h6" gutterBottom fontWeight="medium">
+                Special Needs (Check all that apply)
+              </Typography>
+              <Grid container spacing={1}>
+                {(specialNeedsOptions || []).map((need) => (
+                  <Grid item xs={12} sm={6} key={`${stepKey}-need-${need}`}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={selectedSpecialNeeds.includes(need)}
+                          onChange={() => toggleSelection(need, selectedSpecialNeeds, setSelectedSpecialNeeds)}
+                          size="small"
+                        />
+                      }
+                      label={<Typography variant="body2">{need}</Typography>}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+
+            {/* Current Illnesses */}
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h6" gutterBottom fontWeight="medium">
+                Current Illnesses (Check all that apply)
+              </Typography>
+              <Grid container spacing={1}>
+                {(illnessesOptions || []).map((illness) => (
+                  <Grid item xs={12} sm={6} key={`${stepKey}-illness-${illness}`}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={selectedIllnesses.includes(illness)}
+                          onChange={() => toggleSelection(illness, selectedIllnesses, setSelectedIllnesses)}
+                          size="small"
+                        />
+                      }
+                      label={<Typography variant="body2">{illness}</Typography>}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+              <Collapse in={selectedIllnesses.includes('Others (please specify)')}>
+                <Box sx={{ mt: 2 }}>
+                  <TextField
+                    key={`${stepKey}-other-illness`}
+                    fullWidth
+                    size="small"
+                    placeholder="Please specify other illness"
+                    value={otherIllness}
+                    onChange={(e) => setOtherIllness(e.target.value)}
+                  />
+                </Box>
+              </Collapse>
+            </Box>
+
+            {/* Dynamic Lists */}
+            {[
+              { title: 'Existing Medical Conditions', state: existingMedicalConditions || [], setter: setExistingMedicalConditions },
+              { title: 'Current Medications', state: medications || [], setter: setMedications },
+              { title: 'Known Allergies', state: allergies || [], setter: setAllergies }
+            ].map(({ title, state, setter }) => (
+              <Box key={`${stepKey}-${title}`} sx={{ mb: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="h6" fontWeight="medium">{title}</Typography>
+                  <Button
+                    startIcon={<Add />}
+                    onClick={() => handleAddItem(setter)}
+                    size="small"
+                    variant="outlined"
+                  >
+                    Add
+                  </Button>
+                </Box>
+                {(state || []).map((item, index) => (
+                  <Box key={`${stepKey}-${title}-${index}`} sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      value={item}
+                      onChange={(e) => handleItemChange(index, e.target.value, setter)}
+                      placeholder={`Enter ${title.toLowerCase().slice(0, -1)}`}
+                    />
+                    <IconButton
+                      onClick={() => handleRemoveItem(index, setter)}
+                      size="small"
+                      color="error"
+                    >
+                      <Remove />
+                    </IconButton>
+                  </Box>
+                ))}
+              </Box>
+            ))}
+          </CardContent>
+        </Card>
+      </Stack>
+    </Box>
+  );
+
+  // Render step content
   const renderStepContent = (step) => {
     const stepKey = `edit-step-${step}`;
+    const stepLabel = steps[step]?.label;
     
-    switch (step) {
-      case 0:
-        return (
-          <Box key={stepKey}>
-            <Card elevation={0} sx={{ border: '1px solid', borderColor: alpha('#667eea', 0.2), borderRadius: 3 }}>
-              <CardContent sx={{ p: 4 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                  <Person sx={{ color: '#667eea', fontSize: 28 }} />
-                  <Typography variant="h5" fontWeight="bold" color="primary">
-                    Personal Information
-                  </Typography>
-                </Box>
-                
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
-                    <MyTextField
-                      key={`${stepKey}-first_name`}
-                      label="First Name *"
-                      name="first_name"
-                      control={control}
-                      required
-                      error={!!errors?.first_name}
-                      helperText={errors?.first_name?.message}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <MyTextField
-                      key={`${stepKey}-last_name`}
-                      label="Last Name *"
-                      name="last_name"
-                      control={control}
-                      required
-                      error={!!errors?.last_name}
-                      helperText={errors?.last_name?.message}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <MyTextField
-                      key={`${stepKey}-middle_name`}
-                      label="Middle Name"
-                      name="middle_name"
-                      control={control}
-                      error={!!errors?.middle_name}
-                      helperText={errors?.middle_name?.message}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <MySelector
-                      key={`${stepKey}-sex`}
-                      label="Sex *"
-                      name="sex"
-                      control={control}
-                      options={safeSexChoices}
-                      required
-                      error={!!errors?.sex}
-                      helperText={errors?.sex?.message}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <MySelector
-                      key={`${stepKey}-civil_status`}
-                      label="Civil Status *"
-                      name="civil_status"
-                      control={control}
-                      options={safeCivilStatusChoices}
-                      required
-                      error={!!errors?.civil_status}
-                      helperText={errors?.civil_status?.message}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <MyDatePicker
-                      key={`${stepKey}-birthday`}
-                      label="Birthday *"
-                      name="birthday"
-                      control={control}
-                      required
-                      error={!!errors?.birthday}
-                      helperText={errors?.birthday?.message}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <MyTextField
-                      key={`${stepKey}-nationality`}
-                      label="Nationality *"
-                      name="nationality"
-                      control={control}
-                      required
-                      error={!!errors?.nationality}
-                      helperText={errors?.nationality?.message}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <MyTextField
-                      key={`${stepKey}-religion`}
-                      label="Religion"
-                      name="religion"
-                      control={control}
-                      error={!!errors?.religion}
-                      helperText={errors?.religion?.message}
-                    />
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
-          </Box>
-        );
-      
-      case 1:
-        return (
-          <Box key={stepKey}>
-            <Card elevation={0} sx={{ border: '1px solid', borderColor: alpha('#764ba2', 0.2), borderRadius: 3 }}>
-              <CardContent sx={{ p: 4 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                  <ContactPhone sx={{ color: '#764ba2', fontSize: 28 }} />
-                  <Typography variant="h5" fontWeight="bold" sx={{ color: '#764ba2' }}>
-                    Contact Details
-                  </Typography>
-                </Box>
-                
-                <Grid container spacing={3}>
-                  <Grid item xs={12}>
-                    <MyTextField
-                      key={`${stepKey}-address_permanent`}
-                      label="Permanent Address *"
-                      name="address_permanent"
-                      control={control}
-                      required
-                      multiline
-                      rows={2}
-                      error={!!errors?.address_permanent}
-                      helperText={errors?.address_permanent?.message}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <MyTextField
-                      key={`${stepKey}-address_present`}
-                      label="Present Address *"
-                      name="address_present"
-                      control={control}
-                      required
-                      multiline
-                      rows={2}
-                      error={!!errors?.address_present}
-                      helperText={errors?.address_present?.message}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <MyTextField
-                      key={`${stepKey}-phone`}
-                      label="Phone Number *"
-                      name="phone"
-                      control={control}
-                      required
-                      error={!!errors?.phone}
-                      helperText={errors?.phone?.message}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <MyTextField
-                      key={`${stepKey}-email`}
-                      label="Email Address"
-                      name="email"
-                      control={control}
-                      required
-                      error={!!errors?.email}
-                      helperText={errors?.email?.message}
-                    />
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
-          </Box>
-        );
-      
-      case 2:
-        return (
-          <Box key={stepKey}>
-            <Card elevation={0} sx={{ border: '1px solid', borderColor: alpha('#f093fb', 0.2), borderRadius: 3 }}>
-              <CardContent sx={{ p: 4 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                  <School sx={{ color: '#f093fb', fontSize: 28 }} />
-                  <Typography variant="h5" fontWeight="bold" sx={{ color: '#f093fb' }}>
-                    Academic Information
-                  </Typography>
-                </Box>
-                
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
-                    <MyTextField
-                      key={`${stepKey}-id_number`}
-                      label="Student ID Number *"
-                      name="id_number"
-                      control={control}
-                      required
-                      error={!!errors?.id_number}
-                      helperText={errors?.id_number?.message}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <MySelector
-                      key={`${stepKey}-course`}
-                      label="Course *"
-                      name="course"
-                      control={control}
-                      options={safeProgramsChoices}
-                      required
-                      error={!!errors?.course}
-                      helperText={errors?.course?.message}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <MyTextField
-                      key={`${stepKey}-year_level`}
-                      label="Year Level *"
-                      name="year_level"
-                      control={control}
-                      required
-                      error={!!errors?.year_level}
-                      helperText={errors?.year_level?.message}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <MyTextField
-                      key={`${stepKey}-school`}
-                      label="School/Campus"
-                      name="school"
-                      control={control}
-                      error={!!errors?.school}
-                      helperText={errors?.school?.message}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <MyTextField
-                      key={`${stepKey}-weight`}
-                      label="Weight (kg)"
-                      name="weight"
-                      control={control}
-                      type="number"
-                      inputProps={{ min: 1, step: 'any' }}
-                      error={!!errors?.weight}
-                      helperText={errors?.weight?.message}
-                      hint="Required for BMI"
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <MyTextField
-                      key={`${stepKey}-height`}
-                      label="Height (cm)"
-                      name="height"
-                      control={control}
-                      type="number"
-                      inputProps={{ min: 1, step: 'any' }}
-                      error={!!errors?.height}
-                      helperText={errors?.height?.message}
-                      hint="Required for BMI"
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <MyTextField
-                      key={`${stepKey}-bmi`}
-                      label="BMI"
-                      name="bmi"
-                      control={control}
-                      type="number"
-                      disabled
-                      error={!!errors?.bmi}
-                      helperText={errors?.bmi?.message || "Automatically calculated"}
-                    />
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
-          </Box>
-        );
-      
-      case 3:
-        return (
-          <Box key={stepKey}>
-            <Stack spacing={3}>
-              {/* Emergency Contacts */}
-              <Card elevation={0} sx={{ border: '1px solid', borderColor: alpha('#f5576c', 0.2), borderRadius: 3 }}>
-                <CardContent sx={{ p: 4 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                    <ContactPhone sx={{ color: '#f5576c', fontSize: 28 }} />
-                    <Typography variant="h5" fontWeight="bold" sx={{ color: '#f5576c' }}>
-                      Emergency Contacts
-                    </Typography>
-                  </Box>
-                  
-                  <Grid container spacing={3}>
-                    <Grid item xs={12} sm={6}>
-                      <MyTextField
-                        key={`${stepKey}-father_name`}
-                        label="Father's Name"
-                        name="father_name"
-                        control={control}
-                        error={!!errors?.father_name}
-                        helperText={errors?.father_name?.message}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <MyTextField
-                        key={`${stepKey}-mother_name`}
-                        label="Mother's Name"
-                        name="mother_name"
-                        control={control}
-                        error={!!errors?.mother_name}
-                        helperText={errors?.mother_name?.message}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <MyTextField
-                        key={`${stepKey}-emergency_contact`}
-                        label="Emergency Contact Name"
-                        name="emergency_contact"
-                        control={control}
-                        error={!!errors?.emergency_contact}
-                        helperText={errors?.emergency_contact?.message}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <MyTextField
-                        key={`${stepKey}-emergency_contact_number`}
-                        label="Emergency Contact Number"
-                        name="emergency_contact_number"
-                        control={control}
-                        error={!!errors?.emergency_contact_number}
-                        helperText={errors?.emergency_contact_number?.message}
-                      />
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-
-              {/* Medical Information */}
-              <Card elevation={0} sx={{ border: '1px solid', borderColor: alpha('#f5576c', 0.2), borderRadius: 3 }}>
-                <CardContent sx={{ p: 4 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                    <LocalHospital sx={{ color: '#f5576c', fontSize: 28 }} />
-                    <Typography variant="h5" fontWeight="bold" sx={{ color: '#f5576c' }}>
-                      Medical Information
-                    </Typography>
-                  </Box>
-
-                  {/* Childhood Diseases */}
-                  <Box sx={{ mb: 4 }}>
-                    <Typography variant="h6" gutterBottom fontWeight="medium">
-                      Childhood Diseases (Check all that apply)
-                    </Typography>
-                    <Grid container spacing={1}>
-                      {(childhoodDiseasesOptions || []).map((disease) => (
-                        <Grid item xs={12} sm={6} key={`${stepKey}-disease-${disease}`}>
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                checked={selectedChildhoodDiseases.includes(disease)}
-                                onChange={() => toggleSelection(disease, selectedChildhoodDiseases, setSelectedChildhoodDiseases)}
-                                size="small"
-                              />
-                            }
-                            label={<Typography variant="body2">{disease}</Typography>}
-                          />
-                        </Grid>
-                      ))}
-                    </Grid>
-                  </Box>
-
-                  {/* Special Needs */}
-                  <Box sx={{ mb: 4 }}>
-                    <Typography variant="h6" gutterBottom fontWeight="medium">
-                      Special Needs (Check all that apply)
-                    </Typography>
-                    <Grid container spacing={1}>
-                      {(specialNeedsOptions || []).map((need) => (
-                        <Grid item xs={12} sm={6} key={`${stepKey}-need-${need}`}>
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                checked={selectedSpecialNeeds.includes(need)}
-                                onChange={() => toggleSelection(need, selectedSpecialNeeds, setSelectedSpecialNeeds)}
-                                size="small"
-                              />
-                            }
-                            label={<Typography variant="body2">{need}</Typography>}
-                          />
-                        </Grid>
-                      ))}
-                    </Grid>
-                  </Box>
-
-                  {/* Current Illnesses */}
-                  <Box sx={{ mb: 4 }}>
-                    <Typography variant="h6" gutterBottom fontWeight="medium">
-                      Current Illnesses (Check all that apply)
-                    </Typography>
-                    <Grid container spacing={1}>
-                      {(illnessesOptions || []).map((illness) => (
-                        <Grid item xs={12} sm={6} key={`${stepKey}-illness-${illness}`}>
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                checked={selectedIllnesses.includes(illness)}
-                                onChange={() => toggleSelection(illness, selectedIllnesses, setSelectedIllnesses)}
-                                size="small"
-                              />
-                            }
-                            label={<Typography variant="body2">{illness}</Typography>}
-                          />
-                        </Grid>
-                      ))}
-                    </Grid>
-                    <Collapse in={selectedIllnesses.includes('Others (please specify)')}>
-                      <Box sx={{ mt: 2 }}>
-                        <TextField
-                          key={`${stepKey}-other-illness`}
-                          fullWidth
-                          size="small"
-                          placeholder="Please specify other illness"
-                          value={otherIllness}
-                          onChange={(e) => setOtherIllness(e.target.value)}
-                        />
-                      </Box>
-                    </Collapse>
-                  </Box>
-
-                  {/* Dynamic Lists */}
-                  {[
-                    { title: 'Existing Medical Conditions', state: existingMedicalConditions || [], setter: setExistingMedicalConditions },
-                    { title: 'Current Medications', state: medications || [], setter: setMedications },
-                    { title: 'Known Allergies', state: allergies || [], setter: setAllergies }
-                  ].map(({ title, state, setter }) => (
-                    <Box key={`${stepKey}-${title}`} sx={{ mb: 3 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                        <Typography variant="h6" fontWeight="medium">{title}</Typography>
-                        <Button
-                          startIcon={<Add />}
-                          onClick={() => handleAddItem(setter)}
-                          size="small"
-                          variant="outlined"
-                        >
-                          Add
-                        </Button>
-                      </Box>
-                      {(state || []).map((item, index) => (
-                        <Box key={`${stepKey}-${title}-${index}`} sx={{ display: 'flex', gap: 1, mb: 1 }}>
-                          <TextField
-                            fullWidth
-                            size="small"
-                            value={item}
-                            onChange={(e) => handleItemChange(index, e.target.value, setter)}
-                            placeholder={`Enter ${title.toLowerCase().slice(0, -1)}`}
-                          />
-                          <IconButton
-                            onClick={() => handleRemoveItem(index, setter)}
-                            size="small"
-                            color="error"
-                          >
-                            <Remove />
-                          </IconButton>
-                        </Box>
-                      ))}
-                    </Box>
-                  ))}
-                </CardContent>
-              </Card>
-            </Stack>
-          </Box>
-        );
-      
-      default:
-        return null;
+    if (stepLabel === 'Personal Information') return renderPersonalInfo(stepKey);
+    if (stepLabel === 'Contact Details') return renderContactInfo(stepKey);
+    if (stepLabel === 'Academic Information') return renderAcademicInfo(stepKey);
+    if (stepLabel === 'Medical Information') return renderMedicalInfo(stepKey);
+    if (['Professional Information', 'Department Information', 'Additional Information'].includes(stepLabel)) {
+      return renderProfessionalInfo(stepKey);
     }
+    
+    return null;
   };
 
   return (
@@ -933,15 +1075,15 @@ const EditProfile = () => {
             <Box sx={{ mt: 3, px: 4 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography variant="body2">
-                  Step {activeStep + 1} of {(steps || []).length || 4}
+                  Step {activeStep + 1} of {(steps || []).length}
                 </Typography>
                 <Typography variant="body2">
-                  {Math.round(((activeStep + 1) / ((steps || []).length || 4)) * 100)}% Complete
+                  {Math.round(((activeStep + 1) / (steps || []).length) * 100)}% Complete
                 </Typography>
               </Box>
               <LinearProgress
                 variant="determinate"
-                value={((activeStep + 1) / ((steps || []).length || 4)) * 100}
+                value={((activeStep + 1) / (steps || []).length) * 100}
                 sx={{
                   height: 8,
                   borderRadius: 4,
