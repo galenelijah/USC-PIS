@@ -1748,6 +1748,11 @@ export const reportService = {
     return api.get('/reports/generated/dashboard/');
   },
 
+  // Get system analytics for dashboard visualizations
+  getDashboardAnalytics: (params = {}) => {
+    return api.get('/reports/analytics/system_analytics/', { params });
+  },
+
   // Report schedules
   getSchedules: (params = {}) => {
     return api.get('/reports/schedules/', { params });

@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { Box, Grid, FormControl, InputLabel, Select, MenuItem, TextField, Typography, Card, CardContent } from '@mui/material';
 import { DateRange as CalendarIcon } from '@mui/icons-material';
 import HealthCampaignPreview from './Reports/HealthCampaign';
+import PatientSummaryPreview from './Reports/previews/PatientSummaryPreview';
+import FeedbackAnalysisPreview from './Reports/previews/FeedbackAnalysisPreview';
+import ClinicalStatsPreview from './Reports/previews/ClinicalStatsPreview';
 
 const Reports = () => {
   // --- Shared Global Dashboard Date Filter State ---
@@ -70,19 +73,38 @@ const Reports = () => {
       {/* --- DASHBOARD CHARTS ROW CONTAINER --- */}
       <Grid container spacing={"20px"} alignItems="stretch">
         
-        {/* Left Grid: Pass down global filter parameters directly */}
+        {/* Row 1: Health Campaigns & Patient Summary */}
         <Grid item xs={12} md={6}>
           <HealthCampaignPreview 
             dateRange={globalDateRange} 
             customStart={startDate} 
             customEnd={endDate} 
           />
-
         </Grid>
 
-        {/* Right Grid Component Placeholder (Will follow the exact same pattern when introduced) */}
         <Grid item xs={12} md={6}>
+          <PatientSummaryPreview 
+            dateRange={globalDateRange} 
+            customStart={startDate} 
+            customEnd={endDate} 
+          />
+        </Grid>
 
+        {/* Row 2: Feedback Analysis & Clinical Stats */}
+        <Grid item xs={12} md={6}>
+          <FeedbackAnalysisPreview 
+            dateRange={globalDateRange} 
+            customStart={startDate} 
+            customEnd={endDate} 
+          />
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <ClinicalStatsPreview 
+            dateRange={globalDateRange} 
+            customStart={startDate} 
+            customEnd={endDate} 
+          />
         </Grid>
 
       </Grid>

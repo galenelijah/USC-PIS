@@ -113,6 +113,7 @@ INSTALLED_APPS = [
     'notifications',  # Add notifications app
     'reports',  # Add comprehensive reports app
     'utils',  # Add utils app for system monitoring and management commands
+    'simple_history',  # Comprehensive Audit Logging
 ]
 
 # Add Cloudinary apps only when enabled and packages are available
@@ -142,6 +143,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'authentication.middleware.AuditLogMiddleware',  # Capture context for audit logs
+    'simple_history.middleware.HistoryRequestMiddleware', # Track user who made changes
     'backend.middleware.APIVersionMiddleware',  # Add API versioning
     'backend.middleware.RequestLoggingMiddleware',  # Add request logging
     'django.contrib.messages.middleware.MessageMiddleware',

@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from patients.models import Patient
+from simple_history.models import HistoricalRecords
 
 User = get_user_model()
 
@@ -10,6 +11,7 @@ class CertificateTemplate(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     content = models.TextField(help_text="HTML template with placeholders for certificate content")
+    history = HistoricalRecords()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -68,6 +70,7 @@ class MedicalCertificate(models.Model):
     )
     
     # Timestamps
+    history = HistoricalRecords()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     submitted_at = models.DateTimeField(null=True, blank=True)

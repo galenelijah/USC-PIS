@@ -3,6 +3,7 @@ from django.conf import settings
 from django.core.validators import FileExtensionValidator
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from simple_history.models import HistoricalRecords
 import os
 
 def get_media_storage():
@@ -78,6 +79,7 @@ class HealthInformation(models.Model):
     content = models.TextField()
     category = models.CharField(max_length=200)
     view_count = models.PositiveIntegerField(default=0)
+    history = HistoricalRecords()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
@@ -173,6 +175,7 @@ class CampaignTemplate(models.Model):
     is_active = models.BooleanField(default=True, help_text="Whether this template is available for use")
     
     # Audit
+    history = HistoricalRecords()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
@@ -285,6 +288,7 @@ class HealthCampaign(models.Model):
     contact_info = models.CharField(max_length=300, blank=True, null=True, help_text="Contact information for inquiries")
     
     # Audit
+    history = HistoricalRecords()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='created_health_campaigns')
@@ -391,6 +395,7 @@ class CampaignResource(models.Model):
     download_count = models.PositiveIntegerField(default=0)
     is_public = models.BooleanField(default=True, help_text="Whether this resource is publicly accessible")
     
+    history = HistoricalRecords()
     created_at = models.DateTimeField(auto_now_add=True)
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     
@@ -424,6 +429,7 @@ class CampaignFeedback(models.Model):
     took_action = models.BooleanField(null=True, blank=True, help_text="Did you take the recommended action?")
     learned_something_new = models.BooleanField(null=True, blank=True)
     
+    history = HistoricalRecords()
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:

@@ -567,7 +567,7 @@ class ReportDataService:
             date_end = date_end or timezone.now()
             
             feedback_qs = Feedback.objects.filter(created_at__range=(date_start, date_end))
-            
+
             # Apply filters
             if filters:
                 if filters.get('rating'):
@@ -778,10 +778,16 @@ class ReportDataService:
             date_end = date_end or timezone.now()
             records = MedicalRecord.objects.filter(visit_date__range=(date_start, date_end))
             
-            # Apply diagnosis category filter
-            diag_category = filters.get('diagnosis_category')
-            if diag_category:
-                records = records.filter(diagnosis__icontains=diag_category)
+            # Apply filters
+            if filters:
+                if filters.get('diagnosis_category'):
+                    records = records.filter(diagnosis__icontains=filters['diagnosis_category'])
+                if filters.get('school'):
+                    records = records.filter(patient__user__school=filters['school'])
+                if filters.get('course'):
+                    records = records.filter(patient__user__course=filters['course'])
+                if filters.get('year_level'):
+                    records = records.filter(patient__user__year_level=filters['year_level'])
             
             # Calculate real avg age
             patients = Patient.objects.filter(medical_records__in=records).distinct()
@@ -857,6 +863,16 @@ class ReportDataService:
             date_start = date_start or (timezone.now() - timedelta(days=365))
             date_end = date_end or timezone.now()
             records = DentalRecord.objects.filter(visit_date__range=(date_start, date_end))
+            
+            # Apply filters
+            if filters:
+                if filters.get('school'):
+                    records = records.filter(patient__user__school=filters['school'])
+                if filters.get('course'):
+                    records = records.filter(patient__user__course=filters['course'])
+                if filters.get('year_level'):
+                    records = records.filter(patient__user__year_level=filters['year_level'])
+            
             total_records = records.count()
 
             if total_records == 0:

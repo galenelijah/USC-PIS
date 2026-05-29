@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from simple_history.models import HistoricalRecords
 import datetime
 
 # Create your models here.
@@ -33,6 +34,7 @@ class Patient(models.Model):
     first_name_enc = models.BinaryField(null=True, blank=True, editable=False)
     last_name_enc = models.BinaryField(null=True, blank=True, editable=False)
     
+    history = HistoricalRecords()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
@@ -68,6 +70,7 @@ class MedicalRecord(models.Model):
     physical_examination = models.JSONField(default=dict, blank=True, help_text="Physical examination findings")
     feedback_email_sent = models.BooleanField(default=False, help_text="Track if immediate feedback request email was sent")
     feedback_reminder_sent = models.BooleanField(default=False, help_text="Track if 24-hour feedback reminder email was sent")
+    history = HistoricalRecords()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
@@ -237,6 +240,7 @@ class DentalRecord(models.Model):
     feedback_email_sent = models.BooleanField(default=False, help_text="Track if immediate feedback request email was sent")
     feedback_reminder_sent = models.BooleanField(default=False, help_text="Track if 24-hour feedback reminder email was sent")
     
+    history = HistoricalRecords()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
@@ -269,6 +273,7 @@ class Consultation(models.Model):
     chief_complaints = models.TextField(blank=True)  # Kept for backward compatibility
     treatment_plan = models.TextField()
     remarks = models.TextField(blank=True)
+    history = HistoricalRecords()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
