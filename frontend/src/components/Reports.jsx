@@ -2,9 +2,13 @@ import React, { useState } from 'react';
 import { Box, Grid, FormControl, InputLabel, Select, MenuItem, TextField, Typography, Card, CardContent } from '@mui/material';
 import { DateRange as CalendarIcon } from '@mui/icons-material';
 import HealthCampaignPreview from './Reports/HealthCampaign';
+import MedicalReports from './Reports/MedicalReports';
 import PatientSummaryPreview from './Reports/previews/PatientSummaryPreview';
 import FeedbackAnalysisPreview from './Reports/previews/FeedbackAnalysisPreview';
 import ClinicalStatsPreview from './Reports/previews/ClinicalStatsPreview';
+import VisitTrendsPreview from './Reports/previews/VisitTrendsPreview';
+import OperationsPreview from './Reports/previews/OperationsPreview';
+import DentalStatsPreview from './Reports/previews/DentalStatsPreview';
 
 const Reports = () => {
   // --- Shared Global Dashboard Date Filter State ---
@@ -71,7 +75,7 @@ const Reports = () => {
       </Card>
 
       {/* --- DASHBOARD CHARTS ROW CONTAINER --- */}
-      <Grid container spacing={"20px"} alignItems="stretch">
+      <Grid container spacing={3} alignItems="stretch">
         
         {/* Row 1: Health Campaigns & Patient Summary */}
         <Grid item xs={12} md={6}>
@@ -101,6 +105,45 @@ const Reports = () => {
 
         <Grid item xs={12} md={6}>
           <ClinicalStatsPreview 
+            dateRange={globalDateRange} 
+            customStart={startDate} 
+            customEnd={endDate} 
+          />
+        </Grid>
+
+        {/* Row 3: Visit Trends & Operational Efficiency */}
+        <Grid item xs={12} md={6}>
+          <VisitTrendsPreview 
+            dateRange={globalDateRange} 
+            customStart={startDate} 
+            customEnd={endDate} 
+          />
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <OperationsPreview 
+            dateRange={globalDateRange} 
+            customStart={startDate} 
+            customEnd={endDate} 
+          />
+        </Grid>
+
+        {/* Row 4: Dental Health & Other Clinical Metrics */}
+        <Grid item xs={12} md={6}>
+          <DentalStatsPreview 
+            dateRange={globalDateRange} 
+            customStart={startDate} 
+            customEnd={endDate} 
+          />
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          {/* Placeholder for future analytical widgets */}
+        </Grid>
+
+        {/* Row 5: Comprehensive Medical Records Analysis */}
+        <Grid item xs={12}>
+          <MedicalReports 
             dateRange={globalDateRange} 
             customStart={startDate} 
             customEnd={endDate} 

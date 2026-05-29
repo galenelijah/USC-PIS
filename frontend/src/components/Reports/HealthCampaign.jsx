@@ -9,11 +9,10 @@ import {
 import { 
   BarChart as ChartIcon,
   Visibility as ViewIcon,
-  Close as CloseIcon,
-  FileDownload as DownloadIcon
+  Close as CloseIcon
 } from '@mui/icons-material';
 import { Bar } from 'react-chartjs-2';
-import { campaignService, reportService } from '../../services/api';
+import { campaignService } from '../../services/api';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -31,40 +30,8 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
   const [dashboardCampaigns, setDashboardCampaigns] = useState([]); 
   const [modalCampaigns, setModalCampaigns] = useState([]);         
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
   
-  const handleGenerateReport = async (format = 'PDF') => {
-    try {
-      setGenerating(true);
-      setError(null);
-      
-      const payload = {
-        title: `Health Campaign Performance - ${new Date().toLocaleDateString()}`,
-        export_format: format,
-        date_range_start: dateRange === 'custom' ? customStart : undefined,
-        date_range_end: dateRange === 'custom' ? customEnd : undefined,
-        filters: {
-          campaign_id: selectedCampaigns.length === 1 ? campaigns.find(c => c.title === selectedCampaigns[0])?.id : undefined
-        }
-      };
-
-      const response = await reportService.generateReport(7, payload); // Template ID 7
-      setSuccess(`Report generation started! ID: ${response.data.report_id}`);
-      
-      setTimeout(() => {
-        setOpenModal(false);
-        setSuccess(null);
-      }, 2000);
-    } catch (err) {
-      console.error("Failed to generate report:", err);
-      setError("Failed to trigger report generation.");
-    } finally {
-      setGenerating(false);
-    }
-  };
-
   // Modal Internal Independent Filtering Controls
   const [openModal, setOpenModal] = useState(false);
   const [selectedCampaigns, setSelectedCampaigns] = useState([]); 
@@ -201,11 +168,23 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
 
   const generateChartData = (dataSrc, limit = null) => {
     let topCampaigns = [...dataSrc].sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
-    if (limit) {
-      topCampaigns = topCampaigns.slice(0, limit);
-    }
+    
+    // --- UPDATED: Limit the modal workshop view to max 10 entries for scannability ---
+    const activeLimit = limit || 8;
+    topCampaigns = topCampaigns.slice(0, activeLimit);
 
-    const paletteGradient = ['#1e3a8a', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#cbd5e1'];
+    const paletteGradient = [
+      '#ea580c', 
+      '#f16410', 
+      '#f77015', 
+      '#fa7d23', 
+      '#fb8b34', 
+      '#fb9b48', 
+      '#fcad61', 
+      '#fdbd7a', 
+      '#feca92', 
+      '#fed7aa'
+    ];
     const backgroundColors = topCampaigns.map((_, index) => paletteGradient[index % paletteGradient.length]);
 
     return {
@@ -217,7 +196,8 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
           backgroundColor: backgroundColors,
           borderWidth: 0,
           borderRadius: 4,
-          barThickness: 24
+          barThickness: 18, // 👈 Slightly reduced thickness to guarantee white space gaps
+          maxBarThickness: 20
         }
       ]
     };
@@ -228,6 +208,9 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
     responsive: true, 
     maintainAspectRatio: false,
     plugins: { legend: { display: false } },
+    layout: {
+      padding: { top: 10, bottom: 10, left: 5, right: 15 } // 👈 Adds buffer spacing around the elements
+    },
     scales: {
       x: { beginAtZero: true, grid: { color: '#f0f0f0' }, ticks: { font: { size: 11 } } },
       y: {
@@ -274,8 +257,8 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
           
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
             <Box display="flex" alignItems="center" gap={1}>
-              <ChartIcon sx={{ color: '#303f9f', fontSize: 26 }} />
-              <Typography variant="h6" sx={{ fontWeight: 600, color: '#303f9f', fontSize: '1.1rem' }}>
+              <ChartIcon sx={{ color: '#ea580c', fontSize: 26 }} />
+              <Typography variant="h6" sx={{ fontWeight: 600, color: '#ea580c', fontSize: '1.1rem' }}>
                 Campaign Views {renderDashboardHeadlineString()}
               </Typography>
             </Box>
@@ -285,7 +268,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
                 size="small"
                 startIcon={<ViewIcon />}
                 onClick={() => setOpenModal(true)}
-                sx={{ bgcolor: '#303f9f', '&:hover': { bgcolor: '#1a237e' }, textTransform: 'none', borderRadius: '8px', fontWeight: 600 }}
+                sx={{ bgcolor: '#ea580c', '&:hover': { bgcolor: '#a33d06' }, textTransform: 'none', borderRadius: '8px', fontWeight: 600 }}
               >
                 View Details
               </Button>
@@ -309,7 +292,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
       <Dialog open={openModal} onClose={() => setOpenModal(false)} fullWidth maxWidth="lg" scroll="paper" PaperProps={{ sx: { borderRadius: '12px' } }}>
         <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#fafafa', borderBottom: '1px solid #e0e0e0' }}>
           <Box>
-            <Typography variant="h6" sx={{ fontWeight: 600, color: '#303f9f' }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: '#ea580c' }}>
               Detailed Health Campaigns Breakdown Workshop
             </Typography>
             <Typography variant="caption" color="text.secondary">
@@ -325,7 +308,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
 
         <DialogContent dividers sx={{ p: 3, bgcolor: '#fcfcfc' }}>
           {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
-          {success && <Alert severity="success" sx={{ mb: 3 }}>{success}</Alert>}
+
           <Grid container spacing={2} sx={{ mb: 3 }}>
             
             {/* Multi-Select Chip list manager */}
@@ -439,7 +422,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
                       <TableCell sx={{ minWidth: 100 }}>
                         {row.campaign_type || row.category || '-'}
                       </TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 'bold', color: '#303f9f' }}>
+                      <TableCell align="right" sx={{ fontWeight: 'bold', color: '#ea580c' }}>
                         {(row.view_count || 0).toLocaleString()}
                       </TableCell>
                       <TableCell sx={{ minWidth: 140 }}>
@@ -463,44 +446,21 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
           )}
         </DialogContent>
 
-        <DialogActions sx={{ p: 2, bgcolor: '#fafafa', borderTop: '1px solid #e0e0e0', justifyContent: 'space-between' }}>
-          <Button onClick={() => setOpenModal(false)}>Close</Button>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button 
-              variant="outlined" 
-              onClick={() => handleGenerateReport('EXCEL')}
-              disabled={generating}
-              size="small"
-              sx={{ color: '#303f9f', borderColor: '#303f9f' }}
-            >
-              Excel
-            </Button>
-            <Button 
-              variant="outlined" 
-              onClick={() => handleGenerateReport('CSV')}
-              disabled={generating}
-              size="small"
-              sx={{ color: '#303f9f', borderColor: '#303f9f' }}
-            >
-              CSV
-            </Button>
-            <Button 
-              variant="contained" 
-              onClick={() => handleGenerateReport('PDF')}
-              disabled={generating}
-              startIcon={generating ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}
-              sx={{ 
-                textTransform: 'none', 
-                borderRadius: '8px', 
-                px: 3, 
-                bgcolor: '#303f9f', 
-                '&:hover': { bgcolor: '#1a237e' },
-                fontWeight: 600 
-              }}
-            >
-              {generating ? 'Processing...' : 'Generate Performance PDF'}
-            </Button>
-          </Box>
+        <DialogActions sx={{ p: 2, bgcolor: '#fafafa', borderTop: '1px solid #e0e0e0', justifyContent: 'flex-end' }}>
+          <Button 
+            onClick={() => alert('Generating custom campaign report... (Feature coming soon)')} 
+            variant="contained" 
+            sx={{ 
+              textTransform: 'none', 
+              borderRadius: '8px', 
+              px: 3, 
+              bgcolor: '#ea580c', 
+              '&:hover': { bgcolor: '#1a237e' },
+              fontWeight: 600 
+            }}
+          >
+            Generate Report
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

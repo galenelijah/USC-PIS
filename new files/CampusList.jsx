@@ -1,0 +1,82 @@
+// CampusList.jsx
+
+export const ACADEMIC_DIRECTORY_MAP = {
+  // --- USC TALAMBAN CAMPUS (TC) ---
+  // SAFAD
+  '1': { campus: 'Talamban Campus (TC)', school: 'School of Architecture, Fine Arts and Design (SAFAD)' },
+  '2': { campus: 'Talamban Campus (TC)', school: 'School of Architecture, Fine Arts and Design (SAFAD)' },
+  '3': { campus: 'Talamban Campus (TC)', school: 'School of Architecture, Fine Arts and Design (SAFAD)' },
+  '4': { campus: 'Talamban Campus (TC)', school: 'School of Architecture, Fine Arts and Design (SAFAD)' },
+  '5': { campus: 'Talamban Campus (TC)', school: 'School of Architecture, Fine Arts and Design (SAFAD)' },
+  '56': { campus: 'Talamban Campus (TC)', school: 'School of Architecture, Fine Arts and Design (SAFAD)' },
+  // SAS
+  '6': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '7': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '8': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '9': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '10': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '11': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '12': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '13': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '14': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '15': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '16': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '17': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '18': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '19': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '46': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '49': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '50': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '51': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '57': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '58': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '59': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '62': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '63': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '65': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  '67': { campus: 'Talamban Campus (TC)', school: 'School of Arts and Sciences (SAS)' },
+  // SOE
+  '38': { campus: 'Talamban Campus (TC)', school: 'School of Engineering (SOE)' },
+  '39': { campus: 'Talamban Campus (TC)', school: 'School of Engineering (SOE)' },
+  '40': { campus: 'Talamban Campus (TC)', school: 'School of Engineering (SOE)' },
+  '41': { campus: 'Talamban Campus (TC)', school: 'School of Engineering (SOE)' },
+  '42': { campus: 'Talamban Campus (TC)', school: 'School of Engineering (SOE)' },
+  '43': { campus: 'Talamban Campus (TC)', school: 'School of Engineering (SOE)' },
+  '44': { campus: 'Talamban Campus (TC)', school: 'School of Engineering (SOE)' },
+  '45': { campus: 'Talamban Campus (TC)', school: 'School of Engineering (SOE)' },
+  '66': { campus: 'Talamban Campus (TC)', school: 'School of Engineering (SOE)' },
+  '68': { campus: 'Talamban Campus (TC)', school: 'School of Engineering (SOE)' },
+  // SOED
+  '36': { campus: 'Talamban Campus (TC)', school: 'School of Education (SOED)' },
+  '37': { campus: 'Talamban Campus (TC)', school: 'School of Education (SOED)' },
+  '48': { campus: 'Talamban Campus (TC)', school: 'School of Education (SOED)' },
+  '52': { campus: 'Talamban Campus (TC)', school: 'School of Education (SOED)' },
+  '61': { campus: 'Talamban Campus (TC)', school: 'School of Education (SOED)' },
+  // SHCP
+  '20': { campus: 'Talamban Campus (TC)', school: 'School of Healthcare Professions (SHCP)' },
+  '21': { campus: 'Talamban Campus (TC)', school: 'School of Healthcare Professions (SHCP)' },
+  '22': { campus: 'Talamban Campus (TC)', school: 'School of Healthcare Professions (SHCP)' },
+
+  // --- USC DOWNTOWN CAMPUS (DC) ---
+  // SBE
+  '25': { campus: 'Downtown Campus (DC)', school: 'School of Business and Economics (SBE)' },
+  '26': { campus: 'Downtown Campus (DC)', school: 'School of Business and Economics (SBE)' },
+  '27': { campus: 'Downtown Campus (DC)', school: 'School of Business and Economics (SBE)' },
+  '28': { campus: 'Downtown Campus (DC)', school: 'School of Business and Economics (SBE)' },
+  '29': { campus: 'Downtown Campus (DC)', school: 'School of Business and Economics (SBE)' },
+  '30': { campus: 'Downtown Campus (DC)', school: 'School of Business and Economics (SBE)' },
+  '31': { campus: 'Downtown Campus (DC)', school: 'School of Business and Economics (SBE)' },
+  '32': { campus: 'Downtown Campus (DC)', school: 'School of Business and Economics (SBE)' },
+  '33': { campus: 'Downtown Campus (DC)', school: 'School of Business and Economics (SBE)' },
+  '34': { campus: 'Downtown Campus (DC)', school: 'School of Business and Economics (SBE)' },
+  '35': { campus: 'Downtown Campus (DC)', school: 'School of Business and Economics (SBE)' },
+  '47': { campus: 'Downtown Campus (DC)', school: 'School of Business and Economics (SBE)' },
+  '54': { campus: 'Downtown Campus (DC)', school: 'School of Business and Economics (SBE)' },
+  '55': { campus: 'Downtown Campus (DC)', school: 'School of Business and Economics (SBE)' },
+  '60': { campus: 'Downtown Campus (DC)', school: 'School of Business and Economics (SBE)' },
+  // SLG
+  '23': { campus: 'Downtown Campus (DC)', school: 'School of Law and Governance (SLG)' },
+  '24': { campus: 'Downtown Campus (DC)', school: 'School of Law and Governance (SLG)' },
+  '53': { campus: 'Downtown Campus (DC)', school: 'School of Law and Governance (SLG)' },
+  '64': { campus: 'Downtown Campus (DC)', school: 'School of Law and Governance (SLG)' }
+};
