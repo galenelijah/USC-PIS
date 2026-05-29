@@ -194,17 +194,17 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.ERROR(f"  [FAIL] Certificate creation email failed: {str(e)}"))
                     results['failed'] += 1
             
-            # Test certificate approval email
+            # Test certificate issuance email
             if dry_run:
-                self.stdout.write(f"  - Would send certificate approval email to {test_email}")
+                self.stdout.write(f"  - Would send certificate issuance email to {test_email}")
                 results['sent'] += 1
             else:
                 try:
-                    EmailService.send_medical_certificate_notification(test_certificate, 'approved')
-                    self.stdout.write(self.style.SUCCESS(f"  [OK] Certificate approval email sent to {test_email}"))
+                    EmailService.send_medical_certificate_notification(test_certificate, 'issued')
+                    self.stdout.write(self.style.SUCCESS(f"  [OK] Certificate issuance email sent to {test_email}"))
                     results['sent'] += 1
                 except Exception as e:
-                    self.stdout.write(self.style.ERROR(f"  [FAIL] Certificate approval email failed: {str(e)}"))
+                    self.stdout.write(self.style.ERROR(f"  [FAIL] Certificate issuance email failed: {str(e)}"))
                     results['failed'] += 1
             
             # Test certificate rejection email

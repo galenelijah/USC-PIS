@@ -201,13 +201,13 @@ class EmailService:
             for doctor in doctors:
                 context['doctor'] = doctor
                 EmailService.send_template_email(
-                    template_name='certificate_pending_approval',
+                    template_name='certificate_pending_issuance',
                     context=context,
                     recipient_email=doctor.email,
                     subject='Medical Certificate Review & Issuance Required'
                 )
         
-        elif notification_type == 'approved' or notification_type == 'issued':
+        elif notification_type == 'issued':
             context = {
                 'certificate': certificate,
                 'patient': certificate.patient,
@@ -215,7 +215,7 @@ class EmailService:
             }
             
             EmailService.send_template_email(
-                template_name='certificate_approved',
+                template_name='certificate_issued',
                 context=context,
                 recipient_email=certificate.patient.user.email,
                 subject='Medical Certificate Issued'

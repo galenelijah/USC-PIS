@@ -1,0 +1,18 @@
+Medical Certificate Issued
+
+Dear {{ patient.user.first_name|default:patient.user.email }},
+
+Great news! Your medical certificate has been formally issued and is now ready to be claimed at the USC Health Center.
+
+Certificate ID: {{ certificate.id }}
+Issued At: {{ certificate.issued_at|date:"F d, Y at g:i A" }}
+Valid Until: {{ certificate.valid_until|date:"F d, Y" }}
+Status: Issued
+
+View Status: {{ site_url }}/medical-certificates
+
+Questions? Contact: {{ support_email }}
+
+Best regards,
+USC Medical Team
+University of San Carlos Health Center

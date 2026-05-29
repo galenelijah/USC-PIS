@@ -205,7 +205,7 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
             logger.error(f"Failed to log certificate issuance: {e}")
 
         try:
-            EmailService.send_medical_certificate_notification(certificate, 'approved')
+            EmailService.send_medical_certificate_notification(certificate, 'issued')
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)

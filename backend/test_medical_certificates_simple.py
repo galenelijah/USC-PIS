@@ -40,7 +40,7 @@ def test_medical_certificate_functionality():
     print(f"📄 Found {certificates.count()} medical certificates")
     
     # Check status distribution
-    for status in ['draft', 'pending', 'approved', 'rejected']:
+    for status in ['draft', 'pending', 'issued', 'rejected']:
         count = certificates.filter(status=status).count()
         print(f"   - {status.capitalize()}: {count}")
     
@@ -63,7 +63,7 @@ def test_medical_certificate_functionality():
     
     # Check certificate-related notifications
     cert_notifications = notifications.filter(
-        notification_type__in=['certificate_created', 'certificate_approved', 'certificate_rejected']
+        notification_type__in=['certificate_created', 'certificate_issued', 'certificate_rejected']
     )
     print(f"   - Certificate notifications: {cert_notifications.count()}")
     
@@ -77,8 +77,8 @@ def test_medical_certificate_functionality():
     
     if certificates.exists():
         print("✅ Medical certificates exist in system")
-        approved_count = certificates.filter(status='approved').count()
-        print(f"   - Approved certificates: {approved_count}")
+        issued_count = certificates.filter(status='issued').count()
+        print(f"   - Issued certificates: {issued_count}")
     else:
         print("⚠️  No medical certificates found")
     

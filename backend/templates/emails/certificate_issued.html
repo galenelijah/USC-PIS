@@ -1,24 +1,24 @@
 {% extends 'emails/base.html' %}
 
-{% block title %}Medical Certificate Approved - USC-PIS{% endblock %}
+{% block title %}Medical Certificate Issued - USC-PIS{% endblock %}
 
 {% block content %}
-<h2>Medical Certificate Approved! 🎉</h2>
+<h2>Medical Certificate Issued! 🎉</h2>
 
 <p>Dear {{ patient.user.first_name|default:patient.user.email }},</p>
 
-<p>Great news! Your medical certificate has been approved and is now ready for download.</p>
+<p>Great news! Your medical certificate has been formally issued and is now ready to be claimed.</p>
 
 <div class="success-box">
     <strong>Certificate Details:</strong><br>
     <strong>Certificate ID:</strong> {{ certificate.id }}<br>
-    <strong>Approved:</strong> {{ certificate.updated_at|date:"F d, Y at g:i A" }}<br>
+    <strong>Issued At:</strong> {{ certificate.issued_at|date:"F d, Y at g:i A" }}<br>
     <strong>Valid Until:</strong> {{ certificate.valid_until|date:"F d, Y" }}<br>
-    <strong>Status:</strong> ✅ Approved
+    <strong>Status:</strong> ✅ Issued
 </div>
 
 <div style="text-align: center; margin: 30px 0;">
-    <a href="{{ site_url }}/medical-certificates/{{ certificate.id }}/download" class="button">Download Certificate</a>
+    <a href="{{ site_url }}/medical-certificates" class="button">View Certificate Status</a>
 </div>
 
 <h3>Certificate Information:</h3>
@@ -32,18 +32,10 @@
 <div class="info-box">
     <strong>Important Notes:</strong>
     <ul>
-        <li>Keep multiple copies of your certificate (digital and physical)</li>
-        <li>Present this certificate to the requesting institution/organization</li>
-        <li>Contact us if you need additional copies</li>
-        <li>This certificate is valid until the expiration date shown above</li>
+        <li>You can now claim your medical certificate at the USC Health Center.</li>
+        <li>Present your student ID when claiming the document.</li>
+        <li>This certificate is valid until the expiration date shown above.</li>
     </ul>
-</div>
-
-<h3>Need another certificate?</h3>
-<p>You can request additional medical certificates anytime through your portal:</p>
-
-<div style="text-align: center; margin: 20px 0;">
-    <a href="{{ site_url }}/medical-certificates/new" class="button" style="background-color: #4caf50;">Request New Certificate</a>
 </div>
 
 <h3>Questions or concerns?</h3>

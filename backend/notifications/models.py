@@ -381,7 +381,7 @@ class SystemEmailConfiguration(models.Model):
     EVENT_CHOICES = [
         ('ROLE_REQUEST', 'Role Upgrade Request'),
         ('NEW_REGISTRATION', 'New User Registration'),
-        ('MEDICAL_CERTIFICATE_APPROVED', 'Medical Certificate Approved'),
+        ('MEDICAL_CERTIFICATE_ISSUED', 'Medical Certificate Issued'),
         ('MEDICAL_CERTIFICATE_REJECTED', 'Medical Certificate Rejected'),
         ('SYSTEM_HEALTH_ALERT', 'System Health Alert'),
         ('FEEDBACK_REQUEST', 'Patient Feedback Request'),

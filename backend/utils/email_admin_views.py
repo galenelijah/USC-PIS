@@ -218,8 +218,8 @@ def test_email_system(request):
                     result = _test_welcome_email(test_email, dry_run)
                 elif test_type == 'certificate_created':
                     result = _test_certificate_email(test_email, dry_run, 'created')
-                elif test_type == 'certificate_approved':
-                    result = _test_certificate_email(test_email, dry_run, 'approved')
+                elif test_type == 'certificate_issued':
+                    result = _test_certificate_email(test_email, dry_run, 'issued')
                 elif test_type == 'health_alert':
                     result = _test_health_alert_email(test_email, dry_run)
                 else:
@@ -295,15 +295,15 @@ def test_notification_system(request):
             )
             return JsonResponse({'success': True, 'message': f'Welcome notification sent to {user.email}'})
             
-        elif test_type == 'certificate_approved':
+        elif test_type == 'certificate_issued':
             EmailService._create_in_app_notification(
                 user=user,
-                title='Medical Certificate Approved',
-                message='Your medical certificate has been approved by the University Physician. You can now download it from your health records.',
+                title='Medical Certificate Issued',
+                message='Your medical certificate has been formally issued by the University Physician. It is now ready to be claimed at the clinic.',
                 notification_type='MEDICAL_CERTIFICATE',
-                action_url='/health-records'
+                action_url='/medical-certificates'
             )
-            return JsonResponse({'success': True, 'message': f'Cert approved notification sent to {user.email}'})
+            return JsonResponse({'success': True, 'message': f'Cert issued notification sent to {user.email}'})
             
         elif test_type == 'appointment':
             EmailService._create_in_app_notification(
