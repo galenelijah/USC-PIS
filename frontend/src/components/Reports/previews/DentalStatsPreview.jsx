@@ -93,15 +93,17 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
       setError(null);
       
       const payload = {
-        title: `Oral Health Services Analysis - ${new Date().toLocaleDateString()}`,
+        title: `Dental Health Analysis - ${new Date().toLocaleDateString()}`,
         export_format: format,
+        date_range: modalDateRange,
         date_range_start: modalDateRange === 'custom' ? modalStartDate : undefined,
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
           procedure: selectedProcedures,
-          campus: campusFilter !== 'all' ? campusFilter : undefined
+          priority: priorityFilter !== 'all' ? priorityFilter : undefined
         }
       };
+
 
       const response = await reportService.generateReport(5, payload); // Template ID 5: Dental Health Report
       setSuccess(`Report generation started! ID: ${response.data.report_id}`);

@@ -151,10 +151,14 @@ class ReportGenerationRequestSerializer(serializers.Serializer):
     export_format = serializers.ChoiceField(choices=ReportTemplate.EXPORT_FORMATS)
     date_range_start = serializers.DateTimeField(required=False, allow_null=True)
     date_range_end = serializers.DateTimeField(required=False, allow_null=True)
+    date_range = serializers.CharField(required=False, allow_null=True)
     filters = serializers.JSONField(required=False, default=dict)
     
     def validate(self, data):
         """Validate report generation request"""
+        from datetime import timedelta
+        from django.utils import timezone
+
         template_id = data.get('template_id')
         
         # Check if template exists
@@ -163,6 +167,31 @@ class ReportGenerationRequestSerializer(serializers.Serializer):
         except ReportTemplate.DoesNotExist:
             raise serializers.ValidationError("Report template not found")
         
+        # Calculate date range from preset if provided and start/end are missing
+        if template.requires_date_range and not (data.get('date_range_start') and data.get('date_range_end')):
+            preset = data.get('date_range') or data.get('filters', {}).get('date_range')
+            
+            if preset:
+                now = timezone.now()
+                if preset == '7days':
+                    data['date_range_start'] = now - timedelta(days=7)
+                    data['date_range_end'] = now
+                elif preset == '30days':
+                    data['date_range_start'] = now - timedelta(days=30)
+                    data['date_range_end'] = now
+                elif preset == '6months':
+                    data['date_range_start'] = now - timedelta(days=180)
+                    data['date_range_end'] = now
+                elif preset == 'all':
+                    data['date_range_start'] = now - timedelta(days=3650) # 10 years
+                    data['date_range_end'] = now
+            elif template.requires_date_range:
+                # Default to 30 days if required but not provided
+                now = timezone.now()
+                data['date_range_start'] = now - timedelta(days=30)
+                data['date_range_end'] = now
+                logger.warning(f"Date range required for {template.name} but not provided. Defaulting to 30 days.")
+
         # Check if export format is supported by the engine
         export_format = data.get('export_format')
         from .services import ReportGenerationService

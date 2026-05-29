@@ -105,14 +105,16 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
       setError(null);
       
       const payload = {
-        title: `Clinical Visit Volume Trends - ${new Date().toLocaleDateString()}`,
+        title: `Clinical Capacity & Visit Volume Report - ${new Date().toLocaleDateString()}`,
         export_format: format,
+        date_range: modalDateRange,
         date_range_start: modalDateRange === 'custom' ? modalStartDate : undefined,
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
           service_type: streamFilter !== 'all' ? streamFilter : undefined
         }
       };
+
 
       const response = await reportService.generateReport(2, payload); // Template ID 2: Monthly Visit Trends
       setSuccess(`Report generation started! ID: ${response.data.report_id}`);
