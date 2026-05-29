@@ -4,67 +4,73 @@
 
 The USC-PIS Reports System provides comprehensive analytics and reporting capabilities for healthcare data. The system generates reports in multiple formats (PDF, Excel, CSV, JSON, HTML) and stores them securely in cloud storage for reliable access.
 
-## System Architecture (Updated March 2026)
+## System Architecture (Updated May 2026)
 
 ### Components
 - **Report Templates**: Dynamic HTML/Django templates stored in the database.
 - **Background Processing**: Powered by **Celery and Redis** for reliable, asynchronous generation.
 - **Export Engine**: 
-    - **PDF**: Dual-engine approach using `xhtml2pdf` (HTML-to-PDF) with a robust `ReportLab` fallback.
+    - **PDF**: Dual-engine approach using `xhtml2pdf` (HTML-to-PDF) with a high-fidelity `ReportLab` fallback for branded landscape reports.
     - **Excel**: High-fidelity multi-sheet workbooks using `Pandas` and `XlsxWriter`.
     - **HTML/CSV/JSON**: Native Django and Python exports.
+- **Report Archive**: Dedicated history UI for monitoring generation status and downloading past exports.
 - **Cloud Storage**: Cloudinary integration with a 4-tier failover download system.
 
 ### Storage Configuration
 - **Production**: PostgreSQL + Cloudinary.
 - **Failover**: System automatically falls back to local storage or on-the-fly regeneration if cloud files are inaccessible.
 
-## Available Report Types
+## Available Report Types (Analytical Workshops)
 
-### 1. Patient Summary Report
-- Individual patient profiles with full medical/dental history.
-- Aggregate patient statistics and demographics.
-- Simplified, high-compatibility HTML layout for reliable PDF conversion.
+### 1. Patient Population & Demographics
+- Analysis of student vs. faculty/staff distribution.
+- **Academic Mapping**: Granular pie charts for School and Course distribution (Top 7 + "Other" grouping).
+- Institutional alignment using `PROGRAMS_CHOICES` and `ACADEMIC_DIRECTORY_MAP`.
 
-### 2. Visit Trends Report
-- Monthly aggregation of medical vs dental visits.
+### 2. Visit Trends & Capacity Analysis
+- **Dynamic Granularity**: Automatically adjusts timeline scale (Daily, Weekly, Monthly) based on the date range.
+- **Aggregate Trends**: Combined "Medical + Dental" trend line for total clinic throughput visualization.
 - Peak usage metrics and growth percentage tracking.
 
-### 3. Treatment Outcomes Report
-- Analysis of treatment success, improvement, and recovery rates.
-- Categorized outcome logs.
+### 3. Operational Efficiency Report
+- Workload intensity mapping based on patient volume per hour.
+- Identification of peak hours and staff utilization metrics.
 
-### 4. Feedback Analysis Report
+### 4. Feedback & Sentiment Analysis
 - Patient satisfaction metrics and rating distributions (1-5 stars).
-- Qualitative theme analysis and recent comment tracking.
+- **Qualitative Audit**: Integrated table of raw comments and improvement suggestions.
+- High-fidelity star distribution visualizations.
 
 ### 5. Medical & Dental Statistics (V2.0 Analytical)
 - **Engine**: `USCMedicalAnalyticalReport` and `USCDentalAnalyticalReport`.
 - **Top Diagnoses/Procedures**: Programmatically generated Bar/Doughnut charts integrated directly into the PDF.
-- **Student Analytics**: Per Panel Recommendation 3.a.i, includes Course and Academic Year Level distribution summaries.
-- **Clinical Details**: Dental reports focus on **Referral and Findings**; Medical reports include Vitals (BP/T) and **BMI classification**.
+- **Clinical Details**: Dental reports focus on Referrals and Findings; Medical reports include Vitals (BP/T) and BMI classification.
 
-### 6. Health Campaign Performance
+### 6. Health Campaign Analytics
 - Analysis of health campaign reach, engagement, and effectiveness.
-- Participant demographics and feedback.
+- **Comparative Tracking**: Side-by-side engagement metrics for targeted campaign audits.
 
 ### 7. Unified Health History (Patient-Centric)
 - **Engine**: `USCUnifiedHistoryReport`.
-- **Consolidated Timeline**: Aggregates Medical visits, Dental consultations, Medical Certificates, and Patient Documents into a single, chronological timeline.
-- **Color-Coded Status**: Visual indicators for different record types (Blue for Medical, Green for Dental, Gold for Certificates).
-
-### 8. User Activity & Audit Report
-- Tracking of system usage, logins, and staff actions.
-- **Communication Trail**: Includes audit logs for high-priority notifications and clinical alerts.
+- **Consolidated Timeline**: Aggregates Medical visits, Dental consultations, Medical Certificates, and Patient Documents into a single, branded landscape timeline.
 
 ## Web Interface Usage
 
 ### Accessing Reports
-1. Navigate to `/reports` page (requires authentication)
-2. Select desired report template
-3. Configure date range and filters (e.g., specific patient ID)
-4. Choose export format (PDF, Excel, CSV, JSON, HTML)
-5. Click "Generate Report"
+1. Navigate to `/reports` page (requires Staff/Admin role).
+2. **Global Timeline Control**: Standardized presets:
+    - **Full Academic History** (All-time)
+    - **Last 7 Days** (Weekly view)
+    - **Last 30 Days** (Monthly view)
+    - **Last 6 Months** (Semester view)
+    - **Manual Range Selection** (Custom start/end pickers)
+3. **Workshops**: Click "Drill-down" or "View Details" on any preview card to open the interactive analytical workshop.
+4. **Exporting**: Click PDF, Excel, or CSV in the workshop footer.
+
+### Report Archive
+- Located at the bottom of the Reports dashboard.
+- Monitors background generation status (**Queued** -> **Generating** -> **Ready**).
+- Provides permanent download links for all generated files (30-day retention).
 
 ### Report Generation Process
 1. **Request Submission**: Report parameters validated and queued via Celery.

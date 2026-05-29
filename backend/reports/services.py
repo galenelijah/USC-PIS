@@ -255,6 +255,12 @@ class ReportDataService:
                 patients_with_dental_records=Count('id', filter=Q(dental_records__isnull=False), distinct=True)
             )
             
+            # Use the same high-fidelity distribution methods as comprehensive analytics
+            all_active_patients = list(queryset)
+            course_distribution = ReportDataService._get_course_distribution(all_active_patients)
+            role_distribution = ReportDataService._get_role_distribution(all_active_patients)
+            college_participation = ReportDataService._get_college_participation(all_active_patients)
+
             # Gender distribution
             raw_gender_dist = list(queryset.values('gender').annotate(count=Count('id')).order_by('gender'))
             gender_map = {'M': 'Male', 'F': 'Female', 'O': 'Other', '1': 'Male', '2': 'Female'} 
@@ -265,15 +271,8 @@ class ReportDataService:
                 gender_distribution.append({'gender': g_name, 'count': item['count']})
             
             # Age distribution
-            age_groups = {'0-17': 0, '18-25': 0, '26-35': 0, '36-45': 0, '46-60': 0, '60+': 0}
+            age_groups_counts = {'0-17': 0, '18-25': 0, '26-35': 0, '36-45': 0, '46-60': 0, '60+': 0}
             try:
-                # Course and School distribution
-                course_distribution = list(queryset.values('user__course').annotate(count=Count('id')).order_by('-count')[:10])
-                course_distribution = [{'course': item['user__course'] or 'Unknown', 'count': item['count']} for item in course_distribution]
-                
-                school_distribution = list(queryset.values('user__school').annotate(count=Count('id')).order_by('-count')[:10])
-                school_distribution = [{'school': item['user__school'] or 'Unknown', 'count': item['count']} for item in school_distribution]
-
                 year_level_distribution = list(queryset.values('user__year_level').annotate(count=Count('id')).order_by('-count')[:10])
                 year_level_distribution = [{'year_level': item['user__year_level'] or 'N/A', 'count': item['count']} for item in year_level_distribution]
 
@@ -311,16 +310,20 @@ class ReportDataService:
                             GROUP BY age_group
                         """)
                     for row in cursor.fetchall():
-                        age_groups[row[0]] = row[1]
+                        age_groups_counts[row[0]] = row[1]
             except Exception as e:
                 logger.error(f"Age distribution calculation failed: {e}")
+
+            # Age Groups List for Charts
+            age_distribution = [{'group': k, 'count': v} for k, v in age_groups_counts.items()]
 
             data = {
                 **aggregate_data,
                 'gender_distribution': gender_distribution,
-                'age_distribution': age_groups,
+                'age_distribution': age_distribution,
                 'course_distribution': course_distribution,
-                'school_distribution': school_distribution,
+                'role_distribution': role_distribution,
+                'college_participation': college_participation,
                 'year_level_distribution': year_level_distribution,
                 'active_patients': queryset.filter(
                     Q(medical_records__visit_date__gte=timezone.now() - timedelta(days=90)) |
@@ -436,16 +439,16 @@ class ReportDataService:
             date_start = date_start or (now - timedelta(days=365))
             date_end = date_end or now
             
-            # Ensure they are aware of the full day
-            if isinstance(date_start, datetime):
-                date_start = date_start.replace(hour=0, minute=0, second=0)
-            if isinstance(date_end, datetime):
-                date_end = date_end.replace(hour=23, minute=59, second=59)
+            # Ensure they are aware of the full day and normalized to midnight for proper binning
+            if hasattr(date_start, 'replace'):
+                date_start = date_start.replace(hour=0, minute=0, second=0, microsecond=0)
+            if hasattr(date_end, 'replace'):
+                date_end = date_end.replace(hour=23, minute=59, second=59, microsecond=999999)
 
             medical_records = MedicalRecord.objects.filter(visit_date__range=(date_start, date_end))
             dental_records = DentalRecord.objects.filter(visit_date__range=(date_start, date_end))
             
-            # Apply filters
+            # ... (filtering logic)
             if filters:
                 # (Existing filtering logic remains the same)
                 if filters.get('gender'):
@@ -494,21 +497,26 @@ class ReportDataService:
             
             days_diff = (date_end - date_start).days
             
-            # Determine granularity
+            # Determine granularity and anchors
             if days_diff <= 45:
                 freq = 'D'
                 date_format = '%b %d'
+                # Already normalized to midnight
             elif days_diff <= 185:
                 freq = 'W-MON'
                 date_format = 'Week %U (%b)'
+                # Anchor to Monday
+                date_start = date_start - timedelta(days=date_start.weekday())
             else:
                 freq = 'MS'
                 date_format = '%b %Y'
+                # Anchor to first of month
+                date_start = date_start.replace(day=1)
 
             monthly_summary = []
             
             # Create a full date range to ensure no gaps
-            full_range = pd.date_range(start=date_start, end=date_end, freq=freq)
+            full_range = pd.date_range(start=date_start, end=date_end, freq=freq, normalize=True)
             
             if m_data or d_data:
                 df = pd.DataFrame(m_data + d_data)
@@ -637,10 +645,21 @@ class ReportDataService:
             # Apply customization
             active_users_log = ReportDataService._apply_customization(active_users_log, filters or {})
             
+            # For operations workshop, calculate peak activity hours based on User.last_login (proxy for activity)
+            peak_hours = []
+            if users.filter(last_login__isnull=False).exists():
+                hour_counts = {}
+                for h in range(24): hour_counts[h] = 0
+                for u in users.filter(last_login__isnull=False):
+                    hour = u.last_login.hour
+                    hour_counts[hour] += 1
+                peak_hours = [{'hour': h, 'count': c} for h, c in hour_counts.items()]
+
             return {
                 'total_users': users.count(), 
                 'active_users_period': users.filter(last_login__gte=date_start or timezone.now()-timedelta(days=30)).count(),
-                'system_log': active_users_log 
+                'system_log': active_users_log,
+                'peak_hours': peak_hours
             }
         except Exception as e: return {'error': str(e)}
 
@@ -840,6 +859,7 @@ class ReportDataService:
                 perf.append({
                     'title': c.title, 
                     'views': c.view_count,
+                    'engagement': getattr(c, 'engagement_count', 0),
                     'type': c.get_campaign_type_display(),
                     'priority': c.get_priority_display(),
                     'performance': 'High' if c.view_count > 100 else ('Medium' if c.view_count > 50 else 'Low')
@@ -1309,7 +1329,8 @@ class ReportDataService:
                 'visits': {
                     'monthly': trends.get('monthly_summary', []),
                     'types': {'medical': medical_count, 'dental': dental_count},
-                    'total': trends.get('total_visits', 0)
+                    'total': trends.get('total_visits', 0),
+                    'granularity': trends.get('granularity')
                 },
                 'clinical': {
                     'top_diagnoses': medical_stats.get('top_diagnoses', []),
@@ -2071,11 +2092,8 @@ class ReportExportService:
     def export_to_pdf(report_data, template_content, title="Report", user=None):
         try:
             # 1. High-Fidelity HTML-to-PDF (Primary)
-            # Only use xhtml2pdf if a custom template is provided AND it's not a specialized analytical report
-            report_type = report_data.get('report_type', '') if isinstance(report_data, dict) else ''
-            is_specialized = report_type in ['DENTAL_STATISTICS', 'DENTAL_STATS', 'MEDICAL_STATISTICS', 'MEDICAL_STATS']
-            
-            if template_content and not is_specialized:
+            # Use xhtml2pdf if a template is provided
+            if template_content:
                 try:
                     from xhtml2pdf import pisa
                     context = {
@@ -2395,42 +2413,43 @@ class ReportGenerationService:
                 }}
                 body {{ font-family: 'Helvetica', 'Arial', sans-serif; line-height: 1.5; color: #2c3e50; font-size: 10pt; }}
                 
-                .usc-header {{ 
+                .usc-header { 
                     text-align: center; 
-                    border-bottom: 2px solid #0B4F6C; 
+                    border-bottom: 2px solid #1e293b; 
                     margin-bottom: 30px; 
                     padding-bottom: 10px; 
-                }}
-                .usc-logo-text {{ font-size: 18pt; font-weight: bold; color: #0B4F6C; margin: 0; text-transform: uppercase; }}
-                .usc-sub-text {{ font-size: 10pt; color: #7f8c8d; margin: 5px 0 0 0; }}
+                }
+                .usc-logo-text { font-size: 18pt; font-weight: bold; color: #1e293b; margin: 0; text-transform: uppercase; }
+                .usc-sub-text { font-size: 10pt; color: #64748b; margin: 5px 0 0 0; }
                 
-                .report-title {{ text-align: center; font-size: 16pt; color: #2c3e50; margin-bottom: 20px; text-transform: uppercase; }}
+                .report-title { text-align: center; font-size: 16pt; color: #1e293b; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
 
-                .section {{ margin-bottom: 30px; page-break-inside: avoid; }}
-                .section-title {{ 
-                    background-color: #f0f4f8; 
-                    color: #0B4F6C; 
-                    font-size: 12pt; 
+                .section { margin-bottom: 30px; page-break-inside: avoid; }
+                .section-title { 
+                    background-color: #f8fafc; 
+                    color: #1e293b; 
+                    font-size: 11pt; 
                     font-weight: bold; 
-                    padding: 10px; 
-                    border-left: 6px solid #0B4F6C; 
-                    margin-bottom: 15px; 
-                }}
+                    padding: 8px 12px; 
+                    border-left: 4px solid #3b82f6; 
+                    margin-bottom: 15px;
+                    text-transform: uppercase;
+                }
                 
-                .chart-container {{ text-align: center; margin: 20px 0; }}
+                .chart-container { text-align: center; margin: 25px 0; border: 1px solid #f1f5f9; padding: 15px; border-radius: 8px; }
                 
-                .data-table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
-                .data-table th {{ background-color: #0B4F6C; color: white; padding: 10px 8px; text-align: left; font-size: 9pt; }}
-                .data-table td {{ padding: 8px; border-bottom: 1px solid #ecf0f1; font-size: 9pt; }}
-                .data-table tr:nth-child(even) {{ background-color: #f9fbfd; }}
+                .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                .data-table th { background-color: #f1f5f9; color: #475569; padding: 10px 8px; text-align: left; font-size: 8pt; border-bottom: 2px solid #e2e8f0; text-transform: uppercase; }
+                .data-table td { padding: 8px; border-bottom: 1px solid #f1f5f9; font-size: 8.5pt; color: #334155; }
+                .data-table tr:nth-child(even) { background-color: #f8fafc; }
                 
-                .metric-table {{ width: 100%; margin-bottom: 20px; border-spacing: 10px; border-collapse: separate; }}
-                .metric-box {{ background: #f8f9fa; border: 1px solid #e9ecef; padding: 15px; text-align: center; border-radius: 4px; width: 25%; }}
-                .metric-val {{ font-size: 18pt; font-weight: bold; color: #0B4F6C; display: block; }}
-                .metric-lbl {{ font-size: 7.5pt; color: #6c757d; text-transform: uppercase; font-weight: 600; margin-top: 5px; display: block; }}
+                .metric-table { width: 100%; margin-bottom: 20px; border-spacing: 10px; border-collapse: separate; }
+                .metric-box { background: #ffffff; border: 1px solid #e2e8f0; padding: 15px; text-align: center; border-radius: 6px; width: 25%; }
+                .metric-val { font-size: 16pt; font-weight: bold; color: #2563eb; display: block; }
+                .metric-lbl { font-size: 7pt; color: #64748b; text-transform: uppercase; font-weight: 600; margin-top: 5px; display: block; letter-spacing: 0.5px; }
                 
-                .footer-sign {{ margin-top: 50px; text-align: right; font-size: 9pt; }}
-                .signature-line {{ border-top: 1px solid #2c3e50; width: 250px; display: inline-block; margin-top: 40px; }}
+                .footer-sign { margin-top: 60px; text-align: right; font-size: 9pt; }
+                .signature-line { border-top: 1px solid #94a3b8; width: 220px; display: inline-block; margin-top: 40px; }
             </style>
         </head>
         <body>
@@ -2443,12 +2462,9 @@ class ReportGenerationService:
 
             {{% if visual_charts or charts_base64 %}}
             <div class="section">
-                <div class="section-title">Visual Data Analysis</div>
+                <div class="section-title">Visual Analytics Dashboard</div>
                 {{% for chart_url in visual_charts %}}
-                <div class="chart-container"><img src="{{{{ chart_url }}}}" width="450" /></div>
-                {{% endfor %}}
-                {{% for chart_b64 in charts_base64 %}}
-                <div class="chart-container"><img src="{{{{ chart_b64 }}}}" width="450" /></div>
+                <div class="chart-container"><img src="{{{{ chart_url }}}}" width="480" /></div>
                 {{% endfor %}}
             </div>
             {{% endif %}}
@@ -2471,7 +2487,7 @@ class ReportGenerationService:
             </div>
 
             {{% for k, v in report_data.items %}}
-                {{% if v|is_list and v|has_data and k not in "visual_charts,charts_base64,visual_analytics" %}}
+                {{% if v|is_list and v|has_data and k not in "visual_charts,charts_base64,visual_analytics,system_log" %}}
                 <div class="section">
                     <div class="section-title">{{{{ k|title_clean }}}} Detail</div>
                     <table class="data-table">
@@ -2480,15 +2496,19 @@ class ReportGenerationService:
                                 <thead>
                                     <tr>
                                         {{% for key in first_item.keys %}}
+                                            {{% if key != "id" %}}
                                             <th>{{{{ key|title_clean }}}}</th>
+                                            {{% endif %}}
                                         {{% endfor %}}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {{% for item in v %}}
                                         <tr>
-                                            {{% for val in item.values %}}
+                                            {{% for key, val in item.items %}}
+                                                {{% if key != "id" %}}
                                                 <td>{{{{ val }}}}</td>
+                                                {{% endif %}}
                                             {{% endfor %}}
                                         </tr>
                                     {{% endfor %}}
@@ -2506,6 +2526,32 @@ class ReportGenerationService:
                 {{% endif %}}
             {{% endfor %}}
 
+            {{% if system_log %}}
+            <div class="section">
+                <div class="section-title">System Activity Audit Log</div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>User</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{% for log in system_log %}}
+                        <tr>
+                            <td>{{{{ log.timestamp|format_date:"Y-m-d H:i" }}}}</td>
+                            <td>{{{{ log.user }}}}</td>
+                            <td>{{{{ log.role }}}}</td>
+                            <td>{{{{ log.status }}}}</td>
+                        </tr>
+                        {{% endfor %}}
+                    </tbody>
+                </table>
+            </div>
+            {{% endif %}}
+
             <div class="footer-sign">
                 <div class="signature-line"></div>
                 <p><strong>AUTHORIZED CLINIC PERSONNEL</strong></p>
@@ -2514,41 +2560,59 @@ class ReportGenerationService:
         </body>
         </html>"""
 
-    def _generate_chart_url(self, chart_type, labels, data, label="Metric"):
-        """Generate a QuickChart.io URL for embedding charts in reports"""
+    def _generate_chart_url_complex(self, chart_type, labels, datasets, title="Analysis"):
+        """Generate a QuickChart.io URL for embedding complex multi-series charts in reports"""
         import json
         import urllib.parse
         
-        # Limit labels and data for readability
-        labels = labels[:12]
-        data = data[:12]
+        # Limit labels for readability
+        labels = labels[:15]
         
+        processed_datasets = []
+        for i, ds in enumerate(datasets):
+            ds_data = ds.get('data', [])[:15]
+            ds_label = ds.get('label', f'Series {i+1}')
+            
+            # Use Workshop-standard colors
+            colors = [
+                'rgba(59, 130, 246, 0.8)', # blue-500
+                'rgba(16, 185, 129, 0.8)', # emerald-500
+                'rgba(245, 158, 11, 0.8)', # amber-500
+                'rgba(239, 68, 68, 0.8)',  # red-500
+                'rgba(139, 92, 246, 0.8)', # violet-500
+                'rgba(107, 114, 128, 0.8)'  # gray-500
+            ]
+            
+            processed_datasets.append({
+                'label': ds_label,
+                'data': ds_data,
+                'backgroundColor': ds.get('backgroundColor') or colors[i % len(colors)],
+                'borderColor': ds.get('borderColor') or colors[i % len(colors)].replace('0.8', '1'),
+                'fill': ds.get('fill', False),
+                'borderDash': ds.get('borderDash', [])
+            })
+
         chart_config = {
             'type': chart_type,
             'data': {
                 'labels': labels,
-                'datasets': [{
-                    'label': label,
-                    'data': data,
-                    'backgroundColor': [
-                        'rgba(11, 79, 108, 0.7)', 'rgba(2, 136, 209, 0.7)',
-                        'rgba(46, 125, 50, 0.7)', 'rgba(230, 74, 25, 0.7)',
-                        'rgba(123, 31, 162, 0.7)', 'rgba(0, 121, 107, 0.7)'
-                    ]
-                }]
+                'datasets': processed_datasets
             },
             'options': {
-                'title': { 'display': True, 'text': label },
-                'legend': { 'display': chart_type in ['pie', 'doughnut'] }
+                'title': { 'display': True, 'text': title, 'fontSize': 16, 'fontColor': '#1e293b' },
+                'legend': { 'display': True, 'position': 'bottom' },
+                'scales': {
+                    'yAxes': [{'ticks': {'beginAtZero': True}}]
+                } if chart_type not in ['pie', 'doughnut'] else {}
             }
         }
         
         config_str = json.dumps(chart_config)
         encoded_config = urllib.parse.quote(config_str)
-        return f"https://quickchart.io/chart?c={encoded_config}&w=500&h=300"
+        return f"https://quickchart.io/chart?c={encoded_config}&w=600&h=350"
 
     def collect_report_data(self, report_type, title, date_start=None, date_end=None, filters=None, **kwargs):
-        """Standardized data collection for any report type"""
+        """Standardized data collection for any report type with complex Workshop visualizations"""
         rtype = str(report_type or '').strip().upper()
         
         # Standardize dates
@@ -2558,96 +2622,105 @@ class ReportGenerationService:
         try:
             if rtype == 'PATIENT_SUMMARY': 
                 data = self.data_service.get_patient_summary_data(date_start, date_end, filters)
-                report_title = title or "Patient Summary Report"
+                report_title = title or "Institutional Population Summary"
             elif rtype == 'VISIT_TRENDS': 
                 data = self.data_service.get_visit_trends_data(date_start, date_end, filters)
-                report_title = title or "Monthly Visit Trends"
+                report_title = title or "Clinical Capacity & Visit Trends"
             elif rtype in ['FEEDBACK_ANALYSIS', 'PATIENT_FEEDBACK']: 
                 data = self.data_service.get_feedback_analysis_data(date_start, date_end, filters)
-                report_title = title or "Patient Feedback Analysis"
+                report_title = title or "Patient Satisfaction & Feedback Analysis"
             elif rtype in ['CAMPAIGN_PERFORMANCE', 'HEALTH_CAMPAIGN']: 
                 data = self.data_service.get_campaign_performance_data(date_start, date_end, filters)
-                report_title = title or "Health Campaign Performance"
+                report_title = title or "Health Campaign Impact Analysis"
             elif rtype in ['MEDICAL_STATISTICS', 'MEDICAL_STATS']: 
                 data = self.data_service.get_medical_statistics_data(date_start, date_end, filters)
-                report_title = title or "Medical Statistics Dashboard"
+                report_title = title or "Medical Clinical Statistics"
             elif rtype in ['DENTAL_STATISTICS', 'DENTAL_STATS']: 
                 data = self.data_service.get_dental_statistics_data(date_start, date_end, filters)
-                report_title = title or "Dental Health Statistics"
+                report_title = title or "Dental Health Clinical Statistics"
             elif rtype in ['TREATMENT_OUTCOMES', 'TREATMENT_OUTCOME']: 
                 data = self.data_service.get_treatment_outcomes_data(date_start, date_end, filters)
-                report_title = title or "Treatment Outcomes Analysis"
-            elif rtype == 'USER_ACTIVITY': 
+                report_title = title or "Treatment Efficacy & Outcomes"
+            elif rtype == 'USER_ACTIVITY' or rtype == 'OPERATIONS': 
                 data = self.data_service.get_user_activity_data(date_start, date_end, filters)
-                report_title = title or "System Activity Report"
+                report_title = title or "System Operations & Audit Log"
             elif rtype == 'HEALTH_METRICS':
                 data = self.data_service.get_health_metrics_data(date_start, date_end, filters)
-                report_title = title or "Health Metrics Report"
+                report_title = title or "Vitals & Health Metrics Analysis"
             elif rtype == 'HEALTH_HISTORY':
                 data = self.data_service.get_unified_health_history_data(date_start, date_end, filters)
-                report_title = title or "Unified Patient Health History"
+                report_title = title or "Unified Longitudinal Health History"
             else: 
                 logger.warning(f"Unknown report type '{rtype}', using comprehensive analytics fallback")
                 data = self.data_service.get_comprehensive_analytics_data(date_start, date_end, filters)
-                report_title = title or "Comprehensive Analytics"
+                report_title = title or "Comprehensive Institutional Analytics"
             
             if not isinstance(data, dict): data = {'error': 'Invalid data format', 'report_type': rtype}
             
-            # Enrich with Charts
+            # Enrich with Workshop-Standard Charts
             charts = []
-            if rtype == 'PATIENT_SUMMARY' and data.get('course_distribution'):
-                dist = data['course_distribution']
-                charts.append(self._generate_chart_url('bar', 
-                    [d.get('course', 'N/A') for d in dist[:10]], 
-                    [d.get('count', 0) for d in dist[:10]],
-                    "Patient Enrollment by Course"))
+            
+            if rtype == 'PATIENT_SUMMARY':
+                if data.get('course_distribution'):
+                    charts.append(self._generate_chart_url_complex('pie', 
+                        [d.get('name', 'Other') for d in data['course_distribution'][:8]], 
+                        [{'label': 'Enrollment', 'data': [d.get('count', 0) for d in data['course_distribution'][:8]]}],
+                        "Course Enrollment Distribution"))
+                if data.get('role_distribution'):
+                    charts.append(self._generate_chart_url_complex('doughnut', 
+                        [d.get('name', 'N/A') for d in data['role_distribution']], 
+                        [{'label': 'Role Share', 'data': [d.get('count', 0) for d in data['role_distribution']]}],
+                        "Institutional Role Classification"))
+
             elif rtype == 'VISIT_TRENDS' and data.get('monthly_summary'):
-                charts.append(self._generate_chart_url('line', 
-                    [m['month'] for m in data['monthly_summary']], 
-                    [m['total_visits'] for m in data['monthly_summary']],
-                    "Total Visits by Month"))
-            elif rtype == 'CAMPAIGN_PERFORMANCE' and data.get('campaign_performance'):
+                monthly = data['monthly_summary']
+                charts.append(self._generate_chart_url_complex('line', 
+                    [m['month'] for m in monthly], 
+                    [
+                        {'label': 'Aggregate Trends', 'data': [m['total_visits'] for m in monthly], 'borderDash': [5, 5], 'borderColor': '#1e293b'},
+                        {'label': 'Medical', 'data': [m['medical_visits'] for m in monthly], 'borderColor': '#3b82f6'},
+                        {'label': 'Dental', 'data': [m['dental_visits'] for m in monthly], 'borderColor': '#10b981'}
+                    ],
+                    "Longitudinal Interaction Timeline"))
+
+            elif rtype in ['CAMPAIGN_PERFORMANCE', 'HEALTH_CAMPAIGN'] and data.get('campaign_performance'):
                 perf = data['campaign_performance']
-                if isinstance(perf, dict): perf = [v for k,v in perf.items()] # handle grouped
-                if isinstance(perf, list) and len(perf) > 0 and isinstance(perf[0], list): perf = [item for sublist in perf for item in sublist]
-                charts.append(self._generate_chart_url('bar', 
-                    [c.get('title', 'N/A') for c in perf[:10]], 
-                    [c.get('views', 0) for c in perf[:10]],
-                    "Top 10 Campaigns by Views"))
-            elif rtype == 'FEEDBACK_ANALYSIS' and data.get('rating_distribution'):
+                charts.append(self._generate_chart_url_complex('bar', 
+                    [c.get('title', 'N/A')[:20] for c in perf[:8]], 
+                    [
+                        {'label': 'Total Views', 'data': [c.get('views', 0) for c in perf[:8]], 'backgroundColor': '#3b82f6'},
+                        {'label': 'Engagement', 'data': [c.get('engagement', 0) for c in perf[:8]], 'backgroundColor': '#10b981'}
+                    ],
+                    "Campaign Impact Metrics"))
+
+            elif rtype in ['FEEDBACK_ANALYSIS', 'PATIENT_FEEDBACK'] and data.get('rating_distribution'):
                 dist = data['rating_distribution']
-                charts.append(self._generate_chart_url('pie', 
+                charts.append(self._generate_chart_url_complex('doughnut', 
                     [d.get('category', 'N/A') for d in dist], 
-                    [d.get('count', 0) for d in dist],
-                    "Patient Satisfaction Distribution"))
-            elif rtype == 'MEDICAL_STATISTICS' and data.get('top_diagnoses'):
+                    [{'label': 'Satisfaction', 'data': [d.get('count', 0) for d in dist]}],
+                    "Patient Satisfaction Index"))
+
+            elif rtype in ['MEDICAL_STATISTICS', 'MEDICAL_STATS'] and data.get('top_diagnoses'):
                 diag = data['top_diagnoses']
-                charts.append(self._generate_chart_url('bar', 
-                    [d.get('name', 'N/A') for d in diag[:10]], 
-                    [d.get('count', d.get('total', 0)) for d in diag[:10]],
-                    "Top Diagnoses Distribution"))
-            elif rtype == 'DENTAL_STATISTICS' and data.get('common_procedures'):
+                charts.append(self._generate_chart_url_complex('bar', 
+                    [d.get('name', 'N/A')[:25] for d in diag[:10]], 
+                    [{'label': 'Frequency', 'data': [d.get('count', 0) for d in diag[:10]], 'backgroundColor': '#3b82f6'}],
+                    "Top Clinical Diagnoses (Medical)"))
+
+            elif rtype in ['DENTAL_STATISTICS', 'DENTAL_STATS'] and data.get('common_procedures'):
                 proc = data['common_procedures']
-                charts.append(self._generate_chart_url('bar', 
-                    [p.get('name', 'N/A') for p in proc[:10]], 
-                    [p.get('count', 0) for p in proc[:10]],
-                    "Common Dental Procedures"))
-            elif rtype == 'TREATMENT_OUTCOMES' and data.get('top_diagnoses'):
-                outcomes = data['top_diagnoses']
-                charts.append(self._generate_chart_url('bar', 
-                    [o.get('diagnosis', 'N/A') for o in outcomes[:10]], 
-                    [o.get('count', 0) for o in outcomes[:10]],
-                    "Treatment Outcomes by Diagnosis"))
-            elif rtype == 'USER_ACTIVITY' and data.get('system_log'):
-                log = data['system_log']
-                # Group by role for a pie chart
-                roles = {}
-                for entry in log:
-                    r = entry.get('role', 'Unknown')
-                    roles[r] = roles.get(r, 0) + 1
-                charts.append(self._generate_chart_url('pie', 
-                    list(roles.keys()), list(roles.values()),
-                    "System Activity by User Role"))
+                charts.append(self._generate_chart_url_complex('bar', 
+                    [p.get('name', 'N/A')[:25] for p in proc[:10]], 
+                    [{'label': 'Frequency', 'data': [p.get('count', 0) for p in proc[:10]], 'backgroundColor': '#10b981'}],
+                    "Top Procedural Metrics (Dental)"))
+
+            elif rtype == 'USER_ACTIVITY' or rtype == 'OPERATIONS':
+                peak_hours = data.get('peak_hours', [])
+                if peak_hours:
+                    charts.append(self._generate_chart_url_complex('line', 
+                        [f"{h['hour']}:00" for h in peak_hours], 
+                        [{'label': 'Activity Volume', 'data': [h['count'] for h in peak_hours], 'fill': True, 'backgroundColor': 'rgba(59, 130, 246, 0.1)'}],
+                        "Hourly Operational Peak Analysis"))
 
             # Standardize Metadata
             data.update({

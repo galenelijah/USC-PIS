@@ -68,11 +68,20 @@ The system addresses the "Inefficient Reporting" feedback from clinic nurses by 
   ```
 - **Semester Logic:** Automated month-range filtering (Aug-Dec for 1st Sem, Jan-May for 2nd Sem).
 
+### 3.2 Analytical "Workshop" Blueprint (May 2026 Upgrade)
+To meet enterprise-grade administrative requirements, the reporting suite was upgraded to a reactive "Workshop" architecture.
+
+- **Dynamic Granularity:** Backend `get_visit_trends_data` now automatically switches between **Daily, Weekly, and Monthly** intervals based on the selected timeline, resolving line chart visibility issues for short date ranges.
+- **Academic Distribution Engine:** Integration of `PROGRAMS_CHOICES` mapping enables side-by-side comparative analysis of **School vs. Course** enrollment within the clinic population.
+- **Aggregate Trend-lines:** New data synthesis layer calculates combined "Medical + Dental" throughput for holistic clinic capacity planning.
+- **Unified Export Bridge:** Standardized payload structure across all 9 workshops ensures 100% parity between on-screen "real-time" charts and generated PDF/Excel exports.
+- **Report Archive:** Implementation of an asynchronous status monitor (**Ready/Generating/Queued**) with authenticated download retrieval.
+
 ---
 
 ## 4. Verified Testing Logs (Definitive Results)
 
-The full v2.0 SQA suite was executed on April 26, 2026.
+The full v2.0 SQA suite was executed on April 26, 2026, and updated on May 29, 2026.
 
 ### 4.1 Unit Testing (Security & Constraints)
 - **UT-01 (Encryption Logic):** Verified. SQL commands for `pgp_sym_encrypt` are correctly synthesized and gated by `connection.vendor`.

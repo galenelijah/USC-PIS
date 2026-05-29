@@ -358,7 +358,7 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
                     <MonthIcon sx={{ color: '#2563eb' }} fontSize="small" /> Comparative Interaction Timeline
                 </Typography>
-                <Chip label={`Granularity: ${data?.granularity === 'D' ? 'Daily' : data?.granularity === 'W-MON' ? 'Weekly' : 'Monthly'}`} size="small" variant="outlined" color="primary" />
+                <Chip label={`Granularity: ${data?.visits?.granularity === 'D' ? 'Daily' : data?.visits?.granularity === 'W-MON' ? 'Weekly' : 'Monthly'}`} size="small" variant="outlined" color="primary" />
             </Box>
             <Box sx={{ height: 350 }}>
               {data?.visits?.monthly?.length > 0 ? (
