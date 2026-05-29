@@ -42,8 +42,10 @@
 
 ## 8. Universal Workshop Export Alignment
 - **High-Fidelity "Mirror" Exports:** Upgraded the backend export engine to ensure that PDF, Excel, and CSV files are a perfect reflection of the UI Workshops.
+- **Critical Template Syntax Fix:** Resolved a `NameError` in the backend template engine caused by unescaped CSS braces in f-strings. This fix ensures the high-fidelity HTML-to-PDF engine renders correctly for all workshops.
 - **Complex Chart Generation:** Developed `_generate_chart_url_complex` in the backend to support multi-series visualizations (e.g., 3-line trends, views vs. engagement bars) using the QuickChart API.
 - **Modernized PDF Branding:** Re-styled the institutional PDF templates with modern CSS, USC-branded headers, and professional grid layouts, ensuring exports look identical to the "Workshop" standard.
+- **Specialized Fallback Bypass:** Disabled the old, rigid ReportLab statistical generators in favor of the new dynamic Workshop engine, ensuring 100% style consistency.
 - **Service-Layer Consolidation:** Re-aligned all reporting data fetching to use shared `ReportDataService` methods, ensuring 100% data parity between real-time dashboard previews and downloaded documents.
 - **Template Engine Refresh:** Conducted a mass migration to reset all database report templates to use the new high-fidelity "Workshop" default engine.
 

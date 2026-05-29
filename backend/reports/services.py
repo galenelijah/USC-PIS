@@ -2114,12 +2114,12 @@ class ReportExportService:
                 except Exception as e:
                     logger.warning(f"xhtml2pdf failed, falling back to Professional ReportLab: {e}")
 
-            # 2. Professional Analytical ReportLab Generators
+            # 2. Professional Analytical ReportLab Generators (Specialized Fallbacks)
             buffer = BytesIO()
             
             # --- BRANCH TO SPECIALIZED GENERATORS ---
             if report_type == 'HEALTH_HISTORY':
-                # UNIFIED HISTORY SPECIALIZED REPORT
+                # UNIFIED HISTORY SPECIALIZED REPORT (Keep ReportLab for landscape timeline)
                 patient_info = {
                     'name': report_data.get('patient_name', 'N/A'),
                     'usc_id': report_data.get('usc_id', 'N/A')
@@ -2128,170 +2128,38 @@ class ReportExportService:
                 generator.build(report_data.get('history', []), report_data.get('breakdown', {}))
                 return buffer.getvalue()
                 
-            elif report_type in ['DENTAL_STATISTICS', 'DENTAL_STATS']:
-                # DENTAL SPECIALIZED REPORT
-                date_range = f"{report_data.get('date_range_start', 'N/A')} to {report_data.get('date_range_end', 'N/A')}"
-                generator = USCDentalAnalyticalReport(buffer, user, date_range=date_range)
-                
-                # Prepare aggregation data
-                agg_data = {
-                    'total_patients': report_data.get('total_records', 0),
-                    'gum_concerns': sum([item['count'] for item in report_data.get('gum_stats', []) if item['condition'] != 'Healthy']),
-                    'total_referrals': next((item['count'] for item in report_data.get('common_procedures', []) if item['name'] == 'Referral'), 0)
+            # All other statistical reports (Medical, Dental, Trends, etc.) now use the High-Fidelity HTML Engine above.
+            # If we reached here, use the generic generator as an absolute last resort.
+            generator = USCPISReportGenerator(buffer, user)
+            
+            analytics = {'summary': {}, 'charts': {'labels': [], 'values': []}}
+            records = []
+            
+            if isinstance(report_data, dict):
+                analytics['summary'] = {
+                    'total': report_data.get('total_responses', report_data.get('total_visits', report_data.get('total_count', report_data.get('record_count', 0)))),
+                    'student_pct': report_data.get('student_percentage', report_data.get('student_pct', 70)), 
+                    'staff_count': report_data.get('staff_count', report_data.get('faculty_count', 0))
                 }
                 
-                # Prepare chart data
-                proc_data = {
-                    'labels': [p['name'] for p in report_data.get('common_procedures', [])[:5]],
-                    'counts': [p['count'] for p in report_data.get('common_procedures', [])[:5]]
-                }
-                
-                # Prepare records - fetch actual records if not in report_data
-                records = report_data.get('detailed_records', [])
-                if not records:
-                    # Fallback to fetching actual DentalRecord objects for the detailed log
-                    from patients.models import DentalRecord
-                    dr_qs = DentalRecord.objects.all()
-                    if 'date_range_start' in report_data and 'date_range_end' in report_data:
-                        dr_qs = dr_qs.filter(visit_date__range=(report_data['date_range_start'], report_data['date_range_end']))
-                    
-                    for dr in dr_qs.select_related('patient__user').order_by('-visit_date')[:500]:
-                        u = dr.patient.user
-                        records.append({
-                            'date': dr.visit_date.strftime('%Y-%m-%d') if dr.visit_date else '—',
-                            'name': u.get_full_name() if u else dr.patient.first_name,
-                            'usc_id': getattr(u, 'usc_id', '—'),
-                            'role': u.role if u else '—',
-                            'gum': dr.get_gum_condition_display() or '—',
-                            'diagnosis': dr.diagnosis or '—',
-                            'teeth': dr.tooth_numbers or '—',
-                            'proc': dr.get_procedure_performed_display() or '—',
-                            'referral': dr.referral_to or '—'
-                        })
-                
-                generator.build(records, agg_data, proc_data)
-                return buffer.getvalue()
-
-            elif report_type in ['MEDICAL_STATISTICS', 'MEDICAL_STATS']:
-                # MEDICAL SPECIALIZED REPORT
-                filters_str = f"Date: {report_data.get('date_range_start', 'N/A')} to {report_data.get('date_range_end', 'N/A')}"
-                generator = USCMedicalAnalyticalReport(buffer, user, active_filters=filters_str)
-                
-                # Prepare aggregation data
-                agg_data = {
-                    'total_visits': report_data.get('total_consultations', 0),
-                    'bmi_alerts': 0, # Calculated from records below
-                    'bp_alerts': 0   # Calculated from records below
-                }
-                
-                # Prepare chart data
-                chart_data = {
-                    'labels': [d['name'] for d in report_data.get('top_diagnoses', [])[:5]],
-                    'counts': [d['count'] for d in report_data.get('top_diagnoses', [])[:5]]
-                }
-                
-                # Prepare records
-                records = []
-                from patients.models import MedicalRecord
-                mr_qs = MedicalRecord.objects.all()
-                if 'date_range_start' in report_data and 'date_range_end' in report_data:
-                    mr_qs = mr_qs.filter(visit_date__range=(report_data['date_range_start'], report_data['date_range_end']))
-                
-                # Dynamic Student Summary Aggregation
-                student_summary = {
-                    'courses': {}, # { 'BSCpE': count }
-                    'year_levels': {} # { '1st Year': count }
-                }
-
-                bmi_alerts = 0
-                bp_alerts = 0
-                
-                for mr in mr_qs.select_related('patient__user').order_by('-visit_date')[:500]:
-                    p = mr.patient
-                    u = p.user
-                    
-                    # Student Context Tally
-                    if u and u.role in ['STUDENT', 'PATIENT'] and (u.course or u.year_level):
-                        if u.course:
-                            student_summary['courses'][u.course] = student_summary['courses'].get(u.course, 0) + 1
-                        if u.year_level:
-                            yl = f"{u.year_level} Year" if str(u.year_level).isdigit() else u.year_level
-                            student_summary['year_levels'][yl] = student_summary['year_levels'].get(yl, 0) + 1
-
-                    vitals = mr.vital_signs or {}
-                    
-                    # Refined Parsing with standard dash fallbacks
-                    def clean_vital(val, suffix=""):
-                        if val is None or str(val).strip().upper() in ["N/A", "NULL", "NONE", "", "0", "0.0"]:
-                            return "—"
-                        return f"{val}{suffix}"
-
-                    bmi = vitals.get('bmi', 0)
-                    if bmi and str(bmi).replace('.','',1).isdigit() and float(bmi) > 25.0: 
-                        bmi_alerts += 1
-                    
-                    bp = vitals.get('blood_pressure', '')
-                    if bp and '/' in str(bp):
-                        try:
-                            sys, dia = map(float, str(bp).split('/'))
-                            if sys >= 140 or dia >= 90: bp_alerts += 1
-                        except: pass
-                    
-                    # Prepare consolidated vitals string with HR/RR
-                    hr = clean_vital(vitals.get('heart_rate') or vitals.get('pulse_rate'), " bpm")
-                    rr = clean_vital(vitals.get('respiratory_rate'), " cpm")
-                    vitals_summary = f"BP: {clean_vital(bp)}<br/>T: {clean_vital(vitals.get('temperature'), '°C')}<br/>BMI: {clean_vital(bmi)}<br/>HR: {hr}<br/>RR: {rr}"
-
-                    records.append({
-                        'date': mr.visit_date.strftime('%Y-%m-%d') if mr.visit_date else '—',
-                        'name': u.get_full_name() if u else p.first_name,
-                        'usc_id': getattr(u, 'usc_id', '—'),
-                        'school': (u.department or u.course or '—') if u else '—',
-                        'vitals': vitals_summary,
-                        'concern': mr.concern or mr.chief_complaint or '—',
-                        'diagnosis': mr.diagnosis or '—',
-                        'meds': mr.medications or '—',
-                        'treatment': mr.treatment or '—'
-                    })
-                
-                agg_data['bmi_alerts'] = bmi_alerts
-                agg_data['bp_alerts'] = bp_alerts
-                agg_data['student_summary'] = student_summary
-                
-                generator.build_document(records, agg_data, chart_data)
-                return buffer.getvalue()
-
-            else:
-                # GENERIC ANALYTICAL FALLBACK
-                generator = USCPISReportGenerator(buffer, user)
-                
-                analytics = {'summary': {}, 'charts': {'labels': [], 'values': []}}
-                records = []
-                
-                if isinstance(report_data, dict):
-                    analytics['summary'] = {
-                        'total': report_data.get('total_responses', report_data.get('total_visits', report_data.get('total_count', report_data.get('record_count', 0)))),
-                        'student_pct': report_data.get('student_percentage', report_data.get('student_pct', 70)), 
-                        'staff_count': report_data.get('staff_count', report_data.get('faculty_count', 0))
-                    }
-                    
-                    if 'demographics' in report_data:
-                        analytics['summary']['total'] = report_data.get('visits', {}).get('total', analytics['summary']['total'])
-                        roles = report_data.get('demographics', {}).get('roles', {})
+                if 'demographics' in report_data:
+                    analytics['summary']['total'] = report_data.get('visits', {}).get('total', analytics['summary']['total'])
+                    roles = report_data.get('demographics', {}).get('roles', {})
+                    if isinstance(roles, dict):
                         analytics['summary']['staff_count'] = roles.get('STAFF', 0) + roles.get('FACULTY', 0)
-                    
-                    if 'top_diagnoses' in report_data:
-                        diag = report_data['top_diagnoses']
-                        analytics['charts']['labels'] = [d.get('name', d.get('diagnosis', 'N/A'))[:15] for d in diag[:5]]
-                        analytics['charts']['values'] = [d.get('count', d.get('total', 0)) for d in diag[:5]]
-                    elif 'common_procedures' in report_data:
-                        proc = report_data['common_procedures']
-                        analytics['charts']['labels'] = [p.get('name', 'N/A')[:15] for p in proc[:5]]
-                        analytics['charts']['values'] = [p.get('count', 0) for p in proc[:5]]
-                    
-                    list_keys = [k for k, v in report_data.items() if isinstance(v, list) and len(v) > 0 and k not in ['visual_charts', 'rating_distribution', 'top_diagnoses', 'common_procedures']]
-                    if list_keys:
-                        records = report_data[list_keys[0]]
+                
+                if 'top_diagnoses' in report_data:
+                    diag = report_data['top_diagnoses']
+                    analytics['charts']['labels'] = [d.get('name', d.get('diagnosis', 'N/A'))[:15] for d in diag[:5]]
+                    analytics['charts']['values'] = [d.get('count', d.get('total', 0)) for d in diag[:5]]
+                elif 'common_procedures' in report_data:
+                    proc = report_data['common_procedures']
+                    analytics['charts']['labels'] = [p.get('name', 'N/A')[:15] for p in proc[:5]]
+                    analytics['charts']['values'] = [p.get('count', 0) for p in proc[:5]]
+                
+                list_keys = [k for k, v in report_data.items() if isinstance(v, list) and len(v) > 0 and k not in ['visual_charts', 'rating_distribution', 'top_diagnoses', 'common_procedures']]
+                if list_keys:
+                    records = report_data[list_keys[0]]
                 
                 generator.build_document(records, analytics, title=title)
                 return buffer.getvalue()
@@ -2414,19 +2282,19 @@ class ReportGenerationService:
                 }}
                 body {{ font-family: 'Helvetica', 'Arial', sans-serif; line-height: 1.5; color: #2c3e50; font-size: 10pt; }}
                 
-                .usc-header { 
+                .usc-header {{ 
                     text-align: center; 
                     border-bottom: 2px solid #1e293b; 
                     margin-bottom: 30px; 
                     padding-bottom: 10px; 
-                }
-                .usc-logo-text { font-size: 18pt; font-weight: bold; color: #1e293b; margin: 0; text-transform: uppercase; }
-                .usc-sub-text { font-size: 10pt; color: #64748b; margin: 5px 0 0 0; }
+                }}
+                .usc-logo-text {{ font-size: 18pt; font-weight: bold; color: #1e293b; margin: 0; text-transform: uppercase; }}
+                .usc-sub-text {{ font-size: 10pt; color: #64748b; margin: 5px 0 0 0; }}
                 
-                .report-title { text-align: center; font-size: 16pt; color: #1e293b; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
+                .report-title {{ text-align: center; font-size: 16pt; color: #1e293b; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }}
 
-                .section { margin-bottom: 30px; page-break-inside: avoid; }
-                .section-title { 
+                .section {{ margin-bottom: 30px; page-break-inside: avoid; }}
+                .section-title {{ 
                     background-color: #f8fafc; 
                     color: #1e293b; 
                     font-size: 11pt; 
@@ -2435,22 +2303,22 @@ class ReportGenerationService:
                     border-left: 4px solid #3b82f6; 
                     margin-bottom: 15px;
                     text-transform: uppercase;
-                }
+                }}
                 
-                .chart-container { text-align: center; margin: 25px 0; border: 1px solid #f1f5f9; padding: 15px; border-radius: 8px; }
+                .chart-container {{ text-align: center; margin: 25px 0; border: 1px solid #f1f5f9; padding: 15px; border-radius: 8px; }}
                 
-                .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                .data-table th { background-color: #f1f5f9; color: #475569; padding: 10px 8px; text-align: left; font-size: 8pt; border-bottom: 2px solid #e2e8f0; text-transform: uppercase; }
-                .data-table td { padding: 8px; border-bottom: 1px solid #f1f5f9; font-size: 8.5pt; color: #334155; }
-                .data-table tr:nth-child(even) { background-color: #f8fafc; }
+                .data-table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
+                .data-table th {{ background-color: #f1f5f9; color: #475569; padding: 10px 8px; text-align: left; font-size: 8pt; border-bottom: 2px solid #e2e8f0; text-transform: uppercase; }}
+                .data-table td {{ padding: 8px; border-bottom: 1px solid #f1f5f9; font-size: 8.5pt; color: #334155; }}
+                .data-table tr:nth-child(even) {{ background-color: #f8fafc; }}
                 
-                .metric-table { width: 100%; margin-bottom: 20px; border-spacing: 10px; border-collapse: separate; }
-                .metric-box { background: #ffffff; border: 1px solid #e2e8f0; padding: 15px; text-align: center; border-radius: 6px; width: 25%; }
-                .metric-val { font-size: 16pt; font-weight: bold; color: #2563eb; display: block; }
-                .metric-lbl { font-size: 7pt; color: #64748b; text-transform: uppercase; font-weight: 600; margin-top: 5px; display: block; letter-spacing: 0.5px; }
+                .metric-table {{ width: 100%; margin-bottom: 20px; border-spacing: 10px; border-collapse: separate; }}
+                .metric-box {{ background: #ffffff; border: 1px solid #e2e8f0; padding: 15px; text-align: center; border-radius: 6px; width: 25%; }}
+                .metric-val {{ font-size: 16pt; font-weight: bold; color: #2563eb; display: block; }}
+                .metric-lbl {{ font-size: 7pt; color: #64748b; text-transform: uppercase; font-weight: 600; margin-top: 5px; display: block; letter-spacing: 0.5px; }}
                 
-                .footer-sign { margin-top: 60px; text-align: right; font-size: 9pt; }
-                .signature-line { border-top: 1px solid #94a3b8; width: 220px; display: inline-block; margin-top: 40px; }
+                .footer-sign {{ margin-top: 60px; text-align: right; font-size: 9pt; }}
+                .signature-line {{ border-top: 1px solid #94a3b8; width: 220px; display: inline-block; margin-top: 40px; }}
             </style>
         </head>
         <body>
@@ -2522,6 +2390,23 @@ class ReportGenerationService:
                                 </tbody>
                             {{% endif %}}
                         {{% endwith %}}
+                    </table>
+                </div>
+                {{% elif v|is_dict and v|has_data and k not in "patient,demographics,visits,clinical,feedback" %}}
+                <div class="section">
+                    <div class="section-title">{{{{ k|title_clean }}}} Overview</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>Category</th><th>Metric / Value</th></tr>
+                        </thead>
+                        <tbody>
+                            {{% for key, val in v.items %}}
+                            <tr>
+                                <td><strong>{{{{ key|title_clean }}}}</strong></td>
+                                <td>{{{{ val }}}}</td>
+                            </tr>
+                            {{% endfor %}}
+                        </tbody>
                     </table>
                 </div>
                 {{% endif %}}
