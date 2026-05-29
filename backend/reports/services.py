@@ -2091,6 +2091,7 @@ class ReportExportService:
     @staticmethod
     def export_to_pdf(report_data, template_content, title="Report", user=None):
         try:
+            report_type = report_data.get('report_type', '') if isinstance(report_data, dict) else ''
             # 1. High-Fidelity HTML-to-PDF (Primary)
             # Use xhtml2pdf if a template is provided
             if template_content:

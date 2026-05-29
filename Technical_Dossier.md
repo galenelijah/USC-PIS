@@ -1,5 +1,5 @@
 # Technical Dossier: USC-DC Patient Information System (USC-PIS)
-**Date:** April 26, 2026  
+**Date:** May 29, 2026  
 **Role:** Lead Systems Architect / Senior Security Auditor  
 **Status:** DEFINITIVE / AUDITED
 
@@ -76,6 +76,12 @@ To meet enterprise-grade administrative requirements, the reporting suite was up
 - **Aggregate Trend-lines:** New data synthesis layer calculates combined "Medical + Dental" throughput for holistic clinic capacity planning.
 - **Unified Export Bridge:** Standardized payload structure across all 9 workshops ensures 100% parity between on-screen "real-time" charts and generated PDF/Excel exports.
 - **Report Archive:** Implementation of an asynchronous status monitor (**Ready/Generating/Queued**) with authenticated download retrieval.
+
+### 3.3 Universal Workshop Export Alignment (Final Polish)
+To ensure absolute fidelity across all administrative outputs, the system was upgraded to a "Mirror" export standard.
+- **Service-Layer Centralization:** Both UI previews and file exports (PDF/Excel) utilize a shared `ReportDataService` API, ensuring data consistency.
+- **Complex Chart Synthesis:** Backend support for multi-series QuickCharts allows PDFs to include sophisticated visualizations like **Aggregate vs. Dept Trends** and **Enrollment vs. Capacity** bar charts.
+- **Dynamic CSS Injection:** Modernized institutional templates ensure that PDF branding meets USC professional standards with 100% parity to the on-screen Workshop UI.
 
 ---
 

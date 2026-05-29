@@ -35,6 +35,8 @@ The system has successfully completed its **Reports & Audit Refresh**. We have t
 *   **Workshop Stabilization:** Implemented **Dynamic Granularity** (Daily/Weekly/Monthly) in Visit Trends to ensure line charts always render for any selected time range.
 *   **Export Optimization:** Standardized all 9 reporting components to send normalized timeline presets, resolving backend validation errors (`date_range_start`) for automated exports.
 *   **UI Polish:** Successfully deployed the **Report Archive** UI, enabling staff to monitor and retrieve large background exports (PDF/Excel) without blocking the main interface.
+*   **Universal Export Alignment:** Upgraded all 9 Workshops to support high-fidelity exports. Implemented the `_generate_chart_url_complex` engine for multi-series visualizations (Trends, Population, Campaigns).
+*   **Template Migration:** Reset all institutional templates to use the new modernized Workshop engine, ensuring 100% parity between UI previews and generated files.
 *   **Bug Fixes:** Render layout parameters corrected in React Grid elements (`spacing={3}`) resolving component clipping.
 *   **Migrations:** Successfully applied `django-simple-history` shadow tables to database architecture.
 

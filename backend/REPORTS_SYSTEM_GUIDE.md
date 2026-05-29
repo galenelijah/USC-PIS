@@ -4,15 +4,16 @@
 
 The USC-PIS Reports System provides comprehensive analytics and reporting capabilities for healthcare data. The system generates reports in multiple formats (PDF, Excel, CSV, JSON, HTML) and stores them securely in cloud storage for reliable access.
 
-## System Architecture (Updated May 2026)
+## System Architecture (Updated May 29, 2026)
 
 ### Components
 - **Report Templates**: Dynamic HTML/Django templates stored in the database.
 - **Background Processing**: Powered by **Celery and Redis** for reliable, asynchronous generation.
 - **Export Engine**: 
-    - **PDF**: Dual-engine approach using `xhtml2pdf` (HTML-to-PDF) with a high-fidelity `ReportLab` fallback for branded landscape reports.
+    - **PDF**: Primary high-fidelity `xhtml2pdf` (HTML-to-PDF) engine with modernized Workshop-standard CSS and institutional branding.
     - **Excel**: High-fidelity multi-sheet workbooks using `Pandas` and `XlsxWriter`.
     - **HTML/CSV/JSON**: Native Django and Python exports.
+- **Visual Analytics**: The backend uses the **QuickChart API** via `_generate_chart_url_complex` to inject multi-series Workshop visualizations (lines, bars, pie) directly into exported documents.
 - **Report Archive**: Dedicated history UI for monitoring generation status and downloading past exports.
 - **Cloud Storage**: Cloudinary integration with a 4-tier failover download system.
 
