@@ -178,16 +178,46 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
   const generateRoleBarData = () => {
     if (!data?.demographics?.roles) return { labels: [], datasets: [] };
     
-    const roles = data.demographics.roles; // Expected { 'STUDENT': 100, 'FACULTY': 20 }
+    const roles = data.demographics.roles; // { 'STUDENT': X, 'FACULTY / STAFF': Y }
     return {
-      labels: Object.keys(roles),
+      labels: Object.keys(roles).map(r => r.charAt(0) + r.slice(1).toLowerCase()),
       datasets: [
         {
-          label: 'Total Population',
           data: Object.values(roles),
-          backgroundColor: ['#1e3a8a', '#fbbf24', '#10b981', '#ef4444'],
-          borderRadius: 6,
-          barThickness: 30
+          backgroundColor: ['#1e3a8a', '#fbbf24'],
+          borderWidth: 0,
+          hoverOffset: 15,
+          borderRadius: 4
+        }
+      ]
+    };
+  };
+
+  const generateCoursePieData = () => {
+    if (!data?.demographics?.courses) return { labels: [], datasets: [] };
+    
+    // Show top 8 courses, group rest as other
+    const sortedCourses = [...data.demographics.courses].sort((a, b) => b.count - a.count);
+    const topCourses = sortedCourses.slice(0, 7);
+    const otherCount = sortedCourses.slice(7).reduce((sum, c) => sum + c.count, 0);
+    
+    const finalData = [...topCourses];
+    if (otherCount > 0) {
+      finalData.push({ name: 'Other Programs', count: otherCount });
+    }
+
+    return {
+      labels: finalData.map(c => c.name.length > 25 ? c.name.substring(0, 22) + '...' : c.name),
+      datasets: [
+        {
+          data: finalData.map(c => c.count),
+          backgroundColor: [
+            '#10b981', '#059669', '#34d399', '#6ee7b7', '#a7f3d0',
+            '#064e3b', '#065f46', '#047857'
+          ],
+          borderWidth: 0,
+          hoverOffset: 15,
+          borderRadius: 4
         }
       ]
     };
@@ -408,7 +438,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
 
           {/* VISUALIZATION GRID */}
           <Grid container spacing={3} sx={{ mb: 4 }}>
-            <Grid item xs={12} md={7}>
+            <Grid item xs={12} md={4}>
               <Box sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: '8px', bgcolor: '#ffffff', height: 350 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>School-Level Distribution</Typography>
                 <Box sx={{ height: 280 }}>
@@ -434,7 +464,20 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
                 </Box>
               </Box>
             </Grid>
-            <Grid item xs={12} md={5}>
+            <Grid item xs={12} md={4}>
+              <Box sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: '8px', bgcolor: '#ffffff', height: 350 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Course Classification</Typography>
+                <Box sx={{ height: 280, display: 'flex', justifyContent: 'center' }}>
+                  {data?.demographics?.courses ? (
+                    <Pie 
+                      data={generateCoursePieData()} 
+                      options={{...chartOptions, plugins: { ...chartOptions.plugins, legend: { position: 'bottom' }}}} 
+                    />
+                  ) : <Typography variant="body2" color="text.secondary" textAlign="center" mt={10}>No course data</Typography>}
+                </Box>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={4}>
               <Box sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: '8px', bgcolor: '#ffffff', height: 350 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Role Classification</Typography>
                 <Box sx={{ height: 280, display: 'flex', justifyContent: 'center' }}>

@@ -15,6 +15,7 @@ from patients.models import Patient, MedicalRecord, DentalRecord
 from authentication.models import User
 from feedback.models import Feedback
 from health_info.models import HealthCampaign, CampaignFeedback
+from utils.usc_mappings import PROGRAMS_CHOICES
 
 logger = logging.getLogger(__name__)
 
@@ -666,6 +667,7 @@ class ReportDataService:
     @staticmethod
     def get_feedback_analysis_data(date_start=None, date_end=None, filters=None):
         try:
+            filters = filters or {}
             date_start = date_start or (timezone.now() - timedelta(days=365))
             date_end = date_end or timezone.now()
             
@@ -674,14 +676,19 @@ class ReportDataService:
             # Apply filters
             if filters:
                 if filters.get('rating'):
-                    feedback_qs = feedback_qs.filter(rating=filters['rating'])
+                    try:
+                        ratings = [int(r) for r in str(filters['rating']).split(',')]
+                        feedback_qs = feedback_qs.filter(rating__in=ratings)
+                    except ValueError:
+                        pass
+                
+                if filters.get('recommend'):
+                    feedback_qs = feedback_qs.filter(recommend=filters['recommend'])
+                
+                if filters.get('courteous'):
+                    feedback_qs = feedback_qs.filter(courteous=filters['courteous'])
+
                 if filters.get('visit_type'):
-                    # visit_type can be MEDICAL or DENTAL
-                    # We might need to join with MedicalRecord or DentalRecord if visit_type is stored there
-                    # For now, let's assume Feedback has a visit_type field or we filter based on patient interaction
-                    # If visit_type is not on Feedback, we might need a more complex join.
-                    # Assuming for this requirement it filters by a field named visit_type if it exists,
-                    # or we filter by the existence of related records in the time range.
                     v_type = filters['visit_type'].upper()
                     if v_type == 'MEDICAL':
                         feedback_qs = feedback_qs.filter(medical_record__isnull=False)
@@ -690,19 +697,19 @@ class ReportDataService:
             
             total = feedback_qs.count()
             
-            # Robust Role Classification: Default to Student unless explicitly Staff/Faculty
+            # Robust Role Classification
             student_count = 0
             staff_count = 0
             for f in feedback_qs.select_related('patient__user'):
                 role = getattr(f.patient.user, 'role', 'STUDENT') if f.patient and f.patient.user else 'STUDENT'
-                if role in ['STAFF', 'FACULTY']:
+                if role in ['STAFF', 'FACULTY', 'ADMIN']:
                     staff_count += 1
                 else:
                     student_count += 1
             
             student_pct = (student_count / total * 100) if total > 0 else 0
             
-            # Calculate response rate (total feedback / total visits)
+            # Response rate metrics
             medical_count = MedicalRecord.objects.filter(visit_date__range=(date_start, date_end)).count()
             dental_count = DentalRecord.objects.filter(visit_date__range=(date_start, date_end)).count()
             total_visits = medical_count + dental_count
@@ -713,41 +720,41 @@ class ReportDataService:
                     'total_responses': 0, 'avg_rating': 0, 'satisfaction_score': 0,
                     'response_rate': 0, 'total_visits': total_visits,
                     'student_count': 0, 'staff_count': 0, 'student_percentage': 0,
-                    'date_range_start': date_start, 'date_range_end': date_end,
-                    'recent_comments': [], 'rating_distribution': []
+                    'rating_distribution': [], 'raw_feedback': [], 'service_metrics': {}
                 }
                 
             avg = feedback_qs.aggregate(Avg('rating'))['rating__avg'] or 0
-            comments = []
-            for f in feedback_qs.order_by('-created_at')[:20]:
-                patient_id = "Anonymous"
-                if hasattr(f, 'patient') and f.patient:
-                    patient_id = getattr(f.patient.user, 'id_number', None) or f.patient.id
-                
-                comments.append({
-                    'rating': f.rating, 
-                    'date': f.created_at, 
-                    'text': f.comments or "No comment",
-                    'patient_id': patient_id
+            
+            # Full raw feedback for the audit table
+            raw_feedback = []
+            for f in feedback_qs.order_by('-created_at'):
+                raw_feedback.append({
+                    'id': f.id,
+                    'rating': f.rating,
+                    'comments': f.comments,
+                    'improvement': f.improvement,
+                    'recommend': f.recommend,
+                    'courteous': f.courteous,
+                    'created_at': f.created_at
                 })
-                
-            # Apply customization to comments
-            comments = ReportDataService._apply_customization(comments, filters or {})
 
-            excellent_count = feedback_qs.filter(rating=5).count()
-            good_count = feedback_qs.filter(rating=4).count()
-            fair_count = feedback_qs.filter(rating=3).count()
-            poor_count = feedback_qs.filter(rating__lte=2).count()
+            # Calculate Yes/No Metrics
+            metrics = {
+                'recommend_yes': feedback_qs.filter(recommend='yes').count(),
+                'recommend_no': feedback_qs.filter(recommend='no').count(),
+                'courteous_yes': feedback_qs.filter(courteous='yes').count(),
+                'courteous_no': feedback_qs.filter(courteous='no').count(),
+            }
 
-            rating_distribution = [
-                {'category': 'Excellent (5★)', 'count': excellent_count, 'percentage': (excellent_count/total*100)},
-                {'category': 'Good (4★)', 'count': good_count, 'percentage': (good_count/total*100)},
-                {'category': 'Fair (3★)', 'count': fair_count, 'percentage': (fair_count/total*100)},
-                {'category': 'Poor (1-2★)', 'count': poor_count, 'percentage': (poor_count/total*100)},
-            ]
-
-            # Apply customization to rating distribution
-            rating_distribution = ReportDataService._apply_customization(rating_distribution, filters or {})
+            # Star Distribution (Fixed categories)
+            dist = []
+            for star in range(5, 0, -1):
+                count = feedback_qs.filter(rating=star).count()
+                dist.append({
+                    'category': str(star),
+                    'count': count,
+                    'percentage': round((count / total * 100), 1)
+                })
 
             return {
                 'total_responses': total, 
@@ -758,16 +765,11 @@ class ReportDataService:
                 'response_rate': round(float(response_rate), 1),
                 'avg_rating': round(float(avg), 1), 
                 'satisfaction_score': round(float(avg/5*100), 1),
-                'excellent_count': excellent_count, 'excellent_percentage': (excellent_count/total*100),
-                'good_count': good_count, 'good_percentage': (good_count/total*100),
-                'fair_count': fair_count, 'fair_percentage': (fair_count/total*100),
-                'poor_count': poor_count, 'poor_percentage': (poor_count/total*100),
-                'rating_distribution': rating_distribution,
-                'recent_comments': comments,
+                'rating_distribution': dist,
+                'raw_feedback': raw_feedback,
+                'service_metrics': metrics,
                 'date_range_start': date_start,
-                'date_range_end': date_end,
-                'generated_at': timezone.now(),
-                'report_type': 'FEEDBACK_ANALYSIS'
+                'date_range_end': date_end
             }
         except Exception as e: 
             logger.error(f"Error in get_feedback_analysis_data: {str(e)}")
@@ -1155,19 +1157,32 @@ class ReportDataService:
         return sorted([{'name': k, 'college': k, 'count': v} for k, v in colleges.items()], key=lambda x: x['count'], reverse=True)
 
     @staticmethod
+    def _get_course_distribution(patients):
+        """Helper to aggregate patients by specific course/program"""
+        courses = {}
+        for patient in patients:
+            course = "Unspecified"
+            if patient.user and patient.user.course:
+                course_id = str(patient.user.course)
+                course = PROGRAMS_CHOICES.get(course_id, f"Program {course_id}")
+            courses[course] = courses.get(course, 0) + 1
+        
+        return sorted([{'name': k, 'count': v} for k, v in courses.items()], key=lambda x: x['count'], reverse=True)
+
+    @staticmethod
     def _get_role_distribution(patients):
-        """Helper to aggregate patients by role"""
-        roles = {'STUDENT': 0, 'STAFF': 0, 'FACULTY': 0, 'OTHER': 0}
+        """Helper to aggregate patients by simplified role (Student vs Faculty/Staff)"""
+        roles = {'STUDENT': 0, 'FACULTY / STAFF': 0}
         for patient in patients:
             if patient.user:
                 role = patient.user.role
-                if role in roles:
-                    roles[role] += 1
+                if role == 'STUDENT':
+                    roles['STUDENT'] += 1
                 else:
-                    roles['OTHER'] += 1
+                    roles['FACULTY / STAFF'] += 1
             else:
-                roles['OTHER'] += 1
-        return roles # Return dict for easier doughnut rendering in some components
+                roles['FACULTY / STAFF'] += 1
+        return roles
 
     @staticmethod
     def get_comprehensive_system_analytics(date_start=None, date_end=None, filters=None):
@@ -1260,12 +1275,16 @@ class ReportDataService:
             # Calculate College Participation
             college_participation = ReportDataService._get_college_participation(all_active_patients)
 
+            # Calculate Course Distribution
+            course_distribution = ReportDataService._get_course_distribution(all_active_patients)
+
             # Calculate Role Distribution (Student vs Staff)
             role_distribution = ReportDataService._get_role_distribution(all_active_patients)
 
             return {
                 'demographics': {
                     'colleges': college_participation,
+                    'courses': course_distribution,
                     'roles': role_distribution,
                     'total_active': len(all_active_patients)
                 },
