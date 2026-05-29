@@ -637,19 +637,38 @@ class ReportAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):
         date_end = request.query_params.get('date_end')
         
         if date_start:
-            date_start = datetime.strptime(date_start, '%Y-%m-%d')
+            try:
+                date_start = datetime.strptime(date_start, '%Y-%m-%d')
+            except ValueError:
+                date_start = None
         if date_end:
-            date_end = datetime.strptime(date_end, '%Y-%m-%d')
+            try:
+                date_end = datetime.strptime(date_end, '%Y-%m-%d')
+            except ValueError:
+                date_end = None
             
+        # Comprehensive list of filters supported by the new Workshop UI
         filters = {
+            'date_range': request.query_params.get('date_range'),
             'gender': request.query_params.get('gender'),
-            'role': request.query_params.get('role')
+            'role': request.query_params.get('role'),
+            'campus': request.query_params.get('campus'),
+            'school': request.query_params.get('school'),
+            'course': request.query_params.get('course'),
+            'year_level': request.query_params.get('year_level'),
+            'diagnosis_category': request.query_params.get('diagnosis_category'),
+            'procedure': request.query_params.get('procedure'),
+            'service_type': request.query_params.get('service_type'),
+            'workload_class': request.query_params.get('workload_class'),
+            'rating': request.query_params.get('rating'),
+            'recommend': request.query_params.get('recommend'),
+            'courteous': request.query_params.get('courteous'),
         }
         
         analytics_data = ReportDataService.get_comprehensive_system_analytics(
             date_start=date_start,
             date_end=date_end,
-            filters={k: v for k, v in filters.items() if v}
+            filters={k: v for k, v in filters.items() if v is not None}
         )
         
         return Response(analytics_data)

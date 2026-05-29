@@ -59,6 +59,7 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
       const params = {
         date_start: isModal ? (modalDateRange === 'custom' ? modalStartDate : undefined) : (dateRange === 'custom' ? customStart : undefined),
         date_end: isModal ? (modalDateRange === 'custom' ? modalEndDate : undefined) : (dateRange === 'custom' ? customEnd : undefined),
+        date_range: isModal ? modalDateRange : dateRange,
       };
 
       if (isModal) {

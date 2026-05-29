@@ -1,8 +1,10 @@
 import os
 import json
 import csv
+import pandas as pd
+import logging
 from datetime import datetime, timedelta
-from django.db.models import Count, Avg, Sum, Q, F, Case, When, IntegerField, FloatField, Value
+from django.db.models import Count, Avg, Sum, Q, F, Case, When, IntegerField, FloatField, Value, Max
 from django.utils import timezone
 from django.template import Template, Context
 from django.conf import settings
@@ -13,6 +15,79 @@ from patients.models import Patient, MedicalRecord, DentalRecord
 from authentication.models import User
 from feedback.models import Feedback
 from health_info.models import HealthCampaign, CampaignFeedback
+
+logger = logging.getLogger(__name__)
+
+ACADEMIC_DIRECTORY_MAP = {
+    '1': {'campus': 'Talamban Campus (TC)', 'school': 'School of Architecture, Fine Arts and Design (SAFAD)'},
+    '2': {'campus': 'Talamban Campus (TC)', 'school': 'School of Architecture, Fine Arts and Design (SAFAD)'},
+    '3': {'campus': 'Talamban Campus (TC)', 'school': 'School of Architecture, Fine Arts and Design (SAFAD)'},
+    '4': {'campus': 'Talamban Campus (TC)', 'school': 'School of Architecture, Fine Arts and Design (SAFAD)'},
+    '5': {'campus': 'Talamban Campus (TC)', 'school': 'School of Architecture, Fine Arts and Design (SAFAD)'},
+    '56': {'campus': 'Talamban Campus (TC)', 'school': 'School of Architecture, Fine Arts and Design (SAFAD)'},
+    '6': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '7': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '8': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '9': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '10': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '11': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '12': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '13': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '14': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '15': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '16': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '17': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '18': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '19': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '46': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '49': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '50': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '51': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '57': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '58': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '59': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '62': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '63': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '65': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '67': {'campus': 'Talamban Campus (TC)', 'school': 'School of Arts and Sciences (SAS)'},
+    '38': {'campus': 'Talamban Campus (TC)', 'school': 'School of Engineering (SOE)'},
+    '39': {'campus': 'Talamban Campus (TC)', 'school': 'School of Engineering (SOE)'},
+    '40': {'campus': 'Talamban Campus (TC)', 'school': 'School of Engineering (SOE)'},
+    '41': {'campus': 'Talamban Campus (TC)', 'school': 'School of Engineering (SOE)'},
+    '42': {'campus': 'Talamban Campus (TC)', 'school': 'School of Engineering (SOE)'},
+    '43': {'campus': 'Talamban Campus (TC)', 'school': 'School of Engineering (SOE)'},
+    '44': {'campus': 'Talamban Campus (TC)', 'school': 'School of Engineering (SOE)'},
+    '45': {'campus': 'Talamban Campus (TC)', 'school': 'School of Engineering (SOE)'},
+    '66': {'campus': 'Talamban Campus (TC)', 'school': 'School of Engineering (SOE)'},
+    '68': {'campus': 'Talamban Campus (TC)', 'school': 'School of Engineering (SOE)'},
+    '36': {'campus': 'Talamban Campus (TC)', 'school': 'School of Education (SOED)'},
+    '37': {'campus': 'Talamban Campus (TC)', 'school': 'School of Education (SOED)'},
+    '48': {'campus': 'Talamban Campus (TC)', 'school': 'School of Education (SOED)'},
+    '52': {'campus': 'Talamban Campus (TC)', 'school': 'School of Education (SOED)'},
+    '61': {'campus': 'Talamban Campus (TC)', 'school': 'School of Education (SOED)'},
+    '20': {'campus': 'Talamban Campus (TC)', 'school': 'School of Healthcare Professions (SHCP)'},
+    '21': {'campus': 'Talamban Campus (TC)', 'school': 'School of Healthcare Professions (SHCP)'},
+    '22': {'campus': 'Talamban Campus (TC)', 'school': 'School of Healthcare Professions (SHCP)'},
+    '25': {'campus': 'Downtown Campus (DC)', 'school': 'School of Business and Economics (SBE)'},
+    '26': {'campus': 'Downtown Campus (DC)', 'school': 'School of Business and Economics (SBE)'},
+    '27': {'campus': 'Downtown Campus (DC)', 'school': 'School of Business and Economics (SBE)'},
+    '28': {'campus': 'Downtown Campus (DC)', 'school': 'School of Business and Economics (SBE)'},
+    '29': {'campus': 'Downtown Campus (DC)', 'school': 'School of Business and Economics (SBE)'},
+    '30': {'campus': 'Downtown Campus (DC)', 'school': 'School of Business and Economics (SBE)'},
+    '31': {'campus': 'Downtown Campus (DC)', 'school': 'School of Business and Economics (SBE)'},
+    '32': {'campus': 'Downtown Campus (DC)', 'school': 'School of Business and Economics (SBE)'},
+    '33': {'campus': 'Downtown Campus (DC)', 'school': 'School of Business and Economics (SBE)'},
+    '34': {'campus': 'Downtown Campus (DC)', 'school': 'School of Business and Economics (SBE)'},
+    '35': {'campus': 'Downtown Campus (DC)', 'school': 'School of Business and Economics (SBE)'},
+    '47': {'campus': 'Downtown Campus (DC)', 'school': 'School of Business and Economics (SBE)'},
+    '54': {'campus': 'Downtown Campus (DC)', 'school': 'School of Business and Economics (SBE)'},
+    '55': {'campus': 'Downtown Campus (DC)', 'school': 'School of Business and Economics (SBE)'},
+    '60': {'campus': 'Downtown Campus (DC)', 'school': 'School of Business and Economics (SBE)'},
+    '23': {'campus': 'Downtown Campus (DC)', 'school': 'School of Law and Governance (SLG)'},
+    '24': {'campus': 'Downtown Campus (DC)', 'school': 'School of Law and Governance (SLG)'},
+    '53': {'campus': 'Downtown Campus (DC)', 'school': 'School of Law and Governance (SLG)'},
+    '64': {'campus': 'Downtown Campus (DC)', 'school': 'School of Law and Governance (SLG)'}
+}
 from notifications.models import Notification
 from medical_certificates.models import MedicalCertificate
 from file_uploads.models import PatientDocument
@@ -781,13 +856,29 @@ class ReportDataService:
             # Apply filters
             if filters:
                 if filters.get('diagnosis_category'):
-                    records = records.filter(diagnosis__icontains=filters['diagnosis_category'])
+                    diag_list = filters['diagnosis_category'].split(',')
+                    records = records.filter(diagnosis__in=diag_list)
+                
+                # Campus filter - Map to course IDs
+                if filters.get('campus'):
+                    campus_names = filters['campus'].split(',')
+                    course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() 
+                                 if any(c in info['campus'] for c in campus_names)]
+                    records = records.filter(patient__user__course__in=course_ids)
+                
+                # School filter - Map to course IDs
                 if filters.get('school'):
-                    records = records.filter(patient__user__school=filters['school'])
+                    school_names = filters['school'].split(',')
+                    course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() 
+                                 if any(s in info['school'] for s in school_names)]
+                    records = records.filter(patient__user__course__in=course_ids)
+                
                 if filters.get('course'):
-                    records = records.filter(patient__user__course=filters['course'])
+                    course_list = filters['course'].split(',')
+                    records = records.filter(patient__user__course__in=course_list)
                 if filters.get('year_level'):
-                    records = records.filter(patient__user__year_level=filters['year_level'])
+                    level_list = filters['year_level'].split(',')
+                    records = records.filter(patient__user__year_level__in=level_list)
             
             # Calculate real avg age
             patients = Patient.objects.filter(medical_records__in=records).distinct()
@@ -796,20 +887,48 @@ class ReportDataService:
                 ages = [p.age for p in patients if p.age is not None]
                 avg_age = sum(ages) / len(ages) if ages else 0
 
-            # Vitals Metrics
-            vitals = records.aggregate(
-                avg_weight=Avg('weight'),
-                avg_height=Avg('height'),
-                avg_bmi=Avg('bmi'),
-                max_bp_sys=Max('blood_pressure_systolic'),
-                min_bp_sys=Max('blood_pressure_systolic') # approximate
-            )
+            # Vitals Metrics - Safely calculate from JSONField or return empty
+            vitals = {
+                'avg_weight': 0,
+                'avg_height': 0,
+                'avg_bmi': 0,
+                'max_bp_sys': 0,
+                'min_bp_sys': 0
+            }
+            
+            # Manual aggregation for JSON fields (safe for both SQLite and Postgres)
+            if records.exists():
+                weights = []
+                heights = []
+                bmis = []
+                sys_bps = []
+                
+                for r in records:
+                    if r.vital_signs:
+                        vs = r.vital_signs
+                        if vs.get('weight'): weights.append(float(vs['weight']))
+                        if vs.get('height'): heights.append(float(vs['height']))
+                        if vs.get('bmi'): bmis.append(float(vs['bmi']))
+                        
+                        bp = vs.get('blood_pressure')
+                        if bp and '/' in str(bp):
+                            try:
+                                sys = float(str(bp).split('/')[0])
+                                sys_bps.append(sys)
+                            except: pass
+                
+                if weights: vitals['avg_weight'] = sum(weights) / len(weights)
+                if heights: vitals['avg_height'] = sum(heights) / len(heights)
+                if bmis: vitals['avg_bmi'] = sum(bmis) / len(bmis)
+                if sys_bps:
+                    vitals['max_bp_sys'] = max(sys_bps)
+                    vitals['min_bp_sys'] = min(sys_bps)
 
             diag = []
             # Group by diagnosis and calculate counts
             diagnosis_groups = records.values('diagnosis').annotate(
                 count=Count('id')
-            ).order_by('-count')[:10]
+            ).order_by('-count')[:15] # Increased to 15 for better coverage
 
             for item in diagnosis_groups:
                 # Get patients with this specific diagnosis for demographic context
@@ -866,12 +985,30 @@ class ReportDataService:
             
             # Apply filters
             if filters:
+                if filters.get('procedure'):
+                    proc_list = filters['procedure'].split(',')
+                    records = records.filter(procedure_performed__in=proc_list)
+                
+                # Campus filter - Map to course IDs
+                if filters.get('campus'):
+                    campus_names = filters['campus'].split(',')
+                    course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() 
+                                 if any(c in info['campus'] for c in campus_names)]
+                    records = records.filter(patient__user__course__in=course_ids)
+                
+                # School filter - Map to course IDs
                 if filters.get('school'):
-                    records = records.filter(patient__user__school=filters['school'])
+                    school_names = filters['school'].split(',')
+                    course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() 
+                                 if any(s in info['school'] for s in school_names)]
+                    records = records.filter(patient__user__course__in=course_ids)
+                
                 if filters.get('course'):
-                    records = records.filter(patient__user__course=filters['course'])
+                    course_list = filters['course'].split(',')
+                    records = records.filter(patient__user__course__in=course_list)
                 if filters.get('year_level'):
-                    records = records.filter(patient__user__year_level=filters['year_level'])
+                    level_list = filters['year_level'].split(',')
+                    records = records.filter(patient__user__year_level__in=level_list)
             
             total_records = records.count()
 
@@ -960,28 +1097,34 @@ class ReportDataService:
         
     @staticmethod
     def _get_college_participation(patients):
-        """Helper to aggregate patients by college/school"""
+        """Helper to aggregate patients by college/school using ACADEMIC_DIRECTORY_MAP"""
         colleges = {}
         for patient in patients:
+            college = "Other"
             if patient.user and patient.user.course:
-                # Extract college from course (assuming format like "BSCS (SOE)")
-                course = patient.user.course.upper()
-                # Simple heuristic: look for common USC acronyms in the string
-                college = "Other"
-                if "SOE" in course or "ENGINEERING" in course: college = "SOE"
-                elif "SAFAD" in course or "ARCHITECTURE" in course: college = "SAFAD"
-                elif "SBE" in course or "BUSINESS" in course: college = "SBE"
-                elif "SAS" in course or "ARTS" in course or "SCIENCE" in course: college = "SAS"
-                elif "SHCP" in course or "HEALTH" in course: college = "SHCP"
-                elif "SED" in course or "EDUCATION" in course: college = "SED"
-                elif "SLG" in course or "LAW" in course: college = "SLG"
-                
-                colleges[college] = colleges.get(college, 0) + 1
+                course_id = str(patient.user.course)
+                if course_id in ACADEMIC_DIRECTORY_MAP:
+                    school_info = ACADEMIC_DIRECTORY_MAP[course_id]['school']
+                    # Use shorter labels for charts (e.g. "SAS" instead of full name)
+                    if "Arts and Sciences" in school_info: college = "SAS"
+                    elif "Architecture" in school_info: college = "SAFAD"
+                    elif "Business" in school_info: college = "SBE"
+                    elif "Engineering" in school_info: college = "SOE"
+                    elif "Healthcare" in school_info: college = "SHCP"
+                    elif "Education" in school_info: college = "SOED"
+                    elif "Law" in school_info: college = "SLG"
+                    else: college = school_info
+                elif patient.user.school:
+                    college = patient.user.school
             elif patient.user and patient.user.department:
-                 dept = patient.user.department
-                 colleges[dept] = colleges.get(dept, 0) + 1
-        
-        return sorted([{'name': k, 'count': v} for k, v in colleges.items() if k != "Other"], key=lambda x: x['count'], reverse=True)
+                 college = patient.user.department
+            else:
+                 college = "Other"
+
+            colleges[college] = colleges.get(college, 0) + 1
+
+        # Return both 'name' and 'college' for frontend compatibility
+        return sorted([{'name': k, 'college': k, 'count': v} for k, v in colleges.items()], key=lambda x: x['count'], reverse=True)
 
     @staticmethod
     def _get_role_distribution(patients):
@@ -994,38 +1137,89 @@ class ReportDataService:
                     roles[role] += 1
                 else:
                     roles['OTHER'] += 1
-        return [{'role': k, 'count': v} for k, v in roles.items() if v > 0]
+            else:
+                roles['OTHER'] += 1
+        return roles # Return dict for easier doughnut rendering in some components
 
     @staticmethod
     def get_comprehensive_system_analytics(date_start=None, date_end=None, filters=None):
         """Aggregate data for system-wide dashboard visualizations"""
         try:
+            filters = filters or {}
+
+            # Resolve date range from string if provided
+            if filters.get('date_range') and not (date_start and date_end):
+                range_type = filters['date_range']
+                now = timezone.now()
+                if range_type == '7days':
+                    date_start = now - timedelta(days=7)
+                elif range_type == '30days':
+                    date_start = now - timedelta(days=30)
+                elif range_type == '6months':
+                    date_start = now - timedelta(days=180)
+                elif range_type == 'all':
+                    date_start = now - timedelta(days=3650) # 10 years
+
+                date_end = now
+
             date_start = date_start or (timezone.now() - timedelta(days=365))
             date_end = date_end or timezone.now()
-            
+
             # Use visit_date for more accurate clinical timeline
             medical_records = MedicalRecord.objects.filter(visit_date__range=(date_start, date_end))
             dental_records = DentalRecord.objects.filter(visit_date__range=(date_start, date_end))
             
             # Apply filters
             if filters:
-                if filters.get('college'):
-                    pass # Handled on frontend for MVP simplicity
+                # Filter by campus - Map to course IDs
+                if filters.get('campus'):
+                    campus_names = filters['campus'].split(',')
+                    course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() 
+                                 if any(c in info['campus'] for c in campus_names)]
+                    medical_records = medical_records.filter(patient__user__course__in=course_ids)
+                    dental_records = dental_records.filter(patient__user__course__in=course_ids)
+                
+                # Filter by school - Map to course IDs
+                if filters.get('school'):
+                    school_names = filters['school'].split(',')
+                    course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() 
+                                 if any(s in info['school'] for s in school_names)]
+                    medical_records = medical_records.filter(patient__user__course__in=course_ids)
+                    dental_records = dental_records.filter(patient__user__course__in=course_ids)
+
+                # Filter by course (direct match)
+                if filters.get('course'):
+                    courses = filters['course'].split(',')
+                    medical_records = medical_records.filter(patient__user__course__in=courses)
+                    dental_records = dental_records.filter(patient__user__course__in=courses)
+
+                # Filter by year level
+                if filters.get('year_level'):
+                    levels = filters['year_level'].split(',')
+                    medical_records = medical_records.filter(patient__user__year_level__in=levels)
+                    dental_records = dental_records.filter(patient__user__year_level__in=levels)
+
+                # Role filter
+                if filters.get('role'):
+                    roles = filters['role'].split(',')
+                    medical_records = medical_records.filter(patient__user__role__in=roles)
+                    dental_records = dental_records.filter(patient__user__role__in=roles)
+
                 if filters.get('clinic_type') == 'medical':
                     dental_records = DentalRecord.objects.none()
                 elif filters.get('clinic_type') == 'dental':
                     medical_records = MedicalRecord.objects.none()
-            
+
             trends = ReportDataService.get_visit_trends_data(date_start, date_end, filters)
-            
+
             medical_count = medical_records.count()
             dental_count = dental_records.count()
-            
+
             medical_stats = ReportDataService.get_medical_statistics_data(date_start, date_end, filters)
             dental_stats = ReportDataService.get_dental_statistics_data(date_start, date_end, filters)
-            
+
             feedback = ReportDataService.get_feedback_analysis_data(date_start, date_end, filters)
-            
+
             # Get distinct patients for demographics
             med_patients = Patient.objects.filter(id__in=medical_records.values('patient_id')).select_related('user')
             den_patients = Patient.objects.filter(id__in=dental_records.values('patient_id')).select_related('user')
@@ -1033,10 +1227,10 @@ class ReportDataService:
 
             # Calculate Peak Hours
             peak_hours = ReportDataService._get_peak_hours(list(medical_records) + list(dental_records))
-            
+
             # Calculate College Participation
             college_participation = ReportDataService._get_college_participation(all_active_patients)
-            
+
             # Calculate Role Distribution (Student vs Staff)
             role_distribution = ReportDataService._get_role_distribution(all_active_patients)
 
@@ -1052,12 +1246,14 @@ class ReportDataService:
                     'total': trends.get('total_visits', 0)
                 },
                 'clinical': {
-                    'top_diagnoses': medical_stats.get('top_diagnoses', [])[:5],
-                    'top_procedures': dental_stats.get('common_procedures', [])[:5]
+                    'top_diagnoses': medical_stats.get('top_diagnoses', []),
+                    'top_procedures': dental_stats.get('common_procedures', [])
                 },
                 'satisfaction': {
                     'distribution': feedback.get('rating_distribution', []),
-                    'average': feedback.get('avg_rating', 0)
+                    'average': feedback.get('avg_rating', 0),
+                    'metrics': feedback.get('service_metrics', {}),
+                    'raw_comments': feedback.get('raw_feedback', [])
                 },
                 'operations': {
                     'peak_hours': peak_hours
