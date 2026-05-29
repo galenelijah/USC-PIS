@@ -9,10 +9,11 @@ import {
 import { 
   BarChart as ChartIcon,
   Visibility as ViewIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  FileDownload as DownloadIcon
 } from '@mui/icons-material';
 import { Bar } from 'react-chartjs-2';
-import { campaignService } from '../../services/api';
+import { campaignService, reportService } from '../../services/api';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -30,8 +31,40 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
   const [dashboardCampaigns, setDashboardCampaigns] = useState([]); 
   const [modalCampaigns, setModalCampaigns] = useState([]);         
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   
+  const handleGenerateReport = async (format = 'PDF') => {
+    try {
+      setGenerating(true);
+      setError(null);
+      
+      const payload = {
+        title: `Health Campaign Performance - ${new Date().toLocaleDateString()}`,
+        export_format: format,
+        date_range_start: dateRange === 'custom' ? customStart : undefined,
+        date_range_end: dateRange === 'custom' ? customEnd : undefined,
+        filters: {
+          campaign_id: selectedCampaigns.length === 1 ? campaigns.find(c => c.title === selectedCampaigns[0])?.id : undefined
+        }
+      };
+
+      const response = await reportService.generateReport(7, payload); // Template ID 7
+      setSuccess(`Report generation started! ID: ${response.data.report_id}`);
+      
+      setTimeout(() => {
+        setOpenModal(false);
+        setSuccess(null);
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to generate report:", err);
+      setError("Failed to trigger report generation.");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   // Modal Internal Independent Filtering Controls
   const [openModal, setOpenModal] = useState(false);
   const [selectedCampaigns, setSelectedCampaigns] = useState([]); 
@@ -292,7 +325,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
 
         <DialogContent dividers sx={{ p: 3, bgcolor: '#fcfcfc' }}>
           {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
-
+          {success && <Alert severity="success" sx={{ mb: 3 }}>{success}</Alert>}
           <Grid container spacing={2} sx={{ mb: 3 }}>
             
             {/* Multi-Select Chip list manager */}
@@ -430,21 +463,44 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
           )}
         </DialogContent>
 
-        <DialogActions sx={{ p: 2, bgcolor: '#fafafa', borderTop: '1px solid #e0e0e0', justifyContent: 'flex-end' }}>
-          <Button 
-            onClick={() => alert('Generating custom campaign report... (Feature coming soon)')} 
-            variant="contained" 
-            sx={{ 
-              textTransform: 'none', 
-              borderRadius: '8px', 
-              px: 3, 
-              bgcolor: '#303f9f', 
-              '&:hover': { bgcolor: '#1a237e' },
-              fontWeight: 600 
-            }}
-          >
-            Generate Report
-          </Button>
+        <DialogActions sx={{ p: 2, bgcolor: '#fafafa', borderTop: '1px solid #e0e0e0', justifyContent: 'space-between' }}>
+          <Button onClick={() => setOpenModal(false)}>Close</Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button 
+              variant="outlined" 
+              onClick={() => handleGenerateReport('EXCEL')}
+              disabled={generating}
+              size="small"
+              sx={{ color: '#303f9f', borderColor: '#303f9f' }}
+            >
+              Excel
+            </Button>
+            <Button 
+              variant="outlined" 
+              onClick={() => handleGenerateReport('CSV')}
+              disabled={generating}
+              size="small"
+              sx={{ color: '#303f9f', borderColor: '#303f9f' }}
+            >
+              CSV
+            </Button>
+            <Button 
+              variant="contained" 
+              onClick={() => handleGenerateReport('PDF')}
+              disabled={generating}
+              startIcon={generating ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}
+              sx={{ 
+                textTransform: 'none', 
+                borderRadius: '8px', 
+                px: 3, 
+                bgcolor: '#303f9f', 
+                '&:hover': { bgcolor: '#1a237e' },
+                fontWeight: 600 
+              }}
+            >
+              {generating ? 'Processing...' : 'Generate Performance PDF'}
+            </Button>
+          </Box>
         </DialogActions>
       </Dialog>
     </Box>

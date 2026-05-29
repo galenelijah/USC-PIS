@@ -680,7 +680,7 @@ class ReportDataService:
             queryset = HealthCampaign.objects.all()
             
             # Apply filters
-            campaign_ids = filters.get('campaign_ids')
+            campaign_ids = filters.get('campaign_ids') or filters.get('campaign_id')
             if campaign_ids:
                 if isinstance(campaign_ids, list):
                     queryset = queryset.filter(id__in=campaign_ids)

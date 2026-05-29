@@ -10,7 +10,8 @@ import {
   ThumbUp as ThumbIcon,
   Visibility as ViewIcon,
   Close as CloseIcon,
-  Star as StarIcon
+  Star as StarIcon,
+  FileDownload as DownloadIcon
 } from '@mui/icons-material';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import { reportService } from '../../../services/api';
@@ -30,11 +31,43 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tool
 const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   
   // Modal State
   const [openModal, setOpenModal] = useState(false);
   const [ratingFilter, setRatingFilter] = useState('all');
+
+  const handleGenerateReport = async (format = 'PDF') => {
+    try {
+      setGenerating(true);
+      setError(null);
+      
+      const payload = {
+        title: `Feedback Analysis Report - ${new Date().toLocaleDateString()}`,
+        export_format: format,
+        date_range_start: dateRange === 'custom' ? customStart : undefined,
+        date_range_end: dateRange === 'custom' ? customEnd : undefined,
+        filters: {
+          rating: ratingFilter !== 'all' ? ratingFilter : undefined
+        }
+      };
+
+      const response = await reportService.generateReport(6, payload); // Template ID 6
+      setSuccess(`Report generation started! ID: ${response.data.report_id}`);
+      
+      setTimeout(() => {
+        setOpenModal(false);
+        setSuccess(null);
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to generate report:", err);
+      setError("Failed to trigger report generation.");
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const fetchAnalytics = async () => {
     try {
@@ -124,7 +157,9 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
           <Typography variant="h6" fontWeight="bold" sx={{ color: '#388e3c' }}>Patient Feedback Breakdown</Typography>
           <IconButton onClick={() => setOpenModal(false)}><CloseIcon /></IconButton>
         </DialogTitle>
-        <DialogContent sx={{ p: 3 }}>
+        <DialogContent dividers sx={{ p: 3 }}>
+           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+           {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
            <Grid container spacing={2} sx={{ mb: 3 }}>
              <Grid item xs={12}>
                <FormControl fullWidth size="small">
@@ -158,9 +193,37 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
               )}
            </Box>
         </DialogContent>
-        <DialogActions sx={{ p: 2, borderTop: '1px solid #e0e0e0' }}>
+        <DialogActions sx={{ p: 2, borderTop: '1px solid #e0e0e0', justifyContent: 'space-between' }}>
           <Button onClick={() => setOpenModal(false)}>Close</Button>
-          <Button variant="contained" sx={{ bgcolor: '#388e3c', '&:hover': { bgcolor: '#2e7d32' } }}>Export Analytics</Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button 
+              variant="outlined" 
+              onClick={() => handleGenerateReport('EXCEL')}
+              disabled={generating}
+              size="small"
+              sx={{ color: '#388e3c', borderColor: '#388e3c' }}
+            >
+              Excel
+            </Button>
+            <Button 
+              variant="outlined" 
+              onClick={() => handleGenerateReport('CSV')}
+              disabled={generating}
+              size="small"
+              sx={{ color: '#388e3c', borderColor: '#388e3c' }}
+            >
+              CSV
+            </Button>
+            <Button 
+              variant="contained" 
+              onClick={() => handleGenerateReport('PDF')}
+              disabled={generating}
+              startIcon={generating ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}
+              sx={{ bgcolor: '#388e3c', '&:hover': { bgcolor: '#2e7d32' }, borderRadius: '8px', px: 3 }}
+            >
+              {generating ? 'Processing...' : 'Generate PDF'}
+            </Button>
+          </Box>
         </DialogActions>
       </Dialog>
     </Box>

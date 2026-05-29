@@ -10,7 +10,8 @@ import {
   People as PeopleIcon,
   Visibility as ViewIcon,
   Close as CloseIcon,
-  FilterList as FilterIcon
+  FilterList as FilterIcon,
+  FileDownload as DownloadIcon
 } from '@mui/icons-material';
 import { Pie, Bar } from 'react-chartjs-2';
 import { reportService } from '../../../services/api';
@@ -30,12 +31,45 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tool
 const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   
   // Modal State
   const [openModal, setOpenModal] = useState(false);
   const [schoolFilter, setSchoolFilter] = useState('all');
   const [yearLevelFilter, setYearLevelFilter] = useState('all');
+
+  const handleGenerateReport = async (format = 'PDF') => {
+    try {
+      setGenerating(true);
+      setError(null);
+      
+      const payload = {
+        title: `Patient Summary Report - ${new Date().toLocaleDateString()}`,
+        export_format: format,
+        date_range_start: dateRange === 'custom' ? customStart : undefined,
+        date_range_end: dateRange === 'custom' ? customEnd : undefined,
+        filters: {
+          school: schoolFilter !== 'all' ? schoolFilter : undefined,
+          year_level: yearLevelFilter !== 'all' ? yearLevelFilter : undefined
+        }
+      };
+
+      const response = await reportService.generateReport(1, payload); // Template ID 1
+      setSuccess(`Report generation started! ID: ${response.data.report_id}`);
+      
+      setTimeout(() => {
+        setOpenModal(false);
+        setSuccess(null);
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to generate report:", err);
+      setError("Failed to trigger report generation.");
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const fetchAnalytics = async () => {
     try {
@@ -139,6 +173,8 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
           <IconButton onClick={() => setOpenModal(false)}><CloseIcon /></IconButton>
         </DialogTitle>
         <DialogContent sx={{ p: 3 }}>
+           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+           {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
            <Alert severity="info" sx={{ mb: 2 }}>
              Aggregate overview of patient distribution across campuses and academic levels.
            </Alert>
@@ -190,9 +226,38 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
              </Table>
            </TableContainer>
         </DialogContent>
-        <DialogActions sx={{ p: 2, borderTop: '1px solid #e0e0e0' }}>
+        <DialogActions sx={{ p: 2, borderTop: '1px solid #e0e0e0', justifyContent: 'space-between' }}>
           <Button onClick={() => setOpenModal(false)}>Close</Button>
-          <Button variant="contained" color="primary">Generate PDF Report</Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button 
+              variant="outlined" 
+              onClick={() => handleGenerateReport('EXCEL')}
+              disabled={generating}
+              size="small"
+              sx={{ borderRadius: '8px' }}
+            >
+              Excel
+            </Button>
+            <Button 
+              variant="outlined" 
+              onClick={() => handleGenerateReport('CSV')}
+              disabled={generating}
+              size="small"
+              sx={{ borderRadius: '8px' }}
+            >
+              CSV
+            </Button>
+            <Button 
+              variant="contained" 
+              color="primary"
+              onClick={() => handleGenerateReport('PDF')}
+              disabled={generating}
+              startIcon={generating ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}
+              sx={{ borderRadius: '8px', px: 3 }}
+            >
+              {generating ? 'Processing...' : 'Generate PDF Report'}
+            </Button>
+          </Box>
         </DialogActions>
       </Dialog>
     </Box>
