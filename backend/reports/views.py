@@ -92,7 +92,12 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
             template = self.get_object()
             
             # Validate request data
-            serializer = ReportGenerationRequestSerializer(data=request.data)
+            # Inject template_id if missing from body (expected in URL)
+            data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+            if 'template_id' not in data:
+                data['template_id'] = pk
+
+            serializer = ReportGenerationRequestSerializer(data=data)
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
@@ -153,7 +158,12 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
             template = self.get_object()
             
             # Validate request data
-            serializer = ReportGenerationRequestSerializer(data=request.data)
+            # Inject template_id if missing from body (expected in URL)
+            data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+            if 'template_id' not in data:
+                data['template_id'] = pk
+
+            serializer = ReportGenerationRequestSerializer(data=data)
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             

@@ -430,6 +430,7 @@ class ReportDataService:
     def get_visit_trends_data(date_start=None, date_end=None, filters=None):
         """Get visit trends data with monthly aggregation and detailed metrics"""
         try:
+            filters = filters or {}
             date_start = date_start or (timezone.now() - timedelta(days=365))
             date_end = date_end or timezone.now()
             
@@ -442,13 +443,40 @@ class ReportDataService:
                     medical_records = medical_records.filter(patient__gender=filters['gender'])
                     dental_records = dental_records.filter(patient__gender=filters['gender'])
                 if filters.get('role'):
-                    medical_records = medical_records.filter(patient__user__role=filters['role'])
-                    dental_records = dental_records.filter(patient__user__role=filters['role'])
+                    roles = filters['role'].split(',')
+                    medical_records = medical_records.filter(patient__user__role__in=roles)
+                    dental_records = dental_records.filter(patient__user__role__in=roles)
+
+                # Campus filter - Map to course IDs
+                if filters.get('campus'):
+                    campus_names = filters['campus'].split(',')
+                    course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() 
+                                 if any(c in info['campus'] for c in campus_names)]
+                    medical_records = medical_records.filter(patient__user__course__in=course_ids)
+                    dental_records = dental_records.filter(patient__user__course__in=course_ids)
                 
-                department = filters.get('department')
-                if department == 'MEDICAL':
+                # School filter - Map to course IDs
+                if filters.get('school'):
+                    school_names = filters['school'].split(',')
+                    course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() 
+                                 if any(s in info['school'] for s in school_names)]
+                    medical_records = medical_records.filter(patient__user__course__in=course_ids)
+                    dental_records = dental_records.filter(patient__user__course__in=course_ids)
+                
+                if filters.get('course'):
+                    course_list = filters['course'].split(',')
+                    medical_records = medical_records.filter(patient__user__course__in=course_list)
+                    dental_records = dental_records.filter(patient__user__course__in=course_list)
+
+                if filters.get('year_level'):
+                    level_list = filters['year_level'].split(',')
+                    medical_records = medical_records.filter(patient__user__year_level__in=level_list)
+                    dental_records = dental_records.filter(patient__user__year_level__in=level_list)
+                
+                # Stream filter (service_type)
+                if filters.get('service_type') == 'medical':
                     dental_records = dental_records.none()
-                elif department == 'DENTAL':
+                elif filters.get('service_type') == 'dental':
                     medical_records = medical_records.none()
 
             total_medical = medical_records.count()
@@ -1205,10 +1233,11 @@ class ReportDataService:
                     medical_records = medical_records.filter(patient__user__role__in=roles)
                     dental_records = dental_records.filter(patient__user__role__in=roles)
 
-                if filters.get('clinic_type') == 'medical':
+                if filters.get('service_type') == 'medical':
                     dental_records = DentalRecord.objects.none()
-                elif filters.get('clinic_type') == 'dental':
-                    medical_records = MedicalRecord.objects.none()
+                elif filters.get('service_type') == 'dental':
+                    medical_records = medical_records.none()
+
 
             trends = ReportDataService.get_visit_trends_data(date_start, date_end, filters)
 

@@ -34,6 +34,7 @@ The system explicitly implements the **USC Academic Directory Mapping**. Through
 
 ## 5. Objective Implementation Status
 *   **Completed & Verified**: Global filtering, ChartJS visualization, Data aggregation from all modules, Academic mapping (TC/DC), and Basic PDF/CSV/Excel export pipelines.
+*   **Recent Fixes (May 29, 2026)**: Resolved a critical "Empty Report" state for Demographics and Diagnoses by synchronizing frontend filter keys with the `system_analytics` backend service.
 *   **Technical Limitations/Notes**: 
     *   Some specific "Custom Report Generation" buttons within new sub-modals currently trigger a "Coming Soon" notification while specialized backend templates are finalized.
     *   PDF generation uses a dual-engine fallback (xhtml2pdf + ReportLab) to ensure 100% stability.

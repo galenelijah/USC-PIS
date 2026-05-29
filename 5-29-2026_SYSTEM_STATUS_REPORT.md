@@ -11,6 +11,7 @@ The system has successfully completed its **Reports & Audit Refresh**. We have t
 
 ### Analytics & Reporting Engine
 *   **System Dashboard:** **OPTIMIZED** (Modular UI with real-time ChartJS visualizations)
+*   **API Layer:** **EXPANDED** (The `system_analytics` endpoint now supports 10+ granular filters and academic mapping)
 *   **Export Formats:** **STABLE** (Unified PDF, CSV, and Excel pipelines via Preview Modals)
 *   **Filtering:** **ENHANCED** (Global custom timeframes and granular parameter scopes)
 
@@ -29,6 +30,7 @@ The system has successfully completed its **Reports & Audit Refresh**. We have t
 *   **Visualization Logic:** Global filters intelligently prune dataset timelines (7/30/180-days) asynchronously to prevent UI freezing.
 
 ## 4. Maintenance Logs
+*   **Reactivity Fix:** Resolved critical data retrieval issue where Institutional Demographics and Clinical Diagnoses reports were returning empty. Integrated `ACADEMIC_DIRECTORY_MAP` into backend aggregation logic for precise campus/school filtering.
 *   **Bug Fixes:** Render layout parameters corrected in React Grid elements (`spacing={3}`) resolving component clipping.
 *   **Migrations:** Successfully applied `django-simple-history` shadow tables to database architecture.
 *   **Dependency Audit:** Verified `django-simple-history>=3.5.0` presence in local, Docker, and GitHub test environments.

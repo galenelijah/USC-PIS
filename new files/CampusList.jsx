@@ -1,5 +1,9 @@
 // CampusList.jsx
 
+/**
+ * CampusList.jsx
+ * Updated: May 29, 2026 - Institutional Academic Mapping
+ */
 export const ACADEMIC_DIRECTORY_MAP = {
   // --- USC TALAMBAN CAMPUS (TC) ---
   // SAFAD

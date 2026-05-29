@@ -1,4 +1,9 @@
 import React, { useState, useEffect } from 'react';
+/**
+ * MedicalReports.jsx
+ * Updated: May 29, 2026 - Analytical Reports Workshop
+ * Integrated with Enterprise Export Engine
+ */
 import { 
   Box, Card, CardContent, Typography, CircularProgress, Button,
   Alert, TextField, FormControl, InputLabel, Select, MenuItem, Grid,
@@ -97,9 +102,13 @@ const MedicalReports = ({ dateRange, customStart, customEnd }) => {
     if (!dateString) return '-';
     try {
       return new Date(dateString).toLocaleDateString(undefined, {
-        year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
       });
-    } catch { return dateString; }
+    } catch (e) {
+      return dateString;
+    }
   };
 
   useEffect(() => {
@@ -107,154 +116,80 @@ const MedicalReports = ({ dateRange, customStart, customEnd }) => {
       try {
         setLoading(true);
         setError(null);
+        
+        // 1. Fetch all medical records
+        const response = await api.get('/patients/medical-records/');
+        const dataList = response?.data?.results || response?.data || [];
+        setRecords(dataList);
 
-        try {
-          const mappingResponse = await api.get('/utils/usc-mappings/');
-          const programsArray = mappingResponse?.data?.programs || mappingResponse?.programs || [];
-          
-          const mappedObj = programsArray.reduce((acc, current) => {
-            if (current.id) acc[String(current.id)] = current.label;
-            return acc;
-          }, {});
-          setCourseMap(mappedObj);
-        } catch (mapErr) {
-          console.error("Non-blocking failure fetching academic program text mappings:", mapErr);
-        }
+        // 2. Resolve courses from campus list mapping
+        const cMap = {};
+        Object.entries(ACADEMIC_DIRECTORY_MAP).forEach(([id, info]) => {
+          cMap[id] = info.name;
+        });
+        setCourseMap(cMap);
 
-        const medicalResponse = await patientService.getMyMedicalRecords();
-        const medicalData = medicalResponse?.data?.results || medicalResponse?.data || [];
-        setRecords(medicalData);
+        // 3. Extract unique providers (users who created records)
+        const pMap = {};
+        dataList.forEach(r => {
+          if (r.created_by && r.created_by_name) {
+             pMap[String(r.created_by)] = r.created_by_name;
+          }
+        });
+        setProviderMap(pMap);
 
       } catch (err) {
-        console.error("Initialization failure inside reports workspace:", err);
-        setError(err.response?.data?.message || "Failed to load clinical records.");
+        console.error("Failed fetching medical analysis data:", err);
+        setError("Network Error: Could not reach clinical data server.");
       } finally {
         setLoading(false);
       }
     };
-    
     initializeData();
   }, []);
 
-  useEffect(() => {
-    if (records.length === 0) return;
+  // Shared filtering logic that powers BOTH the Dashboard Headline and the Modal Workshop
+  const executeRangeFiltering = (source, range, start, end) => {
+    let filtered = [...source];
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
 
-    const resolveProviderNames = async () => {
-      const distinctIds = Array.from(new Set(records.map(r => r.created_by).filter(Boolean)));
-      const missingIds = distinctIds.filter(id => !providerMap[String(id)]);
-      if (missingIds.length === 0) return;
-
-      const updatedMappings = { ...providerMap };
-      
-      await Promise.all(
-        missingIds.map(async (id) => {
-          try {
-            const response = await api.get(`/auth/admin/users/${id}/`);
-            const targetUser = response?.data?.user || response?.user;
-            if (targetUser) {
-              const firstName = targetUser.first_name || '';
-              const lastName = targetUser.last_name || '';
-              const computedName = `${firstName} ${lastName}`.trim() || targetUser.username;
-              updatedMappings[String(id)] = computedName || `User #${id}`;
-            } else {
-              updatedMappings[String(id)] = `User #${id}`;
-            }
-          } catch (err) {
-            console.error(`Failed to look up baseline identity string for provider account #${id}:`, err);
-            updatedMappings[String(id)] = `User #${id}`;
-          }
-        })
-      );
-
-      setProviderMap(updatedMappings);
-    };
-
-    resolveProviderNames();
-  }, [records]);
-
-  const handleOpenRowDetail = (record) => {
-    setSelectedRecord(record);
-    setOpenDetailModal(true);
-  };
-
-  const handleToggleProviderFilter = (providerId) => {
-    const stringId = String(providerId);
-    setSelectedProviders((prevSelected) => 
-      prevSelected.includes(stringId)
-        ? prevSelected.filter(id => id !== stringId) 
-        : [...prevSelected, stringId]               
-    );
-  };
-
-  const sortDataList = (list) => {
-    return list.sort((a, b) => {
-      let valueA = a[sortField];
-      let valueB = b[sortField];
-
-      if (valueA === null || valueA === undefined) valueA = '';
-      if (valueB === null || valueB === undefined) valueB = '';
-
-      if (sortField === 'visit_date') {
-        const timeA = valueA ? new Date(valueA).getTime() : 0;
-        const timeB = valueB ? new Date(valueB).getTime() : 0;
-        return sortDirection === 'asc' ? timeA - timeB : timeB - timeA;
-      }
-
-      if (sortField === 'patient_course') {
-        valueA = getCourseLabel(valueA);
-        valueB = getCourseLabel(valueB);
-      }
-
-      const strA = String(valueA).toLowerCase();
-      const strB = String(valueB).toLowerCase();
-      if (strA < strB) return sortDirection === 'asc' ? -1 : 1;
-      if (strA > strB) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
-  };
-
-  const executeRangeFiltering = (baseArray, rangeType, startBound, endBound) => {
-    let result = [...baseArray];
-    const now = new Date();
-
-    if (rangeType === '7days') {
+    if (range === '7days') {
       const cutOff = new Date();
-      cutOff.setDate(now.getDate() - 7);
-      result = result.filter(r => new Date(r.visit_date || r.created_at) >= cutOff);
-    } else if (rangeType === '30days') {
+      cutOff.setDate(today.getDate() - 7);
+      filtered = filtered.filter(r => new Date(r.visit_date || r.created_at) >= cutOff);
+    } else if (range === '30days') {
       const cutOff = new Date();
-      cutOff.setDate(now.getDate() - 30);
-      result = result.filter(r => new Date(r.visit_date || r.created_at) >= cutOff);
-    } else if (rangeType === '6months') {
+      cutOff.setDate(today.getDate() - 30);
+      filtered = filtered.filter(r => new Date(r.visit_date || r.created_at) >= cutOff);
+    } else if (range === '6months') {
       const cutOff = new Date();
-      cutOff.setMonth(now.getMonth() - 6);
-      result = result.filter(r => new Date(r.visit_date || r.created_at) >= cutOff);
-    } else if (rangeType === 'custom') {
-      if (startBound) {
-        const start = new Date(startBound);
-        start.setHours(0, 0, 0, 0);
-        result = result.filter(r => new Date(r.visit_date || r.created_at) >= start);
-      }
-      if (endBound) {
-        const end = new Date(endBound);
-        end.setHours(23, 59, 59, 999);
-        result = result.filter(r => new Date(r.visit_date || r.created_at) <= end);
-      }
+      cutOff.setMonth(today.getMonth() - 6);
+      filtered = filtered.filter(r => new Date(r.visit_date || r.created_at) >= cutOff);
+    } else if (range === 'custom' && start && end) {
+      const startDate = new Date(start);
+      startDate.setHours(0, 0, 0, 0);
+      const endDate = new Date(end);
+      endDate.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(r => {
+        const d = new Date(r.visit_date || r.created_at);
+        return d >= startDate && d <= endDate;
+      });
     }
-    return result;
+    return filtered;
   };
 
+  // Sync Global Dashboard Props to Dashboard Preview Component
   useEffect(() => {
-    const dashboardFiltered = executeRangeFiltering(records, dateRange, customStart, customEnd);
-    setDashboardRecords(sortDataList([...dashboardFiltered]));
+    setDashboardRecords(executeRangeFiltering(records, dateRange, customStart, customEnd));
+  }, [dateRange, customStart, customEnd, records]);
 
-    let modalFiltered = [...records];
-    modalFiltered = executeRangeFiltering(modalFiltered, modalDateRange, modalStartDate, modalEndDate);
-    
+  // Handle Internal Modal Filtering (Workshop Mode)
+  useEffect(() => {
+    let modalFiltered = executeRangeFiltering(records, modalDateRange, modalStartDate, modalEndDate);
+
     if (selectedDiagnoses.length > 0) {
-      modalFiltered = modalFiltered.filter(record => 
-        selectedDiagnoses.includes(record.diagnosis)
-      );
+      modalFiltered = modalFiltered.filter(r => selectedDiagnoses.includes(r.diagnosis));
     }
 
     if (selectedCampuses.length > 0) {
@@ -274,7 +209,7 @@ const MedicalReports = ({ dateRange, customStart, customEnd }) => {
     }
 
     if (selectedCourses.length > 0) {
-      modalFiltered = modalFiltered.filter(record => 
+      modalFiltered = modalFiltered.filter(record =>
         selectedCourses.includes(String(record.patient_course))
       );
     }
@@ -292,21 +227,21 @@ const MedicalReports = ({ dateRange, customStart, customEnd }) => {
         const name = (record.patient_name || '').toLowerCase();
         const idNum = (record.patient_usc_id || '').toLowerCase();
         const role = (record.patient_role || '').toLowerCase();
-        const course = getCourseLabel(record.patient_course).toLowerCase(); 
+        const course = getCourseLabel(record.patient_course).toLowerCase();
         const concern = (record.concern || '').toLowerCase();
         const diagnosis = (record.diagnosis || '').toLowerCase();
         const formattedDate = formatDate(record.visit_date || record.created_at).toLowerCase();
 
-        return name.includes(query) || 
-               idNum.includes(query) || 
-               role.includes(query) || 
+        return name.includes(query) ||
+               idNum.includes(query) ||
+               role.includes(query) ||
                course.includes(query) ||
-               concern.includes(query) || 
-               diagnosis.includes(query) || 
+               concern.includes(query) ||
+               diagnosis.includes(query) ||
                formattedDate.includes(query);
       });
     }
-    
+
     setModalRecords(sortDataList([...modalFiltered]));
   }, [selectedDiagnoses, selectedCampuses, selectedSchools, selectedCourses, modalDateRange, modalStartDate, modalEndDate, searchQuery, dateRange, customStart, customEnd, records, sortField, sortDirection, courseMap, selectedProviders]);
 
@@ -320,7 +255,7 @@ const MedicalReports = ({ dateRange, customStart, customEnd }) => {
     try {
       setGenerating(true);
       setError(null);
-      
+
       const payload = {
         title: `Comprehensive Clinical Audit Report - ${new Date().toLocaleDateString()}`,
         export_format: format,
@@ -330,13 +265,14 @@ const MedicalReports = ({ dateRange, customStart, customEnd }) => {
           diagnosis: selectedDiagnoses,
           campus: selectedCampuses,
           school: selectedSchools,
-          providers: selectedProviders
+          providers: selectedProviders,
+          course: selectedCourses
         }
       };
 
       const response = await reportService.generateReport(3, payload); // Template ID 3: Treatment Outcomes/Clinical Audit
       setSuccess(`Report generation started! ID: ${response.data.report_id}`);
-      
+
       setTimeout(() => {
         setSuccess(null);
       }, 3000);
@@ -346,6 +282,24 @@ const MedicalReports = ({ dateRange, customStart, customEnd }) => {
     } finally {
       setGenerating(false);
     }
+  };
+
+  const sortDataList = (list) => {
+    return list.sort((a, b) => {
+      let valA = a[sortField];
+      let valB = b[sortField];
+
+      if (sortField === 'visit_date') {
+        valA = new Date(valA || a.created_at).getTime();
+        valB = new Date(valB || b.created_at).getTime();
+      }
+
+      if (sortDirection === 'asc') {
+        return valA > valB ? 1 : -1;
+      } else {
+        return valA < valB ? 1 : -1;
+      }
+    });
   };
 
   const generateChartData = (dataSrc, limit = null) => {
@@ -369,33 +323,12 @@ const MedicalReports = ({ dateRange, customStart, customEnd }) => {
       labels: sortedDiagnoses.map(d => d.diagnosis),
       datasets: [
         {
-          label: 'Total Cases',
+          label: 'Consultation Frequency',
           data: sortedDiagnoses.map(d => d.count),
           backgroundColor: backgroundColors,
-          borderWidth: 0,
-          borderRadius: 4,
-          barThickness: 18, 
-          maxBarThickness: 20
-        }
-      ]
-    };
-  };
-
-  const generateProviderChartData = (tallyRows) => {
-    const displayRows = tallyRows.slice(0, 6); 
-    const blueGradient = ['#0284c7', '#0ea5e9', '#38bdf8', '#7dd3fc', '#bae6fd', '#e0f2fe'];
-    
-    return {
-      labels: displayRows.map(([id]) => providerMap[String(id)] || (id === 'Unknown' ? 'System/Unassigned' : `User #${id}`)),
-      datasets: [
-        {
-          label: 'Logs Created',
-          data: displayRows.map(([_, count]) => count),
-          backgroundColor: displayRows.map((_, i) => blueGradient[i % blueGradient.length]),
-          borderWidth: 0,
-          borderRadius: 4,
-          barThickness: 14,
-          maxBarThickness: 16
+          borderColor: '#ffffff',
+          borderWidth: 1.5,
+          borderRadius: 4
         }
       ]
     };
@@ -405,21 +338,34 @@ const MedicalReports = ({ dateRange, customStart, customEnd }) => {
     indexAxis: 'y', 
     responsive: true, 
     maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    layout: { padding: { top: 10, bottom: 10, left: 5, right: 15 } },
-    scales: {
-      x: { beginAtZero: true, grid: { color: '#f0f0f0' }, ticks: { font: { size: 11 }, stepSize: 1 } },
-      y: {
-        grid: { display: false },
-        ticks: {
-          font: { size: 11, fontWeight: '500' },
-          callback: function(value) {
-            const label = this.getLabelForValue(value);
-            return label.length > 20 ? label.substring(0, 17) + '...' : label;
-          }
-        }
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        titleColor: '#1e293b',
+        bodyColor: '#1e293b',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+        padding: 12
       }
+    },
+    scales: {
+      x: { beginAtZero: true, grid: { color: '#f8fafc' }, ticks: { font: { size: 10 } } },
+      y: { grid: { display: false }, ticks: { font: { size: 11, weight: '500' } } }
     }
+  };
+
+  const renderDashboardHeadlineString = () => {
+    if (dateRange === '7days') return "(Last 7 Days)";
+    if (dateRange === '30days') return "(Last 30 Days)";
+    if (dateRange === '6months') return "(Last 6 Months)";
+    if (dateRange === 'custom') return `(${modalStartDate} to ${modalEndDate})`;
+    return "(All Records)";
+  };
+
+  const handleRowClick = (record) => {
+    setSelectedRecord(record);
+    setOpenDetailModal(true);
   };
 
   const uniqueDiagnoses = Array.from(new Set(records.map(r => r.diagnosis).filter(Boolean)));
@@ -447,17 +393,7 @@ const MedicalReports = ({ dateRange, customStart, customEnd }) => {
     .sort((a, b) => a.label.localeCompare(b.label));
 
   const providerTallyRows = Object.entries(
-    executeRangeFiltering(records, modalDateRange, modalStartDate, modalEndDate)
-    .filter(r => selectedDiagnoses.length === 0 || selectedDiagnoses.includes(r.diagnosis))
-    .reduce((acc, curr) => {
-      const creatorId = curr.created_by || 'Unknown';
-      acc[creatorId] = (acc[creatorId] || 0) + 1;
-      return acc;
-    }, {})
-  ).sort((a, b) => b[1] - a[1]);
-
-  const filteredProviderTallyRows = Object.entries(
-    modalRecords.reduce((acc, curr) => {
+    executeRangeFiltering(records, modalDateRange, modalStartDate, modalEndDate).reduce((acc, curr) => {
       const creatorId = curr.created_by || 'Unknown';
       acc[creatorId] = (acc[creatorId] || 0) + 1;
       return acc;
@@ -466,7 +402,7 @@ const MedicalReports = ({ dateRange, customStart, customEnd }) => {
 
   return (
     <Box sx={{ width: '100%' }}>
-      
+
       {/* --- DASHBOARD PREVIEW CARD --- */}
       <Card sx={{ boxShadow: '0 4px 20px rgba(0,0,0,0.05)', borderRadius: '12px', bgcolor: '#ffffff' }}>
         <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
@@ -474,7 +410,7 @@ const MedicalReports = ({ dateRange, customStart, customEnd }) => {
             <Box display="flex" alignItems="center" gap={1}>
               <ChartIcon sx={{ color: '#16a34a', fontSize: 26 }} />
               <Typography variant="h6" sx={{ fontWeight: 600, color: '#16a34a', fontSize: '1.1rem' }}>
-                Medical Records Analysis
+                Most Common Diagnosis {renderDashboardHeadlineString()}
               </Typography>
             </Box>
             {!loading && (
@@ -485,7 +421,7 @@ const MedicalReports = ({ dateRange, customStart, customEnd }) => {
                 onClick={() => setOpenModal(true)}
                 sx={{ bgcolor: '#16a34a', '&:hover': { bgcolor: '#11823b' }, textTransform: 'none', borderRadius: '8px', fontWeight: 600 }}
               >
-                Audit Workshop
+                View Details
               </Button>
             )}
           </Box>
@@ -496,21 +432,21 @@ const MedicalReports = ({ dateRange, customStart, customEnd }) => {
             ) : dashboardRecords.length > 0 ? (
               <Bar data={generateChartData(dashboardRecords, 5)} options={chartOptions} />
             ) : (
-              <Typography color="text.secondary" variant="body2">No medical records found.</Typography>
+              <Typography color="text.secondary" variant="body2">No medical records found inside chosen global parameters.</Typography>
             )}
           </Box>
         </CardContent>
       </Card>
 
       {/* --- MAIN DRILL DOWN WORKSHOP MODAL --- */}
-      <Dialog open={openModal} onClose={() => setOpenModal(false)} fullWidth maxWidth="lg" PaperProps={{ sx: { borderRadius: '12px' } }}>
+      <Dialog open={openModal} onClose={() => setOpenModal(false)} fullWidth maxWidth="lg" scroll="paper" PaperProps={{ sx: { borderRadius: '12px' } }}>
         <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#fafafa', borderBottom: '1px solid #e0e0e0' }}>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 600, color: '#16a34a' }}>
               Detailed Clinical Diagnosis Breakdown Workshop
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Analyze consultations by diagnosis, campus, school, and provider. Cooperatively filter down to row level.
+              Customize filters dynamically. All inputs work cooperatively to filter your breakdown metrics down to row level specifications.
             </Typography>
           </Box>
           <IconButton onClick={() => setOpenModal(false)} sx={{ color: (theme) => theme.palette.grey[500] }}>
@@ -522,114 +458,216 @@ const MedicalReports = ({ dateRange, customStart, customEnd }) => {
           {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
           {success && <Alert severity="success" sx={{ mb: 3 }}>{success}</Alert>}
 
-          {/* FILTERS ROW */}
-          <Grid container spacing={2} sx={{ mb: 2 }}>
-            <Grid item xs={12} sm={4}>
-              <Autocomplete
-                multiple
-                size="small"
-                options={campusOptions}
-                value={selectedCampuses}
-                onChange={(event, newValue) => {
-                  setSelectedCampuses(newValue);
-                  setSelectedSchools([]);
-                  setSelectedCourses([]);
-                }}
-                renderTags={(tagValue, getTagProps) =>
-                  tagValue.map((option, index) => {
-                    const { key, ...tagProps } = getTagProps({ index });
-                    return <Chip key={key} label={option} size="small" sx={{ bgcolor: '#f3e5f5', color: '#7b1fa2' }} {...tagProps} />;
-                  })
-                }
-                renderInput={(params) => <TextField {...params} label="Campus" variant="outlined" />}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={4}>
-              <Autocomplete
-                multiple
-                size="small"
-                options={schoolOptions}
-                value={selectedSchools}
-                onChange={(event, newValue) => {
-                  setSelectedSchools(newValue);
-                  setSelectedCourses([]);
-                }}
-                renderTags={(tagValue, getTagProps) =>
-                  tagValue.map((option, index) => {
-                    const { key, ...tagProps } = getTagProps({ index });
-                    return <Chip key={key} label={option} size="small" sx={{ bgcolor: '#fff3e0', color: '#e65100' }} {...tagProps} />;
-                  })
-                }
-                renderInput={(params) => <TextField {...params} label="School" variant="outlined" />}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={4}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Timeline</InputLabel>
-                <Select value={modalDateRange} label="Timeline" onChange={(e) => setModalDateRange(e.target.value)}>
-                  <MenuItem value="all">Show All</MenuItem>
-                  <MenuItem value="7days">Past 7 Days</MenuItem>
-                  <MenuItem value="30days">Past 30 Days</MenuItem>
-                  <MenuItem value="6months">Past 6 Months</MenuItem>
-                  <MenuItem value="custom">Custom...</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
+          {/* ROW 1 FILTERS: STRUCTURE & ANATOMY GROUPS */}
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+             <Grid item xs={12} sm={3}>
+               <Autocomplete
+                 multiple
+                 size="small"
+                 options={campusOptions}
+                 value={selectedCampuses}
+                 onChange={(e, v) => { setSelectedCampuses(v); setSelectedSchools([]); setSelectedCourses([]); }}
+                 renderTags={(tagValue, getTagProps) =>
+                    tagValue.map((option, index) => {
+                      const { key, ...tagProps } = getTagProps({ index });
+                      return <Chip key={key} label={option} size="small" color="success" variant="outlined" {...tagProps} />;
+                    })
+                 }
+                 renderInput={(params) => <TextField {...params} label="Filter by Campus" />}
+               />
+             </Grid>
+             <Grid item xs={12} sm={3}>
+               <Autocomplete
+                 multiple
+                 size="small"
+                 options={schoolOptions}
+                 value={selectedSchools}
+                 onChange={(e, v) => { setSelectedSchools(v); setSelectedCourses([]); }}
+                 disabled={selectedCampuses.length === 0}
+                 renderTags={(tagValue, getTagProps) =>
+                    tagValue.map((option, index) => {
+                      const { key, ...tagProps } = getTagProps({ index });
+                      return <Chip key={key} label={option} size="small" color="success" variant="outlined" {...tagProps} />;
+                    })
+                 }
+                 renderInput={(params) => <TextField {...params} label="Filter by School" placeholder={selectedCampuses.length === 0 ? "Select Campus First" : ""} />}
+               />
+             </Grid>
+             <Grid item xs={12} sm={6}>
+               <Autocomplete
+                 multiple
+                 size="small"
+                 options={activeCourseFilterOptions}
+                 getOptionLabel={(option) => option.label || option}
+                 value={selectedCourses.map(id => activeCourseFilterOptions.find(o => o.id === id) || id)}
+                 onChange={(e, v) => setSelectedCourses(v.map(item => item.id || item))}
+                 disabled={selectedSchools.length === 0}
+                 renderTags={(tagValue, getTagProps) =>
+                    tagValue.map((option, index) => {
+                      const { key, ...tagProps } = getTagProps({ index });
+                      return <Chip key={key} label={option.label || option} size="small" color="success" {...tagProps} />;
+                    })
+                 }
+                 renderInput={(params) => <TextField {...params} label="Filter by Academic Program" placeholder={selectedSchools.length === 0 ? "Select School First" : ""} />}
+               />
+             </Grid>
           </Grid>
 
-          {/* DIAGNOSIS CHART */}
-          <Box sx={{ minHeight: 320, maxHeight: 420, position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', p: 2, border: '1px solid #e0e0e0', borderRadius: '8px', bgcolor: '#ffffff', mb: 4 }}>
-            {modalRecords.length > 0 ? (
-              <Bar data={generateChartData(modalRecords)} options={chartOptions} />
-            ) : (
-              <Typography color="text.secondary" variant="body2">No matching records found.</Typography>
-            )}
-          </Box>
+          {/* ROW 2 FILTERS: CLINICAL & TIMELINE */}
+          <Grid container spacing={2} sx={{ mb: 4 }}>
+             <Grid item xs={12} sm={4}>
+               <Autocomplete
+                 multiple
+                 size="small"
+                 options={uniqueDiagnoses}
+                 value={selectedDiagnoses}
+                 onChange={(e, v) => setSelectedDiagnoses(v)}
+                 renderTags={(tagValue, getTagProps) =>
+                    tagValue.map((option, index) => {
+                      const { key, ...tagProps } = getTagProps({ index });
+                      return <Chip key={key} label={option} size="small" color="primary" {...tagProps} />;
+                    })
+                 }
+                 renderInput={(params) => <TextField {...params} label="Targeted Diagnoses" />}
+               />
+             </Grid>
+             <Grid item xs={12} sm={4}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Workshop Timeline</InputLabel>
+                  <Select value={modalDateRange} label="Workshop Timeline" onChange={(e) => setModalDateRange(e.target.value)}>
+                    <MenuItem value="all">Full Academic History</MenuItem>
+                    <MenuItem value="7days">Last 7 Days</MenuItem>
+                    <MenuItem value="30days">Last 30 Days</MenuItem>
+                    <MenuItem value="6months">Last 6 Months</MenuItem>
+                    <MenuItem value="custom">Manual Range Selection</MenuItem>
+                  </Select>
+                </FormControl>
+             </Grid>
+             {modalDateRange === 'custom' && (
+               <>
+                 <Grid item xs={12} sm={2}>
+                   <TextField fullWidth type="date" label="Start" size="small" value={modalStartDate} onChange={(e) => setModalStartDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ max: modalEndDate || getTodayString() }} />
+                 </Grid>
+                 <Grid item xs={12} sm={2}>
+                   <TextField fullWidth type="date" label="End" size="small" value={modalEndDate} onChange={(e) => setModalEndDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ min: modalStartDate, max: getTodayString() }} />
+                 </Grid>
+               </>
+             )}
+          </Grid>
 
           <Divider sx={{ mb: 3 }} />
 
-          {/* TABLE SECTION */}
+          {/* ANALYTICS SUMMARY MINI-TILES */}
+          <Grid container spacing={2} sx={{ mb: 4 }}>
+             <Grid item xs={12} md={8}>
+                <Box sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: '8px', bgcolor: '#ffffff', height: 350 }}>
+                   <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Morbidity Visualization (Filtered)</Typography>
+                   <Box sx={{ height: 280 }}>
+                     {modalRecords.length > 0 ? (
+                       <Bar data={generateChartData(modalRecords)} options={chartOptions} />
+                     ) : <Typography variant="body2" color="text.secondary" textAlign="center" mt={10}>No morbidity data for current parameters</Typography>}
+                   </Box>
+                </Box>
+             </Grid>
+             <Grid item xs={12} md={4}>
+                <Box sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: '8px', bgcolor: '#ffffff', height: 350, overflowY: 'auto' }}>
+                   <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Provider Performance Tally</Typography>
+                   <Table size="small">
+                     <TableHead>
+                       <TableRow>
+                         <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Provider Name</TableCell>
+                         <TableCell align="right" sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Records</TableCell>
+                       </TableRow>
+                     </TableHead>
+                     <TableBody>
+                        {providerTallyRows.map(([id, count]) => (
+                          <TableRow key={id} hover sx={{ 
+                            bgcolor: selectedProviders.includes(id) ? '#f0fdf4' : 'transparent',
+                            cursor: 'pointer' 
+                          }} onClick={() => {
+                            if (selectedProviders.includes(id)) setSelectedProviders(selectedProviders.filter(pid => pid !== id));
+                            else setSelectedProviders([...selectedProviders, id]);
+                          }}>
+                            <TableCell sx={{ fontSize: '0.75rem' }}>{providerMap[id] || id}</TableCell>
+                            <TableCell align="right" sx={{ fontSize: '0.75rem', fontWeight: 600 }}>{count}</TableCell>
+                          </TableRow>
+                        ))}
+                     </TableBody>
+                   </Table>
+                </Box>
+             </Grid>
+          </Grid>
+
+          {/* DATA TABLE SECTION */}
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Clinical Audit Trail</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Clinical Audit Log</Typography>
             <TextField
               size="small"
-              placeholder="Search audit logs..."
+              placeholder="Instant Search Across All Fields..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               InputProps={{
-                startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>
+                startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>,
+                endAdornment: searchQuery && (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={() => setSearchQuery('')}><CloseIcon fontSize="small" /></IconButton>
+                  </InputAdornment>
+                )
               }}
-              sx={{ width: 300 }}
+              sx={{ width: 350 }}
             />
           </Box>
-          
-          <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 400, borderRadius: '8px' }}>
+
+          <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 500, borderRadius: '8px' }}>
             <Table stickyHeader size="small">
               <TableHead>
                 <TableRow>
                   {tableColumns.map((col) => (
-                    <TableCell key={col.id} sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }} align={col.align}>
-                      <TableSortLabel active={sortField === col.id} direction={sortField === col.id ? sortDirection : 'asc'} onClick={() => handleRequestSort(col.id)}>
+                    <TableCell 
+                      key={col.id} 
+                      align={col.align} 
+                      sx={{ bgcolor: '#f8fafc', fontWeight: 'bold', py: 1.5 }}
+                    >
+                      <TableSortLabel
+                        active={sortField === col.id}
+                        direction={sortField === col.id ? sortDirection : 'asc'}
+                        onClick={() => handleRequestSort(col.id)}
+                      >
                         {col.label}
                       </TableSortLabel>
                     </TableCell>
                   ))}
+                  <TableCell align="center" sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {modalRecords.map((row) => (
-                  <TableRow key={row.id} hover onClick={() => handleOpenRowDetail(row)} sx={{ cursor: 'pointer' }}>
-                    <TableCell sx={{ fontWeight: 600 }}>{row.patient_name || '-'}</TableCell>
-                    <TableCell>{row.patient_usc_id || '-'}</TableCell>
-                    <TableCell>{row.patient_role || '-'}</TableCell>
-                    <TableCell>{getCourseLabel(row.patient_course)}</TableCell> 
-                    <TableCell sx={{ fontWeight: 700, color: '#16a34a' }}>{row.diagnosis || '-'}</TableCell>
-                    <TableCell>{row.concern || '-'}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDate(row.visit_date || row.created_at)}</TableCell>
+                  <TableRow key={row.id} hover onClick={() => handleRowClick(row)} sx={{ cursor: 'pointer' }}>
+                    <TableCell sx={{ fontWeight: 600 }}>{row.patient_name}</TableCell>
+                    <TableCell>{row.patient_usc_id}</TableCell>
+                    <TableCell>
+                      <Chip label={row.patient_role} size="small" variant="outlined" sx={{ fontSize: '0.65rem', height: 20 }} />
+                    </TableCell>
+                    <TableCell>{getCourseLabel(row.patient_course)}</TableCell>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ color: '#16a34a', fontWeight: 700 }}>{row.diagnosis}</Typography>
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {row.concern}
+                    </TableCell>
+                    <TableCell>{formatDate(row.visit_date || row.created_at)}</TableCell>
+                    <TableCell align="center">
+                       <IconButton size="small" color="primary"><ViewIcon fontSize="small" /></IconButton>
+                    </TableCell>
                   </TableRow>
                 ))}
+                {modalRecords.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={8} align="center" sx={{ py: 8 }}>
+                       <Typography variant="body2" color="text.secondary">No clinical records found matching your multi-tier filter selection.</Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </TableContainer>
@@ -654,30 +692,176 @@ const MedicalReports = ({ dateRange, customStart, customEnd }) => {
       </Dialog>
 
       {/* DETAIL MODAL (Left as is, already excellent) */}
-      <Dialog open={openDetailModal} onClose={() => setOpenDetailModal(false)} fullWidth maxWidth="md">
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#f4fbf7' }}>
-          <Typography variant="h6" fontWeight="bold" color="#11823b">Consultation Details</Typography>
-          <IconButton onClick={() => setOpenDetailModal(false)}><CloseIcon /></IconButton>
+      <Dialog 
+        open={openDetailModal} 
+        onClose={() => setOpenDetailModal(false)} 
+        fullWidth 
+        maxWidth="md"
+        scroll="paper"
+        disableEnforceFocus={false}
+        keepMounted={false}
+        PaperProps={{
+          sx: { borderRadius: '12px', boxShadow: '0 8px 32px rgba(0,0,0,0.15)' }
+        }}
+      >
+        <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#f4fbf7', borderBottom: '1px solid #c8e6c9' }}>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: '#11823b' }}>
+              Clinical Consultation Details
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Record ID Reference: #{selectedRecord?.id || '-'}
+            </Typography>
+          </Box>
+          <IconButton onClick={() => setOpenDetailModal(false)} sx={{ color: '#555' }}>
+            <CloseIcon />
+          </IconButton>
         </DialogTitle>
-        <DialogContent dividers>
+        <DialogContent dividers sx={{ p: 3, bgcolor: '#ffffff' }}>
           {selectedRecord && (
-             <Box sx={{ p: 1 }}>
-               <Typography variant="subtitle2" gutterBottom fontWeight="bold">Patient Info</Typography>
-               <Grid container spacing={2} sx={{ mb: 3 }}>
-                 <Grid item xs={6}><Typography variant="caption" color="text.secondary">Name</Typography><Typography variant="body2">{selectedRecord.patient_name}</Typography></Grid>
-                 <Grid item xs={6}><Typography variant="caption" color="text.secondary">USC ID</Typography><Typography variant="body2">{selectedRecord.patient_usc_id}</Typography></Grid>
-               </Grid>
-               <Divider sx={{ mb: 2 }} />
-               <Typography variant="subtitle2" gutterBottom fontWeight="bold">Clinical Record</Typography>
-               <Typography variant="caption" color="text.secondary">Diagnosis</Typography>
-               <Typography variant="body1" sx={{ fontWeight: 'bold', mb: 2 }}>{selectedRecord.diagnosis}</Typography>
-               <Typography variant="caption" color="text.secondary">Notes / Recommendations</Typography>
-               <Typography variant="body2" sx={{ bgcolor: '#f9f9f9', p: 2, borderRadius: '4px' }}>{selectedRecord.notes || 'No additional notes.'}</Typography>
-             </Box>
+             <Grid container spacing={2.5}>
+              {/* Patient Basic Info */}
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#11823b', mb: 1, letterSpacing: '0.5px', textTransform: 'uppercase', fontSize: '0.75rem' }}>
+                  Patient Demographics
+                </Typography>
+                <Paper variant="outlined" sx={{ p: 2, borderRadius: '8px', bgcolor: '#fcfcfc' }}>
+                  <Grid container spacing={1.5}>
+                    <Grid item xs={12} display="flex" justifyContent="space-between">
+                      <Typography variant="caption" color="text.secondary">Full Name</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedRecord.patient_name}</Typography>
+                    </Grid>
+                    <Grid item xs={12} display="flex" justifyContent="space-between">
+                      <Typography variant="caption" color="text.secondary">University ID</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedRecord.patient_usc_id}</Typography>
+                    </Grid>
+                    <Grid item xs={12} display="flex" justifyContent="space-between">
+                      <Typography variant="caption" color="text.secondary">Role / Classification</Typography>
+                      <Chip label={selectedRecord.patient_role} size="small" sx={{ height: 18, fontSize: '0.65rem', fontWeight: 700 }} />
+                    </Grid>
+                    <Grid item xs={12} display="flex" justifyContent="space-between">
+                      <Typography variant="caption" color="text.secondary">Program / Course</Typography>
+                      <Typography variant="body2" sx={{ maxWidth: '60%', textAlign: 'right' }}>{getCourseLabel(selectedRecord.patient_course)}</Typography>
+                    </Grid>
+                  </Grid>
+                </Paper>
+              </Grid>
+
+              {/* Consultation Context */}
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#11823b', mb: 1, letterSpacing: '0.5px', textTransform: 'uppercase', fontSize: '0.75rem' }}>
+                  Clinical Session Context
+                </Typography>
+                <Paper variant="outlined" sx={{ p: 2, borderRadius: '8px', bgcolor: '#fcfcfc' }}>
+                  <Grid container spacing={1.5}>
+                    <Grid item xs={12} display="flex" justifyContent="space-between">
+                      <Typography variant="caption" color="text.secondary">Consultation Date</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{formatDate(selectedRecord.visit_date || selectedRecord.created_at)}</Typography>
+                    </Grid>
+                    <Grid item xs={12} display="flex" justifyContent="space-between">
+                      <Typography variant="caption" color="text.secondary">Attending Provider</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#16a34a' }}>{selectedRecord.created_by_name || 'System Auto'}</Typography>
+                    </Grid>
+                    <Grid item xs={12} display="flex" justifyContent="space-between">
+                      <Typography variant="caption" color="text.secondary">Primary Diagnosis</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: '#d32f2f' }}>{selectedRecord.diagnosis}</Typography>
+                    </Grid>
+                    <Grid item xs={12} display="flex" justifyContent="space-between">
+                      <Typography variant="caption" color="text.secondary">Chief Complaint</Typography>
+                      <Typography variant="body2" sx={{ fontStyle: 'italic' }}>{selectedRecord.concern || 'None documented'}</Typography>
+                    </Grid>
+                  </Grid>
+                </Paper>
+              </Grid>
+
+              {/* Vitals */}
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#11823b', mb: 1, letterSpacing: '0.5px', textTransform: 'uppercase', fontSize: '0.75rem' }}>
+                  Vital Signs Panel
+                </Typography>
+                <Paper variant="outlined" sx={{ p: 2, borderRadius: '8px' }}>
+                  <Grid container spacing={1.5}>
+                    <Grid item xs={6}>
+                      <Typography variant="caption" color="text.secondary">Core Temperature</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedRecord.vital_signs?.temperature ? `${selectedRecord.vital_signs.temperature} °C` : '-'}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="caption" color="text.secondary">Blood Pressure</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedRecord.vital_signs?.blood_pressure || '-'}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="caption" color="text.secondary">Heart Rate</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedRecord.vital_signs?.heart_rate ? `${selectedRecord.vital_signs.heart_rate} bpm` : '-'}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="caption" color="text.secondary">Respiratory Rate</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedRecord.vital_signs?.respiratory_rate ? `${selectedRecord.vital_signs.respiratory_rate} cpm` : '-'}</Typography>
+                    </Grid>
+                    <Divider sx={{ width: '100%', my: 0.5 }} />
+                    <Grid item xs={4}>
+                      <Typography variant="caption" color="text.secondary">Height</Typography>
+                      <Typography variant="body2">{selectedRecord.vital_signs?.height ? `${selectedRecord.vital_signs.height} cm` : '-'}</Typography>
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Typography variant="caption" color="text.secondary">Weight</Typography>
+                      <Typography variant="body2">{selectedRecord.vital_signs?.weight ? `${selectedRecord.vital_signs.weight} kg` : '-'}</Typography>
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Typography variant="caption" color="text.secondary">Calculated BMI</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>{selectedRecord.vital_signs?.bmi || '-'}</Typography>
+                    </Grid>
+                  </Grid>
+                </Paper>
+              </Grid>
+
+              {/* Physical Exam Checklist */}
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#11823b', mb: 1, letterSpacing: '0.5px', textTransform: 'uppercase', fontSize: '0.75rem' }}>
+                  Physical Examination Logs
+                </Typography>
+                <Paper variant="outlined" sx={{ p: 2, borderRadius: '8px', maxHeight: 180, overflowY: 'auto' }}>
+                  <Grid container spacing={1}>
+                    {selectedRecord.physical_examination ? (
+                      Object.entries(selectedRecord.physical_examination).map(([key, val]) => (
+                        <Grid item xs={12} sm={6} key={key} display="flex" justifyContent="space-between" sx={{ pb: 0.5, borderBottom: '1px solid #f0f0f0' }}>
+                          <Typography variant="caption" sx={{ textTransform: 'capitalize', fontWeight: 500, color: '#666' }}>
+                            {key.replace('_', ' ')}:
+                          </Typography>
+                          <Typography variant="caption" sx={{ fontWeight: 600, color: val ? '#000' : 'text.secondary' }}>
+                            {val || 'Normal'}
+                          </Typography>
+                        </Grid>
+                      ))
+                    ) : (
+                      <Grid item xs={12}><Typography variant="caption" color="text.secondary">No targeted organ reviews documented.</Typography></Grid>
+                    )}
+                  </Grid>
+                </Paper>
+              </Grid>
+
+              {/* Notes */}
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#11823b', mb: 0.5, letterSpacing: '0.5px', textTransform: 'uppercase', fontSize: '0.75rem' }}>
+                  Provider Progress Notes / Directives
+                </Typography>
+                <Paper variant="outlined" sx={{ p: 1.5, minHeight: 60, bgcolor: '#fafafa', borderRadius: '8px' }}>
+                  <Typography variant="body2" sx={{ fontStyle: selectedRecord.notes ? 'normal' : 'italic', color: selectedRecord.notes ? 'text.primary' : 'text.secondary' }}>
+                    {selectedRecord.notes || 'No supplementary procedural notes or patient counseling flags were added to this chart row.'}
+                  </Typography>
+                </Paper>
+              </Grid>
+
+            </Grid>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDetailModal(false)}>Close</Button>
+        <DialogActions sx={{ p: 1.5, bgcolor: '#fafafa', borderTop: '1px solid #e0e0e0' }}>
+          <Button 
+            onClick={() => setOpenDetailModal(false)} 
+            variant="outlined" 
+            sx={{ textTransform: 'none', borderRadius: '8px', px: 3, borderColor: '#16a34a', color: '#16a34a', '&:hover': { borderColor: '#11823b', bgcolor: '#f4fbf7' }, fontWeight: 600 }}
+          >
+            Close View
+          </Button>
         </DialogActions>
       </Dialog>
 

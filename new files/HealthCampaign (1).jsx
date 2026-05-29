@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from 'react';
+/**
+ * HealthCampaign (1).jsx
+ * Updated: May 29, 2026 - Analytical Reports Workshop
+ */
 import { 
   Box, Card, CardContent, Typography, CircularProgress, Button,
   Alert, TextField, FormControl, InputLabel, Select, MenuItem, Grid,

@@ -131,7 +131,7 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
   const chartData = {
     labels: data?.visits?.monthly?.map(m => m.month) || [],
     datasets: [
-      {
+      ...(streamFilter === 'all' || streamFilter === 'medical' ? [{
         label: 'Medical Consultations',
         data: data?.visits?.monthly?.map(m => m.medical_visits) || [],
         borderColor: '#2563eb',
@@ -144,8 +144,8 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
         pointHoverRadius: 7,
         tension: 0.4,
         fill: viewType === 'area',
-      },
-      {
+      }] : []),
+      ...(streamFilter === 'all' || streamFilter === 'dental' ? [{
         label: 'Dental Procedures',
         data: data?.visits?.monthly?.map(m => m.dental_visits) || [],
         borderColor: '#7c3aed',
@@ -158,7 +158,7 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
         pointHoverRadius: 7,
         tension: 0.4,
         fill: viewType === 'area',
-      }
+      }] : [])
     ]
   };
 
@@ -383,10 +383,10 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
                       <TableCell align="right">
                         <Box display="flex" alignItems="center" justifyContent="flex-end" gap={1}>
                           <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-                            {((total / (data.visits.total_count || 1)) * 100).toFixed(1)}%
+                            {((total / (data.visits.total || 1)) * 100).toFixed(1)}%
                           </Typography>
                           <Box sx={{ width: 60, height: 6, bgcolor: '#f1f5f9', borderRadius: 10, overflow: 'hidden' }}>
-                            <Box sx={{ width: `${(total / data.visits.total_count) * 100}%`, height: '100%', bgcolor: '#2563eb' }} />
+                            <Box sx={{ width: `${(total / (data.visits.total || 1)) * 100}%`, height: '100%', bgcolor: '#2563eb' }} />
                           </Box>
                         </Box>
                       </TableCell>

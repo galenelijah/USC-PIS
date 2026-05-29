@@ -48,8 +48,12 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
   // Domain Specific Filters (University Hierarchy)
   const [selectedCampuses, setSelectedCampuses] = useState([]);
   const [selectedSchools, setSelectedSchools] = useState([]);
+  const [selectedCourses, setSelectedCourses] = useState([]);
   const [selectedYearLevels, setSelectedYearLevels] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Course Mappings
+  const [courseMap, setCourseMap] = useState({});
 
   const [sortField, setSortField] = useState('count');
   const [sortDirection, setSortDirection] = useState('desc');
@@ -60,6 +64,20 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  };
+
+  const fetchMappings = async () => {
+    try {
+      const response = await api.get('/utils/usc-mappings/');
+      const programsArray = response?.data?.programs || response?.programs || [];
+      const mappedObj = programsArray.reduce((acc, current) => {
+        if (current.id) acc[String(current.id)] = current.label;
+        return acc;
+      }, {});
+      setCourseMap(mappedObj);
+    } catch (err) {
+      console.error("Non-blocking failure fetching academic program text mappings:", err);
+    }
   };
 
   const fetchAnalytics = async (isModal = false) => {
@@ -77,6 +95,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
       if (isModal) {
         if (selectedCampuses.length > 0) params.campus = selectedCampuses.join(',');
         if (selectedSchools.length > 0) params.school = selectedSchools.join(',');
+        if (selectedCourses.length > 0) params.course = selectedCourses.join(',');
         if (selectedYearLevels.length > 0) params.year_level = selectedYearLevels.join(',');
       }
 
@@ -91,6 +110,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
   };
 
   useEffect(() => {
+    fetchMappings();
     fetchAnalytics(false);
   }, [dateRange, customStart, customEnd]);
 
@@ -98,7 +118,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
     if (openModal) {
       fetchAnalytics(true);
     }
-  }, [openModal, modalDateRange, modalStartDate, modalEndDate, selectedCampuses, selectedSchools, selectedYearLevels]);
+  }, [openModal, modalDateRange, modalStartDate, modalEndDate, selectedCampuses, selectedSchools, selectedCourses, selectedYearLevels]);
 
   const handleGenerateReport = async (format = 'PDF') => {
     try {
@@ -113,6 +133,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
         filters: {
           campus: selectedCampuses,
           school: selectedSchools,
+          course: selectedCourses,
           year_level: selectedYearLevels
         }
       };
@@ -225,6 +246,19 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
   const schoolOptions = Array.from(new Set(Object.values(ACADEMIC_DIRECTORY_MAP).map(e => e.school))).sort();
   const yearLevelOptions = ['1', '2', '3', '4', '5'];
 
+  const courseOptions = Object.entries(ACADEMIC_DIRECTORY_MAP)
+    .filter(([id, meta]) => {
+      if (selectedCampuses.length > 0 && !selectedCampuses.includes(meta.campus)) return false;
+      if (selectedSchools.length > 0 && !selectedSchools.includes(meta.school)) return false;
+      return true;
+    })
+    .map(([id, meta]) => ({
+      id,
+      label: courseMap[id] || `Course #${id}`,
+      ...meta
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+
   return (
     <Box sx={{ width: '100%', marginBottom: '20px' }}>
       
@@ -285,13 +319,17 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
 
           {/* FILTERS ROW */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={3}>
+            <Grid item xs={12} sm={2.5}>
               <Autocomplete
                 multiple
                 size="small"
                 options={campusOptions}
                 value={selectedCampuses}
-                onChange={(e, v) => setSelectedCampuses(v)}
+                onChange={(e, v) => {
+                  setSelectedCampuses(v);
+                  setSelectedSchools([]);
+                  setSelectedCourses([]);
+                }}
                 renderTags={(tagValue, getTagProps) =>
                   tagValue.map((option, index) => {
                     const { key, ...tagProps } = getTagProps({ index });
@@ -301,13 +339,16 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
                 renderInput={(params) => <TextField {...params} label="Campus" variant="outlined" />}
               />
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={3}>
               <Autocomplete
                 multiple
                 size="small"
                 options={schoolOptions}
                 value={selectedSchools}
-                onChange={(e, v) => setSelectedSchools(v)}
+                onChange={(e, v) => {
+                  setSelectedSchools(v);
+                  setSelectedCourses([]);
+                }}
                 renderTags={(tagValue, getTagProps) =>
                   tagValue.map((option, index) => {
                     const { key, ...tagProps } = getTagProps({ index });
@@ -317,17 +358,42 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
                 renderInput={(params) => <TextField {...params} label="School / College" variant="outlined" />}
               />
             </Grid>
-            <Grid item xs={12} sm={2}>
+            <Grid item xs={12} sm={3.5}>
+              <Autocomplete
+                multiple
+                size="small"
+                options={courseOptions}
+                getOptionLabel={(option) => option.label}
+                value={courseOptions.filter(opt => selectedCourses.includes(opt.id))}
+                onChange={(e, v) => setSelectedCourses(v.map(item => item.id))}
+                renderTags={(tagValue, getTagProps) =>
+                  tagValue.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return (
+                      <Chip 
+                        key={key} 
+                        label={option.label} 
+                        size="small" 
+                        sx={{ bgcolor: '#f0fdf4', color: '#166534', maxWidth: '120px' }} 
+                        {...tagProps} 
+                      />
+                    );
+                  })
+                }
+                renderInput={(params) => <TextField {...params} label="Academic Program" variant="outlined" />}
+              />
+            </Grid>
+            <Grid item xs={12} sm={1.5}>
               <Autocomplete
                 multiple
                 size="small"
                 options={yearLevelOptions}
                 value={selectedYearLevels}
                 onChange={(e, v) => setSelectedYearLevels(v)}
-                renderInput={(params) => <TextField {...params} label="Year Level" variant="outlined" />}
+                renderInput={(params) => <TextField {...params} label="Year" variant="outlined" />}
               />
             </Grid>
-            <Grid item xs={12} sm={3}>
+            <Grid item xs={12} sm={1.5}>
               <FormControl fullWidth size="small">
                 <InputLabel>Timeline</InputLabel>
                 <Select value={modalDateRange} label="Timeline" onChange={(e) => setModalDateRange(e.target.value)}>
