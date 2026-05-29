@@ -15,11 +15,28 @@ from authentication.models import User
 from .system_monitors import get_system_health, db_monitor, resource_monitor, performance_monitor
 from .health_checks import HealthChecker, quick_health_check
 from .models import BackupStatus, BackupSchedule, SystemHealthMetric
+from .usc_mappings import PROGRAMS_CHOICES, YEAR_LEVEL_CHOICES
 import logging
 import json
 from django.db import connection
 
 logger = logging.getLogger(__name__)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_usc_mappings(request):
+    """
+    Expose USC mappings for programs and year levels to the frontend.
+    This provides a single source of truth for university academic structures.
+    """
+    return Response({
+        'programs': [{'id': k, 'label': v} for k, v in PROGRAMS_CHOICES.items()],
+        'year_levels': [{'id': k, 'label': v} for k, v in YEAR_LEVEL_CHOICES.items()],
+        'metadata': {
+            'total_programs': len(PROGRAMS_CHOICES),
+            'last_updated': timezone.now().isoformat()
+        }
+    })
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

@@ -11,11 +11,12 @@ urlpatterns = [
     path('performance/', views.performance_stats, name='performance_stats'),
     path('resources/', views.resource_health_check, name='resource_health'),
     
-    # Enhanced health check endpoints
+    # Health check endpoints
     path('health/comprehensive/', views.comprehensive_health_check, name='comprehensive_health'),
     path('health/quick/', views.quick_health_api, name='quick_health'),
     path('metrics/', views.system_metrics, name='system_metrics'),
     path('metrics/prometheus/', views.system_metrics_prometheus, name='system_metrics_prometheus'),
+    path('usc-mappings/', views.get_usc_mappings, name='usc_mappings'),
     
     # Legacy backup system endpoints (for compatibility)
     path('backup-health/', views.backup_health_check, name='backup_health'),
