@@ -9,6 +9,7 @@ import ClinicalStatsPreview from './Reports/previews/ClinicalStatsPreview';
 import VisitTrendsPreview from './Reports/previews/VisitTrendsPreview';
 import OperationsPreview from './Reports/previews/OperationsPreview';
 import DentalStatsPreview from './Reports/previews/DentalStatsPreview';
+import ReportArchive from './Reports/ReportArchive';
 
 const Reports = () => {
   // --- Shared Global Dashboard Date Filter State ---
@@ -49,11 +50,11 @@ const Reports = () => {
                       label="Clinic Timeline"
                       onChange={(e) => setGlobalDateRange(e.target.value)}
                     >
-                      <MenuItem value="7days">Past 7 Days</MenuItem>
-                      <MenuItem value="30days">Past 30 Days</MenuItem>
-                      <MenuItem value="6months">Past 6 Months</MenuItem>
-                      <MenuItem value="all">All School Records</MenuItem>
-                      <MenuItem value="custom">Custom Range...</MenuItem>
+                      <MenuItem value="7days">Last 7 Days</MenuItem>
+                      <MenuItem value="30days">Last 30 Days</MenuItem>
+                      <MenuItem value="6months">Last 6 Months</MenuItem>
+                      <MenuItem value="all">Full Academic History</MenuItem>
+                      <MenuItem value="custom">Manual Range Selection</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
@@ -148,6 +149,11 @@ const Reports = () => {
             customStart={startDate} 
             customEnd={endDate} 
           />
+        </Grid>
+
+        {/* Row 6: Report Archive (Downloads & History) */}
+        <Grid item xs={12}>
+          <ReportArchive />
         </Grid>
 
       </Grid>

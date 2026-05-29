@@ -429,17 +429,25 @@ class ReportDataService:
 
     @staticmethod
     def get_visit_trends_data(date_start=None, date_end=None, filters=None):
-        """Get visit trends data with monthly aggregation and detailed metrics"""
+        """Get visit trends data with dynamic granularity and gap filling"""
         try:
             filters = filters or {}
-            date_start = date_start or (timezone.now() - timedelta(days=365))
-            date_end = date_end or timezone.now()
+            now = timezone.now()
+            date_start = date_start or (now - timedelta(days=365))
+            date_end = date_end or now
             
+            # Ensure they are aware of the full day
+            if isinstance(date_start, datetime):
+                date_start = date_start.replace(hour=0, minute=0, second=0)
+            if isinstance(date_end, datetime):
+                date_end = date_end.replace(hour=23, minute=59, second=59)
+
             medical_records = MedicalRecord.objects.filter(visit_date__range=(date_start, date_end))
             dental_records = DentalRecord.objects.filter(visit_date__range=(date_start, date_end))
             
-            # Apply filters if provided
+            # Apply filters
             if filters:
+                # (Existing filtering logic remains the same)
                 if filters.get('gender'):
                     medical_records = medical_records.filter(patient__gender=filters['gender'])
                     dental_records = dental_records.filter(patient__gender=filters['gender'])
@@ -448,7 +456,6 @@ class ReportDataService:
                     medical_records = medical_records.filter(patient__user__role__in=roles)
                     dental_records = dental_records.filter(patient__user__role__in=roles)
 
-                # Campus filter - Map to course IDs
                 if filters.get('campus'):
                     campus_names = filters['campus'].split(',')
                     course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() 
@@ -456,7 +463,6 @@ class ReportDataService:
                     medical_records = medical_records.filter(patient__user__course__in=course_ids)
                     dental_records = dental_records.filter(patient__user__course__in=course_ids)
                 
-                # School filter - Map to course IDs
                 if filters.get('school'):
                     school_names = filters['school'].split(',')
                     course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() 
@@ -474,7 +480,6 @@ class ReportDataService:
                     medical_records = medical_records.filter(patient__user__year_level__in=level_list)
                     dental_records = dental_records.filter(patient__user__year_level__in=level_list)
                 
-                # Stream filter (service_type)
                 if filters.get('service_type') == 'medical':
                     dental_records = dental_records.none()
                 elif filters.get('service_type') == 'dental':
@@ -484,61 +489,72 @@ class ReportDataService:
             total_dental = dental_records.count()
             total_visits = total_medical + total_dental
             
-            medical_patients = set(medical_records.values_list('patient_id', flat=True))
-            dental_patients = set(dental_records.values_list('patient_id', flat=True))
-            unique_patients = len(medical_patients | dental_patients)
-            
             m_data = [{'date': r.visit_date, 'type': 'medical'} for r in medical_records]
             d_data = [{'date': r.visit_date, 'type': 'dental'} for r in dental_records]
             
+            days_diff = (date_end - date_start).days
+            
+            # Determine granularity
+            if days_diff <= 45:
+                freq = 'D'
+                date_format = '%b %d'
+            elif days_diff <= 185:
+                freq = 'W-MON'
+                date_format = 'Week %U (%b)'
+            else:
+                freq = 'MS'
+                date_format = '%b %Y'
+
             monthly_summary = []
+            
+            # Create a full date range to ensure no gaps
+            full_range = pd.date_range(start=date_start, end=date_end, freq=freq)
+            
             if m_data or d_data:
                 df = pd.DataFrame(m_data + d_data)
-                # Ensure date is datetime
                 df['date'] = pd.to_datetime(df['date'])
-                df['month'] = df['date'].dt.strftime('%Y-%m')
-                monthly_counts = df.groupby(['month', 'type']).size().unstack(fill_value=0)
+                
+                # Resample and count
+                df = df.set_index('date')
+                
+                # Group by frequency and type
+                counts = df.groupby([pd.Grouper(freq=freq), 'type']).size().unstack(fill_value=0)
                 
                 # Ensure columns exist
                 for t in ['medical', 'dental']:
-                    if t not in monthly_counts.columns:
-                        monthly_counts[t] = 0
+                    if t not in counts.columns:
+                        counts[t] = 0
                 
-                monthly_counts['total'] = monthly_counts['medical'] + monthly_counts['dental']
-                monthly_counts = monthly_counts.sort_index()
+                # Reindex with full range to fill missing periods with 0
+                counts = counts.reindex(full_range, fill_value=0)
+                
+                counts['total'] = counts['medical'] + counts['dental']
                 
                 # Calculate growth
-                if len(monthly_counts) > 1:
-                    monthly_counts['growth'] = monthly_counts['total'].pct_change() * 100
-                else:
-                    monthly_counts['growth'] = 0
-                    
-                monthly_counts = monthly_counts.fillna(0)
+                counts['growth'] = counts['total'].pct_change(fill_value=0) * 100
+                counts = counts.fillna(0)
                 
-                for month, row in monthly_counts.iterrows():
+                for timestamp, row in counts.iterrows():
                     monthly_summary.append({
-                        'month': month, 
+                        'month': timestamp.strftime(date_format), 
                         'total_visits': int(row['total']),
                         'medical_visits': int(row.get('medical', 0)), 
                         'dental_visits': int(row.get('dental', 0)),
                         'growth_percentage': f"{float(row.get('growth', 0)):.1f}%"
                     })
             else:
-                # Provide at least current month with zero data if empty
-                current_month = timezone.now().strftime('%Y-%m')
-                monthly_summary.append({
-                    'month': current_month,
-                    'total_visits': 0,
-                    'medical_visits': 0,
-                    'dental_visits': 0,
-                    'growth_percentage': "0%"
-                })
+                # Return empty intervals for the entire range
+                for timestamp in full_range:
+                    monthly_summary.append({
+                        'month': timestamp.strftime(date_format),
+                        'total_visits': 0,
+                        'medical_visits': 0,
+                        'dental_visits': 0,
+                        'growth_percentage': "0%"
+                    })
                 
-            # Apply customization (field selection and grouping)
-            monthly_summary = ReportDataService._apply_customization(monthly_summary, filters)
-            
-            days_diff = (date_end - date_start).days or 1
-            avg_daily = round(total_visits / days_diff, 1)
+            # Average Daily Calculation
+            avg_daily = round(total_visits / max(days_diff, 1), 1)
             peak_day_visits = 0
             if m_data or d_data:
                 df_day = pd.DataFrame(m_data + d_data)
@@ -548,15 +564,17 @@ class ReportDataService:
                 
             return {
                 'total_visits': total_visits, 
-                'unique_patients': unique_patients,
                 'avg_daily_visits': avg_daily, 
                 'peak_day_visits': peak_day_visits,
                 'monthly_summary': monthly_summary, 
-                'summary_by_type': {'Medical': total_medical, 'Dental': total_dental}
+                'summary_by_type': {'Medical': total_medical, 'Dental': total_dental},
+                'granularity': freq
             }
         except Exception as e:
             logger.error(f"Error in get_visit_trends_data: {str(e)}")
-            return {'error': str(e), 'total_visits': 0}
+            import traceback
+            logger.error(traceback.format_exc())
+            return {'error': str(e), 'total_visits': 0, 'monthly_summary': []}
 
     @staticmethod
     def get_treatment_outcomes_data(date_start=None, date_end=None, filters=None):

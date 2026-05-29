@@ -325,13 +325,24 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
               <FormControl fullWidth size="small">
                 <InputLabel>Reporting Scope</InputLabel>
                 <Select value={modalDateRange} label="Reporting Scope" onChange={(e) => setModalDateRange(e.target.value)}>
-                  <MenuItem value="7days">Weekly Operational View</MenuItem>
-                  <MenuItem value="30days">Monthly Operational View</MenuItem>
-                  <MenuItem value="all">Full Academic Year</MenuItem>
-                  <MenuItem value="custom">Custom Schedule Range...</MenuItem>
+                  <MenuItem value="all">Full Academic History</MenuItem>
+                  <MenuItem value="7days">Last 7 Days</MenuItem>
+                  <MenuItem value="30days">Last 30 Days</MenuItem>
+                  <MenuItem value="6months">Last 6 Months</MenuItem>
+                  <MenuItem value="custom">Manual Range Selection</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
+            {modalDateRange === 'custom' && (
+              <>
+                <Grid item xs={12} sm={1.5}>
+                  <TextField fullWidth type="date" label="Start" size="small" value={modalStartDate} onChange={(e) => setModalStartDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ max: modalEndDate || getTodayString() }} />
+                </Grid>
+                <Grid item xs={12} sm={1.5}>
+                  <TextField fullWidth type="date" label="End" size="small" value={modalEndDate} onChange={(e) => setModalEndDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ min: modalStartDate, max: getTodayString() }} />
+                </Grid>
+              </>
+            )}
             <Grid item xs={12} sm={3}>
                 <TextField
                   fullWidth

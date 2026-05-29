@@ -133,6 +133,18 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
   const chartData = {
     labels: data?.visits?.monthly?.map(m => m.month) || [],
     datasets: [
+      ...(streamFilter === 'all' ? [{
+        label: 'Aggregate Trends',
+        data: data?.visits?.monthly?.map(m => m.total_visits) || [],
+        borderColor: '#1e293b',
+        backgroundColor: viewType === 'area' ? 'rgba(30, 41, 59, 0.05)' : 'transparent',
+        borderWidth: 2,
+        borderDash: [5, 5],
+        pointBackgroundColor: '#1e293b',
+        pointRadius: 3,
+        tension: 0.4,
+        fill: viewType === 'area',
+      }] : []),
       ...(streamFilter === 'all' || streamFilter === 'medical' ? [{
         label: 'Medical Consultations',
         data: data?.visits?.monthly?.map(m => m.medical_visits) || [],
@@ -293,12 +305,23 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
                 <InputLabel>Reporting Range</InputLabel>
                 <Select value={modalDateRange} label="Reporting Range" onChange={(e) => setModalDateRange(e.target.value)}>
                   <MenuItem value="all">Full Academic History</MenuItem>
+                  <MenuItem value="7days">Last 7 Days</MenuItem>
                   <MenuItem value="30days">Last 30 Days</MenuItem>
                   <MenuItem value="6months">Last 6 Months</MenuItem>
-                  <MenuItem value="custom">Custom Date Range...</MenuItem>
+                  <MenuItem value="custom">Manual Range Selection</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
+            {modalDateRange === 'custom' && (
+              <>
+                <Grid item xs={12} sm={1.5}>
+                  <TextField fullWidth type="date" label="Start" size="small" value={modalStartDate} onChange={(e) => setModalStartDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ max: modalEndDate || getTodayString() }} />
+                </Grid>
+                <Grid item xs={12} sm={1.5}>
+                  <TextField fullWidth type="date" label="End" size="small" value={modalEndDate} onChange={(e) => setModalEndDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ min: modalStartDate, max: getTodayString() }} />
+                </Grid>
+              </>
+            )}
             <Grid item xs={12} sm={3}>
               <ToggleButtonGroup
                 value={viewType}
@@ -333,9 +356,9 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
           <Box sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: '8px', bgcolor: '#ffffff', mb: 4 }}>
             <Box display="flex" justifyContent="space-between" mb={2}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <MonthIcon sx={{ color: '#2563eb' }} fontSize="small" /> Comparative Monthly Utilization
+                    <MonthIcon sx={{ color: '#2563eb' }} fontSize="small" /> Comparative Interaction Timeline
                 </Typography>
-                <Chip label="Real-time Visualization" size="small" variant="outlined" color="primary" />
+                <Chip label={`Granularity: ${data?.granularity === 'D' ? 'Daily' : data?.granularity === 'W-MON' ? 'Weekly' : 'Monthly'}`} size="small" variant="outlined" color="primary" />
             </Box>
             <Box sx={{ height: 350 }}>
               {data?.visits?.monthly?.length > 0 ? (
@@ -347,14 +370,14 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
           <Divider sx={{ mb: 3 }} />
 
           {/* TREND DATA TABLE */}
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Monthly Utilization Log</Typography>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Interaction Utilization Log</Typography>
           <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 400, borderRadius: '8px' }}>
             <Table stickyHeader size="small">
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>
                     <TableSortLabel active={sortField === 'month'} direction={sortField === 'month' ? sortDirection : 'asc'} onClick={() => handleRequestSort('month')}>
-                      Academic Month
+                      Timeline Interval
                     </TableSortLabel>
                   </TableCell>
                   <TableCell align="right" sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>
