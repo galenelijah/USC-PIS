@@ -29,6 +29,7 @@ import {
 
 // Import USC Directory Mapping for deep extraction
 import { ACADEMIC_DIRECTORY_MAP } from '../CampusList';
+import { ProgramsChoices } from '../../static/choices';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
 
@@ -66,18 +67,12 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
     return `${year}-${month}-${day}`;
   };
 
-  const fetchMappings = async () => {
-    try {
-      const response = await api.get('/utils/usc-mappings/');
-      const programsArray = response?.data?.programs || response?.programs || [];
-      const mappedObj = programsArray.reduce((acc, current) => {
-        if (current.id) acc[String(current.id)] = current.label;
-        return acc;
-      }, {});
-      setCourseMap(mappedObj);
-    } catch (err) {
-      console.error("Non-blocking failure fetching academic program text mappings:", err);
-    }
+  const fetchMappings = () => {
+    const mappedObj = ProgramsChoices.reduce((acc, current) => {
+      if (current.id) acc[String(current.id)] = current.label;
+      return acc;
+    }, {});
+    setCourseMap(mappedObj);
   };
 
   const fetchAnalytics = async (isModal = false) => {

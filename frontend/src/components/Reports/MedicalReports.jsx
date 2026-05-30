@@ -33,6 +33,7 @@ import {
 
 // 🔑 Import the cleaner external file map structure asset 
 import { ACADEMIC_DIRECTORY_MAP } from './CampusList';
+import { ProgramsChoices } from '../static/choices';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, ChartTooltip, Legend);
 
@@ -122,10 +123,10 @@ const MedicalReports = ({ dateRange, customStart, customEnd }) => {
         const dataList = response?.data?.results || response?.data || [];
         setRecords(dataList);
 
-        // 2. Resolve courses from campus list mapping
+        // 2. Resolve courses from ProgramsChoices mapping
         const cMap = {};
-        Object.entries(ACADEMIC_DIRECTORY_MAP).forEach(([id, info]) => {
-          cMap[id] = info.name;
+        ProgramsChoices.forEach(p => {
+          cMap[String(p.id)] = p.label;
         });
         setCourseMap(cMap);
 
