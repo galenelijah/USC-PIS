@@ -62,6 +62,7 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
         'timestamp': ['gte', 'lte'],
         'action_type': ['exact', 'in'],
         'target_model': ['exact', 'icontains'],
+        'target_object_id': ['exact'],
         'actor_email': ['exact', 'icontains'],
         'actor_role': ['exact'],
     }

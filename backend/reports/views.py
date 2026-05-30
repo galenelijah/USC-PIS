@@ -109,9 +109,10 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
         import traceback
         try:
             # Use get_queryset() to ensure role-based visibility and SQLite compatibility
-            # Enhanced lookup: Try PK first, then fall back to report_type string
-            template = self.get_queryset().filter(pk=pk).first()
-            if not template and not str(pk).isdigit():
+            # Enhanced lookup: Try PK first if it's a number, otherwise try report_type string
+            if str(pk).isdigit():
+                template = self.get_queryset().filter(pk=pk).first()
+            else:
                 template = self.get_queryset().filter(report_type=pk).first()
                 
             if not template:
@@ -182,8 +183,9 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
         """Get raw report data for preview without generating a file"""
         try:
             # Use get_queryset() for consistency and support report_type lookup
-            template = self.get_queryset().filter(pk=pk).first()
-            if not template and not str(pk).isdigit():
+            if str(pk).isdigit():
+                template = self.get_queryset().filter(pk=pk).first()
+            else:
                 template = self.get_queryset().filter(report_type=pk).first()
             
             if not template:
