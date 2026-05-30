@@ -17,5 +17,7 @@ export const YearLevelChoices = [
   { id: '2', label: '2nd Year' },
   { id: '3', label: '3rd Year' },
   { id: '4', label: '4th Year' },
-  { id: '5', label: '5th Year' }
+  { id: '5', label: '5th Year' },
+  { id: '6', label: 'Batch X' }
 ]; 
+ 

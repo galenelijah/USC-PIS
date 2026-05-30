@@ -73,7 +73,7 @@ class USCPISAdvancedUnitTests(TestCase):
     def test_ut02_year_level_sorting_logic(self):
         """UT-02: Academic Year Level Logic & Filtering."""
         # Create students for each year level
-        year_levels = ['1', '2', '3', '4']
+        year_levels = ['1', '2', '3', '4', '5', '6']
         for yl in year_levels:
             u = User.objects.create_user(
                 email=f"student{yl}@usc.edu.ph",

@@ -118,7 +118,7 @@ class USCPISAdvancedIntegrationTests(TestCase):
     def test_it04_academic_year_sorting(self):
         """IT-04: Academic Year Level Sorting & Filtering (D6 Retooling)."""
         # Create 5 mock patients with different year levels
-        year_levels = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year']
+        year_levels = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year', 'Batch X']
         for i, yl in enumerate(year_levels):
             u = User.objects.create_user(email=f"student{i}@usc.edu.ph", password="password", role=User.Role.STUDENT, year_level=yl)
             Patient.objects.create(user=u, first_name=f"Student", last_name=f"{yl}", date_of_birth="2000-01-01", gender="M", email=u.email)

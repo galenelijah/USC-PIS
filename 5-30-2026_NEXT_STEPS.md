@@ -1,25 +1,17 @@
-# Next Steps: PDF Export Stabilization & Legacy Template Removal
-**Date:** May 30, 2026 (Morning Session Planning)
+# Next Steps: System Handover & Technical Documentation
+**Date:** May 30, 2026 (Evening Session Planning)
 
-## Critical Issue: Persistent Legacy PDF Templates
-Despite multiple attempts to force the high-fidelity "Workshop" engine, PDF exports in the `/reports` page continue to render using the legacy ReportLab-based templates. This is a primary concern for system finalization as it breaks visual parity with the modern UI.
+## Remaining Finalization Tasks
+1. **User Validation:** Collect feedback on the new "Workshop" PDF exports and confirm visual satisfaction.
+2. **Final Manuscript Update:** Sync the Technical Dossier and Chapter 4/5 results with the latest stabilized metrics and reporting architecture.
+3. **Database Maintenance:** Perform a final audit of the production database to ensure no other orphan records or duplicates exist.
+4. **Knowledge Transfer:** Ensure all deployment instructions (Heroku commands, Cloudinary setup) are fully documented in the `PRODUCTION_DEPLOYMENT_GUIDE.md`.
 
-### Identified Potential Causes
-1. **xhtml2pdf Failures:** The system may be encountering silent errors during HTML-to-PDF conversion, triggering the `USCPISReportGenerator` (ReportLab) fallback.
-2. **Template Content Persistence:** Even with database clears, `template_html` passed through `common_kwargs` might be retrieving cached or stale data in the Celery worker context.
-3. **Indentation/Syntax in fallback block:** Recent fixes to `export_to_pdf` indentation must be verified in the actual execution environment.
-4. **Environment Constraints:** `xhtml2pdf` may have missing dependencies (e.g., specific fonts or libraries) in the current environment that prevent successful rendering.
-
-## Planned Investigation (Next Session)
-1. **Verbose Logging:** Wrap the `pisa.CreatePDF` call in a more verbose try/except block to capture the exact CSS or HTML parsing error.
-2. **Forced Failure Test:** Temporarily comment out the ReportLab fallback entirely to force an error message when the HTML engine fails, pinpointing the breakdown.
-3. **Dependency Audit:** Verify if `reportlab`, `xhtml2pdf`, and `html5lib` versions are compatible and that all necessary USC branding assets (logos) are accessible to the PDF engine.
-4. **Cache Invalidation:** Ensure the Celery worker is restarted or that `db.close_old_connections()` is properly clearing the model cache for `ReportTemplate`.
-
-## Implementation Targets
-- **Visual Parity:** PDF exports must exactly match the "Workshop" standard (Grid metrics, Chart.js/QuickChart visualizations, and specialized data groupings).
-- **Consolidated Engine:** Remove all legacy ReportLab "Specialized Generators" once the HTML engine is stabilized to prevent future regressions.
-- **Audit Verification:** Ensure the `system_log` section appears correctly at the bottom of all generated PDFs.
+## Completed Milestones (Today)
+- [x] **PDF Visual Parity:** Charts and institutional branding now appear in all PDF exports.
+- [x] **Engine Consolidation:** Removed all legacy ReportLab statistical generators.
+- [x] **Deployment Hardening:** Fixed the Heroku release command by making `create_default_report_templates` duplicate-aware.
+- [x] **Environment Stability:** Fixed the broken `xhtml2pdf` installation and updated `requirements.txt`.
 
 ---
-*Created by Gemini CLI - Session Handover*
+*Created by Gemini CLI*
