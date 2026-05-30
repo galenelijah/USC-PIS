@@ -107,26 +107,30 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
       setError(null);
       
       const payload = {
-        title: `Clinic Operational Flow & Density Report - ${new Date().toLocaleDateString()}`,
+        title: `Clinic Operational Flow & Density Analysis - ${new Date().toLocaleDateString()}`,
         export_format: format,
         date_range: modalDateRange,
         date_range_start: modalDateRange === 'custom' ? modalStartDate : undefined,
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
           service_type: serviceType !== 'all' ? serviceType : undefined,
-          workload_class: workloadClass !== 'all' ? workloadClass : undefined
+          workload_class: workloadClass !== 'all' ? workloadClass : undefined,
+          include_peak_hours: true,
+          include_demographics: true
         }
       };
 
-      const response = await reportService.generateReport(17, payload).catch(async (err) => {
-        // Fallback: If ID 17 fails, try lookup by report_type string
-        if (err.response?.status === 404) {
-          console.warn("Template ID 17 not found, falling back to OPERATIONS lookup...");
-          return await reportService.generateReport('OPERATIONS', payload);
+      // Direct lookup by report_type 'OPERATIONS' is safer than ID 17
+      const response = await reportService.generateReport('OPERATIONS', payload).catch(async (err) => {
+        // Ultimate fallback to numeric ID if string fails for some reason
+        if (err.response?.status === 404 || err.response?.status === 403) {
+          console.warn("String-based OPERATIONS lookup failed, trying ID 17...");
+          return await reportService.generateReport(17, payload);
         }
         throw err;
       });
-      setSuccess(`Report generation started! ID: ${response.data.report_id}`);
+      
+      setSuccess(`Analysis export initialized successfully!`);
       
       setTimeout(() => {
         setSuccess(null);

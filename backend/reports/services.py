@@ -1413,29 +1413,27 @@ class ReportDataService:
 
             feedback = ReportDataService.get_feedback_analysis_data(date_start, date_end, filters)
 
-            # Get distinct patients for demographics
-            med_patients = Patient.objects.filter(id__in=medical_records.values('patient_id')).select_related('user')
-            den_patients = Patient.objects.filter(id__in=dental_records.values('patient_id')).select_related('user')
-            all_active_patients = list(set(list(med_patients) + list(den_patients)))
+            # Get demographic stats directly without loading all Patient objects
+            med_patient_ids = medical_records.values_list('patient_id', flat=True)
+            den_patient_ids = dental_records.values_list('patient_id', flat=True)
+            all_patient_ids = set(list(med_patient_ids) + list(den_patient_ids))
+            
+            all_active_patients_qs = Patient.objects.filter(id__in=all_patient_ids).select_related('user')
 
             # Calculate Peak Hours
             peak_hours = ReportDataService._get_peak_hours(list(medical_records) + list(dental_records))
 
-            # Calculate College Participation
-            college_participation = ReportDataService._get_college_participation(all_active_patients)
-
-            # Calculate Course Distribution
-            course_distribution = ReportDataService._get_course_distribution(all_active_patients)
-
-            # Calculate Role Distribution (Student vs Staff)
-            role_distribution = ReportDataService._get_role_distribution(all_active_patients)
+            # Calculate demographics using querysets where possible
+            college_participation = ReportDataService._get_college_participation(all_active_patients_qs)
+            course_distribution = ReportDataService._get_course_distribution(all_active_patients_qs)
+            role_distribution = ReportDataService._get_role_distribution(all_active_patients_qs)
 
             return {
                 'demographics': {
                     'colleges': college_participation,
                     'courses': course_distribution,
                     'roles': role_distribution,
-                    'total_active': len(all_active_patients)
+                    'total_active': len(all_patient_ids)
                 },
                 'visits': {
                     'monthly': trends.get('monthly', []),
@@ -2091,14 +2089,26 @@ class ReportGenerationService:
                 report_title = title or "Treatment Efficacy & Outcomes"
             elif rtype == 'USER_ACTIVITY' or rtype == 'OPERATIONS':
                 analytics = self.data_service.get_comprehensive_system_analytics(date_start, date_end, filters)
-                data = {
-                    'hourly_traffic_density': analytics.get('operations', {}).get('peak_hours', []),
-                    'service_segmentation': analytics.get('visits', {}).get('types', {}),
-                    'total_operational_volume': analytics.get('visits', {}).get('total', 0),
-                    'clinical_service_intensity': analytics.get('clinical', {}),
-                    'population_demographics': analytics.get('demographics', {}),
-                    'administrative_audit_trail': list(AuditLog.objects.all()[:50].values('timestamp', 'actor_email', 'actor_role', 'action_type', 'target_model'))
-                }
+                if 'error' in analytics:
+                    # Provide empty but valid structure to avoid rendering crash
+                    data = {
+                        'hourly_traffic_density': [],
+                        'service_segmentation': {},
+                        'total_operational_volume': 0,
+                        'clinical_service_intensity': {},
+                        'population_demographics': {},
+                        'system_status': 'Temporarily Unavailable',
+                        'error_context': analytics['error']
+                    }
+                else:
+                    data = {
+                        'hourly_traffic_density': analytics.get('operations', {}).get('peak_hours', []),
+                        'service_segmentation': analytics.get('visits', {}).get('types', {}),
+                        'total_operational_volume': analytics.get('visits', {}).get('total', 0),
+                        'clinical_service_intensity': analytics.get('clinical', {}),
+                        'population_demographics': analytics.get('demographics', {}),
+                        'administrative_audit_trail': list(AuditLog.objects.all()[:50].values('timestamp', 'actor_email', 'actor_role', 'action_type', 'target_model'))
+                    }
                 report_title = title or "Clinic Operational Flow & Density Analysis"
 
             elif rtype == 'HEALTH_METRICS':
@@ -2262,8 +2272,9 @@ class ReportGenerationService:
         rtype = data.get('report_type', report_type)
 
         # 2. Smart Template Selection
-        is_dummy = template_html and "Comprehensive Analytics" in template_html and rtype != 'COMPREHENSIVE_ANALYTICS'
-        if not template_html or len(str(template_html)) < 150 or is_dummy:
+        is_dummy = template_html and ("Comprehensive Analytics" in template_html or "System Operations & Audit Log" in template_html)
+        # Force modern template for OPERATIONS if dummy or missing
+        if not template_html or len(str(template_html)) < 150 or is_dummy or rtype == 'OPERATIONS':
             final_tpl = self.get_default_template(rtype, report_title)
         else:
             final_tpl = template_html

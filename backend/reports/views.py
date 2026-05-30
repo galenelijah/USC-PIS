@@ -108,15 +108,19 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
         """Generate a report from this template using Celery with sync fallback"""
         import traceback
         try:
-            # Use get_queryset() to ensure role-based visibility and SQLite compatibility
-            # Enhanced lookup: Try PK first if it's a number, otherwise try report_type string
-            if str(pk).isdigit():
-                template = self.get_queryset().filter(pk=pk).first()
-            else:
+            # Resilience: Try to convert pk to int if possible for numeric lookup
+            try:
+                pk_int = int(float(str(pk)))
+                template = self.get_queryset().filter(pk=pk_int).first()
+            except (ValueError, TypeError):
+                template = None
+
+            # Fallback to report_type lookup if PK lookup failed
+            if not template:
                 template = self.get_queryset().filter(report_type=pk).first()
                 
             if not template:
-                return Response({'error': 'ReportTemplate not found or access denied'}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'error': f'ReportTemplate {pk} not found or access denied'}, status=status.HTTP_404_NOT_FOUND)
             
             # Validate request data
             # Inject actual template.id (pk might be a string-based lookup like 'OPERATIONS')
@@ -181,14 +185,19 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
     def preview(self, request, pk=None):
         """Get raw report data for preview without generating a file"""
         try:
-            # Use get_queryset() for consistency and support report_type lookup
-            if str(pk).isdigit():
-                template = self.get_queryset().filter(pk=pk).first()
-            else:
+            # Resilience: Try to convert pk to int if possible for numeric lookup
+            try:
+                pk_int = int(float(str(pk)))
+                template = self.get_queryset().filter(pk=pk_int).first()
+            except (ValueError, TypeError):
+                template = None
+
+            # Fallback to report_type lookup if PK lookup failed
+            if not template:
                 template = self.get_queryset().filter(report_type=pk).first()
             
             if not template:
-                return Response({'error': 'ReportTemplate not found or access denied'}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'error': f'ReportTemplate {pk} not found or access denied'}, status=status.HTTP_404_NOT_FOUND)
             
             # Validate request data
             # Inject actual template.id (pk might be a string-based lookup like 'OPERATIONS')
