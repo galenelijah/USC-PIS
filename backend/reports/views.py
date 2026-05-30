@@ -402,7 +402,9 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
                     'DENTAL_STATISTICS': service.generate_dental_statistics_report,
                     'CAMPAIGN_PERFORMANCE': service.generate_campaign_performance_report,
                     'USER_ACTIVITY': service.generate_user_activity_report,
+                    'OPERATIONS': service.generate_operations_report,
                     'HEALTH_METRICS': service.generate_health_metrics_report,
+                    'HEALTH_HISTORY': service.generate_health_history_report,
                 }
                 
                 rtype = str(report.template.report_type or '').strip().upper()
@@ -414,7 +416,8 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
                     filters=report.filters,
                     date_start=report.date_range_start,
                     date_end=report.date_range_end,
-                    template_html=report.template.template_content
+                    template_html=report.template.template_content,
+                    user=report.generated_by
                 )
                 
                 if regenerated_data:
