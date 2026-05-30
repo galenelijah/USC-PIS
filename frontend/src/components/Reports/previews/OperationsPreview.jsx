@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Box, Card, CardContent, Typography, CircularProgress, Button,
   Alert, TextField, FormControl, InputLabel, Select, MenuItem, Grid,
@@ -64,6 +64,9 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
 
   const [sortField, setSortField] = useState('hour');
   const [sortDirection, setSortDirection] = useState('asc');
+  
+  const chartRef = useRef(null);
+  const forecastChartRef = useRef(null);
 
   const fetchAnalytics = async (isModal = false) => {
     try {
@@ -116,7 +119,11 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
           service_type: serviceType !== 'all' ? serviceType : undefined,
           workload_class: workloadClass !== 'all' ? workloadClass : undefined,
           include_peak_hours: true,
-          include_demographics: true
+          include_demographics: true,
+          charts_base64: [
+            chartRef.current ? chartRef.current.toBase64Image() : null,
+            forecastChartRef.current ? forecastChartRef.current.toBase64Image() : null
+          ].filter(Boolean)
         }
       };
 
@@ -382,7 +389,7 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
                 </Typography>
                 <Box sx={{ height: 280 }}>
                   {data?.operations?.peak_hours?.length > 0 ? (
-                    <Bar data={generateChartData()} options={chartOptions} />
+                    <Bar ref={chartRef} data={generateChartData()} options={chartOptions} />
                   ) : <Typography variant="body2" color="text.secondary" textAlign="center" mt={10}>No data for selection</Typography>}
                 </Box>
               </Box>
@@ -394,7 +401,7 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
                 </Typography>
                 <Box sx={{ height: 280 }}>
                    {data?.operations?.peak_hours ? (
-                       <Line data={generateLineData()} options={chartOptions} />
+                       <Line ref={forecastChartRef} data={generateLineData()} options={chartOptions} />
                    ) : <Typography variant="body2" color="text.secondary" textAlign="center" mt={10}>Loading forecast...</Typography>}
                 </Box>
               </Box>

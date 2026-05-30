@@ -1795,60 +1795,59 @@ class ReportGenerationService:
         <!DOCTYPE html>
         <html>
         <head>
-            <title>{title}</title>
+            <title>{{{{ title }}}}</title>
             <meta name="engine" content="xhtml2pdf-engine-verification">
             <style>
                 @page {{ 
                     size: A4; 
-                    margin: 2cm; 
+                    margin: 1.5cm; 
                 }}
-                body {{ font-family: 'Helvetica', 'Arial', sans-serif; line-height: 1.5; color: #2c3e50; font-size: 10pt; }}
+                body {{ font-family: 'Helvetica', 'Arial', sans-serif; line-height: 1.6; color: #1e293b; font-size: 10pt; }}
                 
                 .usc-header {{ 
                     text-align: center; 
-                    border-bottom: 2px solid #1e293b; 
-                    margin-bottom: 30px; 
-                    padding-bottom: 10px; 
+                    border-bottom: 3px solid #003366; 
+                    margin-bottom: 25px; 
+                    padding-bottom: 15px; 
                 }}
-                .usc-logo-text {{ font-size: 18pt; font-weight: bold; color: #1e293b; margin: 0; text-transform: uppercase; }}
-                .usc-sub-text {{ font-size: 10pt; color: #64748b; margin: 5px 0 0 0; }}
+                .usc-logo-text {{ font-size: 20pt; font-weight: bold; color: #003366; margin: 0; text-transform: uppercase; }}
+                .usc-sub-text {{ font-size: 11pt; color: #64748b; margin: 5px 0 0 0; font-weight: bold; }}
                 
-                .report-title {{ text-align: center; font-size: 16pt; color: #1e293b; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }}
+                .report-title {{ text-align: center; font-size: 16pt; color: #0f172a; margin-bottom: 25px; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }}
 
-                .section {{ margin-bottom: 30px; page-break-inside: avoid; }}
+                .section {{ margin-bottom: 25px; page-break-inside: avoid; }}
                 .section-title {{ 
-                    background-color: #f8fafc; 
-                    color: #1e293b; 
+                    background-color: #f1f5f9; 
+                    color: #0f172a; 
                     font-size: 11pt; 
                     font-weight: bold; 
                     padding: 8px 12px; 
-                    border-left: 4px solid #3b82f6; 
+                    border-left: 5px solid #003366; 
                     margin-bottom: 15px;
                     text-transform: uppercase;
                 }}
                 
-                .chart-container {{ text-align: center; margin: 25px 0; border: 1px solid #f1f5f9; padding: 15px; border-radius: 8px; }}
+                .chart-container {{ text-align: center; margin: 20px 0; padding: 10px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #fafafa; }}
                 
-                .data-table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
-                .data-table th {{ background-color: #f1f5f9; color: #475569; padding: 10px 8px; text-align: left; font-size: 8pt; border-bottom: 2px solid #e2e8f0; text-transform: uppercase; }}
-                .data-table td {{ padding: 8px; border-bottom: 1px solid #f1f5f9; font-size: 8.5pt; color: #334155; }}
+                .data-table {{ width: 100%; border-collapse: collapse; margin-top: 5px; }}
+                .data-table th {{ background-color: #003366; color: #ffffff; padding: 10px 8px; text-align: left; font-size: 8.5pt; text-transform: uppercase; }}
+                .data-table td {{ padding: 8px; border-bottom: 1px solid #e2e8f0; font-size: 9pt; color: #334155; }}
                 .data-table tr:nth-child(even) {{ background-color: #f8fafc; }}
                 
                 .metric-table {{ width: 100%; margin-bottom: 20px; border-spacing: 10px; border-collapse: separate; }}
-                .metric-box {{ background: #ffffff; border: 1px solid #e2e8f0; padding: 15px; text-align: center; border-radius: 6px; width: 25%; }}
-                .metric-val {{ font-size: 16pt; font-weight: bold; color: #2563eb; display: block; }}
-                .metric-lbl {{ font-size: 7pt; color: #64748b; text-transform: uppercase; font-weight: 600; margin-top: 5px; display: block; letter-spacing: 0.5px; }}
+                .metric-box {{ background: #ffffff; border: 2px solid #f1f5f9; padding: 20px 10px; text-align: center; border-radius: 10px; width: 25%; }}
+                .metric-val {{ font-size: 18pt; font-weight: bold; color: #003366; display: block; }}
+                .metric-lbl {{ font-size: 7.5pt; color: #64748b; text-transform: uppercase; font-weight: 700; margin-top: 8px; display: block; letter-spacing: 0.5px; }}
                 
-                .footer-sign {{ margin-top: 60px; text-align: right; font-size: 9pt; }}
-                .signature-line {{ border-top: 1px solid #94a3b8; width: 220px; display: inline-block; margin-top: 40px; }}
+                .density-badge {{
+                    background-color: #f1f5f9; border: 1px solid #cbd5e1; color: #475569; padding: 3px 8px; border-radius: 6px; font-weight: bold; font-size: 7.5pt; text-transform: uppercase;
+                }}
+
+                .footer-sign {{ margin-top: 50px; text-align: right; font-size: 10pt; }}
+                .signature-line {{ border-top: 1.5px solid #0f172a; width: 240px; display: inline-block; margin-top: 45px; }}
                 
                 .usc-footer {{
-                    margin-top: 50px;
-                    border-top: 1px solid #e2e8f0;
-                    padding-top: 15px;
-                    text-align: center;
-                    font-size: 8pt;
-                    color: #64748b;
+                    margin-top: 40px; border-top: 2px solid #e2e8f0; padding-top: 15px; text-align: center; font-size: 8.5pt; color: #94a3b8;
                 }}
             </style>
         </head>
@@ -1858,29 +1857,113 @@ class ReportGenerationService:
                 <p class="usc-sub-text">Health Services Department - Patient Information System</p>
             </div>
             
-            <div class="report-title">{title}</div>
+            <div class="report-title">{{{{ title }}}}</div>
 
             {{% if visual_charts or charts_base64 %}}
             <div class="section">
-                <div class="section-title">Visual Analytics Dashboard</div>
+                <div class="section-title">Institutional Activity & Performance Dashboard</div>
                 {{% for chart_url in visual_charts %}}
-                <div class="chart-container"><img src="{{{{ chart_url }}}}" width="480" /></div>
+                <div class="chart-container"><img src="{{{{ chart_url }}}}" width="450" /></div>
                 {{% endfor %}}
                 {{% for chart_b64 in charts_base64 %}}
-                <div class="chart-container"><img src="{{{{ chart_b64 }}}}" width="480" /></div>
+                <div class="chart-container"><img src="{{{{ chart_b64 }}}}" width="450" /></div>
                 {{% endfor %}}
             </div>
             {{% endif %}}
 
+            {{% if report_focus == 'CLINICAL OPERATIONAL DENSITY' %}}
             <div class="section">
-                <div class="section-title">Summary Metrics</div>
+                <div class="section-title">Clinical Interaction Intelligence</div>
+                <table class="metric-table">
+                    <tr>
+                        <td class="metric-box">
+                            <span class="metric-val">{{{{ total_clinic_interactions|default:"0" }}}}</span>
+                            <span class="metric-lbl">Total Clinic Visits</span>
+                        </td>
+                        <td class="metric-box">
+                            <span class="metric-val">{{{{ peak_interaction_count|default:"0" }}}}</span>
+                            <span class="metric-lbl">Peak Interaction Density</span>
+                        </td>
+                        <td class="metric-box">
+                            <span class="metric-val">{{{{ peak_operational_hour|default:"N/A" }}}}</span>
+                            <span class="metric-lbl">Max Traffic Hour</span>
+                        </td>
+                        <td class="metric-box">
+                            <span class="metric-val">{{{{ institutional_patient_reach|default:"0" }}}}</span>
+                            <span class="metric-lbl">Unique Patient Reach</span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            {{% if hourly_traffic_density %}}
+            <div class="section">
+                <div class="section-title">Hourly Traffic Density & Workload Classification</div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th width="40%">Operational Hour Block</th>
+                            <th width="30%">Patient Interactions</th>
+                            <th width="30%">Intensity Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{% for entry in hourly_traffic_density %}}
+                        <tr>
+                            <td><strong>{{{{ entry.hour }}}}:00 - {{{{ entry.hour }}}}:59</strong></td>
+                            <td>{{{{ entry.count }}}} interactions</td>
+                            <td>
+                                {{% if entry.count >= 10 %}}
+                                    <span class="density-badge" style="background-color: #fee2e2; color: #991b1b;">PEAK INTENSITY</span>
+                                {{% elif entry.count >= 5 %}}
+                                    <span class="density-badge" style="background-color: #fff7ed; color: #9a3412;">HEAVY FLOW</span>
+                                {{% else %}}
+                                    <span class="density-badge" style="background-color: #f0fdf4; color: #166534;">STABLE OPERATIONS</span>
+                                {{% endif %}}
+                            </td>
+                        </tr>
+                        {{% endfor %}}
+                    </tbody>
+                </table>
+            </div>
+            {{% endif %}}
+
+            {{% if administrative_audit_trail %}}
+            <div class="section">
+                <div class="section-title">Administrative Operational Audit Trail</div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Event Time</th>
+                            <th>Actor Identity</th>
+                            <th>Role</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{% for log in administrative_audit_trail %}}
+                        <tr>
+                            <td>{{{{ log.timestamp|format_date:"%H:%M:%S" }}}}</td>
+                            <td>{{{{ log.actor_email }}}}</td>
+                            <td>{{{{ log.actor_role }}}}</td>
+                            <td><strong>{{{{ log.action_type }}}}</strong></td>
+                        </tr>
+                        {{% endfor %}}
+                    </tbody>
+                </table>
+            </div>
+            {{% endif %}}
+
+            {{% else %}}
+            <div class="section">
+                <div class="section-title">Summary Operational Metrics</div>
                 <table class="data-table">
                     <thead>
                         <tr><th>Metric Category</th><th>Aggregated Value</th></tr>
                     </thead>
                     <tbody>
                     {{% for k, v in report_data.items %}}
-                        {{% if v|is_simple and k not in "report_title,date_range_start,date_range_end,generated_at,system_name,report_type,visual_charts,charts_base64" %}}
+                        {{% if v|is_simple and k not in "report_title,date_range_start,date_range_end,generated_at,system_name,report_type,visual_charts,charts_base64,report_focus" %}}
                             <tr>
                                 <td><strong>{{{{ k|title_clean }}}}</strong></td>
                                 <td>{{{{ v }}}}</td>
@@ -1892,9 +1975,9 @@ class ReportGenerationService:
             </div>
 
             {{% for k, v in report_data.items %}}
-                {{% if v|is_list and v|has_data and k not in "visual_charts,charts_base64,visual_analytics,system_log" %}}
+                {{% if v|is_list and v|has_data and k not in "visual_charts,charts_base64,visual_analytics,system_log,administrative_audit_trail,hourly_traffic_density" %}}
                 <div class="section">
-                    <div class="section-title">{{{{ k|title_clean }}}} Detail</div>
+                    <div class="section-title">{{{{ k|title_clean }}}} Data Analysis</div>
                     <table class="data-table">
                         {{% with first_item=v|first %}}
                             {{% if first_item|is_dict %}}
@@ -1928,12 +2011,12 @@ class ReportGenerationService:
                         {{% endwith %}}
                     </table>
                 </div>
-                {{% elif v|is_dict and v|has_data and k not in "patient,demographics,visits,clinical,feedback" %}}
+                {{% elif v|is_dict and v|has_data and k not in "patient,demographics,visits,clinical,feedback,service_segmentation,clinical_service_intensity,population_demographics" %}}
                 <div class="section">
-                    <div class="section-title">{{{{ k|title_clean }}}} Overview</div>
+                    <div class="section-title">{{{{ k|title_clean }}}} Detailed Metrics</div>
                     <table class="data-table">
                         <thead>
-                            <tr><th>Category</th><th>Metric / Value</th></tr>
+                            <tr><th>Dimension</th><th>Metric Value</th></tr>
                         </thead>
                         <tbody>
                             {{% for key, val in v.items %}}
@@ -1947,43 +2030,18 @@ class ReportGenerationService:
                 </div>
                 {{% endif %}}
             {{% endfor %}}
-
-            {{% if system_log %}}
-            <div class="section">
-                <div class="section-title">System Activity Audit Log</div>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Timestamp</th>
-                            <th>User</th>
-                            <th>Role</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {{% for log in system_log %}}
-                        <tr>
-                            <td>{{{{ log.timestamp|format_date:"Y-m-d H:i" }}}}</td>
-                            <td>{{{{ log.user }}}}</td>
-                            <td>{{{{ log.role }}}}</td>
-                            <td>{{{{ log.status }}}}</td>
-                        </tr>
-                        {{% endfor %}}
-                    </tbody>
-                </table>
-            </div>
             {{% endif %}}
 
             <div class="footer-sign">
                 <div class="signature-line"></div>
-                <p><strong>AUTHORIZED CLINIC PERSONNEL</strong></p>
+                <p><strong>AUTHORIZED MEDICAL PERSONNEL</strong></p>
                 <p>University of San Carlos Health Services</p>
             </div>
 
             <div class="usc-footer">
-                <p><strong>CONFIDENTIAL MEDICAL RECORD</strong></p>
-                <p>Generated by {{{{ user.get_full_name|default:"System" }}}} on {{{{ generated_at|format_date:"Y-m-d H:i:s" }}}}</p>
-                <p>&copy; 2026 University of San Carlos Health Services Department</p>
+                <p><strong>CONFIDENTIAL INSTITUTIONAL DOCUMENT</strong></p>
+                <p>Generated by {{{{ user.get_full_name|default:user.email|default:"Clinic Admin" }}}} on {{{{ generated_at|format_date:"%Y-%m-%d %H:%M:%S" }}}}</p>
+                <p>&copy; 2026 USC Health Services Department</p>
             </div>
         </body>
         </html>"""
@@ -2090,7 +2148,6 @@ class ReportGenerationService:
             elif rtype == 'USER_ACTIVITY' or rtype == 'OPERATIONS':
                 analytics = self.data_service.get_comprehensive_system_analytics(date_start, date_end, filters)
                 if 'error' in analytics:
-                    # Provide empty but valid structure to avoid rendering crash
                     data = {
                         'hourly_traffic_density': [],
                         'service_segmentation': {},
@@ -2101,15 +2158,27 @@ class ReportGenerationService:
                         'error_context': analytics['error']
                     }
                 else:
+                    peak_hours = analytics.get('operations', {}).get('peak_hours', [])
+                    max_hour = max(peak_hours, key=lambda x: x['count']) if peak_hours else {'hour': 'N/A', 'count': 0}
+                    
                     data = {
-                        'hourly_traffic_density': analytics.get('operations', {}).get('peak_hours', []),
+                        'report_focus': 'CLINICAL OPERATIONAL DENSITY',
+                        'total_clinic_interactions': analytics.get('visits', {}).get('total', 0),
+                        'peak_operational_hour': f"{max_hour['hour']}:00 - {max_hour['hour']}:59",
+                        'peak_interaction_count': max_hour['count'],
+                        'medical_service_volume': analytics.get('visits', {}).get('types', {}).get('medical', 0),
+                        'dental_service_volume': analytics.get('visits', {}).get('types', {}).get('dental', 0),
+                        'institutional_patient_reach': analytics.get('demographics', {}).get('total_active', 0),
+                        'hourly_traffic_density': peak_hours,
                         'service_segmentation': analytics.get('visits', {}).get('types', {}),
-                        'total_operational_volume': analytics.get('visits', {}).get('total', 0),
                         'clinical_service_intensity': analytics.get('clinical', {}),
                         'population_demographics': analytics.get('demographics', {}),
                         'administrative_audit_trail': list(AuditLog.objects.all()[:50].values('timestamp', 'actor_email', 'actor_role', 'action_type', 'target_model'))
                     }
-                report_title = title or "Clinic Operational Flow & Density Analysis"
+                if rtype == 'USER_ACTIVITY':
+                    report_title = title or "System Usage & Administrative Audit Log"
+                else:
+                    report_title = title or "Clinic Operational Flow & Density Analysis"
 
             elif rtype == 'HEALTH_METRICS':
                 data = self.data_service.get_health_metrics_data(date_start, date_end, filters)
@@ -2273,8 +2342,8 @@ class ReportGenerationService:
 
         # 2. Smart Template Selection
         is_dummy = template_html and ("Comprehensive Analytics" in template_html or "System Operations & Audit Log" in template_html)
-        # Force modern template for OPERATIONS if dummy or missing
-        if not template_html or len(str(template_html)) < 150 or is_dummy or rtype == 'OPERATIONS':
+        # Force modern template for operational/audit reports if dummy or missing
+        if not template_html or len(str(template_html)) < 150 or is_dummy or rtype in ['OPERATIONS', 'USER_ACTIVITY', 'AUDIT_LOG']:
             final_tpl = self.get_default_template(rtype, report_title)
         else:
             final_tpl = template_html

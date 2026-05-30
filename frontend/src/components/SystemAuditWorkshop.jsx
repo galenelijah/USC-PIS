@@ -54,9 +54,10 @@ import {
   Settings,
   Group,
   VpnKey,
-  Shield
+  Shield,
+  FileDownload as DownloadIcon
 } from '@mui/icons-material';
-import { auditService } from '../services/api';
+import { auditService, reportService } from '../services/api';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
@@ -67,6 +68,8 @@ const SystemAuditWorkshop = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const [exportSuccess, setExportSuccess] = useState(null);
   
   // Workshop Mode
   const [viewMode, setViewMode] = useState('clinical'); // 'clinical' or 'forensic'
@@ -121,6 +124,36 @@ const SystemAuditWorkshop = () => {
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
+  };
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      setError('');
+      
+      const payload = {
+        title: `System Accountability & Audit Report - ${dayjs().format('MMM DD, YYYY')}`,
+        export_format: 'PDF',
+        filters: {
+          search: search,
+          action_type: actionFilter,
+          target_model: modelFilter,
+          actor_role: actorRoleFilter
+        }
+      };
+
+      const response = await reportService.generateReport('USER_ACTIVITY', payload);
+      setExportSuccess(`Audit report generation initialized! ID: ${response.data.report_id}`);
+      
+      setTimeout(() => {
+        setExportSuccess(null);
+      }, 5000);
+    } catch (err) {
+      console.error('Export failed:', err);
+      setError('Failed to initialize audit report generation.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const getActionColor = (action) => {
@@ -313,8 +346,20 @@ const SystemAuditWorkshop = () => {
             >
                 Refresh
             </Button>
+            <Button 
+                variant="contained" 
+                startIcon={exporting ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />} 
+                onClick={handleExport}
+                disabled={loading || exporting}
+                sx={{ bgcolor: theme.palette.success.main, '&:hover': { bgcolor: theme.palette.success.dark } }}
+            >
+                {exporting ? 'Processing...' : 'Export Audit Log'}
+            </Button>
         </Stack>
       </Stack>
+
+      {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>{error}</Alert>}
+      {exportSuccess && <Alert severity="success" sx={{ mb: 3 }} onClose={() => setExportSuccess(null)}>{exportSuccess}</Alert>}
 
       <Paper sx={{ mb: 3, p: 2, borderRadius: 2 }}>
         <Grid container spacing={2} alignItems="center">
