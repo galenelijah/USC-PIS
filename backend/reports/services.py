@@ -1739,7 +1739,10 @@ class ReportExportService:
             output = StringIO(); writer = csv.writer(output)
             writer.writerow([f"REPORT: {title.upper()}"]); writer.writerow([f"Generated: {timezone.now().strftime('%Y-%m-%d %H:%M')}"]); writer.writerow([])
             list_keys = []; writer.writerow(["SUMMARY OVERVIEW"])
+            skip_keys = ['report_title', 'date_range_start', 'date_range_end', 'generated_at', 'system_name', 'report_date', 'report_type', 'visual_charts', 'charts_base64', 'visual_analytics']
+            
             for k, v in report_data.items():
+                if k in skip_keys: continue
                 if isinstance(v, (list, tuple)): list_keys.append(k)
                 elif isinstance(v, dict):
                     for sk, sv in v.items(): writer.writerow([f"{k} - {sk}", sv])
