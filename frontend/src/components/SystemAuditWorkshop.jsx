@@ -35,7 +35,7 @@ import {
   Search,
   FilterList,
   Refresh,
-  History,
+  History as HistoryIcon,
   Visibility,
   KeyboardArrowDown,
   KeyboardArrowUp,
@@ -158,7 +158,7 @@ const SystemAuditWorkshop = () => {
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 'bold', color: theme.palette.primary.dark, display: 'flex', alignItems: 'center' }}>
-            <History sx={{ mr: 2, fontSize: 35 }} /> System Audit Workshop
+            <HistoryIcon sx={{ mr: 2, fontSize: 35 }} /> System Audit Workshop
           </Typography>
           <Typography variant="body1" color="text.secondary">
             Exhaustive administrative activity logging and field-level data tracking.
