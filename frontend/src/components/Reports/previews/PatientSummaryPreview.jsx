@@ -134,7 +134,13 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
         }
       };
 
-      const response = await reportService.generateReport(1, payload); // Template ID 1
+      const response = await reportService.generateReport(1, payload).catch(async (err) => {
+        if (err.response?.status === 404) {
+          console.warn("Template ID 1 not found, falling back to PATIENT_SUMMARY lookup...");
+          return await reportService.generateReport('PATIENT_SUMMARY', payload);
+        }
+        throw err;
+      });
       setSuccess(`Report generation started! ID: ${response.data.report_id}`);
       
       setTimeout(() => {

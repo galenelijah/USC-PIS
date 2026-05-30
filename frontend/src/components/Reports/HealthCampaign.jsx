@@ -193,7 +193,13 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
         }
       };
 
-      const response = await reportService.generateReport(7, payload); // Template ID 7: Health Campaign Analytics
+      const response = await reportService.generateReport(7, payload).catch(async (err) => {
+        if (err.response?.status === 404) {
+          console.warn("Template ID 7 not found, falling back to CAMPAIGN_PERFORMANCE lookup...");
+          return await reportService.generateReport('CAMPAIGN_PERFORMANCE', payload);
+        }
+        throw err;
+      });
       setSuccess(`Report generation started! ID: ${response.data.report_id}`);
       
       setTimeout(() => {

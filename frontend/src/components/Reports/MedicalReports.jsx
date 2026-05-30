@@ -272,7 +272,13 @@ const MedicalReports = ({ dateRange, customStart, customEnd }) => {
         }
       };
 
-      const response = await reportService.generateReport(3, payload); // Template ID 3: Treatment Outcomes/Clinical Audit
+      const response = await reportService.generateReport(3, payload).catch(async (err) => {
+        if (err.response?.status === 404) {
+          console.warn("Template ID 3 not found, falling back to TREATMENT_OUTCOMES lookup...");
+          return await reportService.generateReport('TREATMENT_OUTCOMES', payload);
+        }
+        throw err;
+      });
       setSuccess(`Report generation started! ID: ${response.data.report_id}`);
 
       setTimeout(() => {

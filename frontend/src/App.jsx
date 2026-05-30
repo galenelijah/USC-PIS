@@ -31,6 +31,7 @@ const ProfileSetup = lazy(() => import('./components/ProfileSetup'));
 const DatabaseMonitor = lazy(() => import('./components/DatabaseMonitor'));
 const EmailAdministration = lazy(() => import('./components/EmailAdministration'));
 const UserManagement = lazy(() => import('./components/UserManagement'));
+const SystemAuditWorkshop = lazy(() => import('./components/SystemAuditWorkshop'));
 const HealthInfo = lazy(() => import('./components/HealthInfo/HealthInfo'));
 const HealthRecords = lazy(() => import('./components/HealthRecords'));
 const StudentHealthRecords = lazy(() => import('./components/StudentHealthRecords'));
@@ -244,6 +245,25 @@ const App = () => {
                     <Layout>
                       <Suspense fallback={<PageLoader />}>
                         <UserManagement />
+                      </Suspense>
+                    </Layout>
+                  ) : (
+                    <Navigate to="/home" replace />
+                  )}
+                </RequireVerification>
+              </RequireAuth>
+            }
+          />
+
+          <Route
+            path="/system-audit"
+            element={
+              <RequireAuth isAuthenticated={isAuthenticated}>
+                <RequireVerification>
+                  {user?.role === 'ADMIN' ? (
+                    <Layout>
+                      <Suspense fallback={<PageLoader />}>
+                        <SystemAuditWorkshop />
                       </Suspense>
                     </Layout>
                   ) : (

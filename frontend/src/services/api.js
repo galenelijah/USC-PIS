@@ -1815,6 +1815,28 @@ export const reportService = {
 
 };
 
+// System Audit Service (Admin only)
+export const auditService = {
+  getLogs: async (params = {}) => {
+    try {
+      const response = await api.get('/auth/admin/activity-logs/', { params });
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+  getLogDetails: async (id) => {
+    try {
+      const response = await api.get(`/auth/admin/activity-logs/${id}/`);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  }
+};
+
 // User Management Service (Admin only)
 export const userManagementService = {
   // Get all users with pagination and filtering

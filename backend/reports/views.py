@@ -109,7 +109,11 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
         import traceback
         try:
             # Use get_queryset() to ensure role-based visibility and SQLite compatibility
+            # Enhanced lookup: Try PK first, then fall back to report_type string
             template = self.get_queryset().filter(pk=pk).first()
+            if not template and not str(pk).isdigit():
+                template = self.get_queryset().filter(report_type=pk).first()
+                
             if not template:
                 return Response({'error': 'ReportTemplate not found or access denied'}, status=status.HTTP_404_NOT_FOUND)
             
@@ -177,7 +181,13 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
     def preview(self, request, pk=None):
         """Get raw report data for preview without generating a file"""
         try:
-            template = self.get_object()
+            # Use get_queryset() for consistency and support report_type lookup
+            template = self.get_queryset().filter(pk=pk).first()
+            if not template and not str(pk).isdigit():
+                template = self.get_queryset().filter(report_type=pk).first()
+            
+            if not template:
+                return Response({'error': 'ReportTemplate not found or access denied'}, status=status.HTTP_404_NOT_FOUND)
             
             # Validate request data
             # Inject template_id if missing from body (expected in URL)

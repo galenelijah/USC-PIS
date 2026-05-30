@@ -1,4 +1,5 @@
 from rest_framework import status, viewsets, filters
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
@@ -56,8 +57,15 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AuditLog.objects.all().select_related('actor')
     serializer_class = AuditLogSerializer
     permission_classes = [IsAuthenticated, IsAdminUserRole]
-    filter_backends = [filters.OrderingFilter, filters.SearchFilter]
-    search_fields = ['actor_email', 'target_model', 'action_type', 'target_object_id']
+    filter_backends = [filters.OrderingFilter, filters.SearchFilter, DjangoFilterBackend]
+    filterset_fields = {
+        'timestamp': ['gte', 'lte'],
+        'action_type': ['exact', 'in'],
+        'target_model': ['exact', 'icontains'],
+        'actor_email': ['exact', 'icontains'],
+        'actor_role': ['exact'],
+    }
+    search_fields = ['actor_email', 'target_model', 'action_type', 'target_object_id', 'changes_summary']
     ordering_fields = ['timestamp', 'action_type', 'target_model']
     ordering = ['-timestamp']
 

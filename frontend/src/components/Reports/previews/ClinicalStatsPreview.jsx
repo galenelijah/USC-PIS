@@ -108,7 +108,13 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
         }
       };
 
-      const response = await reportService.generateReport(4, payload); // Template ID 4
+      const response = await reportService.generateReport(4, payload).catch(async (err) => {
+        if (err.response?.status === 404) {
+          console.warn("Template ID 4 not found, falling back to MEDICAL_STATISTICS lookup...");
+          return await reportService.generateReport('MEDICAL_STATISTICS', payload);
+        }
+        throw err;
+      });
       setSuccess(`Report generation started! ID: ${response.data.report_id}`);
       
       setTimeout(() => {

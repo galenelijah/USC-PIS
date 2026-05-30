@@ -118,7 +118,14 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
         }
       };
 
-      const response = await reportService.generateReport(17, payload); // Template ID 17: Clinic Operational Flow & Density
+      const response = await reportService.generateReport(17, payload).catch(async (err) => {
+        // Fallback: If ID 17 fails, try lookup by report_type string
+        if (err.response?.status === 404) {
+          console.warn("Template ID 17 not found, falling back to OPERATIONS lookup...");
+          return await reportService.generateReport('OPERATIONS', payload);
+        }
+        throw err;
+      });
       setSuccess(`Report generation started! ID: ${response.data.report_id}`);
       
       setTimeout(() => {

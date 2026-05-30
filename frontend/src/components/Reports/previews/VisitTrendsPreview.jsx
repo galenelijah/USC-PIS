@@ -119,7 +119,13 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
       };
 
 
-      const response = await reportService.generateReport(2, payload); // Template ID 2: Monthly Visit Trends
+      const response = await reportService.generateReport(2, payload).catch(async (err) => {
+        if (err.response?.status === 404) {
+          console.warn("Template ID 2 not found, falling back to VISIT_TRENDS lookup...");
+          return await reportService.generateReport('VISIT_TRENDS', payload);
+        }
+        throw err;
+      });
       setSuccess(`Report generation started! ID: ${response.data.report_id}`);
       
       setTimeout(() => {

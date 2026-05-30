@@ -110,7 +110,13 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
       };
 
 
-      const response = await reportService.generateReport(5, payload); // Template ID 5: Dental Health Report
+      const response = await reportService.generateReport(5, payload).catch(async (err) => {
+        if (err.response?.status === 404) {
+          console.warn("Template ID 5 not found, falling back to DENTAL_STATISTICS lookup...");
+          return await reportService.generateReport('DENTAL_STATISTICS', payload);
+        }
+        throw err;
+      });
       setSuccess(`Report generation started! ID: ${response.data.report_id}`);
       
       setTimeout(() => {

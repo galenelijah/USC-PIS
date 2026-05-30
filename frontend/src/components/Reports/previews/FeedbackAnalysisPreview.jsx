@@ -109,7 +109,13 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
         }
       };
 
-      const response = await reportService.generateReport(6, payload); // Template ID 6
+      const response = await reportService.generateReport(6, payload).catch(async (err) => {
+        if (err.response?.status === 404) {
+          console.warn("Template ID 6 not found, falling back to FEEDBACK_ANALYSIS lookup...");
+          return await reportService.generateReport('FEEDBACK_ANALYSIS', payload);
+        }
+        throw err;
+      });
       setSuccess(`Report generation started! ID: ${response.data.report_id}`);
       
       setTimeout(() => {

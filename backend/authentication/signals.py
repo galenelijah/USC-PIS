@@ -72,13 +72,37 @@ def audit_log_save(sender, instance, created, **kwargs):
     target_model = sender.__name__
     target_object_id = getattr(instance, 'pk', 'N/A')
     
-    # Overview of changes (basic implementation)
+    # Detailed diffing for updates
     changes = {}
     if not created:
-        # For updates, we could store 'Updated' status. 
-        # Deep diffing is expensive, so we log the representation.
-        changes = {'status': 'modified', 'description': str(instance)}
+        if hasattr(instance, 'history'):
+            try:
+                # Simple history might still be processing its own signal,
+                # but we can try to get the latest two records
+                history = instance.history.all()[:2]
+                if len(history) >= 2:
+                    new_record = history[0]
+                    old_record = history[1]
+                    delta = new_record.diff_against(old_record)
+                    for change in delta.changes:
+                        # Exclude noisy or sensitive fields
+                        if change.field in ['updated_at', 'last_login', 'password']:
+                            continue
+                        changes[change.field] = {
+                            'old': str(change.old) if change.old is not None else None,
+                            'new': str(change.new) if change.new is not None else None
+                        }
+                
+                # If no fields changed in our filtered list, skip logging redundant updates
+                if not changes:
+                    return
+            except Exception as e:
+                logger.warning(f"Audit diffing failed: {str(e)}")
+                changes = {'status': 'modified', 'description': str(instance)}
+        else:
+            changes = {'status': 'modified', 'description': str(instance)}
     else:
+        # For creation, log key fields or just the description
         changes = {'status': 'new', 'description': str(instance)}
 
     try:
