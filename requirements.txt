@@ -12,6 +12,16 @@ coverage
 python-dateutil
 weasyprint
 xhtml2pdf
+arabic-reshaper
+html5lib
+pypdf
+python-bidi
+pyHanko
+pyhanko-certvalidator
+asn1crypto
+oscrypto
+uritools
+lxml
 reportlab>=4.0.0
 openpyxl>=3.1.5
 xlsxwriter>=3.2.5
