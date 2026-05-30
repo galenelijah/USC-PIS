@@ -132,38 +132,47 @@ class Command(BaseCommand):
         updated_count = 0
         
         for data in templates_data:
-            template, created = ReportTemplate.objects.get_or_create(
-                report_type=data['report_type'],
-                defaults={
-                    'name': data['name'],
-                    'description': data['description'],
-                    'template_content': data['template_content'],
-                    'default_filters': data.get('default_filters', {}),
-                    'supported_formats': data['supported_formats'],
-                    'requires_patient_filter': data.get('requires_patient_filter', False),
-                    'allowed_roles': data['allowed_roles'],
-                    'created_by': system_user
-                }
-            )
+            templates = ReportTemplate.objects.filter(report_type=data['report_type']).order_by('id')
             
-            if created:
+            if not templates.exists():
+                template = ReportTemplate.objects.create(
+                    report_type=data['report_type'],
+                    name=data['name'],
+                    description=data['description'],
+                    template_content=data['template_content'],
+                    default_filters=data.get('default_filters', {}),
+                    supported_formats=data['supported_formats'],
+                    requires_patient_filter=data.get('requires_patient_filter', False),
+                    allowed_roles=data['allowed_roles'],
+                    created_by=system_user
+                )
                 created_count += 1
                 self.stdout.write(self.style.SUCCESS(f"Created template: {template.name}"))
-            elif force:
-                template.name = data['name']
-                template.description = data['description']
-                template.template_content = data['template_content']
-                template.default_filters = data.get('default_filters', {})
-                template.supported_formats = data['supported_formats']
-                template.requires_patient_filter = data.get('requires_patient_filter', False)
-                template.allowed_roles = data['allowed_roles']
-                template.save()
-                updated_count += 1
-                self.stdout.write(self.style.SUCCESS(f"Updated template: {template.name}"))
             else:
-                self.stdout.write(
-                    self.style.WARNING(f"Template already exists: {template.name}")
-                )
+                # Handle duplicates if they exist
+                if templates.count() > 1:
+                    self.stdout.write(self.style.WARNING(f"Found {templates.count()} duplicates for {data['report_type']}. Cleaning up..."))
+                    keep_id = templates.first().id
+                    ReportTemplate.objects.filter(report_type=data['report_type']).exclude(id=keep_id).delete()
+                    template = ReportTemplate.objects.get(id=keep_id)
+                else:
+                    template = templates.first()
+
+                if force:
+                    template.name = data['name']
+                    template.description = data['description']
+                    template.template_content = data['template_content']
+                    template.default_filters = data.get('default_filters', {})
+                    template.supported_formats = data['supported_formats']
+                    template.requires_patient_filter = data.get('requires_patient_filter', False)
+                    template.allowed_roles = data['allowed_roles']
+                    template.save()
+                    updated_count += 1
+                    self.stdout.write(self.style.SUCCESS(f"Updated template: {template.name}"))
+                else:
+                    self.stdout.write(
+                        self.style.WARNING(f"Template already exists: {template.name}")
+                    )
         
         self.stdout.write(
             self.style.SUCCESS(
