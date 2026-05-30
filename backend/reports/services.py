@@ -1272,7 +1272,7 @@ class ReportDataService:
                 hour = record.visit_date.astimezone().strftime('%H')
                 if hour in hours:
                     hours[hour] += 1
-        return [{'hour': f"{h}:00", 'count': c} for h, c in hours.items()]
+        return [{'hour': h, 'count': c} for h, c in hours.items()]
         
     @staticmethod
     def _get_college_participation(patients):
@@ -2089,9 +2089,18 @@ class ReportGenerationService:
             elif rtype in ['TREATMENT_OUTCOMES', 'TREATMENT_OUTCOME']: 
                 data = self.data_service.get_treatment_outcomes_data(date_start, date_end, filters)
                 report_title = title or "Treatment Efficacy & Outcomes"
-            elif rtype == 'USER_ACTIVITY' or rtype == 'OPERATIONS': 
-                data = self.data_service.get_user_activity_data(date_start, date_end, filters)
-                report_title = title or "System Operations & Audit Log"
+            elif rtype == 'USER_ACTIVITY' or rtype == 'OPERATIONS':
+                analytics = self.data_service.get_comprehensive_system_analytics(date_start, date_end, filters)
+                data = {
+                    'hourly_traffic_density': analytics.get('operations', {}).get('peak_hours', []),
+                    'service_segmentation': analytics.get('visits', {}).get('types', {}),
+                    'total_operational_volume': analytics.get('visits', {}).get('total', 0),
+                    'clinical_service_intensity': analytics.get('clinical', {}),
+                    'population_demographics': analytics.get('demographics', {}),
+                    'administrative_audit_trail': list(AuditLog.objects.all()[:50].values('timestamp', 'actor_email', 'actor_role', 'action_type', 'target_model'))
+                }
+                report_title = title or "Clinic Operational Flow & Density Analysis"
+
             elif rtype == 'HEALTH_METRICS':
                 data = self.data_service.get_health_metrics_data(date_start, date_end, filters)
                 report_title = title or "Vitals & Health Metrics Analysis"
@@ -2190,12 +2199,23 @@ class ReportGenerationService:
                             "Treatment Outcomes Distribution"))
 
                 elif rtype == 'USER_ACTIVITY' or rtype == 'OPERATIONS' or rtype == 'AUDIT_LOG':
-                    peak_hours = data.get('peak_hours', [])
+                    peak_hours = data.get('hourly_traffic_density', [])
                     if peak_hours:
-                        charts.append(self._generate_chart_url_complex('line', 
+                        charts.append(self._generate_chart_url_complex('bar', 
                             [f"{h['hour']}:00" for h in peak_hours], 
-                            [{'label': 'Activity Volume', 'data': [h['count'] for h in peak_hours], 'fill': True, 'backgroundColor': 'rgba(59, 130, 246, 0.1)'}],
-                            "Hourly Operational Peak Analysis"))
+                            [{
+                                'label': 'Hourly Visit Density', 
+                                'data': [h['count'] for h in peak_hours],
+                                'backgroundColor': '#f59e0b'
+                            }],
+                            "Operational Flow & Density Analysis"))
+                    
+                    if data.get('service_segmentation'):
+                        breakdown = data['service_segmentation']
+                        charts.append(self._generate_chart_url_complex('pie',
+                            ['Medical', 'Dental'],
+                            [{'label': 'Service Share', 'data': [breakdown.get('medical', 0), breakdown.get('dental', 0)]}],
+                            "Institutional Service Distribution"))
 
                 elif rtype == 'COMPREHENSIVE_ANALYTICS' or rtype == 'COMPREHENSIVE':
                     # Multi-dimensional analytics for comprehensive reports
@@ -2265,6 +2285,7 @@ class ReportGenerationService:
     def generate_dental_statistics_report(self, **kwargs): return self._generate_generic_report('DENTAL_STATISTICS', "Dental Statistics", **kwargs)
     def generate_campaign_performance_report(self, **kwargs): return self._generate_generic_report('CAMPAIGN_PERFORMANCE', "Campaign Performance", **kwargs)
     def generate_user_activity_report(self, **kwargs): return self._generate_generic_report('USER_ACTIVITY', "User Activity", **kwargs)
+    def generate_operations_report(self, **kwargs): return self._generate_generic_report('OPERATIONS', "Clinic Operational Flow & Density", **kwargs)
     def generate_health_metrics_report(self, **kwargs): return self._generate_generic_report('HEALTH_METRICS', "Health Metrics", **kwargs)
     def generate_health_history_report(self, **kwargs): return self._generate_generic_report('HEALTH_HISTORY', "Health History", **kwargs)
 

@@ -66,6 +66,7 @@ def generate_report_task_celery(report_id, is_sync=False):
             'CAMPAIGN_PERFORMANCE': service.generate_campaign_performance_report,
             'HEALTH_CAMPAIGN': service.generate_campaign_performance_report,
             'USER_ACTIVITY': service.generate_user_activity_report,
+            'OPERATIONS': service.generate_operations_report,
             'HEALTH_METRICS': service.generate_health_metrics_report,
             'HEALTH_HISTORY': service.generate_health_history_report,
         }

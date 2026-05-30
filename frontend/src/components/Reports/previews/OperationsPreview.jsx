@@ -220,6 +220,11 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
     setSortField(field);
   };
 
+  const formatHourRange = (hourStr) => {
+    const h = hourStr.toString().padStart(2, '0');
+    return `${h}:00 - ${h}:59`;
+  };
+
   const getSortedTableData = () => {
     if (!data?.operations?.peak_hours) return [];
     
@@ -420,7 +425,7 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
                   const total = data.operations.peak_hours.reduce((sum, h) => sum + h.count, 0);
                   return (
                     <TableRow key={idx} hover>
-                      <TableCell sx={{ fontWeight: 600 }}>{row.hour}:00 - {row.hour}:59</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{formatHourRange(row.hour)}</TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, color: '#b45309' }}>{row.count.toLocaleString()}</TableCell>
                       <TableCell align="center">
                         <Chip 
