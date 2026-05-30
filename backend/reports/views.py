@@ -108,7 +108,10 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
         """Generate a report from this template using Celery with sync fallback"""
         import traceback
         try:
-            template = self.get_object()
+            # Use get_queryset() to ensure role-based visibility and SQLite compatibility
+            template = self.get_queryset().filter(pk=pk).first()
+            if not template:
+                return Response({'error': 'ReportTemplate not found or access denied'}, status=status.HTTP_404_NOT_FOUND)
             
             # Validate request data
             # Inject template_id if missing from body (expected in URL)

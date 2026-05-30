@@ -992,12 +992,13 @@ Treatment: ${r.treatment || 'N/A'}
                   sx={{ 
                     cursor: 'pointer', 
                     transition: 'all 0.3s ease',
-                    border: `2px solid ${template.category === 'DENTAL' ? '#f093fb20' : '#667eea20'}`,
+                    border: `2px solid ${template.category === 'DENTAL' ? '#7c3aed20' : '#1976d220'}`,
                     '&:hover': { 
                       boxShadow: 6, 
                       transform: 'translateY(-2px)',
-                      borderColor: template.category === 'DENTAL' ? '#f093fb' : '#667eea'
-                    } 
+                      borderColor: template.category === 'DENTAL' ? '#7c3aed' : '#1976d2'
+                    }
+ 
                   }}
                   onClick={() => handleUseTemplate(template)}
                 >

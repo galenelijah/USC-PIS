@@ -204,7 +204,7 @@ const ClinicalAnalytics = ({ records = [] }) => {
       <Card elevation={2}>
         <CardContent>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-            <TrendingUpIcon sx={{ color: '#667eea' }} />
+            <TrendingUpIcon sx={{ color: '#1976d2' }} />
             <Typography variant="h6" fontWeight="bold">
               Record Trends (Last 6 Months)
             </Typography>
@@ -226,9 +226,9 @@ const ClinicalAnalytics = ({ records = [] }) => {
                 sx={{
                   height: 8,
                   borderRadius: 4,
-                  backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                  backgroundColor: 'rgba(25, 118, 210, 0.1)',
                   '& .MuiLinearProgress-bar': {
-                    backgroundColor: '#667eea',
+                    backgroundColor: '#1976d2',
                     borderRadius: 4,
                   }
                 }}
@@ -258,7 +258,7 @@ const ClinicalAnalytics = ({ records = [] }) => {
     <Card elevation={2}>
       <CardContent>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-          <BarChartIcon sx={{ color: '#f093fb' }} />
+          <BarChartIcon sx={{ color: '#f57c00' }} />
           <Typography variant="h6" fontWeight="bold">
             Most Common Diagnoses
           </Typography>
@@ -297,7 +297,7 @@ const ClinicalAnalytics = ({ records = [] }) => {
     <Card elevation={2}>
       <CardContent>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-          <PeopleIcon sx={{ color: '#f5576c' }} />
+          <PeopleIcon sx={{ color: '#1976d2' }} />
           <Typography variant="h6" fontWeight="bold">
             Patient Demographics
           </Typography>
@@ -305,7 +305,7 @@ const ClinicalAnalytics = ({ records = [] }) => {
         
         <Grid container spacing={2}>
           <Grid item xs={6}>
-            <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'rgba(102, 126, 234, 0.1)', borderRadius: 2 }}>
+            <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'rgba(25, 118, 210, 0.1)', borderRadius: 2 }}>
               <Typography variant="h4" color="primary" fontWeight="bold">
                 {analytics.patientDemographics.totalPatients}
               </Typography>
@@ -315,8 +315,8 @@ const ClinicalAnalytics = ({ records = [] }) => {
             </Box>
           </Grid>
           <Grid item xs={6}>
-            <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'rgba(245, 87, 108, 0.1)', borderRadius: 2 }}>
-              <Typography variant="h4" color="error" fontWeight="bold">
+            <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'rgba(245, 124, 0, 0.1)', borderRadius: 2 }}>
+              <Typography variant="h4" sx={{ color: '#f57c00' }} fontWeight="bold">
                 {analytics.patientDemographics.newPatientsThisMonth}
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -325,8 +325,8 @@ const ClinicalAnalytics = ({ records = [] }) => {
             </Box>
           </Grid>
           <Grid item xs={12}>
-            <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'rgba(240, 147, 251, 0.1)', borderRadius: 2 }}>
-              <Typography variant="h5" color="secondary" fontWeight="bold">
+            <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'rgba(56, 142, 60, 0.1)', borderRadius: 2 }}>
+              <Typography variant="h5" sx={{ color: '#388e3c' }} fontWeight="bold">
                 {analytics.patientDemographics.avgVisitsPerPatient}
               </Typography>
               <Typography variant="body2" color="text.secondary">

@@ -36,6 +36,8 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
       key = item.diagnosis || 'Other';
     } else if (reportType === 'FEEDBACK') {
       key = `${item.rating} Star${item.rating !== 1 ? 's' : ''}`;
+    } else if (reportType === 'HISTORY' || reportType === 'MEDICAL_HISTORY') {
+      key = item.diagnosis || item.procedure_performed_display || item.record_type || 'General Consultation';
     }
     
     // Clean key (truncate long diagnoses for chart)
@@ -48,6 +50,34 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
     : Object.entries(distributionData).sort((a, b) => b[1] - a[1]).slice(0, 5); // Top 5
 
   const maxFreq = Math.max(...sortedDistribution.map(d => d[1]), 1);
+
+  // Professional Color Palette
+  const palette = [
+    '#1976d2', // blue
+    '#388e3c', // green
+    '#f57c00', // orange
+    '#d32f2f', // red
+    '#7b1fa2', // purple
+    '#0097a7', // teal
+    '#c2185b', // pink
+    '#455a64'  // blue-grey
+  ];
+
+  // Semantic palette for feedback
+  const feedbackPalette = {
+    '5 Stars': '#388e3c',
+    '4 Stars': '#8bc34a',
+    '3 Stars': '#fbc02d',
+    '2 Stars': '#f57c00',
+    '1 Star': '#d32f2f'
+  };
+
+  const getBarColor = (label, idx) => {
+    if (reportType === 'FEEDBACK') {
+        return feedbackPalette[label] || '#fbc02d';
+    }
+    return palette[idx % palette.length];
+  };
 
   return (
     <Box 
@@ -143,7 +173,9 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
           <Grid item xs={7}>
             <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
               <Typography variant="caption" sx={{ fontWeight: 'bold', mb: 2, display: 'block' }}>
-                {reportType === 'FEEDBACK' ? 'RATING DISTRIBUTION' : `TOP 5 ${reportType === 'DENTAL' ? 'PROCEDURES' : 'DIAGNOSES'} BY FREQUENCY`}
+                {reportType === 'FEEDBACK' ? 'RATING DISTRIBUTION' : 
+                 reportType === 'HISTORY' ? 'RECURRING CONDITIONS & PROCEDURES' :
+                 `TOP 5 ${reportType === 'DENTAL' ? 'PROCEDURES' : 'DIAGNOSES'} BY FREQUENCY`}
               </Typography>
               <Box sx={{ mt: 2 }}>
                 {sortedDistribution.map(([label, freq], idx) => (
@@ -157,7 +189,7 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
                         sx={{ 
                           width: `${(freq / maxFreq) * 100}%`, 
                           height: '100%', 
-                          bgcolor: reportType === 'FEEDBACK' ? '#fbc02d' : '#1976d2',
+                          bgcolor: getBarColor(label, idx),
                           transition: 'width 1s ease-in-out'
                         }} 
                       />
@@ -172,14 +204,14 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
           <Grid item xs={5}>
             <Paper variant="outlined" sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <Typography variant="caption" sx={{ fontWeight: 'bold', mb: 2, display: 'block', width: '100%', textAlign: 'left' }}>
-                PATIENT CLASSIFICATION
+                {reportType === 'HISTORY' ? 'CLINICAL INTERACTION DENSITY' : 'PATIENT CLASSIFICATION'}
               </Typography>
               <Box sx={{ 
                 position: 'relative', 
                 width: 100, 
                 height: 100, 
                 borderRadius: '50%', 
-                background: `conic-gradient(#1976d2 0% ${totalVisits > 0 ? Math.round((studentVisits/totalVisits)*100) : 0}%, #e67e22 ${totalVisits > 0 ? Math.round((studentVisits/totalVisits)*100) : 0}% 100%)`,
+                background: `conic-gradient(#1976d2 0% ${totalVisits > 0 ? Math.round((studentVisits/totalVisits)*100) : 0}%, #f57c00 ${totalVisits > 0 ? Math.round((studentVisits/totalVisits)*100) : 0}% 100%)`,
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
@@ -196,7 +228,7 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
                   <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>STUDENTS: {studentVisits} ({totalVisits > 0 ? Math.round((studentVisits/totalVisits)*100) : 0}%)</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Box sx={{ width: 10, height: 10, bgcolor: '#e67e22', mr: 1, borderRadius: '2px' }} />
+                  <Box sx={{ width: 10, height: 10, bgcolor: '#f57c00', mr: 1, borderRadius: '2px' }} />
                   <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>FACULTY/STAFF: {facultyVisits} ({totalVisits > 0 ? Math.round((facultyVisits/totalVisits)*100) : 0}%)</Typography>
                 </Box>
               </Box>
@@ -222,8 +254,18 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
                 <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{patient.usc_id || patient.id_number || 'N/A'}</Typography>
               </Grid>
               <Grid item xs={4}>
+                <Typography variant="caption" color="text.secondary">PROGRAM / YEAR</Typography>
+                <Typography variant="body2">{patient.course || patient.program || 'N/A'} - Year {patient.year_level || 'N/A'}</Typography>
+              </Grid>
+              <Grid item xs={4}>
                 <Typography variant="caption" color="text.secondary">GENDER / AGE</Typography>
-                <Typography variant="body2">{patient.gender === 'M' ? 'Male' : 'Female'} ({dayjs().diff(patient.date_of_birth, 'years')} yrs)</Typography>
+                <Typography variant="body2">{patient.gender === 'M' ? 'Male' : 'Female'} ({patient.date_of_birth ? dayjs().diff(patient.date_of_birth, 'years') : 'N/A'} yrs)</Typography>
+              </Grid>
+              <Grid item xs={8}>
+                <Typography variant="caption" color="text.secondary">CLINICAL ALERTS</Typography>
+                <Typography variant="body2" sx={{ color: '#c0392b', fontWeight: 'bold' }}>
+                  {patient.allergies?.length > 0 ? `ALLERGIES: ${patient.allergies}` : 'NO KNOWN ALLERGIES'}
+                </Typography>
               </Grid>
             </Grid>
           </Box>
@@ -250,6 +292,12 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
                   <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>RATING</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', width: '35%' }}>COMMENTS</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', width: '30%' }}>IMPROVEMENTS</TableCell>
+                </>
+              ) : reportType === 'HISTORY' || reportType === 'MEDICAL_HISTORY' ? (
+                <>
+                  <TableCell sx={{ fontWeight: 'bold', width: '10%' }}>TYPE</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', width: '30%' }}>DIAGNOSIS / PROCEDURE</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', width: '40%' }}>TREATMENT & NOTES</TableCell>
                 </>
               ) : (
                 <>
@@ -298,6 +346,45 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
                     </TableCell>
                     <TableCell sx={{ verticalAlign: 'top' }}>
                       <Typography variant="body2">{record.improvement || '—'}</Typography>
+                    </TableCell>
+                  </>
+                ) : reportType === 'HISTORY' || reportType === 'MEDICAL_HISTORY' ? (
+                  <>
+                    <TableCell sx={{ verticalAlign: 'top' }}>
+                      <Chip 
+                        label={record.record_type || 'CONSULT'} 
+                        size="small" 
+                        sx={{ 
+                          fontSize: '0.6rem', 
+                          height: 18, 
+                          bgcolor: record.record_type === 'DENTAL' ? '#7c3aed20' : '#1976d220',
+                          color: record.record_type === 'DENTAL' ? '#7c3aed' : '#1976d2',
+                          fontWeight: 'bold'
+                        }} 
+                      />
+                    </TableCell>
+                    <TableCell sx={{ verticalAlign: 'top' }}>
+                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                        {record.diagnosis || record.procedure_performed_display || record.chief_complaint || '—'}
+                      </Typography>
+                      {record.record_type === 'DENTAL' && record.tooth_numbers && (
+                        <Typography variant="caption" sx={{ display: 'block' }}>Teeth: {record.tooth_numbers}</Typography>
+                      )}
+                      {record.record_type === 'MEDICAL' && (record.vital_signs || record.blood_pressure) && (
+                        <Typography variant="caption" color="text.secondary">
+                          BP: {record.vital_signs?.blood_pressure || record.blood_pressure || '—'} | T: {record.vital_signs?.temperature || record.temperature || '—'}°C
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell sx={{ verticalAlign: 'top' }}>
+                      <Typography variant="body2">
+                        {record.treatment || record.treatment_performed || record.referral_to || '—'}
+                      </Typography>
+                      {(record.notes || record.clinical_notes) && (
+                        <Typography variant="caption" sx={{ display: 'block', fontStyle: 'italic', mt: 0.5 }}>
+                          Note: {record.notes || record.clinical_notes}
+                        </Typography>
+                      )}
                     </TableCell>
                   </>
                 ) : (

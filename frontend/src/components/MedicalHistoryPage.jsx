@@ -514,11 +514,10 @@ const MedicalHistoryPage = () => {
 
   const getRecordColor = (recordType) => {
     switch (recordType) {
-      case 'DENTAL': return '#f093fb';
-      default: return '#667eea';
+      case 'DENTAL': return '#7c3aed';
+      default: return '#1976d2';
     }
   };
-
   const handleExpandRecord = (recordId) => {
     setExpandedRecord(expandedRecord === recordId ? null : recordId);
   };
@@ -859,9 +858,9 @@ const MedicalHistoryPage = () => {
                             sx={{
                               height: 6,
                               borderRadius: 3,
-                              backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                              backgroundColor: 'rgba(25, 118, 210, 0.1)',
                               '& .MuiLinearProgress-bar': {
-                                backgroundColor: '#667eea',
+                                backgroundColor: '#1976d2',
                                 borderRadius: 3,
                               }
                             }}
@@ -1012,7 +1011,7 @@ const MedicalHistoryPage = () => {
                 )}
                 renderOption={(props, option) => (
                   <Box component="li" {...props} sx={{ gap: 2 }}>
-                    <Avatar sx={{ bgcolor: '#667eea', width: 32, height: 32 }}>
+                    <Avatar sx={{ bgcolor: '#1976d2', width: 32, height: 32 }}>
                       {option.first_name?.[0]}{option.last_name?.[0]}
                     </Avatar>
                     <Box>
@@ -1490,7 +1489,7 @@ const MedicalHistoryPage = () => {
                 )}
                 renderOption={(props, option) => (
                   <Box component="li" {...props}>
-                    <Avatar sx={{ mr: 2, bgcolor: '#667eea' }}>
+                    <Avatar sx={{ mr: 2, bgcolor: '#1976d2' }}>
                       {option.first_name?.[0]}
                     </Avatar>
                     <Box>

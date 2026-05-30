@@ -1083,7 +1083,7 @@ const Dental = () => {
                 {/* Attachments Section */}
                 <Box sx={{ mt: 3 }}>
                   <Divider sx={{ mb: 2 }} />
-                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#00acc1' }}>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#7c3aed' }}>
                     <FileIcon /> Attachments & Documents
                   </Typography>
                   

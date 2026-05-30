@@ -696,11 +696,11 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                         <Paper sx={{ 
                             p: 3, 
                             mb: 2,
-                            borderLeft: `5px solid #00acc1`,
+                            borderLeft: `5px solid #1976d2`,
                             boxShadow: 3
                         }}>
                             <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                                <Typography variant="h6" sx={{ color: '#00acc1', display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Typography variant="h6" sx={{ color: '#1976d2', display: 'flex', alignItems: 'center', gap: 1 }}>
                                     <FileIcon /> Supporting Documents
                                 </Typography>
                                 {medicalRecordId && canEdit && (

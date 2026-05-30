@@ -945,9 +945,9 @@ const MedicalRecordsPage = () => {
                                       sx={{
                                         height: 8,
                                         borderRadius: 4,
-                                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                                        backgroundColor: 'rgba(25, 118, 210, 0.1)',
                                         '& .MuiLinearProgress-bar': {
-                                          backgroundColor: '#667eea',
+                                          backgroundColor: '#1976d2',
                                           borderRadius: 4,
                                         }
                                       }}
