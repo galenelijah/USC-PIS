@@ -391,8 +391,8 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
             />
           </Box>
 
-          <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 400, borderRadius: '8px' }}>
-            <Table stickyHeader size="small">
+          <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 400, borderRadius: '8px', overflowX: 'auto' }}>
+            <Table stickyHeader size="small" sx={{ minWidth: 1000 }}>
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>

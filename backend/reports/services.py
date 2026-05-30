@@ -12,7 +12,7 @@ from django.core.cache import cache
 from django.db import connection, models
 from io import BytesIO, StringIO
 from patients.models import Patient, MedicalRecord, DentalRecord
-from authentication.models import User
+from authentication.models import User, AuditLog
 from feedback.models import Feedback
 from health_info.models import HealthCampaign, CampaignFeedback
 from utils.usc_mappings import PROGRAMS_CHOICES
@@ -544,7 +544,7 @@ class ReportDataService:
                 # Anchor to first of month
                 date_start = date_start.replace(day=1)
 
-            monthly_summary = []
+            monthly_data = []
             
             # Create a full date range to ensure no gaps
             full_range = pd.date_range(start=date_start, end=date_end, freq=freq, normalize=True)
@@ -574,26 +574,26 @@ class ReportDataService:
                 counts = counts.fillna(0)
                 
                 for timestamp, row in counts.iterrows():
-                    monthly_summary.append({
+                    monthly_data.append({
                         'month': timestamp.strftime(date_format), 
                         'total_visits': int(row['total']),
                         'medical_visits': int(row.get('medical', 0)), 
                         'dental_visits': int(row.get('dental', 0)),
-                        'growth_percentage': f"{float(row.get('growth', 0)):.1f}%"
+                        'growth_percentage': f"{float(row.get('growth', 0)):.2f}%"
                     })
             else:
                 # Return empty intervals for the entire range
                 for timestamp in full_range:
-                    monthly_summary.append({
+                    monthly_data.append({
                         'month': timestamp.strftime(date_format),
                         'total_visits': 0,
                         'medical_visits': 0,
                         'dental_visits': 0,
-                        'growth_percentage': "0%"
+                        'growth_percentage': "0.00%"
                     })
                 
             # Average Daily Calculation
-            avg_daily = round(total_visits / max(days_diff, 1), 1)
+            avg_daily = round(total_visits / max(days_diff, 1), 2)
             peak_day_visits = 0
             if m_data or d_data:
                 df_day = pd.DataFrame(m_data + d_data)
@@ -605,7 +605,7 @@ class ReportDataService:
                 'total_visits': total_visits, 
                 'avg_daily_visits': avg_daily, 
                 'peak_day_visits': peak_day_visits,
-                'monthly_summary': monthly_summary, 
+                'monthly': monthly_data, 
                 'summary_by_type': {'Medical': total_medical, 'Dental': total_dental},
                 'granularity': freq
             }
@@ -613,7 +613,7 @@ class ReportDataService:
             logger.error(f"Error in get_visit_trends_data: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
-            return {'error': str(e), 'total_visits': 0, 'monthly_summary': []}
+            return {'error': str(e), 'total_visits': 0, 'monthly': []}
 
     @staticmethod
     def get_treatment_outcomes_data(date_start=None, date_end=None, filters=None):
@@ -658,7 +658,7 @@ class ReportDataService:
             top_diagnoses = [{
                 'name': d['diagnosis'], 
                 'count': d['count'],
-                'percentage': (d['count'] / total_cases) * 100
+                'percentage': round((d['count'] / total_cases) * 100, 2)
             } for d in diagnoses]
             
             # Treatment Distribution
@@ -666,7 +666,7 @@ class ReportDataService:
             treatment_distribution = [{
                 'name': t['treatment'], 
                 'count': t['count'],
-                'percentage': (t['count'] / total_cases) * 100
+                'percentage': round((t['count'] / total_cases) * 100, 2)
             } for t in treatments]
 
             return {
@@ -681,48 +681,57 @@ class ReportDataService:
     @staticmethod
     def get_user_activity_data(date_start=None, date_end=None, filters=None):
         try:
-            users = User.objects.all()
+            filters = filters or {}
+            date_start = date_start or (timezone.now() - timedelta(days=30))
+            date_end = date_end or timezone.now()
             
-            # Apply user filter if provided
-            user_id = (filters or {}).get('user_id')
-            if user_id:
-                users = users.filter(id=user_id)
-                
-            active_users_log = []
-            for u in users.order_by('-last_login')[:100]:
-                active_users_log.append({
-                    'user': u.get_full_name() or u.email, 
-                    'role': u.role, 
-                    'timestamp': u.last_login, 
-                    'status': 'Active' if u.is_active else 'Inactive'
+            # Use AuditLog for exhaustive mutation tracking
+            audit_qs = AuditLog.objects.filter(timestamp__range=(date_start, date_end))
+            
+            if filters.get('user_id'):
+                audit_qs = audit_qs.filter(actor_id=filters['user_id'])
+            
+            if filters.get('action_type'):
+                audit_qs = audit_qs.filter(action_type=filters['action_type'])
+
+            total_actions = audit_qs.count()
+            
+            system_log = []
+            for entry in audit_qs.select_related('actor').order_by('-timestamp')[:100]:
+                system_log.append({
+                    'timestamp': entry.timestamp,
+                    'user': entry.actor_email or (entry.actor.get_full_name() if entry.actor else 'Unknown'),
+                    'role': entry.actor_role or (entry.actor.role if entry.actor else 'N/A'),
+                    'action': entry.get_action_type_display(),
+                    'target': entry.target_model,
+                    'details': entry.changes_summary.get('description', 'N/A') if isinstance(entry.changes_summary, dict) else 'N/A'
                 })
             
             # Apply customization
-            active_users_log = ReportDataService._apply_customization(active_users_log, filters or {})
+            system_log = ReportDataService._apply_customization(system_log, filters)
             
-            # For operations workshop, calculate peak activity hours based on User.last_login (proxy for activity)
+            # Calculate peak hours from audit log timestamps
             peak_hours = []
-            if users.filter(last_login__isnull=False).exists():
-                hour_counts = {}
-                for h in range(24): hour_counts[h] = 0
-                for u in users.filter(last_login__isnull=False):
-                    hour = u.last_login.hour
+            if audit_qs.exists():
+                hour_counts = {h: 0 for h in range(24)}
+                for entry in audit_qs:
+                    hour = entry.timestamp.hour
                     hour_counts[hour] += 1
                 peak_hours = [{'hour': h, 'count': c} for h, c in hour_counts.items()]
 
             return {
-                'total_users': users.count(), 
-                'active_users_period': users.filter(last_login__gte=date_start or timezone.now()-timedelta(days=30)).count(),
-                'system_log': active_users_log,
-                'peak_hours': peak_hours
+                'total_actions': total_actions,
+                'system_log': system_log,
+                'peak_hours': peak_hours,
+                'active_admins': audit_qs.values('actor').distinct().count()
             }
-        except Exception as e: return {'error': str(e)}
+        except Exception as e: 
+            logger.error(f"Error in get_user_activity_data: {e}")
+            return {'error': str(e), 'total_actions': 0, 'system_log': []}
 
     @staticmethod
     def get_health_metrics_data(date_start=None, date_end=None, filters=None):
         try:
-            from notifications.models import Notification
-            
             # Calculate real avg age of population
             patients = Patient.objects.all()
             total_pop = patients.count()
@@ -739,7 +748,7 @@ class ReportDataService:
             # Sample metrics list for customization
             metrics = [
                 {'metric_name': 'Total Population', 'value': total_pop, 'unit': 'Patients'},
-                {'metric_name': 'Average Age', 'value': round(avg_age, 1), 'unit': 'Years'},
+                {'metric_name': 'Average Age', 'value': round(avg_age, 2), 'unit': 'Years'},
                 {'metric_name': 'System Alerts', 'value': health_alerts, 'unit': 'Notifications'}
             ]
             
@@ -748,7 +757,7 @@ class ReportDataService:
 
             return {
                 'total_population': total_pop, 
-                'age_average': round(avg_age, 1), 
+                'age_average': round(avg_age, 2), 
                 'health_alerts': health_alerts,
                 'metrics_details': metrics
             }
@@ -860,7 +869,7 @@ class ReportDataService:
                 dist.append({
                     'category': str(star),
                     'count': count,
-                    'percentage': round((count / total * 100), 1)
+                    'percentage': round((count / total * 100), 2)
                 })
 
             return {
@@ -868,10 +877,10 @@ class ReportDataService:
                 'total_visits': total_visits,
                 'student_count': student_count,
                 'staff_count': staff_count,
-                'student_percentage': round(float(student_pct), 1),
-                'response_rate': round(float(response_rate), 1),
-                'avg_rating': round(float(avg), 1), 
-                'satisfaction_score': round(float(avg/5*100), 1),
+                'student_percentage': round(float(student_pct), 2),
+                'response_rate': round(float(response_rate), 2),
+                'avg_rating': round(float(avg), 2), 
+                'satisfaction_score': round(float(avg/5*100), 2),
                 'rating_distribution': dist,
                 'raw_feedback': raw_feedback,
                 'service_metrics': metrics,
@@ -966,19 +975,19 @@ class ReportDataService:
                 asset_effectiveness.append({
                     'asset_type': 'With PubMat',
                     'campaigns': with_pubmat['count'],
-                    'avg_views': with_pubmat['views'] / with_pubmat['count']
+                    'avg_views': round(with_pubmat['views'] / with_pubmat['count'], 2)
                 })
             if without_pubmat['count'] > 0:
                 asset_effectiveness.append({
                     'asset_type': 'Without PubMat',
                     'campaigns': without_pubmat['count'],
-                    'avg_views': without_pubmat['views'] / without_pubmat['count']
+                    'avg_views': round(without_pubmat['views'] / without_pubmat['count'], 2)
                 })
             if with_banner['count'] > 0:
                 asset_effectiveness.append({
                     'asset_type': 'With Banner',
                     'campaigns': with_banner['count'],
-                    'avg_views': with_banner['views'] / with_banner['count']
+                    'avg_views': round(with_banner['views'] / with_banner['count'], 2)
                 })
                 
             # Apply customization (field selection and grouping)
@@ -986,7 +995,7 @@ class ReportDataService:
 
             return {
                 'total_views': total_views,
-                'avg_views_per_campaign': avg_views, 
+                'avg_views_per_campaign': round(avg_views, 2), 
                 'campaign_performance': perf,
                 'asset_effectiveness': asset_effectiveness
             }
@@ -1098,8 +1107,8 @@ class ReportDataService:
                 diag.append({
                     'name': item['diagnosis'] or "General Consultation", 
                     'case_count': item['count'], 
-                    'percentage': (item['count'] / max(records.count(), 1)) * 100,
-                    'avg_age': round(diag_avg_age, 1)
+                    'percentage': round((item['count'] / max(records.count(), 1)) * 100, 2),
+                    'avg_age': round(diag_avg_age, 2)
                 })
             
             # Monthly trends
@@ -1124,7 +1133,7 @@ class ReportDataService:
             return {
                 'total_patients': patients.count(), 
                 'total_consultations': records.count(), 
-                'avg_age': round(float(avg_age), 1), 
+                'avg_age': round(float(avg_age), 2), 
                 'top_diagnoses': diag, 
                 'vitals_summary': vitals,
                 'monthly_trends': sorted(monthly_trends, key=lambda x: x['name']) if isinstance(monthly_trends, list) else monthly_trends
@@ -1174,6 +1183,11 @@ class ReportDataService:
                     level_list = filters['year_level']
                     if isinstance(level_list, str): level_list = level_list.split(',')
                     if level_list: records = records.filter(patient__user__year_level__in=level_list)
+
+                if filters.get('priority'):
+                    priorities = filters['priority']
+                    if isinstance(priorities, str): priorities = priorities.split(',')
+                    if priorities: records = records.filter(priority__in=priorities)
             
             total_records = records.count()
 
@@ -1189,7 +1203,7 @@ class ReportDataService:
             common_procedures = [{
                 'name': proc_map.get(item['procedure_performed'], item['procedure_performed']),
                 'count': item['count'],
-                'percentage': (item['count'] / total_records) * 100
+                'percentage': round((item['count'] / total_records) * 100, 2)
             } for item in proc_counts]
 
             # Oral hygiene status distribution
@@ -1234,7 +1248,7 @@ class ReportDataService:
 
             return {
                 'total_records': total_records,
-                'preventive_care_rate': round(preventive_rate, 1),
+                'preventive_care_rate': round(preventive_rate, 2),
                 'common_procedures': common_procedures,
                 'hygiene_stats': hygiene_stats,
                 'gum_stats': gum_stats,
@@ -1424,7 +1438,7 @@ class ReportDataService:
                     'total_active': len(all_active_patients)
                 },
                 'visits': {
-                    'monthly': trends.get('monthly_summary', []),
+                    'monthly': trends.get('monthly', []),
                     'types': {'medical': medical_count, 'dental': dental_count},
                     'total': trends.get('total_visits', 0),
                     'granularity': trends.get('granularity')
@@ -1632,7 +1646,9 @@ class ReportExportService:
                     if context.get('visual_charts'):
                         import requests
                         import base64
-                        charts_b64 = []
+                        charts_b64 = context.get('charts_base64', [])
+                        if not isinstance(charts_b64, list): charts_b64 = []
+                        
                         for url in context['visual_charts']:
                             try:
                                 resp = requests.get(url, timeout=10)
@@ -2102,8 +2118,8 @@ class ReportGenerationService:
                         [{'label': 'Role Share', 'data': role_counts}],
                         "Institutional Role Classification"))
 
-            elif rtype == 'VISIT_TRENDS' and data.get('monthly_summary'):
-                monthly = data['monthly_summary']
+            elif rtype == 'VISIT_TRENDS' and data.get('monthly'):
+                monthly = data['monthly']
                 charts.append(self._generate_chart_url_complex('line', 
                     [m['month'] for m in monthly], 
                     [
@@ -2195,7 +2211,8 @@ class ReportGenerationService:
                 'report_date': timezone.now().strftime('%B %d, %Y'),
                 'system_name': "USC Patient Information System",
                 'report_type': rtype,
-                'visual_charts': charts
+                'visual_charts': charts,
+                'charts_base64': filters.get('charts_base64', [])
             })
             return data
 

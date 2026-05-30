@@ -52,6 +52,8 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
   const [sortField, setSortField] = useState('case_count');
   const [sortDirection, setSortDirection] = useState('desc');
 
+  const chartRef = React.useRef(null);
+
   const fetchAnalytics = async (isModal = false) => {
     try {
       if (!isModal) setLoading(true);
@@ -101,7 +103,8 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
           diagnosis_category: selectedDiagnoses,
-          campus: campusFilter !== 'all' ? [campusFilter] : undefined
+          campus: campusFilter !== 'all' ? [campusFilter] : undefined,
+          charts_base64: chartRef.current ? [chartRef.current.toBase64Image()] : []
         }
       };
 
@@ -154,8 +157,25 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
       }
     },
     scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-      y: { grid: { display: false }, ticks: { font: { size: 11, weight: '500' } } }
+      x: { 
+        grid: { display: false }, 
+        ticks: { 
+          font: { size: 10 },
+          callback: function(value) {
+            const label = this.getLabelForValue(value);
+            if (label && label.length > 15) {
+              return label.substring(0, 12) + '...';
+            }
+            return label;
+          }
+        } 
+      },
+      y: { 
+        grid: { display: false }, 
+        ticks: { 
+          font: { size: 11, weight: '500' }
+        } 
+      }
     }
   };
 
@@ -308,6 +328,7 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
             <Box sx={{ height: 350 }}>
               {data?.clinical?.top_diagnoses?.length > 0 ? (
                 <Bar 
+                  ref={chartRef}
                   data={{
                     labels: data.clinical.top_diagnoses.map(d => d.name),
                     datasets: [{
@@ -355,8 +376,8 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
             />
           </Box>
 
-          <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 400, borderRadius: '8px' }}>
-            <Table stickyHeader size="small">
+          <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 400, borderRadius: '8px', overflowX: 'auto' }}>
+            <Table stickyHeader size="small" sx={{ minWidth: 850 }}>
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>
@@ -384,11 +405,11 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
                     <TableRow key={idx} hover>
                       <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>{row.name}</TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, color: '#ef4444' }}>{row.case_count.toLocaleString()}</TableCell>
-                      <TableCell align="right">{row.avg_age || 'N/A'} yrs</TableCell>
+                      <TableCell align="right">{row.avg_age ? Number(row.avg_age).toFixed(2) : 'N/A'} yrs</TableCell>
                       <TableCell align="right">
                         <Box display="flex" alignItems="center" justifyContent="flex-end" gap={1}>
                           <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-                            {((row.case_count / (total || 1)) * 100).toFixed(1)}%
+                            {((row.case_count / (total || 1)) * 100).toFixed(2)}%
                           </Typography>
                           <Box sx={{ width: 60, height: 6, bgcolor: '#f1f5f9', borderRadius: 10, overflow: 'hidden' }}>
                             <Box sx={{ width: `${(row.case_count / total) * 100}%`, height: '100%', bgcolor: '#ef4444' }} />

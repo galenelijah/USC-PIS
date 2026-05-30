@@ -46,7 +46,10 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
   // Domain Specific Filters (Dental Dimensions)
   const [selectedProcedures, setSelectedProcedures] = useState([]);
   const [campusFilter, setCampusFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const chartRef = React.useRef(null);
 
   const [sortField, setSortField] = useState('count');
   const [sortDirection, setSortDirection] = useState('desc');
@@ -101,7 +104,8 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
         filters: {
           procedure: selectedProcedures,
           campus: campusFilter !== 'all' ? [campusFilter] : undefined,
-          priority: priorityFilter !== 'all' ? priorityFilter : undefined
+          priority: priorityFilter !== 'all' ? priorityFilter : undefined,
+          charts_base64: chartRef.current ? [chartRef.current.toBase64Image()] : []
         }
       };
 
@@ -220,7 +224,29 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
             {loading ? (
               <CircularProgress sx={{ color: '#7c3aed' }} />
             ) : data?.clinical?.top_procedures?.length > 0 ? (
-              <Bar data={generateChartData()} options={chartOptions} />
+              <Bar ref={chartRef} data={generateChartData()} options={{
+                ...chartOptions,
+                plugins: {
+                  ...chartOptions.plugins,
+                  legend: { display: false },
+                },
+                scales: {
+                  ...chartOptions.scales,
+                  y: {
+                    ...chartOptions.scales.y,
+                    ticks: {
+                      ...chartOptions.scales.y.ticks,
+                      callback: function(value) {
+                        const label = this.getLabelForValue(value);
+                        if (label.length > 20) {
+                          return label.match(/.{1,20}(\s|$)/g);
+                        }
+                        return label;
+                      }
+                    }
+                  }
+                }
+              }} />
             ) : (
               <Typography color="text.secondary" variant="body2">No dental data found.</Typography>
             )}
@@ -384,7 +410,7 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
                       <TableCell align="right">
                         <Box display="flex" alignItems="center" justifyContent="flex-end" gap={1}>
                           <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-                            {weight.toFixed(1)}%
+                            {weight.toFixed(2)}%
                           </Typography>
                           <Box sx={{ width: 60, height: 6, bgcolor: '#f1f5f9', borderRadius: 10, overflow: 'hidden' }}>
                             <Box sx={{ width: `${weight}%`, height: '100%', bgcolor: '#7c3aed' }} />

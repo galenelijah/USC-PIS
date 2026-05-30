@@ -64,6 +64,8 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
   const [sortField, setSortField] = useState('month');
   const [sortDirection, setSortDirection] = useState('desc');
 
+  const chartRef = React.useRef(null);
+
   const fetchAnalytics = async (isModal = false) => {
     try {
       if (!isModal) setLoading(true);
@@ -111,7 +113,8 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
         date_range_start: modalDateRange === 'custom' ? modalStartDate : undefined,
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
-          service_type: streamFilter !== 'all' ? streamFilter : undefined
+          service_type: streamFilter !== 'all' ? streamFilter : undefined,
+          charts_base64: chartRef.current ? [chartRef.current.toBase64Image()] : []
         }
       };
 
@@ -362,7 +365,7 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
             </Box>
             <Box sx={{ height: 350 }}>
               {data?.visits?.monthly?.length > 0 ? (
-                <Line data={chartData} options={chartOptions} />
+                <Line ref={chartRef} data={chartData} options={chartOptions} />
               ) : <Typography variant="body2" color="text.secondary" textAlign="center" mt={12}>No visit patterns found for current selection</Typography>}
             </Box>
           </Box>
@@ -371,8 +374,8 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
 
           {/* TREND DATA TABLE */}
           <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Interaction Utilization Log</Typography>
-          <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 400, borderRadius: '8px' }}>
-            <Table stickyHeader size="small">
+          <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 400, borderRadius: '8px', overflowX: 'auto' }}>
+            <Table stickyHeader size="small" sx={{ minWidth: 850 }}>
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>
@@ -408,7 +411,7 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
                       <TableCell align="right">
                         <Box display="flex" alignItems="center" justifyContent="flex-end" gap={1}>
                           <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-                            {((total / (data.visits.total || 1)) * 100).toFixed(1)}%
+                            {((total / (data.visits.total || 1)) * 100).toFixed(2)}%
                           </Typography>
                           <Box sx={{ width: 60, height: 6, bgcolor: '#f1f5f9', borderRadius: 10, overflow: 'hidden' }}>
                             <Box sx={{ width: `${(total / (data.visits.total || 1)) * 100}%`, height: '100%', bgcolor: '#2563eb' }} />

@@ -389,8 +389,8 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
 
           {/* OPERATIONAL LOGS TABLE */}
           <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Hourly Operational Audit Trail</Typography>
-          <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 400, borderRadius: '8px' }}>
-            <Table stickyHeader size="small">
+          <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 400, borderRadius: '8px', overflowX: 'auto' }}>
+            <Table stickyHeader size="small" sx={{ minWidth: 850 }}>
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>
@@ -431,7 +431,7 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
                       <TableCell align="right">
                         <Box display="flex" alignItems="center" justifyContent="flex-end" gap={1}>
                           <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-                            {((row.count / (total || 1)) * 100).toFixed(1)}%
+                            {((row.count / (total || 1)) * 100).toFixed(2)}%
                           </Typography>
                           <Box sx={{ width: 60, height: 6, bgcolor: '#f1f5f9', borderRadius: 10, overflow: 'hidden' }}>
                             <Box sx={{ width: `${(row.count / total) * 100}%`, height: '100%', bgcolor: meta.color }} />

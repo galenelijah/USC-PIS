@@ -108,6 +108,15 @@ class Command(BaseCommand):
                 'allowed_roles': ['ADMIN']
             },
             {
+                'name': 'Clinic Operational Flow & Density',
+                'description': 'Analysis of clinic traffic patterns, peak hours, and operational efficiency',
+                'report_type': 'USER_ACTIVITY',
+                'template_content': service.get_default_template('USER_ACTIVITY', 'Clinic Operational Flow & Density'),
+                'default_filters': {'include_peak_hours': True},
+                'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
+                'allowed_roles': ['STAFF', 'ADMIN']
+            },
+            {
                 'name': 'Comprehensive Analytics Report',
                 'description': 'Full-scale analysis across all clinical and administrative modules',
                 'report_type': 'COMPREHENSIVE_ANALYTICS',
