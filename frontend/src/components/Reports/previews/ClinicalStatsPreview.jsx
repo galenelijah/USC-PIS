@@ -101,7 +101,7 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
           diagnosis_category: selectedDiagnoses,
-          campus: campusFilter !== 'all' ? campusFilter : undefined
+          campus: campusFilter !== 'all' ? [campusFilter] : undefined
         }
       };
 

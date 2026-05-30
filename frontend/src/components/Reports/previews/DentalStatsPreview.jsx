@@ -100,6 +100,7 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
           procedure: selectedProcedures,
+          campus: campusFilter !== 'all' ? [campusFilter] : undefined,
           priority: priorityFilter !== 'all' ? priorityFilter : undefined
         }
       };
