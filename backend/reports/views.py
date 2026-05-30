@@ -119,10 +119,9 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
                 return Response({'error': 'ReportTemplate not found or access denied'}, status=status.HTTP_404_NOT_FOUND)
             
             # Validate request data
-            # Inject template_id if missing from body (expected in URL)
+            # Inject actual template.id (pk might be a string-based lookup like 'OPERATIONS')
             data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
-            if 'template_id' not in data:
-                data['template_id'] = pk
+            data['template_id'] = template.id
 
             serializer = ReportGenerationRequestSerializer(data=data)
             if not serializer.is_valid():
@@ -192,10 +191,9 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
                 return Response({'error': 'ReportTemplate not found or access denied'}, status=status.HTTP_404_NOT_FOUND)
             
             # Validate request data
-            # Inject template_id if missing from body (expected in URL)
+            # Inject actual template.id (pk might be a string-based lookup like 'OPERATIONS')
             data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
-            if 'template_id' not in data:
-                data['template_id'] = pk
+            data['template_id'] = template.id
 
             serializer = ReportGenerationRequestSerializer(data=data)
             if not serializer.is_valid():
