@@ -1627,6 +1627,23 @@ class ReportExportService:
                         'user': user
                     }
                     if isinstance(report_data, dict): context.update(report_data)
+                    
+                    # Pre-fetch QuickChart images as base64 to prevent xhtml2pdf network/SSL crashes
+                    if context.get('visual_charts'):
+                        import requests
+                        import base64
+                        charts_b64 = []
+                        for url in context['visual_charts']:
+                            try:
+                                resp = requests.get(url, timeout=10)
+                                if resp.status_code == 200:
+                                    b64 = base64.b64encode(resp.content).decode('utf-8')
+                                    charts_b64.append(f"data:image/png;base64,{b64}")
+                            except Exception as ce:
+                                logger.warning(f"Chart fetch failed: {ce}")
+                        context['charts_base64'] = charts_b64
+                        context['visual_charts'] = []
+
                     html = Template(template_content).render(Context(context))
                     buffer = BytesIO()
                     pisa_status = pisa.CreatePDF(html, dest=buffer)
@@ -1831,6 +1848,9 @@ class ReportGenerationService:
                 <div class="section-title">Visual Analytics Dashboard</div>
                 {{% for chart_url in visual_charts %}}
                 <div class="chart-container"><img src="{{{{ chart_url }}}}" width="480" /></div>
+                {{% endfor %}}
+                {{% for chart_b64 in charts_base64 %}}
+                <div class="chart-container"><img src="{{{{ chart_b64 }}}}" width="480" /></div>
                 {{% endfor %}}
             </div>
             {{% endif %}}
@@ -2102,6 +2122,20 @@ class ReportGenerationService:
                     [p.get('name', 'N/A')[:25] for p in proc[:10]], 
                     [{'label': 'Frequency', 'data': [p.get('count', 0) for p in proc[:10]], 'backgroundColor': '#10b981'}],
                     "Top Procedural Metrics (Dental)"))
+
+            elif rtype in ['TREATMENT_OUTCOMES', 'TREATMENT_OUTCOME']:
+                if data.get('top_diagnoses'):
+                    diag = data['top_diagnoses']
+                    charts.append(self._generate_chart_url_complex('bar', 
+                        [d.get('name', 'N/A')[:25] for d in diag[:10]], 
+                        [{'label': 'Diagnosis Frequency', 'data': [d.get('count', 0) for d in diag[:10]], 'backgroundColor': '#3b82f6'}],
+                        "Clinical Diagnosis Breakdown"))
+                if data.get('treatment_distribution'):
+                    treatments = data['treatment_distribution']
+                    charts.append(self._generate_chart_url_complex('doughnut', 
+                        [t.get('name', 'N/A')[:20] for t in treatments[:6]], 
+                        [{'label': 'Treatment Share', 'data': [t.get('count', 0) for t in treatments[:6]]}],
+                        "Treatment Outcomes Distribution"))
 
             elif rtype == 'USER_ACTIVITY' or rtype == 'OPERATIONS' or rtype == 'AUDIT_LOG':
                 peak_hours = data.get('peak_hours', [])
