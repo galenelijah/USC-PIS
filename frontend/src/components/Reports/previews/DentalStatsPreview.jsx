@@ -93,7 +93,7 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
       setError(null);
       
       const payload = {
-        title: `Dental Health Analysis - ${new Date().toLocaleDateString()}`,
+        title: `Oral Health Services & Clinical Capacity Report - ${new Date().toLocaleDateString()}`,
         export_format: format,
         date_range: modalDateRange,
         date_range_start: modalDateRange === 'custom' ? modalStartDate : undefined,

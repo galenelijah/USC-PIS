@@ -258,7 +258,7 @@ const MedicalReports = ({ dateRange, customStart, customEnd }) => {
       setError(null);
 
       const payload = {
-        title: `Comprehensive Clinical Audit Report - ${new Date().toLocaleDateString()}`,
+        title: `Detailed Clinical Diagnosis Breakdown Report - ${new Date().toLocaleDateString()}`,
         export_format: format,
         date_range: modalDateRange,
         date_range_start: modalDateRange === 'custom' ? modalStartDate : undefined,

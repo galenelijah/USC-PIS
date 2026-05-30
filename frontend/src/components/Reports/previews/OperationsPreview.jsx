@@ -107,7 +107,7 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
       setError(null);
       
       const payload = {
-        title: `Operational Efficiency Analysis - ${new Date().toLocaleDateString()}`,
+        title: `Clinic Operational Flow & Density Report - ${new Date().toLocaleDateString()}`,
         export_format: format,
         date_range: modalDateRange,
         date_range_start: modalDateRange === 'custom' ? modalStartDate : undefined,

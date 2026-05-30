@@ -182,7 +182,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
       setError(null);
       
       const payload = {
-        title: `Health Campaign Analytics Report - ${new Date().toLocaleDateString()}`,
+        title: `Detailed Health Campaigns Breakdown Report - ${new Date().toLocaleDateString()}`,
         export_format: format,
         date_range: modalDateRange,
         date_range_start: modalDateRange === 'custom' ? modalStartDate : undefined,

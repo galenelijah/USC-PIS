@@ -94,7 +94,7 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
       setError(null);
       
       const payload = {
-        title: `Clinical Health Trends Analysis - ${new Date().toLocaleDateString()}`,
+        title: `Morbidity & Clinical Trends Report - ${new Date().toLocaleDateString()}`,
         export_format: format,
         date_range: modalDateRange,
         date_range_start: modalDateRange === 'custom' ? modalStartDate : undefined,

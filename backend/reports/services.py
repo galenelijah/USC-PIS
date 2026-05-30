@@ -1703,7 +1703,7 @@ class ReportExportService:
 
                 # 2. Summary Metrics (Align with PDF Executive Summary)
                 summary_items = []; list_keys = []
-                skip_keys = ['report_title', 'date_range_start', 'date_range_end', 'generated_at', 'system_name', 'report_date']
+                skip_keys = ['report_title', 'date_range_start', 'date_range_end', 'generated_at', 'system_name', 'report_date', 'report_type', 'visual_charts', 'charts_base64', 'visual_analytics']
                 
                 for k, v in report_data.items():
                     if k in skip_keys: continue
@@ -1857,18 +1857,20 @@ class ReportGenerationService:
 
             <div class="section">
                 <div class="section-title">Summary Metrics</div>
-                <table class="metric-table">
-                    <tr>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Metric Category</th><th>Aggregated Value</th></tr>
+                    </thead>
+                    <tbody>
                     {{% for k, v in report_data.items %}}
                         {{% if v|is_simple and k not in "report_title,date_range_start,date_range_end,generated_at,system_name,report_type,visual_charts,charts_base64" %}}
-                            <td class="metric-box">
-                                <span class="metric-val">{{{{ v }}}}</span>
-                                <span class="metric-lbl">{{{{ k|title_clean }}}}</span>
-                            </td>
-                            {{% if forloop.counter|divisibleby:4 %}} </tr><tr> {{% endif %}}
+                            <tr>
+                                <td><strong>{{{{ k|title_clean }}}}</strong></td>
+                                <td>{{{{ v }}}}</td>
+                            </tr>
                         {{% endif %}}
                     {{% endfor %}}
-                    </tr>
+                    </tbody>
                 </table>
             </div>
 
@@ -1891,9 +1893,9 @@ class ReportGenerationService:
                                 <tbody>
                                     {{% for item in v %}}
                                         <tr>
-                                            {{% for key, val in item.items %}}
+                                            {{% for key in first_item.keys %}}
                                                 {{% if key != "id" %}}
-                                                <td>{{{{ val }}}}</td>
+                                                <td>{{{{ item|get_item:key }}}}</td>
                                                 {{% endif %}}
                                             {{% endfor %}}
                                         </tr>
@@ -2024,6 +2026,14 @@ class ReportGenerationService:
         """Standardized data collection for any report type with complex Workshop visualizations"""
         rtype = str(report_type or '').strip().upper()
         
+        import json
+        if isinstance(filters, str):
+            try:
+                filters = json.loads(filters)
+            except Exception:
+                filters = {}
+        filters = filters or {}
+        
         # Standardize dates
         date_start = date_start or kwargs.get('date_range_start') or (timezone.now() - timedelta(days=365))
         date_end = date_end or kwargs.get('date_range_end') or timezone.now()
@@ -2076,9 +2086,17 @@ class ReportGenerationService:
                         [{'label': 'Enrollment', 'data': [d.get('count', 0) for d in data['course_distribution'][:8]]}],
                         "Course Enrollment Distribution"))
                 if data.get('role_distribution'):
+                    roles = data['role_distribution']
+                    if isinstance(roles, dict):
+                        role_names = list(roles.keys())
+                        role_counts = list(roles.values())
+                    else:
+                        role_names = [d.get('name', 'N/A') for d in roles]
+                        role_counts = [d.get('count', 0) for d in roles]
+                        
                     charts.append(self._generate_chart_url_complex('doughnut', 
-                        [d.get('name', 'N/A') for d in data['role_distribution']], 
-                        [{'label': 'Role Share', 'data': [d.get('count', 0) for d in data['role_distribution']]}],
+                        role_names, 
+                        [{'label': 'Role Share', 'data': role_counts}],
                         "Institutional Role Classification"))
 
             elif rtype == 'VISIT_TRENDS' and data.get('monthly_summary'):

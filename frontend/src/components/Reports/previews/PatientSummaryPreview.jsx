@@ -121,7 +121,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
       setError(null);
       
       const payload = {
-        title: `Patient Population Analysis - ${new Date().toLocaleDateString()}`,
+        title: `Population & Academic Distribution Report - ${new Date().toLocaleDateString()}`,
         export_format: format,
         date_range: modalDateRange,
         date_range_start: modalDateRange === 'custom' ? modalStartDate : undefined,

@@ -97,7 +97,7 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
       setError(null);
       
       const payload = {
-        title: `Service Satisfaction Analysis - ${new Date().toLocaleDateString()}`,
+        title: `Service Satisfaction & Sentiment Report - ${new Date().toLocaleDateString()}`,
         export_format: format,
         date_range: modalDateRange,
         date_range_start: modalDateRange === 'custom' ? modalStartDate : undefined,
