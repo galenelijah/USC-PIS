@@ -127,15 +127,17 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
     
     // Use Top 10 for dashboard
     const diagnoses = data.clinical.top_diagnoses.slice(0, 10);
+    const palette = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#7c3aed', '#ec4899', '#14b8a6', '#64748b', '#1e293b', '#475569'];
+    
     return {
       labels: diagnoses.map(d => d.name.length > 15 ? d.name.substring(0, 12) + '...' : d.name),
       datasets: [
         {
           label: 'Total Cases',
           data: diagnoses.map(d => d.case_count),
-          backgroundColor: '#ef4444',
+          backgroundColor: diagnoses.map((_, i) => palette[i % palette.length]),
           borderRadius: 4,
-          hoverBackgroundColor: '#b91c1c'
+          hoverBackgroundColor: diagnoses.map((_, i) => palette[i % palette.length])
         }
       ]
     };

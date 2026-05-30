@@ -71,15 +71,34 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
         
         # Filter by user role permissions
         user = self.request.user
-        if not (user.is_staff or user.role in ['ADMIN', 'STAFF']):
-            # Filter templates based on allowed roles
-            queryset = queryset.filter(
+        
+        # If not authenticated, return none or active-only (depending on requirements)
+        if not user.is_authenticated:
+            return queryset.none()
+            
+        # Admin and Staff can see all active templates
+        if user.is_staff or user.role in ['ADMIN', 'STAFF']:
+            return queryset.filter(is_active=True)
+            
+        # For clinical roles and others, filter by allowed_roles
+        # SQLite doesn't support __contains on JSONField, so we use a different approach
+        from django.db import connection
+        if connection.vendor == 'sqlite':
+            # For SQLite, we'll do the filtering in Python for the small template set
+            active_templates = queryset.filter(is_active=True)
+            allowed_ids = []
+            for t in active_templates:
+                roles = t.allowed_roles or []
+                if not roles or user.role in roles or 'ALL' in roles:
+                    allowed_ids.append(t.id)
+            return queryset.filter(id__in=allowed_ids)
+        else:
+            # Postgres-optimized path
+            return queryset.filter(
                 Q(allowed_roles__contains=[user.role]) |
                 Q(allowed_roles__contains=['ALL']) |
                 Q(allowed_roles=[])
-            )
-        
-        return queryset.filter(is_active=True)
+            ).filter(is_active=True)
     
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)

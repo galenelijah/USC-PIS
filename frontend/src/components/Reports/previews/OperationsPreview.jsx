@@ -118,7 +118,7 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
         }
       };
 
-      const response = await reportService.generateReport(8, payload); // Template ID 8: User Activity/Operations
+      const response = await reportService.generateReport(17, payload); // Template ID 17: Clinic Operational Flow & Density
       setSuccess(`Report generation started! ID: ${response.data.report_id}`);
       
       setTimeout(() => {

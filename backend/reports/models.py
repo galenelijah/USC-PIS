@@ -39,6 +39,7 @@ class ReportTemplate(models.Model):
         ('FEEDBACK_ANALYSIS', 'Feedback Analysis Report'),
         ('CAMPAIGN_PERFORMANCE', 'Campaign Performance Report'),
         ('USER_ACTIVITY', 'User Activity Report'),
+        ('OPERATIONS', 'Clinic Operations Report'),
         ('HEALTH_METRICS', 'Health Metrics Report'),
         ('HEALTH_HISTORY', 'Unified Health History Report'),
     ]

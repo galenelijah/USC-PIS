@@ -129,15 +129,17 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
     
     // Top 8 for dashboard
     const procedures = data.clinical.top_procedures.slice(0, 8);
+    const palette = ['#7c3aed', '#2563eb', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6', '#64748b'];
+    
     return {
       labels: procedures.map(p => p.name.length > 15 ? p.name.substring(0, 12) + '...' : p.name),
       datasets: [
         {
           label: 'Frequency',
           data: procedures.map(p => p.count),
-          backgroundColor: '#7c3aed',
+          backgroundColor: procedures.map((_, i) => palette[i % palette.length]),
           borderRadius: 4,
-          hoverBackgroundColor: '#5b21b6'
+          hoverBackgroundColor: procedures.map((_, i) => palette[i % palette.length])
         }
       ]
     };

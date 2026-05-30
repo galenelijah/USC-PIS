@@ -2004,24 +2004,34 @@ class ReportGenerationService:
             ds_label = ds.get('label', f'Series {i+1}')
             
             # Use Workshop-standard colors
-            colors = [
+            palette = [
                 'rgba(59, 130, 246, 0.8)', # blue-500
                 'rgba(16, 185, 129, 0.8)', # emerald-500
                 'rgba(245, 158, 11, 0.8)', # amber-500
                 'rgba(239, 68, 68, 0.8)',  # red-500
                 'rgba(139, 92, 246, 0.8)', # violet-500
+                'rgba(236, 72, 153, 0.8)', # pink-500
+                'rgba(20, 184, 166, 0.8)', # teal-500
                 'rgba(107, 114, 128, 0.8)'  # gray-500
             ]
-            
+
+            # For pie/doughnut/single-series bar charts, we need an array of colors for each slice/bar
+            if (chart_type in ['pie', 'doughnut'] and len(datasets) == 1) or \
+               (chart_type == 'bar' and len(datasets) == 1):
+                bg_colors = [palette[j % len(palette)] for j in range(len(ds_data))]
+                border_colors = [c.replace('0.8', '1') for c in bg_colors]
+            else:
+                bg_colors = ds.get('backgroundColor') or palette[i % len(palette)]
+                border_colors = ds.get('borderColor') or (bg_colors.replace('0.8', '1') if isinstance(bg_colors, str) else [c.replace('0.8', '1') for c in bg_colors])
+
             processed_datasets.append({
                 'label': ds_label,
                 'data': ds_data,
-                'backgroundColor': ds.get('backgroundColor') or colors[i % len(colors)],
-                'borderColor': ds.get('borderColor') or colors[i % len(colors)].replace('0.8', '1'),
+                'backgroundColor': bg_colors,
+                'borderColor': border_colors,
                 'fill': ds.get('fill', False),
                 'borderDash': ds.get('borderDash', [])
             })
-
         chart_config = {
             'type': chart_type,
             'data': {
@@ -2134,30 +2144,34 @@ class ReportGenerationService:
                 charts.append(self._generate_chart_url_complex('bar', 
                     [c.get('title', 'N/A')[:20] for c in perf[:8]], 
                     [
-                        {'label': 'Total Views', 'data': [c.get('views', 0) for c in perf[:8]], 'backgroundColor': '#3b82f6'},
-                        {'label': 'Engagement', 'data': [c.get('engagement', 0) for c in perf[:8]], 'backgroundColor': '#10b981'}
+                        {'label': 'Total Views', 'data': [c.get('views', 0) for c in perf[:8]], 'backgroundColor': '#ea580c'},
+                        {'label': 'Engagement', 'data': [c.get('engagement', 0) for c in perf[:8]], 'backgroundColor': '#f97316'}
                     ],
                     "Campaign Impact Metrics"))
 
             elif rtype in ['FEEDBACK_ANALYSIS', 'PATIENT_FEEDBACK'] and data.get('rating_distribution'):
                 dist = data['rating_distribution']
                 charts.append(self._generate_chart_url_complex('doughnut', 
-                    [d.get('category', 'N/A') for d in dist], 
-                    [{'label': 'Satisfaction', 'data': [d.get('count', 0) for d in dist]}],
+                    [f"{d.get('category', 'N/A')} Stars" for d in dist], 
+                    [{
+                        'label': 'Satisfaction', 
+                        'data': [d.get('count', 0) for d in dist],
+                        'backgroundColor': ['#4caf50', '#8bc34a', '#ffeb3b', '#ff9800', '#f44336']
+                    }],
                     "Patient Satisfaction Index"))
 
             elif rtype in ['MEDICAL_STATISTICS', 'MEDICAL_STATS'] and data.get('top_diagnoses'):
                 diag = data['top_diagnoses']
                 charts.append(self._generate_chart_url_complex('bar', 
                     [d.get('name', 'N/A')[:25] for d in diag[:10]], 
-                    [{'label': 'Frequency', 'data': [d.get('count', 0) for d in diag[:10]], 'backgroundColor': '#3b82f6'}],
+                    [{'label': 'Frequency', 'data': [d.get('count', 0) for d in diag[:10]]}],
                     "Top Clinical Diagnoses (Medical)"))
 
             elif rtype in ['DENTAL_STATISTICS', 'DENTAL_STATS'] and data.get('common_procedures'):
                 proc = data['common_procedures']
                 charts.append(self._generate_chart_url_complex('bar', 
                     [p.get('name', 'N/A')[:25] for p in proc[:10]], 
-                    [{'label': 'Frequency', 'data': [p.get('count', 0) for p in proc[:10]], 'backgroundColor': '#10b981'}],
+                    [{'label': 'Frequency', 'data': [p.get('count', 0) for p in proc[:10]]}],
                     "Top Procedural Metrics (Dental)"))
 
             elif rtype in ['TREATMENT_OUTCOMES', 'TREATMENT_OUTCOME']:
@@ -2165,7 +2179,7 @@ class ReportGenerationService:
                     diag = data['top_diagnoses']
                     charts.append(self._generate_chart_url_complex('bar', 
                         [d.get('name', 'N/A')[:25] for d in diag[:10]], 
-                        [{'label': 'Diagnosis Frequency', 'data': [d.get('count', 0) for d in diag[:10]], 'backgroundColor': '#3b82f6'}],
+                        [{'label': 'Diagnosis Frequency', 'data': [d.get('count', 0) for d in diag[:10]]}],
                         "Clinical Diagnosis Breakdown"))
                 if data.get('treatment_distribution'):
                     treatments = data['treatment_distribution']
