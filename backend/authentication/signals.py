@@ -126,8 +126,8 @@ def audit_log_save(sender, instance, created, **kwargs):
                     old_record = history[1]
                     delta = new_record.diff_against(old_record)
                     for change in delta.changes:
-                        # Exclude noisy or sensitive fields
-                        if change.field in ['updated_at', 'last_login', 'password']:
+                        # Exclude noisy or sensitive fields (including automated system flags)
+                        if change.field in ['updated_at', 'last_login', 'password', 'feedback_email_sent', 'feedback_reminder_sent', 'last_notified']:
                             continue
                         changes[change.field] = {
                             'old': str(change.old) if change.old is not None else None,

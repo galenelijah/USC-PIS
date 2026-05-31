@@ -161,16 +161,16 @@ const SystemAuditWorkshop = () => {
     const action = log.action_type;
     const module = getModuleConfig(log.target_model, action).label;
     
-    if (action === 'LOGIN') return `${actor} successfully logged in.`;
-    if (action === 'LOGOUT') return `${actor} logged out.`;
-    if (action === 'GENERATE') return `${actor} generated the ${description}.`;
-    if (action === 'EXPORT') return `${actor} exported/downloaded the ${description}.`;
-    
     let description = log.changes_summary?.description || `record #${log.target_object_id}`;
     if (description.includes('Object') || description.includes('at 0x')) {
         description = `ID: ${log.target_object_id}`;
     }
 
+    if (action === 'LOGIN') return `${actor} successfully logged in.`;
+    if (action === 'LOGOUT') return `${actor} logged out.`;
+    if (action === 'GENERATE') return `${actor} generated the ${description}.`;
+    if (action === 'EXPORT') return `${actor} exported/downloaded the ${description}.`;
+    
     switch (action) {
         case 'CREATE': 
             return `${actor} created a new ${module.toLowerCase()} (${description}).`;

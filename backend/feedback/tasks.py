@@ -1,5 +1,6 @@
 from celery import shared_task
 from django.core.management import call_command
+from authentication.middleware import clear_audit_context
 import logging
 
 logger = logging.getLogger(__name__)
@@ -10,6 +11,9 @@ def process_feedback_reminders():
     Periodic task to send automated feedback request emails 
     for visits that occurred approximately 24 hours ago.
     """
+    # Explicitly clear any inherited thread context
+    clear_audit_context()
+    
     logger.info("Starting automated feedback reminders task")
     try:
         # We run for 24 hours ago. 

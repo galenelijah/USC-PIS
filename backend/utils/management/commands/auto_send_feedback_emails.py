@@ -7,6 +7,7 @@ from django.utils import timezone
 from datetime import timedelta
 from patients.models import MedicalRecord, DentalRecord
 from utils.email_service import EmailService
+from authentication.middleware import clear_audit_context
 import logging
 
 logger = logging.getLogger(__name__)
@@ -33,6 +34,9 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        # Explicitly clear any inherited thread context
+        clear_audit_context()
+        
         hours_ago = options['hours']
         dry_run = options['dry_run']
         immediate = options['immediate']

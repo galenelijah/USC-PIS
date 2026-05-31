@@ -19,6 +19,16 @@ def get_current_path():
 def get_current_method():
     return getattr(_thread_locals, 'method', None)
 
+def clear_audit_context():
+    """ 
+    Explicitly clear the audit trail context from thread locals.
+    Used for background tasks (Celery/Management Commands) to prevent 
+    context leakage from previous HTTP requests in the same thread.
+    """
+    for attr in ['user', 'ip', 'user_agent', 'path', 'method']:
+        if hasattr(_thread_locals, attr):
+            delattr(_thread_locals, attr)
+
 class EmailVerificationMiddleware:
     """
     Middleware that enforces email verification (MFA) for authenticated users.

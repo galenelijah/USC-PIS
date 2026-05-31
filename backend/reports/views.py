@@ -76,6 +76,10 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
         if not user.is_authenticated:
             return queryset.none()
             
+        # Standard filter for templates shown in the Reports module
+        # We explicitly exclude 'USER_ACTIVITY' as it's intended for the System Audit page only
+        queryset = queryset.exclude(report_type='USER_ACTIVITY')
+            
         # Admin and Staff can see all active templates
         if user.is_staff or user.role in ['ADMIN', 'STAFF']:
             return queryset.filter(is_active=True)
@@ -108,16 +112,20 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
         """Generate a report from this template using Celery with sync fallback"""
         import traceback
         try:
+            # We use unfiltered queryset for generation to allow USER_ACTIVITY generation 
+            # from the audit page even though it's excluded from the main list.
+            base_queryset = ReportTemplate.objects.all()
+            
             # Resilience: Try to convert pk to int if possible for numeric lookup
             try:
                 pk_int = int(float(str(pk)))
-                template = self.get_queryset().filter(pk=pk_int).first()
+                template = base_queryset.filter(pk=pk_int).first()
             except (ValueError, TypeError):
                 template = None
 
             # Fallback to report_type lookup if PK lookup failed
             if not template:
-                template = self.get_queryset().filter(report_type=pk).first()
+                template = base_queryset.filter(report_type=pk).first()
                 
             if not template:
                 return Response({'error': f'ReportTemplate {pk} not found or access denied'}, status=status.HTTP_404_NOT_FOUND)
