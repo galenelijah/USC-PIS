@@ -98,14 +98,14 @@ const SystemAuditWorkshop = () => {
     setPage(0);
   };
 
-  const handleExport = async () => {
+  const handleExport = async (format = 'PDF') => {
     try {
       setExporting(true);
       setError('');
       
       const payload = {
         title: `System Accountability & Audit Report - ${dayjs().format('MMM DD, YYYY')}`,
-        export_format: 'PDF',
+        export_format: format,
         filters: {
           search: search,
           action_type: actionFilter,
@@ -127,14 +127,15 @@ const SystemAuditWorkshop = () => {
         const link = document.createElement('a');
         link.href = url;
         
-        const filename = `System_Audit_Log_${dayjs().format('YYYYMMDD')}.pdf`;
+        const extension = format.toLowerCase() === 'excel' ? 'xlsx' : format.toLowerCase();
+        const filename = `System_Audit_Log_${dayjs().format('YYYYMMDD')}.${extension}`;
         link.setAttribute('download', filename);
         document.body.appendChild(link);
         link.click();
         link.remove();
         window.URL.revokeObjectURL(url);
 
-        setExportSuccess('Audit report downloaded successfully!');
+        setExportSuccess(`Audit report (${format}) downloaded successfully!`);
       } else {
         throw new Error('Failed to obtain report ID');
       }
@@ -144,7 +145,7 @@ const SystemAuditWorkshop = () => {
       }, 5000);
     } catch (err) {
       console.error('Export failed:', err);
-      setError('Failed to generate or download audit report.');
+      setError(`Failed to generate or download audit report (${format}).`);
     } finally {
       setExporting(false);
     }
@@ -221,7 +222,7 @@ const SystemAuditWorkshop = () => {
             Human-readable activity logging and clinical accountability.
           </Typography>
         </Box>
-        <Stack direction="row" spacing={2}>
+        <Stack direction="row" spacing={1}>
             <Button 
                 variant="outlined" 
                 startIcon={<Refresh />} 
@@ -231,13 +232,29 @@ const SystemAuditWorkshop = () => {
                 Refresh
             </Button>
             <Button 
+                variant="outlined" 
+                size="small"
+                onClick={() => handleExport('CSV')}
+                disabled={loading || exporting}
+            >
+                CSV
+            </Button>
+            <Button 
+                variant="outlined" 
+                size="small"
+                onClick={() => handleExport('EXCEL')}
+                disabled={loading || exporting}
+            >
+                Excel
+            </Button>
+            <Button 
                 variant="contained" 
                 startIcon={exporting ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />} 
-                onClick={handleExport}
+                onClick={() => handleExport('PDF')}
                 disabled={loading || exporting}
                 sx={{ bgcolor: theme.palette.success.main, '&:hover': { bgcolor: theme.palette.success.dark } }}
             >
-                {exporting ? 'Processing...' : 'Export Audit Log'}
+                {exporting ? 'Processing...' : 'Export PDF'}
             </Button>
         </Stack>
       </Stack>

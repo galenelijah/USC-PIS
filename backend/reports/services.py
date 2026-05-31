@@ -1882,7 +1882,7 @@ class ReportGenerationService:
                             </td>
                             <td>{{{{ log.target_model|title_clean }}}}</td>
                             <td><strong>{{{{ log.action_type }}}}</strong></td>
-                            <td style="font-size: 8.5pt;">{{{{ log|format_audit_summary }}}}</td>
+                            <td style="font-size: 8.5pt;">{{{{ log.formatted_summary }}}}</td>
                         </tr>
                         {{% endfor %}}
                     </tbody>
@@ -2196,9 +2196,29 @@ class ReportGenerationService:
                         if filters.get('actor_role'):
                             audit_qs = audit_qs.filter(actor_role=filters['actor_role'])
                     
-                    data['administrative_audit_trail'] = list(audit_qs.order_by('-timestamp')[:200].values(
-                        'timestamp', 'actor_email', 'actor_role', 'action_type', 'target_model', 'changes_summary', 'target_object_id'
-                    ))
+                    trail = []
+                    from .templatetags.report_tags import format_audit_summary
+                    
+                    for log in audit_qs.order_by('-timestamp')[:200]:
+                        log_dict = {
+                            'timestamp': log.timestamp,
+                            'actor_email': log.actor_email,
+                            'actor_role': log.actor_role,
+                            'action_type': log.action_type,
+                            'target_model': log.target_model,
+                            'target_object_id': log.target_object_id,
+                            'changes_summary': log.changes_summary,
+                            'formatted_summary': format_audit_summary({
+                                'actor_email': log.actor_email,
+                                'action_type': log.action_type,
+                                'target_model': log.target_model,
+                                'changes_summary': log.changes_summary,
+                                'target_object_id': log.target_object_id
+                            })
+                        }
+                        trail.append(log_dict)
+                    
+                    data['administrative_audit_trail'] = trail
                 
                 if rtype == 'USER_ACTIVITY':
                     report_title = title or "System Usage & Administrative Audit Log"
