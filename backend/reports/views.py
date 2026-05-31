@@ -76,9 +76,11 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
         if not user.is_authenticated:
             return queryset.none()
             
-        # Standard filter for templates shown in the Reports module
-        # We explicitly exclude 'USER_ACTIVITY' as it's intended for the System Audit page only
-        queryset = queryset.exclude(report_type='USER_ACTIVITY')
+        # Standard filter for templates shown in the Reports module list
+        # We explicitly exclude 'USER_ACTIVITY' from the LIST view as it's intended 
+        # for the System Audit page only.
+        if self.action == 'list':
+            queryset = queryset.exclude(report_type='USER_ACTIVITY')
             
         # Admin and Staff can see all active templates
         if user.is_staff or user.role in ['ADMIN', 'STAFF']:
@@ -265,6 +267,12 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         queryset = super().get_queryset()
+        
+        # Standard filter for reports shown in the Reports module list
+        # We explicitly exclude 'USER_ACTIVITY' from the LIST view as it's intended 
+        # for the System Audit page archive only.
+        if self.action == 'list':
+            queryset = queryset.exclude(template__report_type='USER_ACTIVITY')
         
         # Users can only see their own reports unless they're staff
         if not (self.request.user.is_staff or self.request.user.role in ['ADMIN', 'STAFF']):
@@ -465,11 +473,11 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
         """Get report dashboard data with clinical metrics"""
         user = request.user
         
-        # Base queryset for user's reports
+        # Base queryset for user's reports - exclude system audit activities from dashboard
         if user.is_staff or user.role in ['ADMIN', 'STAFF']:
-            base_queryset = GeneratedReport.objects.all()
+            base_queryset = GeneratedReport.objects.exclude(template__report_type='USER_ACTIVITY')
         else:
-            base_queryset = GeneratedReport.objects.filter(generated_by=user)
+            base_queryset = GeneratedReport.objects.filter(generated_by=user).exclude(template__report_type='USER_ACTIVITY')
         
         # Clinical Metrics (Actual tracking)
         total_medical = MedicalRecord.objects.count()
@@ -485,8 +493,8 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
         pending_reports = base_queryset.filter(status__in=['PENDING', 'GENERATING']).count()
         failed_reports = base_queryset.filter(status='FAILED').count()
         
-        # Popular templates
-        popular_templates = ReportTemplate.objects.annotate(
+        # Popular templates - exclude system audit activities
+        popular_templates = ReportTemplate.objects.exclude(report_type='USER_ACTIVITY').annotate(
             generation_count=Count('generated_reports')
         ).order_by('-generation_count')[:5]
         
@@ -574,6 +582,10 @@ class ReportScheduleViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         
+        # Standard filter: exclude system audit activities from general lists
+        if self.action == 'list':
+            queryset = queryset.exclude(template__report_type='USER_ACTIVITY')
+        
         # Users can only see their own schedules unless they're staff
         if not (self.request.user.is_staff or self.request.user.role in ['ADMIN', 'STAFF']):
             queryset = queryset.filter(created_by=self.request.user)
@@ -620,7 +632,11 @@ class ReportBookmarkViewSet(viewsets.ModelViewSet):
     ordering = ['-last_used']
     
     def get_queryset(self):
-        return super().get_queryset().filter(user=self.request.user)
+        queryset = super().get_queryset().filter(user=self.request.user)
+        # Standard filter: exclude system audit activities from general lists
+        if self.action == 'list':
+            queryset = queryset.exclude(template__report_type='USER_ACTIVITY')
+        return queryset
     
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -659,6 +675,13 @@ class ReportAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_fields = ['report_template__report_type']
     ordering_fields = ['last_calculated', 'total_generations']
     ordering = ['-last_calculated']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Standard filter: exclude system audit activities from general lists
+        if self.action == 'list':
+            queryset = queryset.exclude(report_template__report_type='USER_ACTIVITY')
+        return queryset
 
     def list(self, request, *args, **kwargs):
         """Override list to provide real-time stats if historical analytics are empty"""

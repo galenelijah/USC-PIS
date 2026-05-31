@@ -1702,8 +1702,8 @@ export const reportService = {
   },
 
   // Generate report from template
-  generateReport: (templateId, data) => {
-    return api.post(`/reports/templates/${templateId}/generate/`, data);
+  generateReport: (templateId, data, params = {}) => {
+    return api.post(`/reports/templates/${templateId}/generate/`, data, { params });
   },
 
   // Preview report data

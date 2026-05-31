@@ -114,15 +114,37 @@ const SystemAuditWorkshop = () => {
         }
       };
 
-      const response = await reportService.generateReport('USER_ACTIVITY', payload);
-      setExportSuccess(`Audit report generation initialized! ID: ${response.data.report_id}`);
+      // Generate report synchronously
+      const response = await reportService.generateReport('USER_ACTIVITY', payload, { sync: 'true' });
+      const reportId = response.data.report_id;
+
+      if (reportId) {
+        // Trigger direct download
+        const downloadResponse = await reportService.downloadReport(reportId);
+        
+        // Create a blob from the response data
+        const url = window.URL.createObjectURL(new Blob([downloadResponse.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        
+        const filename = `System_Audit_Log_${dayjs().format('YYYYMMDD')}.pdf`;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+
+        setExportSuccess('Audit report downloaded successfully!');
+      } else {
+        throw new Error('Failed to obtain report ID');
+      }
       
       setTimeout(() => {
         setExportSuccess(null);
       }, 5000);
     } catch (err) {
       console.error('Export failed:', err);
-      setError('Failed to initialize audit report generation.');
+      setError('Failed to generate or download audit report.');
     } finally {
       setExporting(false);
     }
