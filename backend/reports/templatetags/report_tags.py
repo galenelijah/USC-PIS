@@ -60,3 +60,45 @@ def title_clean(value):
     # Replace underscores/hyphens with spaces
     cleaned = re.sub(r'[_|-]', ' ', value)
     return cleaned.title()
+
+@register.filter(name='format_audit_summary')
+def format_audit_summary(log):
+    """Convert JSON changes_summary into a human-readable string for reports"""
+    if not isinstance(log, dict):
+        return "N/A"
+    
+    actor = log.get('actor_email') or 'System'
+    action = log.get('action_type')
+    model = log.get('target_model', 'Record')
+    summary = log.get('changes_summary', {})
+    target_id = log.get('target_object_id', 'N/A')
+
+    if not isinstance(summary, dict):
+        summary = {}
+
+    description = summary.get('description', f'record #{target_id}')
+    if 'Object' in str(description) or 'at 0x' in str(description):
+        description = f'ID: {target_id}'
+
+    # Handle basic actions
+    if action == 'LOGIN': return f"{actor} successfully logged in."
+    if action == 'LOGOUT': return f"{actor} logged out."
+    if action == 'GENERATE': return f"{actor} generated the {description}."
+    if action == 'EXPORT': return f"{actor} exported/downloaded the {description}."
+
+    # Handle clinical mutations
+    if action == 'CREATE':
+        return f"{actor} created a new {model.lower()} ({description})."
+    
+    if action == 'UPDATE':
+        # Filter out metadata fields
+        changed_fields = [k for k in summary.keys() if k not in ['status', 'description']]
+        if changed_fields:
+            fields_str = ", ".join([f.replace('_', ' ') for f in changed_fields])
+            return f"{actor} updated {fields_str} for {model.lower()} ({description})."
+        return f"{actor} updated {model.lower()} ({description})."
+
+    if action == 'DELETE':
+        return f"{actor} removed {model.lower()} ({description}) from the system."
+
+    return f"{actor} performed {action} on {model}."

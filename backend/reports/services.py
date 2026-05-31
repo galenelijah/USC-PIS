@@ -1859,6 +1859,37 @@ class ReportGenerationService:
             
             <div class="report-title">{{{{ title }}}}</div>
 
+            {{% if administrative_audit_trail %}}
+            <div class="section">
+                <div class="section-title">Administrative Operational Audit Trail</div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th width="15%">Timestamp</th>
+                            <th width="20%">Actor (Role/Email)</th>
+                            <th width="15%">Module</th>
+                            <th width="15%">Action Type</th>
+                            <th width="35%">Change Summary</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{% for log in administrative_audit_trail %}}
+                        <tr>
+                            <td>{{{{ log.timestamp|format_date:"%Y-%m-%d %H:%M" }}}}</td>
+                            <td>
+                                <strong>{{{{ log.actor_role|default:"N/A" }}}}</strong><br/>
+                                <span style="font-size: 8pt; color: #64748b;">{{{{ log.actor_email|default:"System" }}}}</span>
+                            </td>
+                            <td>{{{{ log.target_model|title_clean }}}}</td>
+                            <td><strong>{{{{ log.action_type }}}}</strong></td>
+                            <td style="font-size: 8.5pt;">{{{{ log|format_audit_summary }}}}</td>
+                        </tr>
+                        {{% endfor %}}
+                    </tbody>
+                </table>
+            </div>
+            {{% endif %}}
+
             {{% if visual_charts or charts_base64 %}}
             <div class="section">
                 <div class="section-title">Institutional Activity & Performance Dashboard</div>
@@ -1921,32 +1952,6 @@ class ReportGenerationService:
                                     <span class="density-badge" style="background-color: #f0fdf4; color: #166534;">STABLE OPERATIONS</span>
                                 {{% endif %}}
                             </td>
-                        </tr>
-                        {{% endfor %}}
-                    </tbody>
-                </table>
-            </div>
-            {{% endif %}}
-
-            {{% if administrative_audit_trail %}}
-            <div class="section">
-                <div class="section-title">Administrative Operational Audit Trail</div>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Event Time</th>
-                            <th>Actor Identity</th>
-                            <th>Role</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {{% for log in administrative_audit_trail %}}
-                        <tr>
-                            <td>{{{{ log.timestamp|format_date:"%H:%M:%S" }}}}</td>
-                            <td>{{{{ log.actor_email }}}}</td>
-                            <td>{{{{ log.actor_role }}}}</td>
-                            <td><strong>{{{{ log.action_type }}}}</strong></td>
                         </tr>
                         {{% endfor %}}
                     </tbody>
@@ -2173,8 +2178,28 @@ class ReportGenerationService:
                         'service_segmentation': analytics.get('visits', {}).get('types', {}),
                         'clinical_service_intensity': analytics.get('clinical', {}),
                         'population_demographics': analytics.get('demographics', {}),
-                        'administrative_audit_trail': list(AuditLog.objects.all()[:50].values('timestamp', 'actor_email', 'actor_role', 'action_type', 'target_model'))
+                        'administrative_audit_trail': []
                     }
+                    
+                    # Enhanced Audit Trail Collection with filtering
+                    audit_qs = AuditLog.objects.filter(timestamp__range=(date_start, date_end))
+                    
+                    if filters:
+                        if filters.get('search'):
+                            from django.db.models import Q
+                            s = filters['search']
+                            audit_qs = audit_qs.filter(Q(actor_email__icontains=s) | Q(target_model__icontains=s) | Q(changes_summary__description__icontains=s))
+                        if filters.get('action_type'):
+                            audit_qs = audit_qs.filter(action_type=filters['action_type'])
+                        if filters.get('target_model'):
+                            audit_qs = audit_qs.filter(target_model=filters['target_model'])
+                        if filters.get('actor_role'):
+                            audit_qs = audit_qs.filter(actor_role=filters['actor_role'])
+                    
+                    data['administrative_audit_trail'] = list(audit_qs.order_by('-timestamp')[:200].values(
+                        'timestamp', 'actor_email', 'actor_role', 'action_type', 'target_model', 'changes_summary', 'target_object_id'
+                    ))
+                
                 if rtype == 'USER_ACTIVITY':
                     report_title = title or "System Usage & Administrative Audit Log"
                 else:
