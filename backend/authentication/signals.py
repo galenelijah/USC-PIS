@@ -7,7 +7,10 @@ from django.contrib.auth.signals import user_logged_in, user_logged_out
 import logging
 
 from .models import User, AuditLog
-from .middleware import get_current_user, get_current_ip, get_current_user_agent
+from .middleware import (
+    get_current_user, get_current_ip, get_current_user_agent,
+    get_current_path, get_current_method
+)
 from .tasks import log_activity_task
 
 logger = logging.getLogger(__name__)
@@ -47,13 +50,47 @@ def encrypt_sensitive_user_fields(sender, instance: User, **kwargs):
 
 # --- AUDIT LOGGING SIGNALS ---
 
+def is_whitelisted_action():
+    actor = get_current_user()
+    path = get_current_path()
+    method = get_current_method()
+    
+    if not actor or not actor.is_authenticated:
+        return False
+        
+    # If no path/method (e.g. internal task without request context), skip
+    if not path or not method:
+        return False
+        
+    # Whitelist prefixes
+    allowed_prefixes = [
+        '/api/auth/',
+        '/api/patients/',
+        '/api/medical-certificates/',
+        '/api/health-info/',
+        '/api/reports/',
+    ]
+    
+    if not any(path.startswith(prefix) for prefix in allowed_prefixes):
+        return False
+        
+    # Whitelist methods
+    if method in ['POST', 'PUT', 'PATCH', 'DELETE']:
+        return True
+        
+    # Special case: allow GET for downloads (Clinical exports)
+    if method == 'GET' and '/download' in path:
+        return True
+        
+    return False
+
 def should_log_model(model):
     """ Exclude specific models from being logged to avoid recursion or noise """
     excluded_models = ['AuditLog', 'Session', 'ContentFile', 'Migration', 'ContentType', 'LogEntry', 'NotificationPreference']
     if model.__name__ in excluded_models:
         return False
-    # Only log models from our core apps
-    logged_apps = ['authentication', 'patients', 'health_info', 'medical_certificates', 'feedback', 'reports', 'notifications']
+    # Only log models from our core apps (Explicitly excluding notifications and utils)
+    logged_apps = ['authentication', 'patients', 'health_info', 'medical_certificates', 'feedback', 'reports']
     return model._meta.app_label in logged_apps
 
 @receiver(post_save)
@@ -65,12 +102,12 @@ def audit_log_save(sender, instance, created, **kwargs):
     if not connection.introspection.table_names() or 'authentication_auditlog' not in connection.introspection.table_names():
         return
 
-    actor = get_current_user()
-    actor_id = actor.id if actor and actor.is_authenticated else None
-    
-    # Filter out background noise: Only log human actions (actions with an authenticated actor)
-    if not actor_id:
+    # Apply strict filtering (Human Actor + Whitelisted Route/Method)
+    if not is_whitelisted_action():
         return
+
+    actor = get_current_user()
+    actor_id = actor.id
     
     action_type = 'CREATE' if created else 'UPDATE'
     target_model = sender.__name__
@@ -97,17 +134,32 @@ def audit_log_save(sender, instance, created, **kwargs):
                             'new': str(change.new) if change.new is not None else None
                         }
                 
-                # If no fields changed in our filtered list, skip logging redundant updates
-                if not changes:
+                # Special Case: Report Export (Download)
+                if target_model == 'GeneratedReport' and 'download_count' in changes:
+                    action_type = 'EXPORT'
+
+                # If no fields changed in our filtered list (and not a special action), skip logging redundant updates
+                if not changes and action_type == 'UPDATE':
                     return
             except Exception as e:
                 logger.warning(f"Audit diffing failed: {str(e)}")
                 changes = {'status': 'modified', 'description': str(instance)}
         else:
+            # Fallback for models without history (like GeneratedReport)
             changes = {'status': 'modified', 'description': str(instance)}
+            
+            # Special Case: Report Export (Download) - Detect via path if history is missing
+            if target_model == 'GeneratedReport':
+                path = get_current_path()
+                if path and '/download' in path:
+                    action_type = 'EXPORT'
     else:
         # For creation, log key fields or just the description
         changes = {'status': 'new', 'description': str(instance)}
+        
+        # Special Case: Report Generation
+        if target_model == 'GeneratedReport':
+            action_type = 'GENERATE'
 
     try:
         log_activity_task.delay(
@@ -126,12 +178,12 @@ def audit_log_delete(sender, instance, **kwargs):
     if not connection.introspection.table_names() or 'authentication_auditlog' not in connection.introspection.table_names():
         return
 
-    actor = get_current_user()
-    actor_id = actor.id if actor and actor.is_authenticated else None
-    
-    # Filter out background noise: Only log human actions (actions with an authenticated actor)
-    if not actor_id:
+    # Apply strict filtering (Human Actor + Whitelisted Route/Method)
+    if not is_whitelisted_action():
         return
+
+    actor = get_current_user()
+    actor_id = actor.id
     
     action_type = 'DELETE'
     target_model = sender.__name__

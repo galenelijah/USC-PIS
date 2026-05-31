@@ -13,6 +13,12 @@ def get_current_ip():
 def get_current_user_agent():
     return getattr(_thread_locals, 'user_agent', None)
 
+def get_current_path():
+    return getattr(_thread_locals, 'path', None)
+
+def get_current_method():
+    return getattr(_thread_locals, 'method', None)
+
 class EmailVerificationMiddleware:
     """
     Middleware that enforces email verification (MFA) for authenticated users.
@@ -66,6 +72,8 @@ class AuditLogMiddleware:
         _thread_locals.user = getattr(request, 'user', None)
         _thread_locals.ip = self.get_client_ip(request)
         _thread_locals.user_agent = request.META.get('HTTP_USER_AGENT', '')
+        _thread_locals.path = request.path_info
+        _thread_locals.method = request.method
         
         response = self.get_response(request)
         
@@ -76,6 +84,10 @@ class AuditLogMiddleware:
             del _thread_locals.ip
         if hasattr(_thread_locals, 'user_agent'):
             del _thread_locals.user_agent
+        if hasattr(_thread_locals, 'path'):
+            del _thread_locals.path
+        if hasattr(_thread_locals, 'method'):
+            del _thread_locals.method
             
         return response
 

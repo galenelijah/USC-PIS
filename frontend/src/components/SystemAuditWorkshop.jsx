@@ -135,6 +135,8 @@ const SystemAuditWorkshop = () => {
       case 'DELETE': return theme.palette.error.main;
       case 'LOGIN': return theme.palette.primary.main;
       case 'LOGOUT': return theme.palette.secondary.main;
+      case 'GENERATE': return theme.palette.secondary.dark;
+      case 'EXPORT': return theme.palette.warning.main;
       default: return theme.palette.grey[500];
     }
   };
@@ -161,6 +163,8 @@ const SystemAuditWorkshop = () => {
     
     if (action === 'LOGIN') return `${actor} successfully logged in.`;
     if (action === 'LOGOUT') return `${actor} logged out.`;
+    if (action === 'GENERATE') return `${actor} generated the ${description}.`;
+    if (action === 'EXPORT') return `${actor} exported/downloaded the ${description}.`;
     
     let description = log.changes_summary?.description || `record #${log.target_object_id}`;
     if (description.includes('Object') || description.includes('at 0x')) {

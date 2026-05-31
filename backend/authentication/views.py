@@ -6,7 +6,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.exceptions import AuthenticationFailed
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, login, logout
 from .models import User, SafeEmail, VerificationCode, AuditLog
 from .serializers import (
     UserRegistrationSerializer, UserProfileSerializer, ChangePasswordSerializer, 
@@ -283,6 +283,10 @@ def login_user(request):
                     logger.error(f"Failed to send verification email to {user.email}: {e}")
                 
                 token, _ = Token.objects.get_or_create(user=user)
+                
+                # Trigger login signal even for unverified users as they have successfully authenticated
+                login(request, user)
+                
                 return Response({
                     'token': token.key,
                     'is_verified': False,
@@ -293,6 +297,10 @@ def login_user(request):
 
             # Normal Login
             logger.info(f"Successful login for verified user: {user.email}")
+            
+            # Explicitly log in the user to the session to trigger user_logged_in signal
+            login(request, user)
+            
             SessionManager.handle_concurrent_logins(user, max_sessions=3)
             token, created = Token.objects.get_or_create(user=user)
             
@@ -466,7 +474,14 @@ def change_password(request):
 @permission_classes([IsAuthenticated])
 def logout_user(request):
     try:
-        request.user.auth_token.delete()
+        # Trigger user_logged_out signal before deleting token
+        user = request.user
+        logout(request)
+        
+        # Delete the DRF token
+        if hasattr(user, 'auth_token'):
+            user.auth_token.delete()
+            
         return Response({'detail': 'Successfully logged out'})
     except Exception as e:
         logger.error(f"Logout error: {str(e)}")
