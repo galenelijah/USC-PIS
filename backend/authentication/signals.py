@@ -68,6 +68,10 @@ def audit_log_save(sender, instance, created, **kwargs):
     actor = get_current_user()
     actor_id = actor.id if actor and actor.is_authenticated else None
     
+    # Filter out background noise: Only log human actions (actions with an authenticated actor)
+    if not actor_id:
+        return
+    
     action_type = 'CREATE' if created else 'UPDATE'
     target_model = sender.__name__
     target_object_id = getattr(instance, 'pk', 'N/A')
@@ -124,6 +128,10 @@ def audit_log_delete(sender, instance, **kwargs):
 
     actor = get_current_user()
     actor_id = actor.id if actor and actor.is_authenticated else None
+    
+    # Filter out background noise: Only log human actions (actions with an authenticated actor)
+    if not actor_id:
+        return
     
     action_type = 'DELETE'
     target_model = sender.__name__

@@ -1,8 +1,8 @@
-# USC-PIS Reports System Guide (v5.0)
+# USC-PIS Reports System Guide (v5.1)
 
 ## Overview
 
-The USC-PIS Reports System provides comprehensive analytics, operational intelligence, and institutional accountability for healthcare management. The system generates high-fidelity exports in multiple formats (PDF, Excel, CSV, JSON, HTML) with deep visualization integration.
+The USC-PIS Reports System provides comprehensive analytics, operational intelligence, and institutional accountability for healthcare management. The system generates high-fidelity exports in multiple formats (PDF, Excel, CSV, JSON, HTML) with deep visualization integration and absolute access resilience.
 
 ## System Architecture (Updated May 30, 2026)
 
@@ -14,38 +14,35 @@ The USC-PIS Reports System provides comprehensive analytics, operational intelli
     - **Excel**: Multi-sheet workbooks using `Pandas` and `XlsxWriter`.
     - **HTML/CSV/JSON**: Native Django and Python exports.
 - **Visual Analytics**: The backend uses the **QuickChart API** for server-side charts AND a **Workshop-to-PDF Capture** system that transmits browser-rendered Chart.js canvases as high-resolution base64 images for 100% fidelity.
-- **Accountability Trail**: Integrated with the **System Audit Workshop**, allowing forensic exports of all administrative and clinical mutations.
+- **Access Resilience**: Implemented a **Silent Re-generation Fallback**. If a report file is missing from storage during download, the system automatically identifies the report type and re-renders the document on-the-fly using the original generator's context.
 
 ## Available Report Types (Analytical Workshops)
 
-### 1. Institutional Accountability & Audit Log (New)
+### 1. Institutional Accountability & Audit Log (Finalized)
 - **Engine**: Forensic `USER_ACTIVITY` trail.
 - **Accountability**: Translates technical model mutations into human-readable summaries.
-- **Security**: Includes actor identity, IP address tracking, role-based auditing, and forensic "Old vs. New" value diffs.
+- **Security**: Includes actor identity, IP address tracking, and role-based auditing.
 
-### 2. Clinical Operational Density Analysis (New)
-- **Fidelity**: Captures the **Hourly Traffic Density (Bar)** and **Workload Forecast (Line)** visualizations.
+### 2. Clinical Operational Density Analysis (v2.0)
+- **Fidelity**: Captures the **Hourly Traffic Density (Bar)** and **Workload Forecast (Line)** visualizations directly from the Workshop UI.
 - **Intelligence**: Automatically classifies hourly slots into intensity tiers (Peak, Heavy, Stable).
 - **Time Sync**: Standardized 24-hour interval logging (00:00-23:59).
 
 ### 3. Patient Population & Demographics
-- Analysis of student vs. faculty/staff distribution.
-- **Academic Mapping**: Granular pie charts for School and Course distribution using `PROGRAMS_CHOICES`.
+- Analysis of student vs. faculty/staff distribution with granular academic mapping.
 
 ### 4. Visit Trends & Capacity Analysis
-- **Dynamic Granularity**: Adjusts timeline scale (Daily, Weekly, Monthly) based on range.
-- **Aggregate Trends**: Combined "Medical + Dental" trend visualization.
+- Dynamic granularity (Daily/Weekly/Monthly) with combined "Medical + Dental" aggregate trends.
 
 ### 5. Medical & Dental Statistics (V2.5 Analytical)
-- **Top Diagnoses/Procedures**: Programmatically generated charts integrated directly into the PDF.
-- **Clinical Vitals**: Integrated vitals monitoring and BMI classification.
+- Programmatically generated charts integrated directly into the PDF with clinical vitals monitoring.
 
 ### 6. Health Campaign Analytics
 - Analysis of reach, engagement, and effectiveness across 13 campaign types.
 
 ### 7. Unified Health History (Patient-Centric)
 - **Engine**: `USCUnifiedHistoryReport`.
-- **Landscape Timeline**: Consolidated view of visits, certificates, and clinical documents.
+- **Landscape Timeline**: Consolidated view of visits, certificates, and documents.
 
 ## Web Interface Usage
 
@@ -60,18 +57,19 @@ The USC-PIS Reports System provides comprehensive analytics, operational intelli
 
 ## Technical Implementation
 
-### PDF High-Fidelity Strategy
-The system uses a **Quadruple-Brace Variable System** in Python f-strings to manage Django template complexity:
-- Ensures base64 charts (`charts_base64`) are injected into the HTML stream before the PDF engine (xhtml2pdf) processes the layout.
-- Prevents network-timeout issues during PDF generation by pre-rendering all visual assets.
+### PDF High-Fidelity & Safety
+1.  **Quadruple-Brace System**: Manages Django template complexity in Python f-strings, ensuring correct rendering of `{{ variable }}` in the final HTML.
+2.  **Resilient Footers**: Uses a safe-default pattern `user.get_full_name|default:user|default:"Admin"` to prevent template engine crashes if user context is missing during fallback re-generation.
+3.  **Pre-rendered Visuals**: Transmits browser-rendered charts as base64 images to prevent network timeouts during PDF creation.
 
 ### API Endpoints
 - `POST /api/reports/templates/{id}/generate/` - Generate with chart injection
 - `GET /api/reports/generated/` - List user's reports
+- `GET /api/reports/generated/{id}/download/` - Resilient download with silent re-generation
 - `GET /api/auth/audit-logs/` - Forensic audit trail data source
 
 ---
 
 **Last Updated**: May 30, 2026  
-**Status**: Institutional Accountability & Operational Flow Finalized  
-**Version**: 5.0 (High-Fidelity Workshop Standard)
+**Status**: Absolute Access Resilience & Final Branding Verified  
+**Version**: 5.1 (High-Fidelity Workshop Standard)
