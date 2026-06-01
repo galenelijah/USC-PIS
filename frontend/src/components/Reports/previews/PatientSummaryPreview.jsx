@@ -554,7 +554,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
                   </TableCell>
                   <TableCell align="right" sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>
                     <TableSortLabel active={sortField === 'count'} direction={sortField === 'count' ? sortDirection : 'asc'} onClick={() => handleRequestSort('count')}>
-                      Active Patients
+                      {patientScope === 'all_verified' ? 'Total Verified Patients' : 'Active Patients'}
                     </TableSortLabel>
                   </TableCell>
                   <TableCell align="right" sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>Percentage</TableCell>

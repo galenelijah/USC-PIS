@@ -137,16 +137,31 @@ class ReportDataService:
 
     @staticmethod
     def _get_cache_key(prefix, date_start, date_end, filters):
-        """Generate cache key for report data"""
+        """Generate cache key for report data with versioning for easy invalidation"""
+        version = cache.get('reports_cache_version', 1)
         key_parts = [
+            f"v{version}",
             prefix,
             date_start.strftime('%Y%m%d') if date_start else 'no_start',
             date_end.strftime('%Y%m%d') if date_end else 'no_end',
             str(hash(str(sorted(filters.items())))) if filters else 'no_filters'
         ]
         return '_'.join(key_parts)
-    
+
     @staticmethod
+    def invalidate_cache():
+        """Increment the report cache version to invalidate all current report caches"""
+        try:
+            cache.incr('reports_cache_version')
+            logger.info("Report cache invalidated via version increment.")
+        except (ValueError, Exception):
+            # If key doesn't exist or error occurs, set to a new timestamp
+            new_v = int(timezone.now().timestamp())
+            cache.set('reports_cache_version', new_v, 86400 * 7) # 1 week
+            logger.info(f"Report cache initialized/reset to version {new_v}.")
+
+    @staticmethod
+
     def get_patient_summary_data(date_start=None, date_end=None, filters=None):
         """Get patient summary data (Single Patient OR Aggregate)"""
         logger.info(f"Collecting patient summary data. Start: {date_start}, End: {date_end}, Filters: {filters}")
@@ -230,11 +245,20 @@ class ReportDataService:
             
             # Build optimized query base
             patient_scope = filters.get('patient_scope', 'active_with_records') if filters else 'active_with_records'
-            queryset = Patient.objects.select_related('user').prefetch_related('medical_records', 'dental_records')
-
+            
             if patient_scope == 'all_verified':
-                queryset = queryset.filter(user__is_verified=True)
+                queryset = User.objects.filter(is_verified=True)
+                gender_field = 'sex'
+                dob_field = 'birthday'
+                table_name = 'authentication_user'
+                id_col = 'id'
             else:
+                queryset = Patient.objects.select_related('user').prefetch_related('medical_records', 'dental_records')
+                gender_field = 'gender'
+                dob_field = 'date_of_birth'
+                table_name = 'patients_patient'
+                id_col = 'id'
+
                 # Active patients with records in the given date range
                 if date_start and date_end:
                     med_p_ids = MedicalRecord.objects.filter(visit_date__range=(date_start, date_end)).values_list('patient_id', flat=True)
@@ -253,93 +277,106 @@ class ReportDataService:
                 if filters.get('gender'):
                     genders = filters['gender']
                     if isinstance(genders, list) and genders:
-                        queryset = queryset.filter(gender__in=genders)
+                        queryset = queryset.filter(**{f"{gender_field}__in": genders})
                     else:
-                        queryset = queryset.filter(gender=genders)
+                        queryset = queryset.filter(**{gender_field: genders})
                 if filters.get('school'):
                     schools = filters['school']
+                    school_field = 'school' if patient_scope == 'all_verified' else 'user__school'
                     if isinstance(schools, list) and schools:
-                        queryset = queryset.filter(user__school__in=schools)
+                        queryset = queryset.filter(**{f"{school_field}__in": schools})
                     else:
-                        queryset = queryset.filter(user__school=schools)
+                        queryset = queryset.filter(**{school_field: schools})
                 if filters.get('course'):
                     courses = filters['course']
+                    course_field = 'course' if patient_scope == 'all_verified' else 'user__course'
                     if isinstance(courses, list) and courses:
-                        queryset = queryset.filter(user__course__in=courses)
+                        queryset = queryset.filter(**{f"{course_field}__in": courses})
                     else:
-                        queryset = queryset.filter(user__course=courses)
+                        queryset = queryset.filter(**{course_field: courses})
                 if filters.get('year_level'):
                     yls = filters['year_level']
+                    yl_field = 'year_level' if patient_scope == 'all_verified' else 'user__year_level'
                     if isinstance(yls, list) and yls:
-                        queryset = queryset.filter(user__year_level__in=yls)
+                        queryset = queryset.filter(**{f"{yl_field}__in": yls})
                     else:
-                        queryset = queryset.filter(user__year_level=yls)
+                        queryset = queryset.filter(**{yl_field: yls})
                 if filters.get('campus'):
                     campuses = filters['campus']
+                    course_field = 'course' if patient_scope == 'all_verified' else 'user__course'
                     if campuses and isinstance(campuses, list):
                         course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() if info['campus'] in campuses]
-                        queryset = queryset.filter(user__course__in=course_ids)
+                        queryset = queryset.filter(**{f"{course_field}__in": course_ids})
             
             # Aggregate data in single query
-            aggregate_data = queryset.aggregate(
-                total_patients=Count('id'),
-                new_registrations=Count('id', filter=Q(created_at__gte=timezone.now() - timedelta(days=30))),
-                patients_with_medical_records=Count('id', filter=Q(medical_records__isnull=False), distinct=True),
-                patients_with_dental_records=Count('id', filter=Q(dental_records__isnull=False), distinct=True)
-            )
+            if patient_scope == 'all_verified':
+                aggregate_data = queryset.aggregate(
+                    total_patients=Count('id'),
+                    new_registrations=Count('id', filter=Q(date_joined__gte=timezone.now() - timedelta(days=30))),
+                    patients_with_medical_records=Value(0), # Not applicable for raw user scope
+                    patients_with_dental_records=Value(0)
+                )
+            else:
+                aggregate_data = queryset.aggregate(
+                    total_patients=Count('id'),
+                    new_registrations=Count('id', filter=Q(created_at__gte=timezone.now() - timedelta(days=30))),
+                    patients_with_medical_records=Count('id', filter=Q(medical_records__isnull=False), distinct=True),
+                    patients_with_dental_records=Count('id', filter=Q(dental_records__isnull=False), distinct=True)
+                )
             
             # Use the same high-fidelity distribution methods as comprehensive analytics
-            all_active_patients = list(queryset)
-            course_distribution = ReportDataService._get_course_distribution(all_active_patients)
-            role_distribution = ReportDataService._get_role_distribution(all_active_patients)
-            college_participation = ReportDataService._get_college_participation(all_active_patients)
+            all_objs = list(queryset)
+            course_distribution = ReportDataService._get_course_distribution(all_objs)
+            role_distribution = ReportDataService._get_role_distribution(all_objs)
+            college_participation = ReportDataService._get_college_participation(all_objs)
 
             # Gender distribution
-            raw_gender_dist = list(queryset.values('gender').annotate(count=Count('id')).order_by('gender'))
-            gender_map = {'M': 'Male', 'F': 'Female', 'O': 'Other', '1': 'Male', '2': 'Female'} 
+            raw_gender_dist = list(queryset.values(gender_field).annotate(count=Count('id')).order_by(gender_field))
+            gender_map = {'M': 'Male', 'F': 'Female', 'O': 'Other', '1': 'Male', '2': 'Female', 'Male': 'Male', 'Female': 'Female'} 
             gender_distribution = []
             for item in raw_gender_dist:
-                g_code = item['gender']
+                g_code = item[gender_field]
                 g_name = gender_map.get(g_code, g_code if g_code else 'Unknown')
                 gender_distribution.append({'gender': g_name, 'count': item['count']})
             
             # Age distribution
             age_groups_counts = {'0-17': 0, '18-25': 0, '26-35': 0, '36-45': 0, '46-60': 0, '60+': 0}
             try:
-                year_level_distribution = list(queryset.values('user__year_level').annotate(count=Count('id')).order_by('-count')[:10])
-                year_level_distribution = [{'year_level': item['user__year_level'] or 'N/A', 'count': item['count']} for item in year_level_distribution]
+                yl_dist_field = 'year_level' if patient_scope == 'all_verified' else 'user__year_level'
+                year_level_distribution = list(queryset.values(yl_dist_field).annotate(count=Count('id')).order_by('-count')[:10])
+                year_level_distribution = [{'year_level': item[yl_dist_field] or 'N/A', 'count': item['count']} for item in year_level_distribution]
 
                 with connection.cursor() as cursor:
                     if connection.vendor == 'postgresql':
-                        cursor.execute("""
+                        cursor.execute(f"""
                             SELECT 
                                 CASE 
-                                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) < 18 THEN '0-17'
-                                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) BETWEEN 18 AND 25 THEN '18-25'
-                                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) BETWEEN 26 AND 35 THEN '26-35'
-                                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) BETWEEN 36 AND 45 THEN '36-45'
-                                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) BETWEEN 46 AND 60 THEN '46-60'
+                                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, {dob_field})) < 18 THEN '0-17'
+                                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, {dob_field})) BETWEEN 18 AND 25 THEN '18-25'
+                                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, {dob_field})) BETWEEN 26 AND 35 THEN '26-35'
+                                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, {dob_field})) BETWEEN 36 AND 45 THEN '36-45'
+                                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, {dob_field})) BETWEEN 46 AND 60 THEN '46-60'
                                     ELSE '60+'
                                 END as age_group,
                                 COUNT(*) as count
-                            FROM patients_patient
-                            WHERE date_of_birth IS NOT NULL
+                            FROM {table_name}
+                            WHERE {dob_field} IS NOT NULL
                             GROUP BY age_group
                         """)
                     else:
-                        cursor.execute("""
+                        cursor.execute(f"""
                             SELECT 
                                 CASE 
-                                    WHEN CAST((julianday('now') - julianday(date_of_birth)) / 365.25 AS INTEGER) < 18 THEN '0-17'
-                                    WHEN CAST((julianday('now') - julianday(date_of_birth)) / 365.25 AS INTEGER) BETWEEN 18 AND 25 THEN '18-25'
-                                    WHEN CAST((julianday('now') - julianday(date_of_birth)) / 365.25 AS INTEGER) BETWEEN 26 AND 35 THEN '26-35'
-                                    WHEN CAST((julianday('now') - julianday(date_of_birth)) / 365.25 AS INTEGER) BETWEEN 36 AND 45 THEN '36-45'
-                                    WHEN CAST((julianday('now') - julianday(date_of_birth)) / 365.25 AS INTEGER) BETWEEN 46 AND 60 THEN '46-60'
+                                    WHEN CAST((julianday('now') - julianday({dob_field})) / 365.25 AS INTEGER) < 18 THEN '0-17'
+                                    WHEN CAST((julianday('now') - julianday({dob_field})) / 365.25 AS INTEGER) BETWEEN 18 AND 25 THEN '18-25'
+                                    WHEN CAST((julianday('now') - julianday({dob_field})) / 365.25 AS INTEGER) BETWEEN 26 AND 35 THEN '26-35'
+                                    WHEN CAST((julianday('now') - julianday({dob_field})) / 365.25 AS INTEGER) BETWEEN 36 AND 45 THEN '36-45'
+                                    WHEN CAST((julianday('now') - julianday({dob_field})) / 365.25 AS INTEGER) BETWEEN 46 AND 60 THEN '46-60'
                                     ELSE '60+'
                                 END as age_group,
                                 COUNT(*) as count
-                            FROM patients_patient
-                            WHERE date_of_birth IS NOT NULL
+                            FROM {table_name}
+                            WHERE {dob_field} IS NOT NULL
                             GROUP BY age_group
                         """)
                     for row in cursor.fetchall():
@@ -358,10 +395,9 @@ class ReportDataService:
                 'role_distribution': role_distribution,
                 'college_participation': college_participation,
                 'year_level_distribution': year_level_distribution,
-                'active_patients': queryset.filter(
-                    Q(medical_records__visit_date__gte=timezone.now() - timedelta(days=90)) |
-                    Q(dental_records__visit_date__gte=timezone.now() - timedelta(days=90))
-                ).distinct().count()
+                'active_patients': queryset.filter(**{
+                    f"{'patient_profile__' if patient_scope == 'all_verified' else ''}medical_records__visit_date__gte": timezone.now() - timedelta(days=90)
+                }).distinct().count() if patient_scope != 'all_verified' else 0 # Not relevant for full user scope
             }
             
             cache.set(cache_key, data, 3600)
@@ -1290,10 +1326,13 @@ class ReportDataService:
     def _get_college_participation(patients):
         """Helper to aggregate patients by college/school using ACADEMIC_DIRECTORY_MAP"""
         colleges = {}
-        for patient in patients:
+        for obj in patients:
+            # Handle both Patient and User objects
+            user = obj if isinstance(obj, User) else getattr(obj, 'user', None)
             college = "Other"
-            if patient.user and patient.user.course:
-                course_id = str(patient.user.course)
+            
+            if user and user.course:
+                course_id = str(user.course)
                 if course_id in ACADEMIC_DIRECTORY_MAP:
                     school_info = ACADEMIC_DIRECTORY_MAP[course_id]['school']
                     # Use shorter labels for charts (e.g. "SAS" instead of full name)
@@ -1305,10 +1344,10 @@ class ReportDataService:
                     elif "Education" in school_info: college = "SOED"
                     elif "Law" in school_info: college = "SLG"
                     else: college = school_info
-                elif patient.user.school:
-                    college = patient.user.school
-            elif patient.user and patient.user.department:
-                 college = patient.user.department
+                elif user.school:
+                    college = user.school
+            elif user and user.department:
+                 college = user.department
             else:
                  college = "Other"
 
@@ -1321,10 +1360,13 @@ class ReportDataService:
     def _get_course_distribution(patients):
         """Helper to aggregate patients by specific course/program"""
         courses = {}
-        for patient in patients:
+        for obj in patients:
+            # Handle both Patient and User objects
+            user = obj if isinstance(obj, User) else getattr(obj, 'user', None)
             course = "Unspecified"
-            if patient.user and patient.user.course:
-                course_id = str(patient.user.course)
+            
+            if user and user.course:
+                course_id = str(user.course)
                 course = PROGRAMS_CHOICES.get(course_id, f"Program {course_id}")
             courses[course] = courses.get(course, 0) + 1
         
@@ -1334,9 +1376,11 @@ class ReportDataService:
     def _get_role_distribution(patients):
         """Helper to aggregate patients by simplified role (Student vs Faculty/Staff)"""
         roles = {'STUDENT': 0, 'FACULTY / STAFF': 0}
-        for patient in patients:
-            if patient.user:
-                role = patient.user.role
+        for obj in patients:
+            # Handle both Patient and User objects
+            user = obj if isinstance(obj, User) else getattr(obj, 'user', None)
+            if user:
+                role = user.role
                 if role == 'STUDENT':
                     roles['STUDENT'] += 1
                 else:
@@ -1429,33 +1473,33 @@ class ReportDataService:
             patient_scope = filters.get('patient_scope', 'active_with_records')
             
             if patient_scope == 'all_verified':
-                # Base queryset is all verified patients
-                all_active_patients_qs = Patient.objects.filter(user__is_verified=True).select_related('user')
+                # Base queryset is all verified users (potential patients)
+                all_active_patients_qs = User.objects.filter(is_verified=True)
                 
                 # Apply demographic filters directly to this base QS
                 if filters.get('campus'):
                     campus_names = filters['campus'].split(',')
                     course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() 
                                  if any(c in info['campus'] for c in campus_names)]
-                    all_active_patients_qs = all_active_patients_qs.filter(user__course__in=course_ids)
+                    all_active_patients_qs = all_active_patients_qs.filter(course__in=course_ids)
                 
                 if filters.get('school'):
                     school_names = filters['school'].split(',')
                     course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() 
                                  if any(s in info['school'] for s in school_names)]
-                    all_active_patients_qs = all_active_patients_qs.filter(user__course__in=course_ids)
+                    all_active_patients_qs = all_active_patients_qs.filter(course__in=course_ids)
 
                 if filters.get('course'):
                     courses = filters['course'].split(',')
-                    all_active_patients_qs = all_active_patients_qs.filter(user__course__in=courses)
+                    all_active_patients_qs = all_active_patients_qs.filter(course__in=courses)
 
                 if filters.get('year_level'):
                     levels = filters['year_level'].split(',')
-                    all_active_patients_qs = all_active_patients_qs.filter(user__year_level__in=levels)
+                    all_active_patients_qs = all_active_patients_qs.filter(year_level__in=levels)
 
                 if filters.get('role'):
                     roles = filters['role'].split(',')
-                    all_active_patients_qs = all_active_patients_qs.filter(user__role__in=roles)
+                    all_active_patients_qs = all_active_patients_qs.filter(role__in=roles)
                 
                 total_active_count = all_active_patients_qs.count()
             else:

@@ -741,6 +741,7 @@ class ReportAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):
             'school': request.query_params.get('school'),
             'course': request.query_params.get('course'),
             'year_level': request.query_params.get('year_level'),
+            'patient_scope': request.query_params.get('patient_scope'),
             'diagnosis_category': request.query_params.get('diagnosis_category'),
             'procedure': request.query_params.get('procedure'),
             'service_type': request.query_params.get('service_type'),
