@@ -45,6 +45,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
   const [modalDateRange, setModalDateRange] = useState('30days'); 
   const [modalStartDate, setModalStartDate] = useState('');
   const [modalEndDate, setModalEndDate] = useState('');
+  const [patientScope, setPatientScope] = useState('active_with_records');
 
   // Domain Specific Filters (University Hierarchy)
   const [selectedCampuses, setSelectedCampuses] = useState([]);
@@ -88,6 +89,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
 
       // If specific filters are active in modal, pass them to backend
       if (isModal) {
+        params.patient_scope = patientScope;
         if (selectedCampuses.length > 0) params.campus = selectedCampuses.join(',');
         if (selectedSchools.length > 0) params.school = selectedSchools.join(',');
         if (selectedCourses.length > 0) params.course = selectedCourses.join(',');
@@ -113,7 +115,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
     if (openModal) {
       fetchAnalytics(true);
     }
-  }, [openModal, modalDateRange, modalStartDate, modalEndDate, selectedCampuses, selectedSchools, selectedCourses, selectedYearLevels]);
+  }, [openModal, modalDateRange, modalStartDate, modalEndDate, selectedCampuses, selectedSchools, selectedCourses, selectedYearLevels, patientScope]);
 
   const handleGenerateReport = async (format = 'PDF') => {
     try {
@@ -127,6 +129,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
         date_range_start: modalDateRange === 'custom' ? modalStartDate : undefined,
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
+          patient_scope: patientScope,
           campus: selectedCampuses,
           school: selectedSchools,
           course: selectedCourses,
@@ -350,8 +353,22 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
           {success && <Alert severity="success" sx={{ mb: 3 }}>{success}</Alert>}
 
           {/* FILTERS ROW */}
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={2.5}>
+          <Grid container spacing={1.5} sx={{ mb: 3 }}>
+            <Grid item xs={12} sm={2}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Patient Scope</InputLabel>
+                <Select
+                  value={patientScope}
+                  label="Patient Scope"
+                  onChange={(e) => setPatientScope(e.target.value)}
+                  sx={{ borderRadius: '8px' }}
+                >
+                  <MenuItem value="active_with_records">Active with Records</MenuItem>
+                  <MenuItem value="all_verified">All Verified Patients</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={1.5}>
               <Autocomplete
                 multiple
                 size="small"
@@ -371,7 +388,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
                 renderInput={(params) => <TextField {...params} label="Campus" variant="outlined" />}
               />
             </Grid>
-            <Grid item xs={12} sm={3}>
+            <Grid item xs={12} sm={2.5}>
               <Autocomplete
                 multiple
                 size="small"
@@ -390,7 +407,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
                 renderInput={(params) => <TextField {...params} label="School / College" variant="outlined" />}
               />
             </Grid>
-            <Grid item xs={12} sm={3.5}>
+            <Grid item xs={12} sm={3}>
               <Autocomplete
                 multiple
                 size="small"
@@ -428,7 +445,12 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
             <Grid item xs={12} sm={1.5}>
               <FormControl fullWidth size="small">
                 <InputLabel>Timeline</InputLabel>
-                <Select value={modalDateRange} label="Timeline" onChange={(e) => setModalDateRange(e.target.value)}>
+                <Select 
+                  value={modalDateRange} 
+                  label="Timeline" 
+                  onChange={(e) => setModalDateRange(e.target.value)}
+                  disabled={patientScope === 'all_verified'}
+                >
                   <MenuItem value="all">Full Academic History</MenuItem>
                   <MenuItem value="7days">Last 7 Days</MenuItem>
                   <MenuItem value="30days">Last 30 Days</MenuItem>
@@ -437,7 +459,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
                 </Select>
               </FormControl>
             </Grid>
-            {modalDateRange === 'custom' && (
+            {modalDateRange === 'custom' && patientScope !== 'all_verified' && (
               <>
                 <Grid item xs={12} sm={1.5}>
                   <TextField fullWidth type="date" label="Start" size="small" value={modalStartDate} onChange={(e) => setModalStartDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ max: modalEndDate || getTodayString() }} />
