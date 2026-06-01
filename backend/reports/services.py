@@ -509,10 +509,16 @@ class ReportDataService:
             date_end = date_end or now
             
             # Ensure awareness and normalize to full day coverage
+            current_tz = timezone.get_current_timezone()
             if hasattr(date_start, 'tzinfo') and date_start.tzinfo is None:
                 date_start = timezone.make_aware(date_start)
+            elif hasattr(date_start, 'astimezone'):
+                date_start = date_start.astimezone(current_tz)
+
             if hasattr(date_end, 'tzinfo') and date_end.tzinfo is None:
                 date_end = timezone.make_aware(date_end)
+            elif hasattr(date_end, 'astimezone'):
+                date_end = date_end.astimezone(current_tz)
 
             if hasattr(date_start, 'replace'):
                 date_start = date_start.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -601,13 +607,14 @@ class ReportDataService:
             
             # Create a full date range to ensure no gaps
             full_range = pd.date_range(start=date_start, end=date_end, freq=freq, normalize=True)
+            if hasattr(full_range, 'tz_convert'):
+                full_range = full_range.tz_convert(current_tz)
             
             if m_data or d_data:
                 df = pd.DataFrame(m_data + d_data)
                 df['date'] = pd.to_datetime(df['date'])
                 
                 # Convert to local timezone for proper clinical binning
-                current_tz = timezone.get_current_timezone()
                 df['date'] = df['date'].dt.tz_convert(current_tz)
                 
                 # Resample and count
@@ -621,9 +628,6 @@ class ReportDataService:
                     if t not in counts.columns:
                         counts[t] = 0
                 
-                # Normalize full_range to same timezone
-                full_range = full_range.tz_convert(current_tz) if hasattr(full_range, 'tz_convert') else full_range
-                
                 # Reindex with full range to fill missing periods with 0
                 counts = counts.reindex(full_range, fill_value=0)
                 
@@ -635,7 +639,8 @@ class ReportDataService:
                 
                 for timestamp, row in counts.iterrows():
                     monthly_data.append({
-                        'month': timestamp.strftime(date_format), 
+                        'month': timestamp.strftime(date_format),
+                        'timestamp': timestamp.isoformat(),
                         'total_visits': int(row['total']),
                         'medical_visits': int(row.get('medical', 0)), 
                         'dental_visits': int(row.get('dental', 0)),
@@ -646,6 +651,7 @@ class ReportDataService:
                 for timestamp in full_range:
                     monthly_data.append({
                         'month': timestamp.strftime(date_format),
+                        'timestamp': timestamp.isoformat(),
                         'total_visits': 0,
                         'medical_visits': 0,
                         'dental_visits': 0,
@@ -1402,6 +1408,151 @@ class ReportDataService:
         return roles
 
     @staticmethod
+    def get_certification_analytics(date_start=None, date_end=None, filters=None):
+        """Get medical certificate analytics for health clearance process insights"""
+        try:
+            from medical_certificates.models import MedicalCertificate
+            filters = filters or {}
+            
+            # Base Queryset
+            certs = MedicalCertificate.objects.filter(created_at__range=(date_start, date_end))
+
+            # Apply standard filters via patient join
+            if filters.get('campus') or filters.get('school') or filters.get('course') or filters.get('year_level'):
+                if filters.get('campus'):
+                    campus_names = filters['campus'].split(',') if isinstance(filters['campus'], str) else filters['campus']
+                    course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() if any(c in info['campus'] for c in campus_names)]
+                    certs = certs.filter(patient__user__course__in=course_ids)
+                if filters.get('school'):
+                    school_names = filters['school'].split(',') if isinstance(filters['school'], str) else filters['school']
+                    course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() if any(s in info['school'] for s in school_names)]
+                    certs = certs.filter(patient__user__course__in=course_ids)
+                if filters.get('course'):
+                    courses = filters['course'].split(',') if isinstance(filters['course'], str) else filters['course']
+                    certs = certs.filter(patient__user__course__in=courses)
+                if filters.get('year_level'):
+                    levels = filters['year_level'].split(',') if isinstance(filters['year_level'], str) else filters['year_level']
+                    certs = certs.filter(patient__user__year_level__in=levels)
+
+            # Domain specific filters
+            if filters.get('fitness_status'):
+                certs = certs.filter(fitness_status=filters['fitness_status'])
+            if filters.get('issuance_status'):
+                certs = certs.filter(issuance_status=filters['issuance_status'])
+            if filters.get('template'):
+                certs = certs.filter(template_id=filters['template'])
+
+            total_issued = certs.count()
+            if total_issued == 0:
+                return {
+                    'total_certificates': 0, 'fitness_distribution': [], 'purpose_distribution': [],
+                    'avg_turnaround_hours': 0, 'doctor_workload': [], 'issuance_status_distribution': []
+                }
+
+            # 1. Fitness Distribution
+            fitness_counts = certs.values('fitness_status').annotate(count=Count('id'))
+            fitness_map = dict(MedicalCertificate.FITNESS_STATUS_CHOICES)
+            fitness_distribution = [
+                {'status': fitness_map.get(item['fitness_status'], item['fitness_status']), 'count': item['count']}
+                for item in fitness_counts
+            ]
+
+            # 2. Purpose/Template Distribution
+            purpose_distribution = list(certs.values(name=F('template__name')).annotate(count=Count('id')).order_by('-count'))
+
+            # 3. Issuance Status Distribution
+            issuance_counts = certs.values('issuance_status').annotate(count=Count('id'))
+            issuance_map = dict(MedicalCertificate.ISSUANCE_STATUS_CHOICES)
+            issuance_distribution = [
+                {'status': issuance_map.get(item['issuance_status'], item['issuance_status']), 'count': item['count']}
+                for item in issuance_counts
+            ]
+
+            # 4. Average Turnaround Time (issued_at - created_at)
+            issued_certs = certs.filter(issuance_status='issued', issued_at__isnull=False)
+            avg_turnaround = 0
+            if issued_certs.exists():
+                durations = []
+                for c in issued_certs.only('created_at', 'issued_at'):
+                    if c.issued_at and c.created_at:
+                        diff = c.issued_at - c.created_at
+                        durations.append(diff.total_seconds() / 3600)
+                if durations:
+                    avg_turnaround = sum(durations) / len(durations)
+
+            # 5. Doctor Workload
+            doctor_workload = list(certs.filter(issuing_doctor__isnull=False)
+                                  .values(name=F('issuing_doctor__last_name'))
+                                  .annotate(count=Count('id')).order_by('-count'))
+
+            return {
+                'total_certificates': total_issued,
+                'fitness_distribution': fitness_distribution,
+                'purpose_distribution': purpose_distribution,
+                'issuance_status_distribution': issuance_distribution,
+                'avg_turnaround_hours': round(avg_turnaround, 2),
+                'doctor_workload': doctor_workload
+            }
+        except Exception as e:
+            logger.error(f"Error in get_certification_analytics: {str(e)}")
+            return {'error': str(e)}
+
+    @staticmethod
+    def get_certification_summary_data(date_start=None, date_end=None, filters=None):
+        """Standardized data collection for tabular certification exports"""
+        try:
+            from medical_certificates.models import MedicalCertificate
+            filters = filters or {}
+            
+            queryset = MedicalCertificate.objects.select_related('patient__user', 'template', 'issuing_doctor').filter(created_at__range=(date_start, date_end))
+            
+            # Apply standard filters
+            if filters.get('campus'):
+                campus_names = filters['campus'].split(',') if isinstance(filters['campus'], str) else filters['campus']
+                course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() if any(c in info['campus'] for c in campus_names)]
+                queryset = queryset.filter(patient__user__course__in=course_ids)
+            if filters.get('school'):
+                school_names = filters['school'].split(',') if isinstance(filters['school'], str) else filters['school']
+                course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() if any(s in info['school'] for s in school_names)]
+                queryset = queryset.filter(patient__user__course__in=course_ids)
+            if filters.get('course'):
+                courses = filters['course'].split(',') if isinstance(filters['course'], str) else filters['course']
+                queryset = queryset.filter(patient__user__course__in=courses)
+            if filters.get('year_level'):
+                levels = filters['year_level'].split(',') if isinstance(filters['year_level'], str) else filters['year_level']
+                queryset = queryset.filter(patient__user__year_level__in=levels)
+
+            # Domain specific filters
+            if filters.get('fitness_status'):
+                queryset = queryset.filter(fitness_status=filters['fitness_status'])
+            if filters.get('issuance_status'):
+                queryset = queryset.filter(issuance_status=filters['issuance_status'])
+            if filters.get('template'):
+                queryset = queryset.filter(template_id=filters['template'])
+            
+            results = []
+            for c in queryset.order_by('-created_at'):
+                results.append({
+                    'id': c.id,
+                    'patient': f"{c.patient.first_name} {c.patient.last_name}",
+                    'usc_id': getattr(c.patient.user, 'id_number', 'N/A'),
+                    'template': c.template.name,
+                    'fitness_status': c.get_fitness_status_display(),
+                    'issuance_status': c.get_issuance_status_display(),
+                    'issued_by': f"Dr. {c.issuing_doctor.last_name}" if c.issuing_doctor else "N/A",
+                    'created_at': c.created_at.strftime('%Y-%m-%d'),
+                    'issued_at': c.issued_at.strftime('%Y-%m-%d') if c.issued_at else "N/A"
+                })
+            
+            return {
+                'total_count': queryset.count(),
+                'certificates': results
+            }
+        except Exception as e:
+            logger.error(f"Error in get_certification_summary_data: {str(e)}")
+            return {'error': str(e)}
+
+    @staticmethod
     def get_comprehensive_system_analytics(date_start=None, date_end=None, filters=None):
         """Aggregate data for system-wide dashboard visualizations"""
         try:
@@ -1431,10 +1582,16 @@ class ReportDataService:
             date_end = date_end or timezone.now()
 
             # Ensure awareness and normalize to full day coverage
+            current_tz = timezone.get_current_timezone()
             if hasattr(date_start, 'tzinfo') and date_start.tzinfo is None:
                 date_start = timezone.make_aware(date_start)
+            elif hasattr(date_start, 'astimezone'):
+                date_start = date_start.astimezone(current_tz)
+
             if hasattr(date_end, 'tzinfo') and date_end.tzinfo is None:
                 date_end = timezone.make_aware(date_end)
+            elif hasattr(date_end, 'astimezone'):
+                date_end = date_end.astimezone(current_tz)
 
             if hasattr(date_start, 'replace'):
                 date_start = date_start.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -1496,6 +1653,7 @@ class ReportDataService:
             dental_stats = ReportDataService.get_dental_statistics_data(date_start, date_end, filters)
 
             feedback = ReportDataService.get_feedback_analysis_data(date_start, date_end, filters)
+            certifications = ReportDataService.get_certification_analytics(date_start, date_end, filters)
 
             # Get demographic stats based on requested scope
             patient_scope = filters.get('patient_scope', 'active_with_records')
@@ -1563,6 +1721,7 @@ class ReportDataService:
                     'top_diagnoses': medical_stats.get('top_diagnoses', []),
                     'top_procedures': dental_stats.get('common_procedures', [])
                 },
+                'certifications': certifications,
                 'satisfaction': {
                     'distribution': feedback.get('rating_distribution', []),
                     'average': feedback.get('avg_rating', 0),
@@ -2280,6 +2439,9 @@ class ReportGenerationService:
             elif rtype in ['TREATMENT_OUTCOMES', 'TREATMENT_OUTCOME']: 
                 data = self.data_service.get_treatment_outcomes_data(date_start, date_end, filters)
                 report_title = title or "Treatment Efficacy & Outcomes"
+            elif rtype == 'MEDICAL_CERTIFICATE':
+                data = self.data_service.get_certification_summary_data(date_start, date_end, filters)
+                report_title = title or "Medical Fitness & Certification Analysis"
             elif rtype == 'USER_ACTIVITY' or rtype == 'OPERATIONS':
                 analytics = self.data_service.get_comprehensive_system_analytics(date_start, date_end, filters)
                 if 'error' in analytics:

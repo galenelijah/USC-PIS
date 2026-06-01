@@ -42,6 +42,7 @@ class ReportTemplate(models.Model):
         ('OPERATIONS', 'Clinic Operations Report'),
         ('HEALTH_METRICS', 'Health Metrics Report'),
         ('HEALTH_HISTORY', 'Unified Health History Report'),
+        ('MEDICAL_CERTIFICATE', 'Medical Fitness & Certification Report'),
     ]
     
     EXPORT_FORMATS = [

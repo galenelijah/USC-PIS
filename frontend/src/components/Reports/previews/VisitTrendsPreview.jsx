@@ -215,7 +215,16 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
         grid: { color: '#f1f5f9' }, 
         title: { display: true, text: 'Total Visit Volume', font: { weight: 'bold', size: 10 } } 
       },
-      x: { grid: { display: false } }
+      x: { 
+        grid: { display: false },
+        ticks: {
+          autoSkip: true,
+          maxTicksLimit: 12,
+          maxRotation: 45,
+          minRotation: 0,
+          font: { size: 10 }
+        }
+      }
     }
   };
 
@@ -237,8 +246,9 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
     }
 
     return [...filtered].sort((a, b) => {
-      const valA = a[sortField];
-      const valB = b[sortField];
+      const field = sortField === 'month' ? 'timestamp' : sortField;
+      const valA = a[field];
+      const valB = b[field];
       if (sortDirection === 'asc') {
         return valA > valB ? 1 : -1;
       } else {

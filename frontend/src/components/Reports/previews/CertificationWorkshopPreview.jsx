@@ -1,0 +1,359 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Box, Card, CardContent, Typography, CircularProgress, Button,
+  Alert, TextField, FormControl, InputLabel, Select, MenuItem, Grid,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Paper, TableSortLabel, Dialog, DialogTitle, DialogContent, 
+  DialogActions, IconButton, Autocomplete, Chip, Divider, InputAdornment
+} from '@mui/material';
+import { 
+  VerifiedUser as CertIcon,
+  Visibility as ViewIcon,
+  Close as CloseIcon,
+  FileDownload as DownloadIcon,
+  Search as SearchIcon,
+  Assessment as StatsIcon,
+  PieChart as PieIcon,
+  Timer as TimeIcon,
+  AssignmentTurnedIn as IssuedIcon
+} from '@mui/icons-material';
+import { Bar, Pie } from 'react-chartjs-2';
+import { reportService } from '../../../services/api';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend
+} from 'chart.js';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
+
+const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  
+  // Workshop Modal Internal Independent Filtering Controls
+  const [openModal, setOpenModal] = useState(false);
+  const [modalDateRange, setModalDateRange] = useState('30days'); 
+  const [modalStartDate, setModalStartDate] = useState('');
+  const [modalEndDate, setModalEndDate] = useState('');
+
+  // Domain Specific Filters
+  const [fitnessFilter, setFitnessFilter] = useState('all');
+  const [issuanceFilter, setIssuanceFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const [sortField, setSortField] = useState('created_at');
+  const [sortDirection, setSortDirection] = useState('desc');
+
+  const chartRef = React.useRef(null);
+
+  const getTodayString = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const fetchAnalytics = async (isModal = false) => {
+    try {
+      if (!isModal) setLoading(true);
+      setError(null);
+      
+      const params = {
+        date_start: isModal ? (modalDateRange === 'custom' ? modalStartDate : undefined) : (dateRange === 'custom' ? customStart : undefined),
+        date_end: isModal ? (modalDateRange === 'custom' ? modalEndDate : undefined) : (dateRange === 'custom' ? customEnd : undefined),
+        date_range: isModal ? modalDateRange : dateRange,
+      };
+
+      if (isModal) {
+        if (fitnessFilter !== 'all') params.fitness_status = fitnessFilter;
+        if (issuanceFilter !== 'all') params.issuance_status = issuanceFilter;
+      }
+
+      const response = await reportService.getDashboardAnalytics(params);
+      setData(response.data);
+    } catch (err) {
+      console.error("Failed fetching certification stats:", err);
+      setError("Failed to load certification statistics.");
+    } finally {
+      if (!isModal) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAnalytics(false);
+  }, [dateRange, customStart, customEnd]);
+
+  useEffect(() => {
+    if (openModal) {
+      fetchAnalytics(true);
+    }
+  }, [openModal, modalDateRange, modalStartDate, modalEndDate, fitnessFilter, issuanceFilter]);
+
+  const handleGenerateReport = async (format = 'PDF') => {
+    try {
+      setGenerating(true);
+      setError(null);
+      
+      const payload = {
+        title: `Medical Fitness & Certification Report - ${new Date().toLocaleDateString()}`,
+        export_format: format,
+        date_range: modalDateRange,
+        date_range_start: modalDateRange === 'custom' ? modalStartDate : undefined,
+        date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
+        filters: {
+          fitness_status: fitnessFilter !== 'all' ? fitnessFilter : undefined,
+          issuance_status: issuanceFilter !== 'all' ? issuanceFilter : undefined,
+          charts_base64: chartRef.current ? [chartRef.current.toBase64Image()] : []
+        }
+      };
+
+      const response = await reportService.generateReport('MEDICAL_CERTIFICATE', payload);
+      setSuccess(`Report generation started! ID: ${response.data.report_id}`);
+      
+      setTimeout(() => {
+        setSuccess(null);
+      }, 3000);
+    } catch (err) {
+      console.error("Failed to generate report:", err);
+      setError("Failed to trigger report generation.");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const generatePieData = () => {
+    if (!data?.certifications?.fitness_distribution) return { labels: [], datasets: [] };
+    
+    const dist = data.certifications.fitness_distribution;
+    return {
+      labels: dist.map(d => d.status),
+      datasets: [
+        {
+          data: dist.map(d => d.count),
+          backgroundColor: ['#10b981', '#ef4444', '#f59e0b', '#3b82f6'],
+          borderWidth: 1
+        }
+      ]
+    };
+  };
+
+  const generateBarData = () => {
+    if (!data?.certifications?.purpose_distribution) return { labels: [], datasets: [] };
+    
+    const dist = data.certifications.purpose_distribution.slice(0, 10);
+    return {
+      labels: dist.map(d => d.name.length > 20 ? d.name.substring(0, 17) + '...' : d.name),
+      datasets: [
+        {
+          label: 'Certificates',
+          data: dist.map(d => d.count),
+          backgroundColor: '#3b82f6',
+          borderRadius: 4
+        }
+      ]
+    };
+  };
+
+  return (
+    <Box sx={{ width: '100%', marginBottom: '20px' }}>
+      
+      <Card sx={{ boxShadow: '0 4px 20px rgba(0,0,0,0.05)', borderRadius: '12px', bgcolor: '#ffffff' }}>
+        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+            <Box display="flex" alignItems="center" gap={1}>
+              <CertIcon sx={{ color: '#059669', fontSize: 26 }} />
+              <Typography variant="h6" sx={{ fontWeight: 600, color: '#065f46', fontSize: '1.1rem' }}>
+                Medical Fitness & Certification
+              </Typography>
+            </Box>
+            {!loading && (
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<ViewIcon />}
+                onClick={() => setOpenModal(true)}
+                sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' }, textTransform: 'none', borderRadius: '8px', fontWeight: 600 }}
+              >
+                Certification Workshop
+              </Button>
+            )}
+          </Box>
+
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={4}>
+              <Box sx={{ p: 2, bgcolor: '#f0fdf4', borderRadius: '8px', textAlign: 'center', border: '1px solid #dcfce7' }}>
+                <Typography variant="h4" sx={{ fontWeight: 800, color: '#166534' }}>
+                  {loading ? '...' : data?.certifications?.total_certificates || 0}
+                </Typography>
+                <Typography variant="caption" sx={{ fontWeight: 600, color: '#15803d', textTransform: 'uppercase' }}>
+                  Total Issued
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Box sx={{ p: 2, bgcolor: '#fff7ed', borderRadius: '8px', textAlign: 'center', border: '1px solid #ffedd5' }}>
+                <Typography variant="h4" sx={{ fontWeight: 800, color: '#9a3412' }}>
+                  {loading ? '...' : (data?.certifications?.avg_turnaround_hours || 0).toFixed(1)}h
+                </Typography>
+                <Typography variant="caption" sx={{ fontWeight: 600, color: '#c2410c', textTransform: 'uppercase' }}>
+                  Avg. Turnaround
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Box sx={{ height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {loading ? <CircularProgress size={20} /> : (
+                  <Pie 
+                    data={generatePieData()} 
+                    options={{ 
+                      plugins: { legend: { display: false } },
+                      maintainAspectRatio: false 
+                    }} 
+                  />
+                )}
+              </Box>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      <Dialog open={openModal} onClose={() => setOpenModal(false)} fullWidth maxWidth="lg" PaperProps={{ sx: { borderRadius: '12px' } }}>
+        <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#fafafa', borderBottom: '1px solid #e0e0e0' }}>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: '#065f46' }}>
+              Medical Fitness & Certification Workshop
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Monitor institutional health clearance workflows, fitness distributions, and doctor issuance workloads.
+            </Typography>
+          </Box>
+          <IconButton onClick={() => setOpenModal(false)} sx={{ color: (theme) => theme.palette.grey[500] }}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent dividers sx={{ p: 3, bgcolor: '#fcfcfc' }}>
+          {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+          {success && <Alert severity="success" sx={{ mb: 3 }}>{success}</Alert>}
+
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid item xs={12} sm={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Fitness Status</InputLabel>
+                <Select value={fitnessFilter} label="Fitness Status" onChange={(e) => setFitnessFilter(e.target.value)}>
+                  <MenuItem value="all">All Fitness Types</MenuItem>
+                  <MenuItem value="physically_fit">Physically Fit</MenuItem>
+                  <MenuItem value="physically_unfit">Physically Unfit</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Issuance Status</InputLabel>
+                <Select value={issuanceFilter} label="Issuance Status" onChange={(e) => setIssuanceFilter(e.target.value)}>
+                  <MenuItem value="all">All Statuses</MenuItem>
+                  <MenuItem value="issued">Issued</MenuItem>
+                  <MenuItem value="pending">Pending</MenuItem>
+                  <MenuItem value="draft">Draft</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Timeline</InputLabel>
+                <Select value={modalDateRange} label="Timeline" onChange={(e) => setModalDateRange(e.target.value)}>
+                  <MenuItem value="all">Full Academic History (Up to 2025)</MenuItem>
+                  <MenuItem value="7days">Last 7 Days</MenuItem>
+                  <MenuItem value="30days">Last 30 Days</MenuItem>
+                  <MenuItem value="6months">Last 6 Months</MenuItem>
+                  <MenuItem value="custom">Manual Range Selection</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            {modalDateRange === 'custom' && (
+              <>
+                <Grid item xs={12} sm={1.5}>
+                  <TextField fullWidth type="date" label="Start" size="small" value={modalStartDate} onChange={(e) => setModalStartDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ max: modalEndDate || getTodayString() }} />
+                </Grid>
+                <Grid item xs={12} sm={1.5}>
+                  <TextField fullWidth type="date" label="End" size="small" value={modalEndDate} onChange={(e) => setModalEndDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ min: modalStartDate, max: getTodayString() }} />
+                </Grid>
+              </>
+            )}
+          </Grid>
+
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} md={6}>
+              <Box sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: '8px', bgcolor: '#ffffff', height: '100%' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <PieIcon sx={{ color: '#059669' }} fontSize="small" /> Fitness Determination Distribution
+                </Typography>
+                <Box sx={{ height: 250, display: 'flex', justifyContent: 'center' }}>
+                  {data?.certifications?.fitness_distribution?.length > 0 ? (
+                    <Pie data={generatePieData()} options={{ maintainAspectRatio: false }} />
+                  ) : <Typography variant="body2" color="text.secondary" sx={{ mt: 10 }}>No fitness data found</Typography>}
+                </Box>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Box sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: '8px', bgcolor: '#ffffff', height: '100%' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <StatsIcon sx={{ color: '#3b82f6' }} fontSize="small" /> Top Certificate Purposes (Templates)
+                </Typography>
+                <Box sx={{ height: 250 }}>
+                  {data?.certifications?.purpose_distribution?.length > 0 ? (
+                    <Bar ref={chartRef} data={generateBarData()} options={{ maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } } }} />
+                  ) : <Typography variant="body2" color="text.secondary" sx={{ mt: 10, textAlign: 'center' }}>No purpose data found</Typography>}
+                </Box>
+              </Box>
+            </Grid>
+          </Grid>
+
+          <Divider sx={{ mb: 3 }} />
+
+          <Box sx={{ p: 2, bgcolor: '#ffffff', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Doctor Workload & Issuance Metrics</Typography>
+            <Grid container spacing={2}>
+              {(data?.certifications?.doctor_workload || []).map((doc, i) => (
+                <Grid item xs={6} sm={3} key={i}>
+                  <Box sx={{ p: 1.5, border: '1px dotted #cbd5e1', borderRadius: '8px', textAlign: 'center' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 800 }}>{doc.count}</Typography>
+                    <Typography variant="caption" color="text.secondary">Dr. {doc.name}</Typography>
+                  </Box>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2, bgcolor: '#fafafa', borderTop: '1px solid #e0e0e0' }}>
+          <Button onClick={() => setOpenModal(false)} sx={{ color: 'text.secondary' }}>Close Workshop</Button>
+          <Box sx={{ flexGrow: 1 }} />
+          <Button 
+            variant="contained" 
+            onClick={() => handleGenerateReport('PDF')}
+            disabled={generating}
+            startIcon={generating ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}
+            sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' }, px: 3, fontWeight: 600 }}
+          >
+            {generating ? 'Processing...' : 'Generate Certification PDF'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+    </Box>
+  );
+};
+
+export default CertificationWorkshopPreview;

@@ -8,6 +8,7 @@ import FeedbackAnalysisPreview from './Reports/previews/FeedbackAnalysisPreview'
 import ClinicalStatsPreview from './Reports/previews/ClinicalStatsPreview';
 import VisitTrendsPreview from './Reports/previews/VisitTrendsPreview';
 import OperationsPreview from './Reports/previews/OperationsPreview';
+import CertificationWorkshopPreview from './Reports/previews/CertificationWorkshopPreview';
 import DentalStatsPreview from './Reports/previews/DentalStatsPreview';
 import ReportArchive from './Reports/ReportArchive';
 
@@ -139,7 +140,11 @@ const Reports = () => {
         </Grid>
 
         <Grid item xs={12} md={6}>
-          {/* Placeholder for future analytical widgets */}
+          <CertificationWorkshopPreview 
+            dateRange={globalDateRange} 
+            customStart={startDate} 
+            customEnd={endDate} 
+          />
         </Grid>
 
         {/* Row 5: Comprehensive Medical Records Analysis */}
