@@ -1395,8 +1395,10 @@ class ReportDataService:
         try:
             filters = filters or {}
 
-            # Resolve date range from string if provided
-            if filters.get('date_range') and not (date_start and date_end):
+            # Prioritize explicit dates (especially for 'custom' range)
+            if filters.get('date_range') == 'custom' and date_start and date_end:
+                pass # Use provided dates
+            elif filters.get('date_range'):
                 range_type = filters['date_range']
                 now = timezone.now()
                 if range_type == '7days':
@@ -1407,11 +1409,16 @@ class ReportDataService:
                     date_start = now - timedelta(days=180)
                 elif range_type == 'all':
                     date_start = now - timedelta(days=3650) # 10 years
-
                 date_end = now
 
             date_start = date_start or (timezone.now() - timedelta(days=365))
             date_end = date_end or timezone.now()
+
+            # Normalize to full day coverage
+            if hasattr(date_start, 'replace'):
+                date_start = date_start.replace(hour=0, minute=0, second=0, microsecond=0)
+            if hasattr(date_end, 'replace'):
+                date_end = date_end.replace(hour=23, minute=59, second=59, microsecond=999999)
 
             # Use visit_date for more accurate clinical timeline
             medical_records = MedicalRecord.objects.filter(visit_date__range=(date_start, date_end))
@@ -1919,9 +1926,9 @@ class ReportGenerationService:
                 
                 .chart-container {{ text-align: center; margin: 20px 0; padding: 10px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #fafafa; }}
                 
-                .data-table {{ width: 100%; border-collapse: collapse; margin-top: 5px; }}
-                .data-table th {{ background-color: #003366; color: #ffffff; padding: 10px 8px; text-align: left; font-size: 8.5pt; text-transform: uppercase; }}
-                .data-table td {{ padding: 8px; border-bottom: 1px solid #e2e8f0; font-size: 9pt; color: #334155; }}
+                .data-table {{ width: 100%; border-collapse: collapse; margin-top: 5px; table-layout: fixed; }}
+                .data-table th {{ background-color: #003366; color: #ffffff; padding: 10px 8px; text-align: left; font-size: 8.5pt; text-transform: uppercase; overflow: hidden; }}
+                .data-table td {{ padding: 8px; border-bottom: 1px solid #e2e8f0; font-size: 9pt; color: #334155; word-wrap: break-word; overflow-wrap: break-word; }}
                 .data-table tr:nth-child(even) {{ background-color: #f8fafc; }}
                 
                 .metric-table {{ width: 100%; margin-bottom: 20px; border-spacing: 10px; border-collapse: separate; }}
@@ -2080,7 +2087,11 @@ class ReportGenerationService:
                                     <tr>
                                         {{% for key in first_item.keys %}}
                                             {{% if key != "id" %}}
-                                            <th>{{{{ key|title_clean }}}}</th>
+                                                {{% if key|lower == "comments" or key|lower == "summary" or key|lower == "improvement" %}}
+                                                    <th width="40%">{{{{ key|title_clean }}}}</th>
+                                                {{% else %}}
+                                                    <th>{{{{ key|title_clean }}}}</th>
+                                                {{% endif %}}
                                             {{% endif %}}
                                         {{% endfor %}}
                                     </tr>
@@ -2090,7 +2101,7 @@ class ReportGenerationService:
                                         <tr>
                                             {{% for key in first_item.keys %}}
                                                 {{% if key != "id" %}}
-                                                <td>{{{{ item|get_item:key }}}}</td>
+                                                <td style="word-wrap: break-word; overflow-wrap: break-word;">{{{{ item|get_item:key }}}}</td>
                                                 {{% endif %}}
                                             {{% endfor %}}
                                         </tr>

@@ -51,10 +51,19 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
   const [courtesyFilter, setCourtesyFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [sortField, setSortField] = useState('created_at');
+  const [sortField, setSortField] = useState('rating');
   const [sortDirection, setSortDirection] = useState('desc');
 
+  const getTodayString = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const fetchAnalytics = async (isModal = false) => {
+
     try {
       if (!isModal) setLoading(true);
       setError(null);

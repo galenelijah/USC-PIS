@@ -68,6 +68,14 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
   const chartRef = useRef(null);
   const forecastChartRef = useRef(null);
 
+  const getTodayString = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const fetchAnalytics = async (isModal = false) => {
     try {
       if (!isModal) setLoading(true);
