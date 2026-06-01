@@ -723,13 +723,14 @@ class ReportAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):
         
         if date_start:
             try:
-                date_start = datetime.strptime(date_start, '%Y-%m-%d')
-            except ValueError:
+                date_start = timezone.make_aware(datetime.strptime(date_start, '%Y-%m-%d'))
+            except (ValueError, Exception):
                 date_start = None
         if date_end:
             try:
-                date_end = datetime.strptime(date_end, '%Y-%m-%d')
-            except ValueError:
+                # Use late end of day for the end date
+                date_end = timezone.make_aware(datetime.strptime(date_end, '%Y-%m-%d').replace(hour=23, minute=59, second=59))
+            except (ValueError, Exception):
                 date_end = None
             
         # Comprehensive list of filters supported by the new Workshop UI

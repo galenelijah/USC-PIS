@@ -543,7 +543,7 @@ const MedicalReports = ({ dateRange, customStart, customEnd }) => {
                 <FormControl fullWidth size="small">
                   <InputLabel>Workshop Timeline</InputLabel>
                   <Select value={modalDateRange} label="Workshop Timeline" onChange={(e) => setModalDateRange(e.target.value)}>
-                    <MenuItem value="all">Full Academic History</MenuItem>
+                    <MenuItem value="all">Full Academic History (Up to 2025)</MenuItem>
                     <MenuItem value="7days">Last 7 Days</MenuItem>
                     <MenuItem value="30days">Last 30 Days</MenuItem>
                     <MenuItem value="6months">Last 6 Months</MenuItem>

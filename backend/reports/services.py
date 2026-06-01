@@ -508,7 +508,12 @@ class ReportDataService:
             date_start = date_start or (now - timedelta(days=365))
             date_end = date_end or now
             
-            # Ensure they are aware of the full day and normalized to midnight for proper binning
+            # Ensure awareness and normalize to full day coverage
+            if hasattr(date_start, 'tzinfo') and date_start.tzinfo is None:
+                date_start = timezone.make_aware(date_start)
+            if hasattr(date_end, 'tzinfo') and date_end.tzinfo is None:
+                date_end = timezone.make_aware(date_end)
+
             if hasattr(date_start, 'replace'):
                 date_start = date_start.replace(hour=0, minute=0, second=0, microsecond=0)
             if hasattr(date_end, 'replace'):
@@ -601,6 +606,10 @@ class ReportDataService:
                 df = pd.DataFrame(m_data + d_data)
                 df['date'] = pd.to_datetime(df['date'])
                 
+                # Convert to local timezone for proper clinical binning
+                current_tz = timezone.get_current_timezone()
+                df['date'] = df['date'].dt.tz_convert(current_tz)
+                
                 # Resample and count
                 df = df.set_index('date')
                 
@@ -611,6 +620,9 @@ class ReportDataService:
                 for t in ['medical', 'dental']:
                     if t not in counts.columns:
                         counts[t] = 0
+                
+                # Normalize full_range to same timezone
+                full_range = full_range.tz_convert(current_tz) if hasattr(full_range, 'tz_convert') else full_range
                 
                 # Reindex with full range to fill missing periods with 0
                 counts = counts.reindex(full_range, fill_value=0)
@@ -1409,12 +1421,21 @@ class ReportDataService:
                     date_start = now - timedelta(days=180)
                 elif range_type == 'all':
                     date_start = now - timedelta(days=3650) # 10 years
-                date_end = now
+                    # Full Academic History capped at end of 2025 as requested
+                    date_end = timezone.make_aware(datetime(2025, 12, 31, 23, 59, 59))
+                
+                if range_type != 'all':
+                    date_end = now
 
             date_start = date_start or (timezone.now() - timedelta(days=365))
             date_end = date_end or timezone.now()
 
-            # Normalize to full day coverage
+            # Ensure awareness and normalize to full day coverage
+            if hasattr(date_start, 'tzinfo') and date_start.tzinfo is None:
+                date_start = timezone.make_aware(date_start)
+            if hasattr(date_end, 'tzinfo') and date_end.tzinfo is None:
+                date_end = timezone.make_aware(date_end)
+
             if hasattr(date_start, 'replace'):
                 date_start = date_start.replace(hour=0, minute=0, second=0, microsecond=0)
             if hasattr(date_end, 'replace'):
@@ -2228,6 +2249,14 @@ class ReportGenerationService:
         # Standardize dates
         date_start = date_start or kwargs.get('date_range_start') or (timezone.now() - timedelta(days=365))
         date_end = date_end or kwargs.get('date_range_end') or timezone.now()
+
+        # Apply institutional cap for "Full Academic History"
+        if filters.get('date_range') == 'all':
+            from datetime import datetime
+            academic_cap = timezone.make_aware(datetime(2025, 12, 31, 23, 59, 59))
+            if date_end > academic_cap:
+                date_end = academic_cap
+                logger.info("Applying academic history cap (2025) to report export")
 
         try:
             if rtype == 'PATIENT_SUMMARY': 
