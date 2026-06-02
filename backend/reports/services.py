@@ -509,6 +509,12 @@ class ReportDataService:
         try:
             filters = filters or {}
             now = timezone.now()
+            
+            # Anchor date_start if 'all' is explicitly requested in filters
+            if filters.get('date_range') == 'all':
+                date_start = timezone.make_aware(datetime(2024, 1, 1, 0, 0, 0))
+                date_end = now
+
             date_start = date_start or (now - timedelta(days=365))
             date_end = date_end or now
             
@@ -611,6 +617,8 @@ class ReportDataService:
             
             # Create a full date range to ensure no gaps
             full_range = pd.date_range(start=date_start, end=date_end, freq=freq, normalize=True)
+            logger.info(f"Visit Trends: Timeline generated from {date_start} to {date_end} (Freq: {freq}, Points: {len(full_range)})")
+            
             if hasattr(full_range, 'tz_convert'):
                 full_range = full_range.tz_convert(current_tz)
             
@@ -1432,6 +1440,10 @@ class ReportDataService:
             from medical_certificates.models import MedicalCertificate
             filters = filters or {}
             
+            # Standardize dates if missing
+            date_start = date_start or (timezone.now() - timedelta(days=365))
+            date_end = date_end or timezone.now()
+            
             # Base Queryset
             certs = MedicalCertificate.objects.filter(created_at__range=(date_start, date_end))
 
@@ -1611,8 +1623,9 @@ class ReportDataService:
                 elif range_type == 'all':
                     # Full Academic History starts from 2024 institutional rollout
                     date_start = timezone.make_aware(datetime(2024, 1, 1, 0, 0, 0))
-                    # Full Academic History capped at end of 2025 as requested
-                    date_end = timezone.make_aware(datetime(2025, 12, 31, 23, 59, 59))
+                    # End date is always current for full history
+                    date_end = now
+                    logger.info(f"System Analytics: Applied Full History range ({date_start} to {date_end})")
                 
                 if range_type != 'all':
                     date_end = now
@@ -2471,12 +2484,12 @@ class ReportGenerationService:
         import json
         import urllib.parse
         
-        # Limit labels for readability
-        labels = labels[:15]
+        # Limit labels for readability - increased for workshop support
+        labels = labels[:60]
         
         processed_datasets = []
         for i, ds in enumerate(datasets):
-            ds_data = ds.get('data', [])[:15]
+            ds_data = ds.get('data', [])[:60]
             ds_label = ds.get('label', f'Series {i+1}')
             
             # Use Workshop-standard colors
@@ -2540,16 +2553,19 @@ class ReportGenerationService:
         filters = filters or {}
         
         # Standardize dates
-        date_start = date_start or kwargs.get('date_range_start') or (timezone.now() - timedelta(days=365))
+        date_start = date_start or kwargs.get('date_range_start')
         date_end = date_end or kwargs.get('date_range_end') or timezone.now()
 
-        # Apply institutional cap for "Full Academic History"
+        # Apply institutional floor and ensure range for "Full Academic History"
         if filters.get('date_range') == 'all':
             from datetime import datetime
-            academic_cap = timezone.make_aware(datetime(2025, 12, 31, 23, 59, 59))
-            if date_end > academic_cap:
-                date_end = academic_cap
-                logger.info("Applying academic history cap (2025) to report export")
+            # Always start from 2024 rollout
+            date_start = timezone.make_aware(datetime(2024, 1, 1, 0, 0, 0))
+            # No hard ceiling for 'all', use provide date_end (which defaults to now)
+            logger.info("Applying academic history floor (2024) to report export")
+        
+        # Final fallback for missing start date
+        date_start = date_start or (timezone.now() - timedelta(days=365))
 
         try:
             if rtype == 'PATIENT_SUMMARY': 

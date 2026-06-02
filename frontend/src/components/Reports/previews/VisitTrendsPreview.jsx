@@ -214,10 +214,10 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
         grid: { display: false },
         ticks: {
           autoSkip: true,
-          maxTicksLimit: 12,
+          maxTicksLimit: 36,
           maxRotation: 45,
           minRotation: 0,
-          font: { size: 10 }
+          font: { size: 9 }
         }
       }
     }
