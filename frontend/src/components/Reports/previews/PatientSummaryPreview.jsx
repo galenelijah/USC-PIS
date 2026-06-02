@@ -85,8 +85,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
       const params = {
         date_start: isModal ? (modalDateRange === 'custom' ? modalStartDate : undefined) : (dateRange === 'custom' ? customStart : undefined),
         date_end: isModal ? (modalDateRange === 'custom' ? modalEndDate : undefined) : (dateRange === 'custom' ? customEnd : undefined),
-        // If 'all', send undefined so the parameter is not sent at all
-        date_range: currentRange === 'all' ? undefined : currentRange, 
+        date_range: currentRange, 
       };
 
       // If specific filters are active in modal, pass them to backend
@@ -213,7 +212,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
     }
 
     return {
-      labels: finalData.map(c => c.name.length > 25 ? c.name.substring(0, 22) + '...' : c.name),
+      labels: finalData.map(c => c.name),
       datasets: [
         {
           data: finalData.map(c => c.count),
@@ -506,9 +505,18 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Course Classification</Typography>
                 <Box sx={{ height: 280, display: 'flex', justifyContent: 'center' }}>
                   {data?.demographics?.courses ? (
-                    <Pie 
+                    <Bar 
                       data={generateCoursePieData()} 
-                      options={{...chartOptions, plugins: { ...chartOptions.plugins, legend: { position: 'bottom' }}}} 
+                      options={{
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                          x: { beginAtZero: true, grid: { display: false }, ticks: { font: { size: 9 } } },
+                          y: { grid: { display: false }, ticks: { font: { size: 9 } } }
+                        }
+                      }} 
                     />
                   ) : <Typography variant="body2" color="text.secondary" textAlign="center" mt={10}>No course data</Typography>}
                 </Box>

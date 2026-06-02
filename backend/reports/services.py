@@ -269,9 +269,7 @@ class ReportDataService:
                 elif patient_scope == 'all_profiles':
                     # All verified patients who completed setup (have a Patient object)
                     queryset = queryset.filter(user__is_verified=True)
-                    # Use created_at for the date range filter
-                    if date_start:
-                        queryset = queryset.filter(created_at__gte=date_start)
+                    # For a population summary, we usually want cumulative data as of the end date
                     if date_end:
                         queryset = queryset.filter(created_at__lte=date_end)
             
@@ -1381,16 +1379,7 @@ class ReportDataService:
             if user and user.course:
                 course_id = str(user.course)
                 if course_id in ACADEMIC_DIRECTORY_MAP:
-                    school_info = ACADEMIC_DIRECTORY_MAP[course_id]['school']
-                    # Use shorter labels for charts (e.g. "SAS" instead of full name)
-                    if "Arts and Sciences" in school_info: college = "SAS"
-                    elif "Architecture" in school_info: college = "SAFAD"
-                    elif "Business" in school_info: college = "SBE"
-                    elif "Engineering" in school_info: college = "SOE"
-                    elif "Healthcare" in school_info: college = "SHCP"
-                    elif "Education" in school_info: college = "SOED"
-                    elif "Law" in school_info: college = "SLG"
-                    else: college = school_info
+                    college = ACADEMIC_DIRECTORY_MAP[course_id]['school']
                 elif user.school:
                     college = user.school
             elif user and user.department:
@@ -1719,57 +1708,23 @@ class ReportDataService:
             # Get demographic stats based on requested scope
             patient_scope = filters.get('patient_scope', 'active_with_records')
             
-            if patient_scope == 'all_verified':
-                # Base queryset is all verified users (potential patients)
-                all_active_patients_qs = User.objects.filter(is_verified=True)
-                
-                # Apply demographic filters directly to this base QS
-                if filters.get('campus'):
-                    campus_names = filters['campus'].split(',')
-                    course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() 
-                                 if any(c in info['campus'] for c in campus_names)]
-                    all_active_patients_qs = all_active_patients_qs.filter(course__in=course_ids)
-                
-                if filters.get('school'):
-                    school_names = filters['school'].split(',')
-                    course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() 
-                                 if any(s in info['school'] for s in school_names)]
-                    all_active_patients_qs = all_active_patients_qs.filter(course__in=course_ids)
-
-                if filters.get('course'):
-                    courses = filters['course'].split(',')
-                    all_active_patients_qs = all_active_patients_qs.filter(course__in=courses)
-
-                if filters.get('year_level'):
-                    levels = filters['year_level'].split(',')
-                    all_active_patients_qs = all_active_patients_qs.filter(year_level__in=levels)
-
-                if filters.get('role'):
-                    roles = filters['role'].split(',')
-                    all_active_patients_qs = all_active_patients_qs.filter(role__in=roles)
-                
-                total_active_count = all_active_patients_qs.count()
-            else:
-                # Get demographic stats directly from visiting records (Active with Records)
-                med_patient_ids = medical_records.values_list('patient_id', flat=True)
-                den_patient_ids = dental_records.values_list('patient_id', flat=True)
-                all_patient_ids = set(list(med_patient_ids) + list(den_patient_ids))
-                all_active_patients_qs = Patient.objects.filter(id__in=all_patient_ids).select_related('user')
-                total_active_count = len(all_patient_ids)
+            # Delegate demographic collection to specialized method for consistency and filter support
+            demographics = ReportDataService.get_patient_summary_data(date_start, date_end, filters)
+            total_active_count = demographics.get('total_patients', 0)
+            college_participation = demographics.get('college_participation', [])
+            course_distribution = demographics.get('course_distribution', [])
+            role_distribution = demographics.get('role_distribution', {})
+            year_level_distribution = demographics.get('year_level_distribution', [])
 
             # Calculate Peak Hours (Always based on records in timeline)
             peak_hours = ReportDataService._get_peak_hours(list(medical_records) + list(dental_records))
-
-            # Calculate demographics using querysets where possible
-            college_participation = ReportDataService._get_college_participation(all_active_patients_qs)
-            course_distribution = ReportDataService._get_course_distribution(all_active_patients_qs)
-            role_distribution = ReportDataService._get_role_distribution(all_active_patients_qs)
 
             return {
                 'demographics': {
                     'colleges': college_participation,
                     'courses': course_distribution,
                     'roles': role_distribution,
+                    'year_levels': year_level_distribution,
                     'total_active': total_active_count
                 },
                 'visits': {
