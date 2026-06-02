@@ -45,6 +45,11 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
   // Domain Specific Filters
   const [fitnessFilter, setFitnessFilter] = useState('all');
   const [issuanceFilter, setIssuanceFilter] = useState('all');
+  const [purposeFilter, setPurposeFilter] = useState('all');
+  const [doctorFilter, setDoctorFilter] = useState('all');
+  const [campusFilter, setCampusFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [yearLevelFilter, setYearLevelFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const chartRef = React.useRef(null);
@@ -72,6 +77,11 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
       if (isModal) {
         if (fitnessFilter !== 'all') params.fitness_status = fitnessFilter;
         if (issuanceFilter !== 'all') params.issuance_status = issuanceFilter;
+        if (purposeFilter !== 'all') params.template = purposeFilter;
+        if (doctorFilter !== 'all') params.doctor = doctorFilter;
+        if (campusFilter !== 'all') params.campus = campusFilter;
+        if (roleFilter !== 'all') params.role = roleFilter;
+        if (yearLevelFilter !== 'all') params.year_level = yearLevelFilter;
         if (searchQuery) params.search = searchQuery;
       }
 
@@ -83,7 +93,7 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [modalDateRange, dateRange, modalStartDate, customStart, modalEndDate, customEnd, fitnessFilter, issuanceFilter, searchQuery]);
+  }, [modalDateRange, dateRange, modalStartDate, customStart, modalEndDate, customEnd, fitnessFilter, issuanceFilter, purposeFilter, doctorFilter, campusFilter, roleFilter, yearLevelFilter, searchQuery]);
 
   useEffect(() => {
     fetchAnalytics(openModal);
@@ -103,6 +113,11 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
         filters: {
           fitness_status: fitnessFilter !== 'all' ? fitnessFilter : undefined,
           issuance_status: issuanceFilter !== 'all' ? issuanceFilter : undefined,
+          template: purposeFilter !== 'all' ? purposeFilter : undefined,
+          doctor: doctorFilter !== 'all' ? doctorFilter : undefined,
+          campus: campusFilter !== 'all' ? [campusFilter] : undefined,
+          role: roleFilter !== 'all' ? roleFilter : undefined,
+          year_level: yearLevelFilter !== 'all' ? yearLevelFilter : undefined,
           search: searchQuery || undefined,
           charts_base64: chartRef.current ? [chartRef.current.toBase64Image()] : []
         }
@@ -237,7 +252,8 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
           {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
           {success && <Alert severity="success" sx={{ mb: 3 }}>{success}</Alert>}
 
-          <Grid container spacing={2} sx={{ mb: 3 }}>
+          {/* FILTERS ROW 1 */}
+          <Grid container spacing={2} sx={{ mb: 2 }}>
             <Grid item xs={12} sm={3}>
               <FormControl fullWidth size="small">
                 <InputLabel>Fitness Status</InputLabel>
@@ -261,6 +277,65 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
             </Grid>
             <Grid item xs={12} sm={3}>
               <FormControl fullWidth size="small">
+                <InputLabel>Certificate Purpose</InputLabel>
+                <Select value={purposeFilter} label="Certificate Purpose" onChange={(e) => setPurposeFilter(e.target.value)}>
+                  <MenuItem value="all">All Purposes</MenuItem>
+                  {(data?.certifications?.purpose_distribution || []).map(p => (
+                    <MenuItem key={p.name} value={p.name}>{p.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Issuing Doctor</InputLabel>
+                <Select value={doctorFilter} label="Issuing Doctor" onChange={(e) => setDoctorFilter(e.target.value)}>
+                  <MenuItem value="all">All Doctors</MenuItem>
+                  {(data?.certifications?.doctor_workload || []).map(d => (
+                    <MenuItem key={d.name} value={d.name}>Dr. {d.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+
+          {/* FILTERS ROW 2 */}
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid item xs={12} sm={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Campus Location</InputLabel>
+                <Select value={campusFilter} label="Campus Location" onChange={(e) => setCampusFilter(e.target.value)}>
+                  <MenuItem value="all">Unified Records</MenuItem>
+                  <MenuItem value="Talamban">Talamban Campus</MenuItem>
+                  <MenuItem value="Downtown">Downtown Campus</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={2}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Patient Role</InputLabel>
+                <Select value={roleFilter} label="Patient Role" onChange={(e) => setRoleFilter(e.target.value)}>
+                  <MenuItem value="all">All Roles</MenuItem>
+                  <MenuItem value="STUDENT">Student</MenuItem>
+                  <MenuItem value="FACULTY">Faculty</MenuItem>
+                  <MenuItem value="STAFF">Staff</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={2}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Year Level</InputLabel>
+                <Select value={yearLevelFilter} label="Year Level" onChange={(e) => setYearLevelFilter(e.target.value)}>
+                  <MenuItem value="all">All Years</MenuItem>
+                  {['1', '2', '3', '4', '5'].map(y => (
+                    <MenuItem key={y} value={y}>{y}{y === '1' ? 'st' : y === '2' ? 'nd' : y === '3' ? 'rd' : 'th'} Year</MenuItem>
+                  ))}
+                  <MenuItem value="N/A">N/A</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <FormControl fullWidth size="small">
                 <InputLabel>Timeline</InputLabel>
                 <Select value={modalDateRange} label="Timeline" onChange={(e) => setModalDateRange(e.target.value)}>
                   <MenuItem value="all">Full Academic History</MenuItem>
@@ -273,10 +348,10 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
             </Grid>
             {modalDateRange === 'custom' && (
               <>
-                <Grid item xs={12} sm={1.5}>
+                <Grid item xs={12} sm={1.2}>
                   <TextField fullWidth type="date" label="Start" size="small" value={modalStartDate} onChange={(e) => setModalStartDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ max: modalEndDate || getTodayString() }} />
                 </Grid>
-                <Grid item xs={12} sm={1.5}>
+                <Grid item xs={12} sm={1.2}>
                   <TextField fullWidth type="date" label="End" size="small" value={modalEndDate} onChange={(e) => setModalEndDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ min: modalStartDate, max: getTodayString() }} />
                 </Grid>
               </>
@@ -313,10 +388,10 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
           <Divider sx={{ mb: 3 }} />
 
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Certification Audit Log</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Issuance Audit Log</Typography>
             <TextField
               size="small"
-              placeholder="Search by name, ID, or template..."
+              placeholder="Search by student, ID, or template..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               InputProps={{
@@ -324,6 +399,54 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
               }}
               sx={{ width: 350 }}
             />
+          </Box>
+
+          <Box sx={{ mb: 3 }}>
+            <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 350, borderRadius: '8px' }}>
+              <Table stickyHeader size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>Patient Name</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>ID Number</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>Purpose / Template</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>Fitness</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>Status</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>Issuing Doctor</TableCell>
+                    <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>Date</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {(data?.certifications?.certificates_log || []).map((row, idx) => (
+                    <TableRow key={idx} hover>
+                      <TableCell sx={{ fontWeight: 600 }}>{row.patient}</TableCell>
+                      <TableCell>{row.usc_id}</TableCell>
+                      <TableCell>{row.template}</TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={row.fitness} 
+                          size="small" 
+                          variant="outlined"
+                          color={row.fitness?.toLowerCase().includes('fit') && !row.fitness?.toLowerCase().includes('unfit') ? 'success' : 'error'} 
+                          sx={{ fontSize: '0.65rem', height: 20 }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip label={row.status} size="small" sx={{ fontSize: '0.65rem', height: 20 }} />
+                      </TableCell>
+                      <TableCell>{row.doctor}</TableCell>
+                      <TableCell>{row.date}</TableCell>
+                    </TableRow>
+                  ))}
+                  {(!data?.certifications?.certificates_log || data.certifications.certificates_log.length === 0) && (
+                    <TableRow>
+                      <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                        <Typography variant="body2" color="text.secondary">No certificates found matching criteria.</Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </Box>
 
           <Box sx={{ p: 2, bgcolor: '#ffffff', borderRadius: '8px', border: '1px solid #e0e0e0' }}>

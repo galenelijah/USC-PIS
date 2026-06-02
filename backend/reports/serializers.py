@@ -183,7 +183,8 @@ class ReportGenerationRequestSerializer(serializers.Serializer):
                     data['date_range_start'] = now - timedelta(days=180)
                     data['date_range_end'] = now
                 elif preset == 'all':
-                    data['date_range_start'] = now - timedelta(days=3650) # 10 years
+                    from datetime import datetime
+                    data['date_range_start'] = timezone.make_aware(datetime(2024, 1, 1, 0, 0, 0))
                     data['date_range_end'] = now
             elif template.requires_date_range:
                 # Default to 30 days if required but not provided

@@ -44,6 +44,9 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
   // Modal Internal Independent Filtering Controls
   const [openModal, setOpenModal] = useState(false);
   const [selectedCampaigns, setSelectedCampaigns] = useState([]); 
+  const [campusFilter, setCampusFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [yearLevelFilter, setYearLevelFilter] = useState('all');
   const [modalDateRange, setModalDateRange] = useState('all'); 
   const [modalStartDate, setModalStartDate] = useState('');
   const [modalEndDate, setModalEndDate] = useState('');
@@ -64,9 +67,9 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
     { id: 'title', label: 'Campaign Title', align: 'left' },
     { id: 'campaign_type', label: 'Category', align: 'left' },
     { id: 'view_count', label: 'Total Views', align: 'right' },
+    { id: 'engagement_count', label: 'Engagement', align: 'right' },
     { id: 'created_by_name', label: 'Created By', align: 'left' },
     { id: 'created_at', label: 'Date Created', align: 'left' },
-    { id: 'updated_at', label: 'Last Updated', align: 'left' },
   ];
 
   useEffect(() => {
@@ -74,33 +77,54 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
       try {
         setLoading(true);
         setError(null);
-        const response = await campaignService.getCampaigns();
-        const dataList = response?.data?.results || response?.data || [];
-        setCampaigns(dataList);
+        
+        // Use standard dashboard analytics params if modal is closed, or modal params if open
+        const params = openModal ? {
+          date_range: modalDateRange,
+          date_start: modalDateRange === 'custom' ? modalStartDate : undefined,
+          date_end: modalDateRange === 'custom' ? modalEndDate : undefined,
+          campus: campusFilter !== 'all' ? campusFilter : undefined,
+          role: roleFilter !== 'all' ? roleFilter : undefined,
+          year_level: yearLevelFilter !== 'all' ? yearLevelFilter : undefined,
+          search: searchQuery || undefined
+        } : {};
+
+        // For now, campaignService.getCampaigns might not support all these, 
+        // but we'll use reportService.getDashboardAnalytics which does
+        const response = await reportService.getDashboardAnalytics({ 
+          ...params, 
+          report_type: 'CAMPAIGN_PERFORMANCE' 
+        });
+        
+        const dataList = response?.data?.campaign_performance || [];
+        if (openModal) {
+          setModalCampaigns(sortDataList([...dataList]));
+        } else {
+          setCampaigns(dataList);
+          setDashboardCampaigns(dataList.slice(0, 5));
+        }
       } catch (err) {
         console.error("Failed fetching health campaigns:", err);
-        setError(err.response?.data?.message || "Failed to load campaign records.");
+        setError("Failed to load campaign records.");
       } finally {
         setLoading(false);
       }
     };
     fetchCampaignData();
-  }, []);
+  }, [openModal, modalDateRange, modalStartDate, modalEndDate, campusFilter, roleFilter, yearLevelFilter, searchQuery]);
 
   const sortDataList = (list) => {
     return list.sort((a, b) => {
       let valueA = a[sortField];
       let valueB = b[sortField];
 
-      if (sortField === 'created_at') { valueA = valueA || a.date_created || ''; valueB = valueB || b.date_created || ''; }
-      if (sortField === 'updated_at') { valueA = valueA || a.date_updated || ''; valueB = valueB || b.date_updated || ''; }
-      if (sortField === 'campaign_type') { valueA = valueA || a.category || ''; valueB = valueB || b.category || ''; }
-      if (sortField === 'created_by_name') { valueA = valueA || a.author_name || ''; valueB = valueB || b.author_name || ''; }
-
+      if (sortField === 'view_count') { valueA = a.views || a.view_count || 0; valueB = b.views || b.view_count || 0; }
+      if (sortField === 'engagement_count') { valueA = a.engagement || a.engagement_count || 0; valueB = b.engagement || b.engagement_count || 0; }
+      
       if (valueA === null || valueA === undefined) valueA = '';
       if (valueB === null || valueB === undefined) valueB = '';
 
-      if (sortField === 'created_at' || sortField === 'updated_at') {
+      if (sortField === 'created_at') {
         const timeA = valueA ? new Date(valueA).getTime() : 0;
         const timeB = valueB ? new Date(valueB).getTime() : 0;
         return sortDirection === 'asc' ? timeA - timeB : timeB - timeA;
@@ -113,67 +137,6 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
       }
       return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
     });
-  };
-
-  const executeRangeFiltering = (source, range, start, end) => {
-    let filtered = [...source];
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-
-    if (range === '7days') {
-      const cutOff = new Date();
-      cutOff.setDate(today.getDate() - 7);
-      filtered = filtered.filter(r => new Date(r.created_at) >= cutOff);
-    } else if (range === '30days') {
-      const cutOff = new Date();
-      cutOff.setDate(today.getDate() - 30);
-      filtered = filtered.filter(r => new Date(r.created_at) >= cutOff);
-    } else if (range === '6months') {
-      const cutOff = new Date();
-      cutOff.setMonth(today.getMonth() - 6);
-      filtered = filtered.filter(r => new Date(r.created_at) >= cutOff);
-    } else if (range === 'custom' && start && end) {
-      const startDate = new Date(start);
-      startDate.setHours(0, 0, 0, 0);
-      const endDate = new Date(end);
-      endDate.setHours(23, 59, 59, 999);
-      filtered = filtered.filter(r => {
-        const d = new Date(r.created_at);
-        return d >= startDate && d <= endDate;
-      });
-    }
-    return filtered;
-  };
-
-  useEffect(() => {
-    setDashboardCampaigns(executeRangeFiltering(campaigns, dateRange, customStart, customEnd));
-  }, [dateRange, customStart, customEnd, campaigns]);
-
-  useEffect(() => {
-    let modalFiltered = campaigns;
-    
-    if (selectedCampaigns.length > 0) {
-      modalFiltered = modalFiltered.filter(c => selectedCampaigns.includes(c.title));
-    } else {
-      modalFiltered = executeRangeFiltering(campaigns, modalDateRange, modalStartDate, modalEndDate);
-    }
-
-    if (searchQuery.trim() !== '') {
-      const query = searchQuery.toLowerCase();
-      modalFiltered = modalFiltered.filter(c => 
-        (c.title || '').toLowerCase().includes(query) ||
-        (c.campaign_type || '').toLowerCase().includes(query) ||
-        (c.created_by_name || '').toLowerCase().includes(query)
-      );
-    }
-
-    setModalCampaigns(sortDataList([...modalFiltered]));
-  }, [selectedCampaigns, modalDateRange, modalStartDate, modalEndDate, campaigns, sortField, sortDirection, searchQuery]);
-
-  const handleRequestSort = (field) => {
-    const isAsc = sortField === field && sortDirection === 'asc';
-    setSortDirection(isAsc ? 'desc' : 'asc');
-    setSortField(field);
   };
 
   const handleGenerateReport = async (format = 'PDF') => {
@@ -189,6 +152,9 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
           campaign_titles: selectedCampaigns,
+          campus: campusFilter !== 'all' ? [campusFilter] : undefined,
+          role: roleFilter !== 'all' ? roleFilter : undefined,
+          year_level: yearLevelFilter !== 'all' ? yearLevelFilter : undefined,
           search: searchQuery
         }
       };
@@ -326,8 +292,8 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
           {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
           {success && <Alert severity="success" sx={{ mb: 3 }}>{success}</Alert>}
 
-          {/* FILTERS ROW */}
-          <Grid container spacing={2} sx={{ mb: 3 }}>
+          {/* FILTERS ROW 1 */}
+          <Grid container spacing={2} sx={{ mb: 2 }}>
             <Grid item xs={12} sm={6}>
               <Autocomplete
                 multiple
@@ -344,26 +310,61 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
                 renderInput={(params) => <TextField {...params} label="Compare Specific Campaigns" placeholder="Select one or more..." />}
               />
             </Grid>
-            {!isCampaignFilterActive && (
-              <Grid item xs={12} sm={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Workshop Timeline</InputLabel>
-                  <Select value={modalDateRange} label="Workshop Timeline" onChange={(e) => setModalDateRange(e.target.value)}>
-                    <MenuItem value="all">Full Academic History</MenuItem>
-                    <MenuItem value="7days">Last 7 Days</MenuItem>
-                    <MenuItem value="30days">Last 30 Days</MenuItem>
-                    <MenuItem value="6months">Last 6 Months</MenuItem>
-                    <MenuItem value="custom">Manual Range Selection</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-            )}
-            {!isCampaignFilterActive && modalDateRange === 'custom' && (
+            <Grid item xs={12} sm={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Campus Location</InputLabel>
+                <Select value={campusFilter} label="Campus Location" onChange={(e) => setCampusFilter(e.target.value)}>
+                  <MenuItem value="all">Unified Analytics</MenuItem>
+                  <MenuItem value="Talamban">Talamban Campus</MenuItem>
+                  <MenuItem value="Downtown">Downtown Campus</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Workshop Timeline</InputLabel>
+                <Select value={modalDateRange} label="Workshop Timeline" onChange={(e) => setModalDateRange(e.target.value)}>
+                  <MenuItem value="all">Full Academic History</MenuItem>
+                  <MenuItem value="7days">Last 7 Days</MenuItem>
+                  <MenuItem value="30days">Last 30 Days</MenuItem>
+                  <MenuItem value="6months">Last 6 Months</MenuItem>
+                  <MenuItem value="custom">Manual Range Selection</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+
+          {/* FILTERS ROW 2 (Extra Filters) */}
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid item xs={12} sm={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Target Role</InputLabel>
+                <Select value={roleFilter} label="Target Role" onChange={(e) => setRoleFilter(e.target.value)}>
+                  <MenuItem value="all">All Roles</MenuItem>
+                  <MenuItem value="STUDENT">Student</MenuItem>
+                  <MenuItem value="FACULTY">Faculty</MenuItem>
+                  <MenuItem value="STAFF">Staff</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Year Level</InputLabel>
+                <Select value={yearLevelFilter} label="Year Level" onChange={(e) => setYearLevelFilter(e.target.value)}>
+                  <MenuItem value="all">All Years</MenuItem>
+                  {['1', '2', '3', '4', '5'].map(y => (
+                    <MenuItem key={y} value={y}>{y}{y === '1' ? 'st' : y === '2' ? 'nd' : y === '3' ? 'rd' : 'th'} Year</MenuItem>
+                  ))}
+                  <MenuItem value="N/A">N/A</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            {modalDateRange === 'custom' && (
               <>
-                <Grid item xs={12} sm={1.5}>
+                <Grid item xs={12} sm={3}>
                   <TextField fullWidth type="date" label="Start" size="small" value={modalStartDate} onChange={(e) => setModalStartDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ max: modalEndDate || getTodayString() }} />
                 </Grid>
-                <Grid item xs={12} sm={1.5}>
+                <Grid item xs={12} sm={3}>
                   <TextField fullWidth type="date" label="End" size="small" value={modalEndDate} onChange={(e) => setModalEndDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ min: modalStartDate, max: getTodayString() }} />
                 </Grid>
               </>

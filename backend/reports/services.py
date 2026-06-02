@@ -865,6 +865,37 @@ class ReportDataService:
                     except ValueError:
                         pass
 
+                if filters.get('role'):
+                    roles = filters['role']
+                    if isinstance(roles, str): roles = roles.split(',')
+                    if roles: feedback_qs = feedback_qs.filter(patient__user__role__in=roles)
+
+                if filters.get('campus'):
+                    campus_names = filters['campus']
+                    if isinstance(campus_names, str): campus_names = campus_names.split(',')
+                    if campus_names:
+                        course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items()
+                                     if any(c in info['campus'] for c in campus_names)]
+                        feedback_qs = feedback_qs.filter(patient__user__course__in=course_ids)
+
+                if filters.get('school'):
+                    school_names = filters['school']
+                    if isinstance(school_names, str): school_names = school_names.split(',')
+                    if school_names:
+                        course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items()
+                                     if any(s in info['school'] for s in school_names)]
+                        feedback_qs = feedback_qs.filter(patient__user__course__in=course_ids)
+
+                if filters.get('course'):
+                    course_list = filters['course']
+                    if isinstance(course_list, str): course_list = course_list.split(',')
+                    if course_list: feedback_qs = feedback_qs.filter(patient__user__course__in=course_list)
+
+                if filters.get('year_level'):
+                    level_list = filters['year_level']
+                    if isinstance(level_list, str): level_list = level_list.split(',')
+                    if level_list: feedback_qs = feedback_qs.filter(patient__user__year_level__in=level_list)
+
                 if filters.get('recommend'):
                     recommend = filters['recommend']
                     if isinstance(recommend, list):
@@ -1007,6 +1038,22 @@ class ReportDataService:
             campaign_type = filters.get('campaign_type') or filters.get('category')
             if campaign_type:
                 queryset = queryset.filter(campaign_type=campaign_type)
+
+            if filters.get('campus'):
+                campus_names = filters['campus']
+                if isinstance(campus_names, str): campus_names = campus_names.split(',')
+                # Filter campaigns that received feedback from this campus
+                queryset = queryset.filter(feedback__user__course__in=[cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() if any(c in info['campus'] for c in campus_names)]).distinct()
+
+            if filters.get('role'):
+                roles = filters['role']
+                if isinstance(roles, str): roles = roles.split(',')
+                queryset = queryset.filter(feedback__user__role__in=roles).distinct()
+
+            if filters.get('year_level'):
+                levels = filters['year_level']
+                if isinstance(levels, str): levels = levels.split(',')
+                queryset = queryset.filter(feedback__user__year_level__in=levels).distinct()
             
             # Date range filter (only if not filtering by specific IDs)
             if not campaign_ids:
@@ -1102,6 +1149,11 @@ class ReportDataService:
                     diag_list = filters.get('diagnosis_category') or filters.get('diagnosis')
                     if isinstance(diag_list, str): diag_list = diag_list.split(',')
                     if diag_list: records = records.filter(diagnosis__in=diag_list)
+
+                if filters.get('role'):
+                    roles = filters['role']
+                    if isinstance(roles, str): roles = roles.split(',')
+                    if roles: records = records.filter(patient__user__role__in=roles)
 
                 if filters.get('search'):
                     records = records.filter(diagnosis__icontains=filters['search'])
@@ -1448,7 +1500,11 @@ class ReportDataService:
             certs = MedicalCertificate.objects.filter(created_at__range=(date_start, date_end))
 
             # Apply standard filters via patient join
-            if filters.get('campus') or filters.get('school') or filters.get('course') or filters.get('year_level'):
+            if filters.get('campus') or filters.get('school') or filters.get('course') or filters.get('year_level') or filters.get('role'):
+                if filters.get('role'):
+                    roles = filters['role']
+                    if isinstance(roles, str): roles = roles.split(',')
+                    if roles: certs = certs.filter(patient__user__role__in=roles)
                 if filters.get('campus'):
                     campus_names = filters['campus'].split(',') if isinstance(filters['campus'], str) else filters['campus']
                     course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() if any(c in info['campus'] for c in campus_names)]
@@ -1471,6 +1527,9 @@ class ReportDataService:
                 certs = certs.filter(issuance_status=filters['issuance_status'])
             if filters.get('template'):
                 certs = certs.filter(template_id=filters['template'])
+            if filters.get('doctor'):
+                doctor_name = filters['doctor']
+                certs = certs.filter(issuing_doctor__last_name__icontains=doctor_name)
 
             total_issued = certs.count()
             if total_issued == 0:
@@ -1537,6 +1596,10 @@ class ReportDataService:
             queryset = MedicalCertificate.objects.select_related('patient__user', 'template', 'issuing_doctor').filter(created_at__range=(date_start, date_end))
             
             # Apply standard filters
+            if filters.get('role'):
+                roles = filters['role']
+                if isinstance(roles, str): roles = roles.split(',')
+                if roles: queryset = queryset.filter(patient__user__role__in=roles)
             if filters.get('campus'):
                 campus_names = filters['campus'].split(',') if isinstance(filters['campus'], str) else filters['campus']
                 course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() if any(c in info['campus'] for c in campus_names)]
@@ -1559,6 +1622,8 @@ class ReportDataService:
                 queryset = queryset.filter(issuance_status=filters['issuance_status'])
             if filters.get('template'):
                 queryset = queryset.filter(template_id=filters['template'])
+            if filters.get('doctor'):
+                queryset = queryset.filter(issuing_doctor__last_name__icontains=filters['doctor'])
 
             if filters.get('search'):
                 from django.db.models import Q

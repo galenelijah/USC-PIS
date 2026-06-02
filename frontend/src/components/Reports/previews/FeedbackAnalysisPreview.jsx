@@ -45,6 +45,7 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
 
   // Domain Specific Filters (Feedback Dimensions)
   const [selectedRatings, setSelectedRatings] = useState([]);
+  const [serviceFilter, setServiceFilter] = useState('all');
   const [recommendFilter, setRecommendFilter] = useState('all');
   const [courtesyFilter, setCourtesyFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -75,6 +76,7 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
 
       if (isModal) {
         if (selectedRatings.length > 0) params.rating = selectedRatings.join(',');
+        if (serviceFilter !== 'all') params.visit_type = serviceFilter;
         if (recommendFilter !== 'all') params.recommend = recommendFilter;
         if (courtesyFilter !== 'all') params.courteous = courtesyFilter;
         if (searchQuery) params.search = searchQuery;
@@ -88,7 +90,7 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedRatings, recommendFilter, courtesyFilter, searchQuery]);
+  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedRatings, serviceFilter, recommendFilter, courtesyFilter, searchQuery]);
 
   useEffect(() => {
     fetchAnalytics(openModal);
@@ -107,6 +109,7 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
           rating: selectedRatings,
+          visit_type: serviceFilter !== 'all' ? serviceFilter : undefined,
           recommend: recommendFilter !== 'all' ? recommendFilter : undefined,
           courteous: courtesyFilter !== 'all' ? courtesyFilter : undefined,
           search: searchQuery || undefined
@@ -288,7 +291,7 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
 
           {/* FILTERS ROW */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={3}>
+            <Grid item xs={12} sm={2.5}>
               <Autocomplete
                 multiple
                 size="small"
@@ -304,7 +307,17 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
                 renderInput={(params) => <TextField {...params} label="Star Rating" variant="outlined" />}
               />
             </Grid>
-            <Grid item xs={12} sm={3}>
+            <Grid item xs={12} sm={2}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Service Type</InputLabel>
+                <Select value={serviceFilter} label="Service Type" onChange={(e) => setServiceFilter(e.target.value)}>
+                  <MenuItem value="all">Unified Services</MenuItem>
+                  <MenuItem value="MEDICAL">Medical Only</MenuItem>
+                  <MenuItem value="DENTAL">Dental Only</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={2.5}>
               <FormControl fullWidth size="small">
                 <InputLabel>Recommend Service</InputLabel>
                 <Select value={recommendFilter} label="Recommend Service" onChange={(e) => setRecommendFilter(e.target.value)}>
@@ -314,7 +327,7 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={3}>
+            <Grid item xs={12} sm={2.5}>
               <FormControl fullWidth size="small">
                 <InputLabel>Staff Courtesy</InputLabel>
                 <Select value={courtesyFilter} label="Staff Courtesy" onChange={(e) => setCourtesyFilter(e.target.value)}>
@@ -324,7 +337,7 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={3}>
+            <Grid item xs={12} sm={2.5}>
               <FormControl fullWidth size="small">
                 <InputLabel>Timeline</InputLabel>
                 <Select value={modalDateRange} label="Timeline" onChange={(e) => setModalDateRange(e.target.value)}>
@@ -338,6 +351,9 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
             </Grid>
             {modalDateRange === 'custom' && (
               <>
+                <Grid item xs={12} sm={6}>
+                   {/* Empty space to align custom dates on next line or keep them together */}
+                </Grid>
                 <Grid item xs={12} sm={3}>
                   <TextField fullWidth type="date" label="Start" size="small" value={modalStartDate} onChange={(e) => setModalStartDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ max: modalEndDate || getTodayString() }} />
                 </Grid>
