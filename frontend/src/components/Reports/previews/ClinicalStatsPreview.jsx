@@ -343,7 +343,6 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
                   <MenuItem value="all">All Roles</MenuItem>
                   <MenuItem value="STUDENT">Student</MenuItem>
                   <MenuItem value="FACULTY">Faculty</MenuItem>
-                  <MenuItem value="STAFF">Staff</MenuItem>
                 </Select>
               </FormControl>
             </Grid>

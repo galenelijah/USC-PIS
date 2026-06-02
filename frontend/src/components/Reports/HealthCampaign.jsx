@@ -83,14 +83,17 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
           date_range: modalDateRange,
           date_start: modalDateRange === 'custom' ? modalStartDate : undefined,
           date_end: modalDateRange === 'custom' ? modalEndDate : undefined,
+          campaign_titles: selectedCampaigns.length > 0 ? selectedCampaigns.join(',') : undefined,
           campus: campusFilter !== 'all' ? campusFilter : undefined,
           role: roleFilter !== 'all' ? roleFilter : undefined,
           year_level: yearLevelFilter !== 'all' ? yearLevelFilter : undefined,
           search: searchQuery || undefined
-        } : {};
+        } : {
+          date_range: dateRange,
+          date_start: dateRange === 'custom' ? customStart : undefined,
+          date_end: dateRange === 'custom' ? customEnd : undefined,
+        };
 
-        // For now, campaignService.getCampaigns might not support all these, 
-        // but we'll use reportService.getDashboardAnalytics which does
         const response = await reportService.getDashboardAnalytics({ 
           ...params, 
           report_type: 'CAMPAIGN_PERFORMANCE' 
@@ -111,7 +114,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
       }
     };
     fetchCampaignData();
-  }, [openModal, modalDateRange, modalStartDate, modalEndDate, campusFilter, roleFilter, yearLevelFilter, searchQuery]);
+  }, [openModal, dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedCampaigns, campusFilter, roleFilter, yearLevelFilter, searchQuery]);
 
   const sortDataList = (list) => {
     return list.sort((a, b) => {
@@ -343,7 +346,6 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
                   <MenuItem value="all">All Roles</MenuItem>
                   <MenuItem value="STUDENT">Student</MenuItem>
                   <MenuItem value="FACULTY">Faculty</MenuItem>
-                  <MenuItem value="STAFF">Staff</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -424,16 +426,20 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
                   <TableRow key={row.id} hover>
                     <TableCell sx={{ fontWeight: 600 }}>{row.title}</TableCell>
                     <TableCell>
-                      <Chip label={row.campaign_type || row.category || 'General'} size="small" variant="outlined" sx={{ fontSize: '0.65rem', height: 20 }} />
+                      <Chip label={row.campaign_type || 'General'} size="small" variant="outlined" sx={{ fontSize: '0.65rem', height: 20 }} />
                     </TableCell>
                     <TableCell align="right">
                       <Typography variant="body2" sx={{ fontWeight: 700, color: '#ea580c' }}>
                         {(row.view_count || 0).toLocaleString()}
                       </Typography>
                     </TableCell>
-                    <TableCell>{row.created_by_name || row.author_name || 'System'}</TableCell>
-                    <TableCell>{new Date(row.created_at || row.date_created).toLocaleDateString()}</TableCell>
-                    <TableCell>{new Date(row.updated_at || row.date_updated).toLocaleDateString()}</TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: '#3b82f6' }}>
+                        {(row.engagement_count || 0).toLocaleString()}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>{row.created_by_name || 'System'}</TableCell>
+                    <TableCell>{row.created_at ? new Date(row.created_at).toLocaleDateString() : 'N/A'}</TableCell>
                   </TableRow>
                 ))}
                 {modalCampaigns.length === 0 && (
@@ -444,6 +450,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
                   </TableRow>
                 )}
               </TableBody>
+
             </Table>
           </TableContainer>
 

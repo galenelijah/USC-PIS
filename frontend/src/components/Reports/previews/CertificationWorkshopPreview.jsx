@@ -46,7 +46,6 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
   // Domain Specific Filters
   const [fitnessFilter, setFitnessFilter] = useState('all');
   const [issuanceFilter, setIssuanceFilter] = useState('all');
-  const [purposeFilter, setPurposeFilter] = useState('all');
   const [doctorFilter, setDoctorFilter] = useState('all');
   const [campusFilter, setCampusFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -78,7 +77,6 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
       if (isModal) {
         if (fitnessFilter !== 'all') params.fitness_status = fitnessFilter;
         if (issuanceFilter !== 'all') params.issuance_status = issuanceFilter;
-        if (purposeFilter !== 'all') params.template = purposeFilter;
         if (doctorFilter !== 'all') params.doctor = doctorFilter;
         if (campusFilter !== 'all') params.campus = campusFilter;
         if (roleFilter !== 'all') params.role = roleFilter;
@@ -94,7 +92,7 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [modalDateRange, dateRange, modalStartDate, customStart, modalEndDate, customEnd, fitnessFilter, issuanceFilter, purposeFilter, doctorFilter, campusFilter, roleFilter, yearLevelFilter, searchQuery]);
+  }, [modalDateRange, dateRange, modalStartDate, customStart, modalEndDate, customEnd, fitnessFilter, issuanceFilter, doctorFilter, campusFilter, roleFilter, yearLevelFilter, searchQuery]);
 
   useEffect(() => {
     fetchAnalytics(openModal);
@@ -114,7 +112,6 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
         filters: {
           fitness_status: fitnessFilter !== 'all' ? fitnessFilter : undefined,
           issuance_status: issuanceFilter !== 'all' ? issuanceFilter : undefined,
-          template: purposeFilter !== 'all' ? purposeFilter : undefined,
           doctor: doctorFilter !== 'all' ? doctorFilter : undefined,
           campus: campusFilter !== 'all' ? [campusFilter] : undefined,
           role: roleFilter !== 'all' ? roleFilter : undefined,
@@ -278,60 +275,12 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
             </Grid>
             <Grid item xs={12} sm={3}>
               <FormControl fullWidth size="small">
-                <InputLabel>Certificate Purpose</InputLabel>
-                <Select value={purposeFilter} label="Certificate Purpose" onChange={(e) => setPurposeFilter(e.target.value)}>
-                  <MenuItem value="all">All Purposes</MenuItem>
-                  {(data?.certifications?.purpose_distribution || []).map(p => (
-                    <MenuItem key={p.name} value={p.name}>{p.name}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <FormControl fullWidth size="small">
                 <InputLabel>Issuing Doctor</InputLabel>
                 <Select value={doctorFilter} label="Issuing Doctor" onChange={(e) => setDoctorFilter(e.target.value)}>
                   <MenuItem value="all">All Doctors</MenuItem>
                   {(data?.certifications?.doctor_workload || []).map(d => (
                     <MenuItem key={d.name} value={d.name}>Dr. {d.name}</MenuItem>
                   ))}
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
-
-          {/* FILTERS ROW 2 */}
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Campus Location</InputLabel>
-                <Select value={campusFilter} label="Campus Location" onChange={(e) => setCampusFilter(e.target.value)}>
-                  <MenuItem value="all">Unified Records</MenuItem>
-                  <MenuItem value="Talamban">Talamban Campus</MenuItem>
-                  <MenuItem value="Downtown">Downtown Campus</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={2}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Patient Role</InputLabel>
-                <Select value={roleFilter} label="Patient Role" onChange={(e) => setRoleFilter(e.target.value)}>
-                  <MenuItem value="all">All Roles</MenuItem>
-                  <MenuItem value="STUDENT">Student</MenuItem>
-                  <MenuItem value="FACULTY">Faculty</MenuItem>
-                  <MenuItem value="STAFF">Staff</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={2}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Year Level</InputLabel>
-                <Select value={yearLevelFilter} label="Year Level" onChange={(e) => setYearLevelFilter(e.target.value)}>
-                  <MenuItem value="all">All Years</MenuItem>
-                  {['1', '2', '3', '4', '5'].map(y => (
-                    <MenuItem key={y} value={y}>{y}{y === '1' ? 'st' : y === '2' ? 'nd' : y === '3' ? 'rd' : 'th'} Year</MenuItem>
-                  ))}
-                  <MenuItem value="N/A">N/A</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -347,13 +296,49 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
                 </Select>
               </FormControl>
             </Grid>
+          </Grid>
+
+          {/* FILTERS ROW 2 */}
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid item xs={12} sm={4}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Campus Location</InputLabel>
+                <Select value={campusFilter} label="Campus Location" onChange={(e) => setCampusFilter(e.target.value)}>
+                  <MenuItem value="all">Unified Records</MenuItem>
+                  <MenuItem value="Talamban">Talamban Campus</MenuItem>
+                  <MenuItem value="Downtown">Downtown Campus</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Patient Role</InputLabel>
+                <Select value={roleFilter} label="Patient Role" onChange={(e) => setRoleFilter(e.target.value)}>
+                  <MenuItem value="all">All Roles</MenuItem>
+                  <MenuItem value="STUDENT">Student</MenuItem>
+                  <MenuItem value="FACULTY">Faculty</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Year Level</InputLabel>
+                <Select value={yearLevelFilter} label="Year Level" onChange={(e) => setYearLevelFilter(e.target.value)}>
+                  <MenuItem value="all">All Years</MenuItem>
+                  {['1', '2', '3', '4', '5'].map(y => (
+                    <MenuItem key={y} value={y}>{y}{y === '1' ? 'st' : y === '2' ? 'nd' : y === '3' ? 'rd' : 'th'} Year</MenuItem>
+                  ))}
+                  <MenuItem value="N/A">N/A</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
             {modalDateRange === 'custom' && (
               <>
-                <Grid item xs={12} sm={1.2}>
-                  <TextField fullWidth type="date" label="Start" size="small" value={modalStartDate} onChange={(e) => setModalStartDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ max: modalEndDate || getTodayString() }} />
+                <Grid item xs={12} sm={6}>
+                  <TextField fullWidth type="date" label="Start Date" size="small" value={modalStartDate} onChange={(e) => setModalStartDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ max: modalEndDate || getTodayString() }} />
                 </Grid>
-                <Grid item xs={12} sm={1.2}>
-                  <TextField fullWidth type="date" label="End" size="small" value={modalEndDate} onChange={(e) => setModalEndDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ min: modalStartDate, max: getTodayString() }} />
+                <Grid item xs={12} sm={6}>
+                  <TextField fullWidth type="date" label="End Date" size="small" value={modalEndDate} onChange={(e) => setModalEndDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ min: modalStartDate, max: getTodayString() }} />
                 </Grid>
               </>
             )}

@@ -1026,11 +1026,9 @@ class ReportDataService:
 
             campaign_titles = filters.get('campaign_titles')
             if campaign_titles:
+                if isinstance(campaign_titles, str): campaign_titles = campaign_titles.split(',')
                 if isinstance(campaign_titles, list) and campaign_titles:
                     queryset = queryset.filter(title__in=campaign_titles)
-                elif isinstance(campaign_titles, str):
-                    queryset = queryset.filter(title=campaign_titles)
-
             search_query = filters.get('search')
             if search_query:
                 queryset = queryset.filter(Q(title__icontains=search_query) | Q(content__icontains=search_query))
@@ -1079,11 +1077,15 @@ class ReportDataService:
                 total_views += c.view_count
                 
                 perf.append({
+                    'id': c.id,
                     'title': c.title, 
-                    'views': c.view_count,
-                    'engagement': getattr(c, 'engagement_count', 0),
-                    'type': c.get_campaign_type_display(),
+                    'view_count': c.view_count,
+                    'engagement_count': getattr(c, 'engagement_count', 0),
+                    'campaign_type': c.get_campaign_type_display(),
                     'priority': c.get_priority_display(),
+                    'created_by_name': c.created_by.get_full_name() if c.created_by else 'System',
+                    'created_at': c.created_at.isoformat(),
+                    'updated_at': c.updated_at.isoformat(),
                     'performance': 'High' if c.view_count > 100 else ('Medium' if c.view_count > 50 else 'Low')
                 })
                 
@@ -1470,8 +1472,8 @@ class ReportDataService:
 
     @staticmethod
     def _get_role_distribution(patients):
-        """Helper to aggregate patients by simplified role (Student vs Faculty/Staff)"""
-        roles = {'STUDENT': 0, 'FACULTY / STAFF': 0}
+        """Helper to aggregate patients by simplified role (Student vs Faculty)"""
+        roles = {'STUDENT': 0, 'FACULTY': 0}
         for obj in patients:
             # Handle both Patient and User objects
             user = obj if isinstance(obj, User) else getattr(obj, 'user', None)
@@ -1479,12 +1481,9 @@ class ReportDataService:
                 role = user.role
                 if role == 'STUDENT':
                     roles['STUDENT'] += 1
-                else:
-                    roles['FACULTY / STAFF'] += 1
-            else:
-                roles['FACULTY / STAFF'] += 1
+                elif role == 'FACULTY':
+                    roles['FACULTY'] += 1
         return roles
-
     @staticmethod
     def get_certification_analytics(date_start=None, date_end=None, filters=None):
         """Get medical certificate analytics for health clearance process insights"""
@@ -1526,10 +1525,10 @@ class ReportDataService:
             if filters.get('issuance_status'):
                 certs = certs.filter(issuance_status=filters['issuance_status'])
             if filters.get('template'):
-                certs = certs.filter(template_id=filters['template'])
+                certs = certs.filter(template__name=filters['template'])
             if filters.get('doctor'):
                 doctor_name = filters['doctor']
-                certs = certs.filter(issuing_doctor__last_name__icontains=doctor_name)
+                certs = certs.filter(issuing_doctor__last_name=doctor_name)
 
             total_issued = certs.count()
             if total_issued == 0:
@@ -1621,9 +1620,9 @@ class ReportDataService:
             if filters.get('issuance_status'):
                 queryset = queryset.filter(issuance_status=filters['issuance_status'])
             if filters.get('template'):
-                queryset = queryset.filter(template_id=filters['template'])
+                queryset = queryset.filter(template__name=filters['template'])
             if filters.get('doctor'):
-                queryset = queryset.filter(issuing_doctor__last_name__icontains=filters['doctor'])
+                queryset = queryset.filter(issuing_doctor__last_name=filters['doctor'])
 
             if filters.get('search'):
                 from django.db.models import Q
@@ -1655,12 +1654,12 @@ class ReportDataService:
                 analytics = {}
             
             return {
-                'total_certificates_issued': analytics.get('total_certificates', queryset.count()),
-                'average_issuance_turnaround': f"{analytics.get('avg_turnaround_hours', 0)} hours",
+                'total_certificates': analytics.get('total_certificates', queryset.count()),
+                'avg_turnaround_hours': analytics.get('avg_turnaround_hours', 0),
                 'fitness_distribution': analytics.get('fitness_distribution', []),
                 'purpose_distribution': analytics.get('purpose_distribution', []),
-                'issuance_status_breakdown': analytics.get('issuance_status_distribution', []),
-                'doctor_workload_tally': analytics.get('doctor_workload', []),
+                'issuance_status_distribution': analytics.get('issuance_status_distribution', []),
+                'doctor_workload': analytics.get('doctor_workload', []),
                 'certificates_log': results
             }
         except Exception as e:
@@ -1781,7 +1780,8 @@ class ReportDataService:
             dental_stats = ReportDataService.get_dental_statistics_data(date_start, date_end, filters)
 
             feedback = ReportDataService.get_feedback_analysis_data(date_start, date_end, filters)
-            certifications = ReportDataService.get_certification_analytics(date_start, date_end, filters)
+            certifications = ReportDataService.get_certification_summary_data(date_start, date_end, filters)
+            campaigns = ReportDataService.get_campaign_performance_data(date_start, date_end, filters)
 
             # Get demographic stats based on requested scope
             patient_scope = filters.get('patient_scope', 'active_with_records')
@@ -1825,6 +1825,7 @@ class ReportDataService:
                 'operations': {
                     'peak_hours': peak_hours
                 },
+                'campaign_performance': campaigns.get('campaign_performance', []),
                 'period': {
                     'start': date_start.strftime('%Y-%m-%d'),
                     'end': date_end.strftime('%Y-%m-%d')
