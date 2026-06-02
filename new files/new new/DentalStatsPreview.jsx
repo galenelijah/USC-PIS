@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, Card, CardContent, Typography, CircularProgress, Button,
   Alert, TextField, FormControl, InputLabel, Select, MenuItem, Grid,
@@ -7,12 +7,12 @@ import {
   DialogActions, IconButton, Autocomplete, Chip, Divider, InputAdornment
 } from '@mui/material';
 import { 
-  Assessment as ReportIcon,
+  Healing as DentalIcon,
   Visibility as ViewIcon,
   Close as CloseIcon,
   FileDownload as DownloadIcon,
   Search as SearchIcon,
-  Medication as MedicineIcon,
+  Medication as TreatmentIcon,
   HealthAndSafety as SafetyIcon,
   AutoGraph as GraphIcon
 } from '@mui/icons-material';
@@ -30,7 +30,7 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
+const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -43,10 +43,10 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
   const [modalStartDate, setModalStartDate] = useState('');
   const [modalEndDate, setModalEndDate] = useState('');
 
-  // Domain Specific Filters (Clinical Dimensions)
-  const [selectedDiagnoses, setSelectedDiagnoses] = useState([]);
+  // Domain Specific Filters (Dental Dimensions)
+  const [selectedProcedures, setSelectedProcedures] = useState([]);
   const [campusFilter, setCampusFilter] = useState('all');
-  const [priorityFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const chartRef = React.useRef(null);
@@ -54,7 +54,7 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
   const [sortField, setSortField] = useState('count');
   const [sortDirection, setSortDirection] = useState('desc');
 
-  const fetchAnalytics = useCallback(async (isModal = false) => {
+ const fetchAnalytics = async (isModal = false) => {
     try {
       if (!isModal) setLoading(true);
       setError(null);
@@ -69,29 +69,29 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
       };
 
       if (isModal) {
-        if (selectedDiagnoses.length > 0) params.diagnosis = selectedDiagnoses.join(',');
+        if (selectedProcedures.length > 0) params.procedure = selectedProcedures.join(',');
         if (campusFilter !== 'all') params.campus = campusFilter;
       }
 
       const response = await reportService.getDashboardAnalytics(params);
       setData(response.data);
     } catch (err) {
-      console.error("Failed fetching clinical stats:", err);
-      setError("Failed to load medical diagnostic statistics.");
+      console.error("Failed fetching dental stats:", err);
+      setError("Failed to load oral health statistics.");
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedDiagnoses, campusFilter]);
+  };
 
   useEffect(() => {
     fetchAnalytics(false);
-  }, [fetchAnalytics]);
+  }, [dateRange, customStart, customEnd]);
 
   useEffect(() => {
     if (openModal) {
       fetchAnalytics(true);
     }
-  }, [openModal, fetchAnalytics]);
+  }, [openModal, modalDateRange, modalStartDate, modalEndDate, selectedProcedures, campusFilter]);
 
   const handleGenerateReport = async (format = 'PDF') => {
     try {
@@ -99,25 +99,24 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
       setError(null);
       
       const payload = {
-        title: `Clinical Diagnostic Density Report - ${new Date().toLocaleDateString()}`,
+        title: `Oral Health Services & Clinical Capacity Report - ${new Date().toLocaleDateString()}`,
         export_format: format,
         date_range: modalDateRange,
         date_range_start: modalDateRange === 'custom' ? modalStartDate : undefined,
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
-          diagnosis: selectedDiagnoses,
+          procedure: selectedProcedures,
           campus: campusFilter !== 'all' ? [campusFilter] : undefined,
           priority: priorityFilter !== 'all' ? priorityFilter : undefined,
           charts_base64: chartRef.current ? [chartRef.current.toBase64Image()] : []
         }
       };
 
-      // ID 4 is the Clinical Diagnostic Report template
-      const response = await reportService.generateReport(4, payload).catch(async (err) => {
-        // Fallback to string-based lookup if ID 4 doesn't exist
+
+      const response = await reportService.generateReport(5, payload).catch(async (err) => {
         if (err.response?.status === 404) {
-          console.warn("Template ID 4 not found, falling back to CLINICAL_STATISTICS lookup...");
-          return await reportService.generateReport('CLINICAL_STATISTICS', payload);
+          console.warn("Template ID 5 not found, falling back to DENTAL_STATISTICS lookup...");
+          return await reportService.generateReport('DENTAL_STATISTICS', payload);
         }
         throw err;
       });
@@ -135,20 +134,21 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
   };
 
   const generateChartData = () => {
-    if (!data?.clinical?.top_diagnoses) return { labels: [], datasets: [] };
+    if (!data?.clinical?.top_procedures) return { labels: [], datasets: [] };
     
     // Top 8 for dashboard
-    const diagnoses = data.clinical.top_diagnoses.slice(0, 8);
+    const procedures = data.clinical.top_procedures.slice(0, 8);
+    const palette = ['#7c3aed', '#2563eb', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6', '#64748b'];
     
     return {
-      labels: diagnoses.map(d => d.name.length > 15 ? d.name.substring(0, 12) + '...' : d.name),
+      labels: procedures.map(p => p.name.length > 15 ? p.name.substring(0, 12) + '...' : p.name),
       datasets: [
         {
-          label: 'Case Volume',
-          data: diagnoses.map(d => d.count),
-          backgroundColor: '#2563eb',
+          label: 'Frequency',
+          data: procedures.map(p => p.count),
+          backgroundColor: procedures.map((_, i) => palette[i % palette.length]),
           borderRadius: 4,
-          hoverBackgroundColor: '#1d4ed8'
+          hoverBackgroundColor: procedures.map((_, i) => palette[i % palette.length])
         }
       ]
     };
@@ -182,9 +182,9 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
   };
 
   const getSortedTableData = () => {
-    if (!data?.clinical?.top_diagnoses) return [];
+    if (!data?.clinical?.top_procedures) return [];
     
-    let filtered = data.clinical.top_diagnoses;
+    let filtered = data.clinical.top_procedures;
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(item => 
@@ -203,7 +203,7 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
     });
   };
 
-  const diagnosisOptions = Array.from(new Set((data?.clinical?.top_diagnoses || []).map(d => d.name))).sort();
+  const procedureOptions = Array.from(new Set((data?.clinical?.top_procedures || []).map(p => p.name))).sort();
 
   return (
     <Box sx={{ width: '100%', marginBottom: '20px' }}>
@@ -213,9 +213,9 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
         <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
             <Box display="flex" alignItems="center" gap={1}>
-              <MedicineIcon color="primary" sx={{ fontSize: 26 }} />
-              <Typography variant="h6" sx={{ fontWeight: 600, color: '#1e3a8a', fontSize: '1.1rem' }}>
-                Medical Diagnostic Profile
+              <DentalIcon sx={{ color: '#7c3aed', fontSize: 26 }} />
+              <Typography variant="h6" sx={{ fontWeight: 600, color: '#5b21b6', fontSize: '1.1rem' }}>
+                Oral Health Utilization
               </Typography>
             </Box>
             {!loading && (
@@ -224,17 +224,17 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
                 size="small"
                 startIcon={<ViewIcon />}
                 onClick={() => setOpenModal(true)}
-                sx={{ bgcolor: '#2563eb', '&:hover': { bgcolor: '#1e3a8a' }, textTransform: 'none', borderRadius: '8px', fontWeight: 600 }}
+                sx={{ bgcolor: '#7c3aed', '&:hover': { bgcolor: '#5b21b6' }, textTransform: 'none', borderRadius: '8px', fontWeight: 600 }}
               >
-                Clinical Workshop
+                Dental Workshop
               </Button>
             )}
           </Box>
 
           <Box sx={{ height: 280, position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', border: '1px solid #f0f0f0', borderRadius: '8px', bgcolor: '#fafafa', p: 1.5 }}>
             {loading ? (
-              <CircularProgress size={32} />
-            ) : data?.clinical?.top_diagnoses?.length > 0 ? (
+              <CircularProgress sx={{ color: '#7c3aed' }} />
+            ) : data?.clinical?.top_procedures?.length > 0 ? (
               <Bar ref={chartRef} data={generateChartData()} options={{
                 ...chartOptions,
                 plugins: {
@@ -259,7 +259,7 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
                 }
               }} />
             ) : (
-              <Typography color="text.secondary" variant="body2">No diagnostic data found.</Typography>
+              <Typography color="text.secondary" variant="body2">No dental data found.</Typography>
             )}
           </Box>
         </CardContent>
@@ -269,11 +269,11 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
       <Dialog open={openModal} onClose={() => setOpenModal(false)} fullWidth maxWidth="lg" PaperProps={{ sx: { borderRadius: '12px' } }}>
         <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#fafafa', borderBottom: '1px solid #e0e0e0' }}>
           <Box>
-            <Typography variant="h6" sx={{ fontWeight: 600, color: '#1e3a8a' }}>
-              Clinical Diagnostic Workshop
+            <Typography variant="h6" sx={{ fontWeight: 600, color: '#5b21b6' }}>
+              Oral Health Services & Clinical Capacity Workshop
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Examine medical trends, evaluate disease frequencies, and filter by institutional dimensions.
+              Evaluate the distribution of dental procedures. Track procedural frequencies and clinic resource allocation.
             </Typography>
           </Box>
           <IconButton onClick={() => setOpenModal(false)} sx={{ color: (theme) => theme.palette.grey[500] }}>
@@ -291,25 +291,25 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
               <Autocomplete
                 multiple
                 size="small"
-                options={diagnosisOptions}
-                value={selectedDiagnoses}
-                onChange={(e, v) => setSelectedDiagnoses(v)}
+                options={procedureOptions}
+                value={selectedProcedures}
+                onChange={(e, v) => setSelectedProcedures(v)}
                 renderTags={(tagValue, getTagProps) =>
                   tagValue.map((option, index) => {
                     const { key, ...tagProps } = getTagProps({ index });
-                    return <Chip key={key} label={option} size="small" color="primary" variant="outlined" {...tagProps} />;
+                    return <Chip key={key} label={option} size="small" sx={{ bgcolor: '#ede9fe', color: '#5b21b6' }} {...tagProps} />;
                   })
                 }
-                renderInput={(params) => <TextField {...params} label="Filter Diagnoses" variant="outlined" />}
+                renderInput={(params) => <TextField {...params} label="Filter Procedures" variant="outlined" />}
               />
             </Grid>
             <Grid item xs={12} sm={3}>
               <FormControl fullWidth size="small">
                 <InputLabel>Campus Location</InputLabel>
                 <Select value={campusFilter} label="Campus Location" onChange={(e) => setCampusFilter(e.target.value)}>
-                  <MenuItem value="all">Unified Medical Records</MenuItem>
-                  <MenuItem value="Talamban">Talamban Health Clinic</MenuItem>
-                  <MenuItem value="Downtown">Downtown Health Clinic</MenuItem>
+                  <MenuItem value="all">Unified Dental Records</MenuItem>
+                  <MenuItem value="Talamban">Talamban Dental Clinic</MenuItem>
+                  <MenuItem value="Downtown">Downtown Dental Clinic</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -328,10 +328,10 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
             {modalDateRange === 'custom' && (
               <>
                 <Grid item xs={12} sm={2}>
-                  <TextField fullWidth type="date" label="Start" size="small" value={modalStartDate} onChange={(e) => setModalStartDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ max: modalEndDate }} />
+                  <TextField fullWidth type="date" label="Start" size="small" value={modalStartDate} onChange={(e) => setModalStartDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ max: modalEndDate || getTodayString() }} />
                 </Grid>
                 <Grid item xs={12} sm={2}>
-                  <TextField fullWidth type="date" label="End" size="small" value={modalEndDate} onChange={(e) => setModalEndDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ min: modalStartDate }} />
+                  <TextField fullWidth type="date" label="End" size="small" value={modalEndDate} onChange={(e) => setModalEndDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ min: modalStartDate, max: getTodayString() }} />
                 </Grid>
               </>
             )}
@@ -340,23 +340,23 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
           {/* VISUALIZATION GRID */}
           <Box sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: '8px', bgcolor: '#ffffff', mb: 4 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <GraphIcon color="primary" fontSize="small" /> Diagnostic Distribution Trend
+              <TreatmentIcon sx={{ color: '#7c3aed' }} fontSize="small" /> Procedural Utilization Distribution
             </Typography>
             <Box sx={{ height: 350 }}>
-              {data?.clinical?.top_diagnoses?.length > 0 ? (
+              {data?.clinical?.top_procedures?.length > 0 ? (
                 <Bar 
                   data={{
-                    labels: data.clinical.top_diagnoses.map(d => d.name),
+                    labels: data.clinical.top_procedures.map(p => p.name),
                     datasets: [{
-                      label: 'Total Cases',
-                      data: data.clinical.top_diagnoses.map(d => d.count),
+                      label: 'Total Procedures',
+                      data: data.clinical.top_procedures.map(p => p.count),
                       backgroundColor: (context) => {
                         const chart = context.chart;
                         const {ctx, chartArea} = chart;
                         if (!chartArea) return null;
                         const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                        gradient.addColorStop(0, '#dbeafe');
-                        gradient.addColorStop(1, '#2563eb');
+                        gradient.addColorStop(0, '#ede9fe');
+                        gradient.addColorStop(1, '#7c3aed');
                         return gradient;
                       },
                       borderRadius: 4
@@ -371,18 +371,18 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
                     }
                   }}
                 />
-              ) : <Typography variant="body2" color="text.secondary" textAlign="center" mt={12}>No clinical patterns found for current selection</Typography>}
+              ) : <Typography variant="body2" color="text.secondary" textAlign="center" mt={12}>No dental patterns found for current selection</Typography>}
             </Box>
           </Box>
 
           <Divider sx={{ mb: 3 }} />
 
-          {/* CLINICAL DATA TABLE */}
+          {/* DENTAL DATA TABLE */}
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Diagnostic Audit Log</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Procedural Audit Log</Typography>
             <TextField
               size="small"
-              placeholder="Search diagnosis..."
+              placeholder="Search procedure..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               InputProps={{
@@ -398,44 +398,44 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
                 <TableRow>
                   <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>
                     <TableSortLabel active={sortField === 'name'} direction={sortField === 'name' ? sortDirection : 'asc'} onClick={() => handleRequestSort('name')}>
-                      Clinical Diagnosis Name
+                      Dental Procedure Name
                     </TableSortLabel>
                   </TableCell>
                   <TableCell align="right" sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>
                     <TableSortLabel active={sortField === 'count'} direction={sortField === 'count' ? sortDirection : 'asc'} onClick={() => handleRequestSort('count')}>
-                      Recorded Frequency
+                      Procedural Frequency
                     </TableSortLabel>
                   </TableCell>
-                  <TableCell align="right" sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>Institutional Load</TableCell>
-                  <TableCell align="right" sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>Alert Status</TableCell>
+                  <TableCell align="right" sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>Institutional Weight</TableCell>
+                  <TableCell align="right" sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>Efficiency Class</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {getSortedTableData().map((row, idx) => {
-                  const total = data.clinical.top_diagnoses.reduce((sum, d) => sum + d.count, 0);
-                  const percentage = (row.count / (total || 1)) * 100;
+                  const total = data.clinical.top_procedures.reduce((sum, p) => sum + p.count, 0);
+                  const weight = (row.count / (total || 1)) * 100;
                   return (
                     <TableRow key={idx} hover>
                       <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>{row.name}</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700, color: '#2563eb' }}>{row.count.toLocaleString()}</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: '#7c3aed' }}>{row.count.toLocaleString()}</TableCell>
                       <TableCell align="right">
                         <Box display="flex" alignItems="center" justifyContent="flex-end" gap={1}>
                           <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-                            {percentage.toFixed(2)}%
+                            {weight.toFixed(2)}%
                           </Typography>
                           <Box sx={{ width: 60, height: 6, bgcolor: '#f1f5f9', borderRadius: 10, overflow: 'hidden' }}>
-                            <Box sx={{ width: `${percentage}%`, height: '100%', bgcolor: '#2563eb' }} />
+                            <Box sx={{ width: `${weight}%`, height: '100%', bgcolor: '#7c3aed' }} />
                           </Box>
                         </Box>
                       </TableCell>
                       <TableCell align="right">
                         <Chip 
-                          label={row.count > 10 ? 'High Prevalence' : row.count > 5 ? 'Moderate' : 'Stable'} 
+                          label={row.count > 5 ? 'High Demand' : row.count > 2 ? 'Moderate' : 'Low Frequency'} 
                           size="small" 
                           variant="outlined"
                           sx={{ 
-                            borderColor: row.count > 10 ? '#ef4444' : '#94a3b8', 
-                            color: row.count > 10 ? '#ef4444' : '#64748b',
+                            borderColor: row.count > 5 ? '#7c3aed' : '#94a3b8', 
+                            color: row.count > 5 ? '#7c3aed' : '#64748b',
                             fontSize: '0.65rem'
                           }}
                         />
@@ -459,9 +459,9 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
             onClick={() => handleGenerateReport('PDF')}
             disabled={generating}
             startIcon={generating ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}
-            sx={{ bgcolor: '#2563eb', '&:hover': { bgcolor: '#1e3a8a' }, px: 3, fontWeight: 600 }}
+            sx={{ bgcolor: '#7c3aed', '&:hover': { bgcolor: '#5b21b6' }, px: 3, fontWeight: 600 }}
           >
-            {generating ? 'Processing...' : 'Generate Clinical PDF'}
+            {generating ? 'Processing...' : 'Generate Dental PDF'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -470,4 +470,4 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
   );
 };
 
-export default ClinicalStatsPreview;
+export default DentalStatsPreview;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, Card, CardContent, Typography, CircularProgress, Button,
   Alert, TextField, FormControl, InputLabel, Select, MenuItem, Grid,
@@ -15,7 +15,7 @@ import {
   Search as SearchIcon
 } from '@mui/icons-material';
 import { Pie, Bar, Doughnut } from 'react-chartjs-2';
-import { reportService } from '../../../services/api';
+import { reportService, api } from '../../../services/api';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -75,7 +75,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
     setCourseMap(mappedObj);
   };
 
-  const fetchAnalytics = useCallback(async (isModal = false) => {
+  const fetchAnalytics = async (isModal = false) => {
     try {
       if (!isModal) setLoading(true);
       setError(null);
@@ -105,7 +105,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [modalDateRange, dateRange, modalStartDate, customStart, modalEndDate, customEnd, selectedCampuses, selectedSchools, selectedCourses, selectedYearLevels]);
+  };
 
   useEffect(() => {
     fetchMappings();
@@ -116,7 +116,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
     if (openModal) {
       fetchAnalytics(true);
     }
-  }, [openModal, fetchAnalytics]);
+  }, [openModal, modalDateRange, modalStartDate, modalEndDate, selectedCampuses, selectedSchools, selectedCourses, selectedYearLevels]);
 
   const handleGenerateReport = async (format = 'PDF') => {
     try {
@@ -282,7 +282,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
   const yearLevelOptions = ['1', '2', '3', '4', '5'];
 
   const courseOptions = Object.entries(ACADEMIC_DIRECTORY_MAP)
-    .filter(([, meta]) => {
+    .filter(([id, meta]) => {
       if (selectedCampuses.length > 0 && !selectedCampuses.includes(meta.campus)) return false;
       if (selectedSchools.length > 0 && !selectedSchools.includes(meta.school)) return false;
       return true;
@@ -579,13 +579,6 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
             {generating ? 'Processing...' : 'Generate Demographics PDF'}
           </Button>
         </DialogActions>
-      </Dialog>
-
-    </Box>
-  );
-};
-
-export default PatientSummaryPreview;Actions>
       </Dialog>
 
     </Box>

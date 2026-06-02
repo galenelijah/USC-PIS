@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, Card, CardContent, Typography, CircularProgress, Button,
   Alert, TextField, FormControl, InputLabel, Select, MenuItem, Grid,
@@ -16,7 +16,7 @@ import {
   SentimentSatisfiedAlt as SatisfiedIcon,
   Recommend as RecommendIcon,
   Face as FaceIcon
-} from '@mui.icons-material';
+} from '@mui/icons-material';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import { reportService } from '../../../services/api';
 import {
@@ -54,15 +54,7 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
   const [sortField, setSortField] = useState('created_at');
   const [sortDirection, setSortDirection] = useState('desc');
 
-  const getTodayString = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const fetchAnalytics = useCallback(async (isModal = false) => {
+  const fetchAnalytics = async (isModal = false) => {
     try {
       if (!isModal) setLoading(true);
       setError(null);
@@ -90,17 +82,17 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedRatings, recommendFilter, courtesyFilter]);
+  };
 
   useEffect(() => {
     fetchAnalytics(false);
-  }, [fetchAnalytics]);
+  }, [dateRange, customStart, customEnd]);
 
   useEffect(() => {
     if (openModal) {
       fetchAnalytics(true);
     }
-  }, [openModal, fetchAnalytics]);
+  }, [openModal, modalDateRange, modalStartDate, modalEndDate, selectedRatings, recommendFilter, courtesyFilter]);
 
   const handleGenerateReport = async (format = 'PDF') => {
     try {

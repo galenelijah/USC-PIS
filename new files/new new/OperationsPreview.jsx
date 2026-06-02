@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Box, Card, CardContent, Typography, CircularProgress, Button,
   Alert, TextField, FormControl, InputLabel, Select, MenuItem, Grid,
@@ -68,15 +68,7 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
   const chartRef = useRef(null);
   const forecastChartRef = useRef(null);
 
-  const getTodayString = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const fetchAnalytics = useCallback(async (isModal = false) => {
+  const fetchAnalytics = async (isModal = false) => {
     try {
       if (!isModal) setLoading(true);
       setError(null);
@@ -103,17 +95,17 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, serviceType, workloadClass]);
+  };
 
   useEffect(() => {
     fetchAnalytics(false);
-  }, [fetchAnalytics]);
+  }, [dateRange, customStart, customEnd]);
 
   useEffect(() => {
     if (openModal) {
       fetchAnalytics(true);
     }
-  }, [openModal, fetchAnalytics]);
+  }, [openModal, modalDateRange, modalStartDate, modalEndDate, serviceType, workloadClass]);
 
   const handleGenerateReport = async (format = 'PDF') => {
     try {
@@ -139,7 +131,7 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
       };
 
       // Direct lookup by report_type 'OPERATIONS' is safer than ID 17
-      await reportService.generateReport('OPERATIONS', payload).catch(async (err) => {
+      const response = await reportService.generateReport('OPERATIONS', payload).catch(async (err) => {
         // Ultimate fallback to numeric ID if string fails for some reason
         if (err.response?.status === 404 || err.response?.status === 403) {
           console.warn("String-based OPERATIONS lookup failed, trying ID 17...");

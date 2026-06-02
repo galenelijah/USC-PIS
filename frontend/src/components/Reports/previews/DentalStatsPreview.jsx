@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Box, Card, CardContent, Typography, CircularProgress, Button,
   Alert, TextField, FormControl, InputLabel, Select, MenuItem, Grid,
@@ -46,7 +46,7 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
   // Domain Specific Filters (Dental Dimensions)
   const [selectedProcedures, setSelectedProcedures] = useState([]);
   const [campusFilter, setCampusFilter] = useState('all');
-  const [priorityFilter, setPriorityFilter] = useState('all');
+  const [priorityFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const chartRef = React.useRef(null);
@@ -62,15 +62,18 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
     return `${year}-${month}-${day}`;
   };
 
-  const fetchAnalytics = async (isModal = false) => {
+  const fetchAnalytics = useCallback(async (isModal = false) => {
     try {
       if (!isModal) setLoading(true);
       setError(null);
       
+      const currentRange = isModal ? modalDateRange : dateRange;
+      
       const params = {
         date_start: isModal ? (modalDateRange === 'custom' ? modalStartDate : undefined) : (dateRange === 'custom' ? customStart : undefined),
         date_end: isModal ? (modalDateRange === 'custom' ? modalEndDate : undefined) : (dateRange === 'custom' ? customEnd : undefined),
-        date_range: isModal ? modalDateRange : dateRange,
+        // Fix: If range is 'all', set to undefined so it is omitted from the API request
+        date_range: currentRange === 'all' ? undefined : currentRange,
       };
 
       if (isModal) {
@@ -86,17 +89,17 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
     } finally {
       if (!isModal) setLoading(false);
     }
-  };
+  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedProcedures, campusFilter]);
 
   useEffect(() => {
     fetchAnalytics(false);
-  }, [dateRange, customStart, customEnd]);
+  }, [fetchAnalytics]);
 
   useEffect(() => {
     if (openModal) {
       fetchAnalytics(true);
     }
-  }, [openModal, modalDateRange, modalStartDate, modalEndDate, selectedProcedures, campusFilter]);
+  }, [openModal, fetchAnalytics]);
 
   const handleGenerateReport = async (format = 'PDF') => {
     try {
@@ -322,7 +325,7 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
               <FormControl fullWidth size="small">
                 <InputLabel>Reporting Range</InputLabel>
                 <Select value={modalDateRange} label="Reporting Range" onChange={(e) => setModalDateRange(e.target.value)}>
-                  <MenuItem value="all">Full Academic History (Up to 2025)</MenuItem>
+                  <MenuItem value="all">Full Academic History</MenuItem>
                   <MenuItem value="7days">Last 7 Days</MenuItem>
                   <MenuItem value="30days">Last 30 Days</MenuItem>
                   <MenuItem value="6months">Last 6 Months</MenuItem>
