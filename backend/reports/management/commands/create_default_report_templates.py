@@ -134,6 +134,15 @@ class Command(BaseCommand):
                 'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
                 'requires_patient_filter': True,
                 'allowed_roles': ['DOCTOR', 'NURSE', 'ADMIN']
+            },
+            {
+                'name': 'Medical Fitness & Certification Analysis',
+                'description': 'Analysis of medical certificates, fitness distributions, and issuance turnaround',
+                'report_type': 'MEDICAL_CERTIFICATE',
+                'template_content': service.get_default_template('MEDICAL_CERTIFICATE', 'Medical Fitness & Certification Analysis'),
+                'default_filters': {'include_fitness_distribution': True, 'include_doctor_workload': True},
+                'supported_formats': ['PDF', 'EXCEL', 'CSV', 'JSON', 'HTML'],
+                'allowed_roles': ['DOCTOR', 'NURSE', 'STAFF', 'ADMIN']
             }
         ]
 

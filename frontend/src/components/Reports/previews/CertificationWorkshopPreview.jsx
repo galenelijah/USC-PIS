@@ -1,21 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Box, Card, CardContent, Typography, CircularProgress, Button,
   Alert, TextField, FormControl, InputLabel, Select, MenuItem, Grid,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Paper, TableSortLabel, Dialog, DialogTitle, DialogContent, 
-  DialogActions, IconButton, Autocomplete, Chip, Divider, InputAdornment
+  Dialog, DialogTitle, DialogContent, 
+  DialogActions, IconButton, Chip, Divider
 } from '@mui/material';
 import { 
   VerifiedUser as CertIcon,
   Visibility as ViewIcon,
   Close as CloseIcon,
   FileDownload as DownloadIcon,
-  Search as SearchIcon,
   Assessment as StatsIcon,
-  PieChart as PieIcon,
-  Timer as TimeIcon,
-  AssignmentTurnedIn as IssuedIcon
+  PieChart as PieIcon
 } from '@mui/icons-material';
 import { Bar, Pie } from 'react-chartjs-2';
 import { reportService } from '../../../services/api';
@@ -48,10 +44,6 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
   // Domain Specific Filters
   const [fitnessFilter, setFitnessFilter] = useState('all');
   const [issuanceFilter, setIssuanceFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const [sortField, setSortField] = useState('created_at');
-  const [sortDirection, setSortDirection] = useState('desc');
 
   const chartRef = React.useRef(null);
 
@@ -63,15 +55,16 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
     return `${year}-${month}-${day}`;
   };
 
-  const fetchAnalytics = async (isModal = false) => {
+  const fetchAnalytics = useCallback(async (isModal = false) => {
     try {
       if (!isModal) setLoading(true);
       setError(null);
       
+      const currentRange = isModal ? modalDateRange : dateRange;
       const params = {
         date_start: isModal ? (modalDateRange === 'custom' ? modalStartDate : undefined) : (dateRange === 'custom' ? customStart : undefined),
         date_end: isModal ? (modalDateRange === 'custom' ? modalEndDate : undefined) : (dateRange === 'custom' ? customEnd : undefined),
-        date_range: isModal ? modalDateRange : dateRange,
+        date_range: currentRange === 'all' ? undefined : currentRange,
       };
 
       if (isModal) {
@@ -87,17 +80,17 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
     } finally {
       if (!isModal) setLoading(false);
     }
-  };
+  }, [modalDateRange, dateRange, modalStartDate, customStart, modalEndDate, customEnd, fitnessFilter, issuanceFilter]);
 
   useEffect(() => {
     fetchAnalytics(false);
-  }, [dateRange, customStart, customEnd]);
+  }, [fetchAnalytics]);
 
   useEffect(() => {
     if (openModal) {
       fetchAnalytics(true);
     }
-  }, [openModal, modalDateRange, modalStartDate, modalEndDate, fitnessFilter, issuanceFilter]);
+  }, [openModal, fetchAnalytics]);
 
   const handleGenerateReport = async (format = 'PDF') => {
     try {
@@ -340,6 +333,24 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
         <DialogActions sx={{ p: 2, bgcolor: '#fafafa', borderTop: '1px solid #e0e0e0' }}>
           <Button onClick={() => setOpenModal(false)} sx={{ color: 'text.secondary' }}>Close Workshop</Button>
           <Box sx={{ flexGrow: 1 }} />
+          <Button 
+            variant="outlined" 
+            size="small" 
+            onClick={() => handleGenerateReport('EXCEL')} 
+            disabled={generating} 
+            sx={{ mr: 1 }}
+          >
+            Excel
+          </Button>
+          <Button 
+            variant="outlined" 
+            size="small" 
+            onClick={() => handleGenerateReport('CSV')} 
+            disabled={generating} 
+            sx={{ mr: 1 }}
+          >
+            CSV
+          </Button>
           <Button 
             variant="contained" 
             onClick={() => handleGenerateReport('PDF')}

@@ -1716,6 +1716,11 @@ export const reportService = {
     return api.get('/reports/generated/', { params });
   },
 
+  // Alias for MedicalReports.jsx
+  getReportHistory: (params = {}) => {
+    return api.get('/reports/generated/', { params });
+  },
+
   // Get report by ID
   getReport: (id) => {
     return api.get(`/reports/generated/${id}/`);

@@ -342,7 +342,7 @@ const MedicalReports = () => {
                     )}
                 </TableCell>
                 <TableCell sx={{ color: 'textSecondary' }}>
-                  {new Date(report.created_at).toLocaleString()}
+                  {report.created_at ? new Date(report.created_at).toLocaleString() : 'N/A'}
                 </TableCell>
                 <TableCell>
                   <IconButton 

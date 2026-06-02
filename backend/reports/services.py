@@ -1546,7 +1546,9 @@ class ReportDataService:
             
             return {
                 'total_count': queryset.count(),
-                'certificates': results
+                'certificates': results,
+                'fitness_distribution': ReportDataService.get_certification_analytics(date_start, date_end, filters).get('fitness_distribution', []),
+                'purpose_distribution': ReportDataService.get_certification_analytics(date_start, date_end, filters).get('purpose_distribution', [])
             }
         except Exception as e:
             logger.error(f"Error in get_certification_summary_data: {str(e)}")
@@ -2648,6 +2650,20 @@ class ReportGenerationService:
                             [d.get('name', 'N/A')[:20] for d in diag[:6]], 
                             [{'label': 'Diagnosis Share', 'data': [d.get('case_count', d.get('count', 0)) for d in diag[:6]]}],
                             "Clinical Case Distribution"))
+
+                elif rtype == 'MEDICAL_CERTIFICATE':
+                    if data.get('fitness_distribution'):
+                        dist = data['fitness_distribution']
+                        charts.append(self._generate_chart_url_complex('pie',
+                            [d.get('status', 'N/A') for d in dist],
+                            [{'label': 'Fitness', 'data': [d.get('count', 0) for d in dist]}],
+                            "Fitness Determination Distribution"))
+                    if data.get('purpose_distribution'):
+                        dist = data['purpose_distribution']
+                        charts.append(self._generate_chart_url_complex('bar',
+                            [d.get('name', 'N/A')[:20] for d in dist[:8]],
+                            [{'label': 'Issued', 'data': [d.get('count', 0) for d in dist[:8]]}],
+                            "Top Certificate Purposes"))
 
             elif rtype == 'HEALTH_METRICS':
                 # Future: Add charts for blood pressure/BMI trends if data is available
