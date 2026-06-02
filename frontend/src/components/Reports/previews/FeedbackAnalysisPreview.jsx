@@ -70,7 +70,6 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
       const params = {
         date_start: isModal ? (modalDateRange === 'custom' ? modalStartDate : undefined) : (dateRange === 'custom' ? customStart : undefined),
         date_end: isModal ? (modalDateRange === 'custom' ? modalEndDate : undefined) : (dateRange === 'custom' ? customEnd : undefined),
-        // Fix: If range is 'all', set to undefined so it is omitted from the API request
         date_range: currentRange === 'all' ? undefined : currentRange,
       };
 
@@ -78,6 +77,7 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
         if (selectedRatings.length > 0) params.rating = selectedRatings.join(',');
         if (recommendFilter !== 'all') params.recommend = recommendFilter;
         if (courtesyFilter !== 'all') params.courteous = courtesyFilter;
+        if (searchQuery) params.search = searchQuery;
       }
 
       const response = await reportService.getDashboardAnalytics(params);
@@ -88,16 +88,10 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedRatings, recommendFilter, courtesyFilter]);
+  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedRatings, recommendFilter, courtesyFilter, searchQuery]);
 
   useEffect(() => {
-    fetchAnalytics(false);
-  }, [fetchAnalytics]);
-
-  useEffect(() => {
-    if (openModal) {
-      fetchAnalytics(true);
-    }
+    fetchAnalytics(openModal);
   }, [openModal, fetchAnalytics]);
 
   const handleGenerateReport = async (format = 'PDF') => {

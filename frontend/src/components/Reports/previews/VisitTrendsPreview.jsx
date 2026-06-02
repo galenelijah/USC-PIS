@@ -74,7 +74,7 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
     return `${year}-${month}-${day}`;
   };
 
-  const fetchAnalytics = async (isModal = false) => {
+  const fetchAnalytics = useCallback(async (isModal = false) => {
     try {
       if (!isModal) setLoading(true);
       setError(null);
@@ -87,6 +87,7 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
 
       if (isModal) {
         if (streamFilter !== 'all') params.service_type = streamFilter;
+        if (searchQuery) params.search = searchQuery;
       }
 
       const response = await reportService.getDashboardAnalytics(params);
@@ -97,17 +98,11 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
     } finally {
       if (!isModal) setLoading(false);
     }
-  };
+  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, streamFilter, searchQuery]);
 
   useEffect(() => {
-    fetchAnalytics(false);
-  }, [dateRange, customStart, customEnd]);
-
-  useEffect(() => {
-    if (openModal) {
-      fetchAnalytics(true);
-    }
-  }, [openModal, streamFilter, modalDateRange, modalStartDate, modalEndDate]);
+    fetchAnalytics(openModal);
+  }, [openModal, fetchAnalytics]);
 
   const handleGenerateReport = async (format = 'PDF') => {
     try {

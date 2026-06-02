@@ -279,44 +279,55 @@ class ReportDataService:
             if filters:
                 if filters.get('gender'):
                     genders = filters['gender']
-                    if isinstance(genders, list) and genders:
-                        queryset = queryset.filter(**{f"{gender_field}__in": genders})
-                    else:
-                        queryset = queryset.filter(**{gender_field: genders})
+                    if isinstance(genders, str): genders = genders.split(',')
+                    if genders: queryset = queryset.filter(**{f"{gender_field}__in": genders})
+                
                 if filters.get('school'):
                     schools = filters['school']
                     school_field = 'school' if patient_scope == 'all_verified' else 'user__school'
-                    if isinstance(schools, list) and schools:
-                        queryset = queryset.filter(**{f"{school_field}__in": schools})
-                    else:
-                        queryset = queryset.filter(**{school_field: schools})
+                    if isinstance(schools, str): schools = schools.split(',')
+                    if schools: queryset = queryset.filter(**{f"{school_field}__in": schools})
+
                 if filters.get('course'):
                     courses = filters['course']
                     course_field = 'course' if patient_scope == 'all_verified' else 'user__course'
-                    if isinstance(courses, list) and courses:
-                        queryset = queryset.filter(**{f"{course_field}__in": courses})
-                    else:
-                        queryset = queryset.filter(**{course_field: courses})
+                    if isinstance(courses, str): courses = courses.split(',')
+                    if courses: queryset = queryset.filter(**{f"{course_field}__in": courses})
+
                 if filters.get('year_level'):
                     yls = filters['year_level']
                     yl_field = 'year_level' if patient_scope == 'all_verified' else 'user__year_level'
-                    if isinstance(yls, list) and yls:
-                        queryset = queryset.filter(**{f"{yl_field}__in": yls})
-                    else:
-                        queryset = queryset.filter(**{yl_field: yls})
+                    if isinstance(yls, str): yls = yls.split(',')
+                    if yls: queryset = queryset.filter(**{f"{yl_field}__in": yls})
+
                 if filters.get('campus'):
                     campuses = filters['campus']
                     course_field = 'course' if patient_scope == 'all_verified' else 'user__course'
-                    if campuses and isinstance(campuses, list):
+                    if isinstance(campuses, str): campuses = campuses.split(',')
+                    if campuses:
                         course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() if info['campus'] in campuses]
                         queryset = queryset.filter(**{f"{course_field}__in": course_ids})
+
+                if filters.get('search'):
+                    if patient_scope == 'all_verified':
+                        queryset = queryset.filter(
+                            Q(first_name__icontains=filters['search']) | 
+                            Q(last_name__icontains=filters['search']) |
+                            Q(id_number__icontains=filters['search'])
+                        )
+                    else:
+                        queryset = queryset.filter(
+                            Q(first_name__icontains=filters['search']) | 
+                            Q(last_name__icontains=filters['search']) |
+                            Q(user__id_number__icontains=filters['search'])
+                        )
             
             # Aggregate data in single query
             if patient_scope == 'all_verified':
                 aggregate_data = queryset.aggregate(
                     total_patients=Count('id'),
                     new_registrations=Count('id', filter=Q(date_joined__gte=timezone.now() - timedelta(days=30))),
-                    patients_with_medical_records=Value(0), # Not applicable for raw user scope
+                    patients_with_medical_records=Value(0),
                     patients_with_dental_records=Value(0)
                 )
             else:
@@ -334,58 +345,49 @@ class ReportDataService:
             college_participation = ReportDataService._get_college_participation(all_objs)
 
             # Gender distribution
-            raw_gender_dist = list(queryset.values(gender_field).annotate(count=Count('id')).order_by(gender_field))
             gender_map = {'M': 'Male', 'F': 'Female', 'O': 'Other', '1': 'Male', '2': 'Female', 'Male': 'Male', 'Female': 'Female'} 
-            gender_distribution = []
-            for item in raw_gender_dist:
-                g_code = item[gender_field]
+            gender_counts = {}
+            for obj in all_objs:
+                g_code = getattr(obj, gender_field, None)
                 g_name = gender_map.get(g_code, g_code if g_code else 'Unknown')
-                gender_distribution.append({'gender': g_name, 'count': item['count']})
+                gender_counts[g_name] = gender_counts.get(g_name, 0) + 1
+            gender_distribution = [{'gender': k, 'count': v} for k, v in gender_counts.items()]
             
-            # Age distribution
+            # Age distribution - Python calculation to respect all filters
             age_groups_counts = {'0-17': 0, '18-25': 0, '26-35': 0, '36-45': 0, '46-60': 0, '60+': 0}
-            try:
-                yl_dist_field = 'year_level' if patient_scope == 'all_verified' else 'user__year_level'
-                year_level_distribution = list(queryset.values(yl_dist_field).annotate(count=Count('id')).order_by('-count')[:10])
-                year_level_distribution = [{'year_level': item[yl_dist_field] or 'N/A', 'count': item['count']} for item in year_level_distribution]
+            
+            # Year level distribution
+            yl_counts = {}
+            yl_dist_field = 'year_level' if patient_scope == 'all_verified' else 'user__year_level'
+            
+            for obj in all_objs:
+                # Handle Age
+                dob = getattr(obj, dob_field, None)
+                if dob:
+                    if hasattr(dob, 'date'): dob = dob.date()
+                    today = timezone.now().date()
+                    age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+                    if age < 18: age_groups_counts['0-17'] += 1
+                    elif age <= 25: age_groups_counts['18-25'] += 1
+                    elif age <= 35: age_groups_counts['26-35'] += 1
+                    elif age <= 45: age_groups_counts['36-45'] += 1
+                    elif age <= 60: age_groups_counts['46-60'] += 1
+                    else: age_groups_counts['60+'] += 1
+                
+                # Handle Year Level
+                if patient_scope == 'all_verified':
+                    yl = getattr(obj, 'year_level', 'N/A')
+                else:
+                    user = getattr(obj, 'user', None)
+                    yl = getattr(user, 'year_level', 'N/A') if user else 'N/A'
+                
+                yl_label = str(yl) if yl else 'N/A'
+                yl_counts[yl_label] = yl_counts.get(yl_label, 0) + 1
 
-                with connection.cursor() as cursor:
-                    if connection.vendor == 'postgresql':
-                        cursor.execute(f"""
-                            SELECT 
-                                CASE 
-                                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, {dob_field})) < 18 THEN '0-17'
-                                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, {dob_field})) BETWEEN 18 AND 25 THEN '18-25'
-                                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, {dob_field})) BETWEEN 26 AND 35 THEN '26-35'
-                                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, {dob_field})) BETWEEN 36 AND 45 THEN '36-45'
-                                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, {dob_field})) BETWEEN 46 AND 60 THEN '46-60'
-                                    ELSE '60+'
-                                END as age_group,
-                                COUNT(*) as count
-                            FROM {table_name}
-                            WHERE {dob_field} IS NOT NULL
-                            GROUP BY age_group
-                        """)
-                    else:
-                        cursor.execute(f"""
-                            SELECT 
-                                CASE 
-                                    WHEN CAST((julianday('now') - julianday({dob_field})) / 365.25 AS INTEGER) < 18 THEN '0-17'
-                                    WHEN CAST((julianday('now') - julianday({dob_field})) / 365.25 AS INTEGER) BETWEEN 18 AND 25 THEN '18-25'
-                                    WHEN CAST((julianday('now') - julianday({dob_field})) / 365.25 AS INTEGER) BETWEEN 26 AND 35 THEN '26-35'
-                                    WHEN CAST((julianday('now') - julianday({dob_field})) / 365.25 AS INTEGER) BETWEEN 36 AND 45 THEN '36-45'
-                                    WHEN CAST((julianday('now') - julianday({dob_field})) / 365.25 AS INTEGER) BETWEEN 46 AND 60 THEN '46-60'
-                                    ELSE '60+'
-                                END as age_group,
-                                COUNT(*) as count
-                            FROM {table_name}
-                            WHERE {dob_field} IS NOT NULL
-                            GROUP BY age_group
-                        """)
-                    for row in cursor.fetchall():
-                        age_groups_counts[row[0]] = row[1]
-            except Exception as e:
-                logger.error(f"Age distribution calculation failed: {e}")
+            year_level_distribution = sorted(
+                [{'year_level': k, 'count': v} for k, v in yl_counts.items()],
+                key=lambda x: x['count'], reverse=True
+            )[:10]
 
             # Age Groups List for Charts
             age_distribution = [{'group': k, 'count': v} for k, v in age_groups_counts.items()]
@@ -398,9 +400,10 @@ class ReportDataService:
                 'role_distribution': role_distribution,
                 'college_participation': college_participation,
                 'year_level_distribution': year_level_distribution,
-                'active_patients': queryset.filter(**{
-                    f"{'patient_profile__' if patient_scope == 'all_verified' else ''}medical_records__visit_date__gte": timezone.now() - timedelta(days=90)
-                }).distinct().count() if patient_scope != 'all_verified' else 0 # Not relevant for full user scope
+                'period': {
+                    'start': date_start.strftime('%Y-%m-%d') if date_start else 'Beginning',
+                    'end': date_end.strftime('%Y-%m-%d') if date_end else 'Present'
+                }
             }
             
             cache.set(cache_key, data, 3600)
@@ -1282,12 +1285,22 @@ class ReportDataService:
             # Common procedures with display labels
             proc_counts = records.values('procedure_performed').annotate(count=Count('id')).order_by('-count')
             proc_map = dict(DentalRecord.PROCEDURE_CHOICES)
-            common_procedures = [{
-                'name': proc_map.get(item['procedure_performed'], item['procedure_performed']),
-                'count': item['count'],
-                'percentage': round((item['count'] / total_records) * 100, 2)
-            } for item in proc_counts]
+            common_procedures = []
 
+            for item in proc_counts:
+                # Get patients for this specific procedure for demographic context
+                proc_patients = Patient.objects.filter(
+                    dental_records__in=records.filter(procedure_performed=item['procedure_performed'])
+                ).distinct()
+                proc_ages = [p.age for p in proc_patients if p.age is not None]
+                proc_avg_age = sum(proc_ages) / len(proc_ages) if proc_ages else 0
+
+                common_procedures.append({
+                    'name': proc_map.get(item['procedure_performed'], item['procedure_performed']),
+                    'count': item['count'],
+                    'percentage': round((item['count'] / total_records) * 100, 2),
+                    'avg_age': round(proc_avg_age, 2)
+                })
             # Oral hygiene status distribution
             hygiene_counts = records.exclude(oral_hygiene_status='').values('oral_hygiene_status').annotate(count=Count('id'))
             hygiene_map = dict([

@@ -86,13 +86,7 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
   }, [modalDateRange, dateRange, modalStartDate, customStart, modalEndDate, customEnd, fitnessFilter, issuanceFilter, searchQuery]);
 
   useEffect(() => {
-    fetchAnalytics(false);
-  }, [fetchAnalytics]);
-
-  useEffect(() => {
-    if (openModal) {
-      fetchAnalytics(true);
-    }
+    fetchAnalytics(openModal);
   }, [openModal, fetchAnalytics]);
 
   const handleGenerateReport = async (format = 'PDF') => {

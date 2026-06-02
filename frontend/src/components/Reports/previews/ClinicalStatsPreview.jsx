@@ -69,13 +69,13 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
       const params = {
         date_start: isModal ? (modalDateRange === 'custom' ? modalStartDate : undefined) : (dateRange === 'custom' ? customStart : undefined),
         date_end: isModal ? (modalDateRange === 'custom' ? modalEndDate : undefined) : (dateRange === 'custom' ? customEnd : undefined),
-        // Fix: If range is 'all', set to undefined so it is omitted from the API request
         date_range: currentRange === 'all' ? undefined : currentRange,
       };
 
       if (isModal) {
         if (selectedDiagnoses.length > 0) params.diagnosis = selectedDiagnoses.join(',');
         if (campusFilter !== 'all') params.campus = campusFilter;
+        if (searchQuery) params.search = searchQuery;
       }
 
       const response = await reportService.getDashboardAnalytics(params);
@@ -86,16 +86,10 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedDiagnoses, campusFilter]);
+  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedDiagnoses, campusFilter, searchQuery]);
 
   useEffect(() => {
-    fetchAnalytics(false);
-  }, [fetchAnalytics]);
-
-  useEffect(() => {
-    if (openModal) {
-      fetchAnalytics(true);
-    }
+    fetchAnalytics(openModal);
   }, [openModal, fetchAnalytics]);
 
   const handleGenerateReport = async (format = 'PDF') => {
@@ -414,7 +408,11 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
                     </TableSortLabel>
                   </TableCell>
                   <TableCell align="right" sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>Institutional Load</TableCell>
-                  <TableCell align="right" sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>Alert Status</TableCell>
+                  <TableCell align="right" sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>
+                    <TableSortLabel active={sortField === 'avg_age'} direction={sortField === 'avg_age' ? sortDirection : 'asc'} onClick={() => handleRequestSort('avg_age')}>
+                      Avg. Patient Age
+                    </TableSortLabel>
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -437,16 +435,9 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
                         </Box>
                       </TableCell>
                       <TableCell align="right">
-                        <Chip 
-                          label={currentCount > 10 ? 'High Prevalence' : currentCount > 5 ? 'Moderate' : 'Stable'} 
-                          size="small" 
-                          variant="outlined"
-                          sx={{ 
-                            borderColor: currentCount > 10 ? '#ef4444' : '#94a3b8', 
-                            color: currentCount > 10 ? '#ef4444' : '#64748b',
-                            fontSize: '0.65rem'
-                          }}
-                        />
+                         <Typography variant="body2" sx={{ fontWeight: 700, color: '#475569' }}>
+                           {row.avg_age ? `${row.avg_age.toFixed(1)} yrs` : 'N/A'}
+                         </Typography>
                       </TableCell>
                     </TableRow>
                   );

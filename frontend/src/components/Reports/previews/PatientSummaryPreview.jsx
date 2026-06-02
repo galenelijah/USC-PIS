@@ -111,13 +111,10 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
 
   useEffect(() => {
     fetchMappings();
-    fetchAnalytics(false);
-  }, [fetchMappings, fetchAnalytics]);
+  }, [fetchMappings]);
 
   useEffect(() => {
-    if (openModal) {
-      fetchAnalytics(true);
-    }
+    fetchAnalytics(openModal);
   }, [openModal, fetchAnalytics]);
 
   const handleGenerateReport = async (format = 'PDF') => {
@@ -539,12 +536,13 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Granular Population Audit</Typography>
             <TextField
               size="small"
-              placeholder="Search schools..."
+              placeholder="Search by school, campus, or course..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               InputProps={{
                 startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>
               }}
+              sx={{ width: 350 }}
             />
           </Box>
 

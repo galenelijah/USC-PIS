@@ -15,7 +15,7 @@ import {
   Timeline as TrendIcon,
   History as HistoryIcon,
   Refresh as RefreshIcon,
-  NotificationsActive as AlertIcon
+  Star as StarIcon
 } from '@mui/icons-material';
 import { reportService } from '../../services/api';
 
@@ -116,11 +116,11 @@ const MedicalReports = ({ dateRange, customStart, customEnd }) => {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <SummaryCard 
-            title="Active Health Alerts" 
-            value={loading ? <CircularProgress size={20} /> : "0"} 
-            subtitle="Requires clinical attention"
-            icon={<AlertIcon />}
-            color="#ef4444"
+            title="Patient Satisfaction" 
+            value={loading ? <CircularProgress size={20} /> : `${stats?.satisfaction?.average || '0.0'} ★`} 
+            subtitle="Avg. Service Sentiment"
+            icon={<StarIcon />}
+            color="#10b981"
           />
         </Grid>
       </Grid>
