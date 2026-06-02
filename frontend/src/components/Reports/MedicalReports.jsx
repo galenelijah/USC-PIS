@@ -42,6 +42,7 @@ const MedicalReports = () => {
   // Workshop State
   const [activeWorkshop, setActiveWorkshop] = useState(null);
   const [recentReports, setRecentReports] = useState([]);
+
   const fetchDashboardStats = useCallback(async () => {
     try {
       setLoading(true);

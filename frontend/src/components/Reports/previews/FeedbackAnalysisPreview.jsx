@@ -7,16 +7,14 @@ import {
   DialogActions, IconButton, Autocomplete, Chip, Rating, Divider, InputAdornment
 } from '@mui/material';
 import { 
-  ThumbUp as ThumbIcon,
   Visibility as ViewIcon,
   Close as CloseIcon,
   Star as StarIcon,
   FileDownload as DownloadIcon,
   Search as SearchIcon,
   SentimentSatisfiedAlt as SatisfiedIcon,
-  Recommend as RecommendIcon,
-  Face as FaceIcon
-} from '@mui.icons-material';
+  Recommend as RecommendIcon
+} from '@mui/icons-material';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import { reportService } from '../../../services/api';
 import {

@@ -7,13 +7,11 @@ import {
   DialogActions, IconButton, Autocomplete, Chip, Divider, InputAdornment
 } from '@mui/material';
 import { 
-  Assessment as ReportIcon,
   Visibility as ViewIcon,
   Close as CloseIcon,
   FileDownload as DownloadIcon,
   Search as SearchIcon,
   Medication as MedicineIcon,
-  HealthAndSafety as SafetyIcon,
   AutoGraph as GraphIcon
 } from '@mui/icons-material';
 import { Bar } from 'react-chartjs-2';
@@ -46,13 +44,20 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
   // Domain Specific Filters (Clinical Dimensions)
   const [selectedDiagnoses, setSelectedDiagnoses] = useState([]);
   const [campusFilter, setCampusFilter] = useState('all');
-  const [priorityFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const chartRef = React.useRef(null);
 
   const [sortField, setSortField] = useState('count');
-  const [sortDirection, setSortDirection] = useState('desc');
+  const [sortDirection, setSortDirection] = useState('asc');
+
+  const getTodayString = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   const fetchAnalytics = useCallback(async (isModal = false) => {
     try {
@@ -107,7 +112,6 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
         filters: {
           diagnosis: selectedDiagnoses,
           campus: campusFilter !== 'all' ? [campusFilter] : undefined,
-          priority: priorityFilter !== 'all' ? priorityFilter : undefined,
           charts_base64: chartRef.current ? [chartRef.current.toBase64Image()] : []
         }
       };
@@ -328,10 +332,10 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
             {modalDateRange === 'custom' && (
               <>
                 <Grid item xs={12} sm={2}>
-                  <TextField fullWidth type="date" label="Start" size="small" value={modalStartDate} onChange={(e) => setModalStartDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ max: modalEndDate }} />
+                  <TextField fullWidth type="date" label="Start" size="small" value={modalStartDate} onChange={(e) => setModalStartDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ max: modalEndDate || getTodayString() }} />
                 </Grid>
                 <Grid item xs={12} sm={2}>
-                  <TextField fullWidth type="date" label="End" size="small" value={modalEndDate} onChange={(e) => setModalEndDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ min: modalStartDate }} />
+                  <TextField fullWidth type="date" label="End" size="small" value={modalEndDate} onChange={(e) => setModalEndDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ min: modalStartDate, max: getTodayString() }} />
                 </Grid>
               </>
             )}

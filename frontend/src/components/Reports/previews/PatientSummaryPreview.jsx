@@ -10,7 +10,6 @@ import {
   People as PeopleIcon,
   Visibility as ViewIcon,
   Close as CloseIcon,
-  FilterList as FilterIcon,
   FileDownload as DownloadIcon,
   Search as SearchIcon
 } from '@mui/icons-material';
@@ -67,13 +66,13 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
     return `${year}-${month}-${day}`;
   };
 
-  const fetchMappings = () => {
+  const fetchMappings = useCallback(() => {
     const mappedObj = ProgramsChoices.reduce((acc, current) => {
       if (current.id) acc[String(current.id)] = current.label;
       return acc;
     }, {});
     setCourseMap(mappedObj);
-  };
+  }, []);
 
   const fetchAnalytics = useCallback(async (isModal = false) => {
     try {
@@ -110,7 +109,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
   useEffect(() => {
     fetchMappings();
     fetchAnalytics(false);
-  }, [dateRange, customStart, customEnd]);
+  }, [fetchMappings, fetchAnalytics]);
 
   useEffect(() => {
     if (openModal) {
@@ -579,13 +578,6 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
             {generating ? 'Processing...' : 'Generate Demographics PDF'}
           </Button>
         </DialogActions>
-      </Dialog>
-
-    </Box>
-  );
-};
-
-export default PatientSummaryPreview;Actions>
       </Dialog>
 
     </Box>
