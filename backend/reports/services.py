@@ -1537,18 +1537,27 @@ class ReportDataService:
                     'patient': f"{c.patient.first_name} {c.patient.last_name}",
                     'usc_id': getattr(c.patient.user, 'id_number', 'N/A'),
                     'template': c.template.name,
-                    'fitness_status': c.get_fitness_status_display(),
-                    'issuance_status': c.get_issuance_status_display(),
-                    'issued_by': f"Dr. {c.issuing_doctor.last_name}" if c.issuing_doctor else "N/A",
-                    'created_at': c.created_at.strftime('%Y-%m-%d'),
-                    'issued_at': c.issued_at.strftime('%Y-%m-%d') if c.issued_at else "N/A"
+                    'fitness': c.get_fitness_status_display(),
+                    'status': c.get_issuance_status_display(),
+                    'doctor': f"Dr. {c.issuing_doctor.last_name}" if c.issuing_doctor else "N/A",
+                    'date': c.created_at.strftime('%Y-%m-%d')
                 })
             
+            # Get enriched analytics once safely
+            try:
+                analytics = ReportDataService.get_certification_analytics(date_start, date_end, filters)
+            except Exception as ae:
+                logger.warning(f"Secondary analytics failed in summary: {ae}")
+                analytics = {}
+            
             return {
-                'total_count': queryset.count(),
-                'certificates': results,
-                'fitness_distribution': ReportDataService.get_certification_analytics(date_start, date_end, filters).get('fitness_distribution', []),
-                'purpose_distribution': ReportDataService.get_certification_analytics(date_start, date_end, filters).get('purpose_distribution', [])
+                'total_certificates_issued': analytics.get('total_certificates', queryset.count()),
+                'average_issuance_turnaround': f"{analytics.get('avg_turnaround_hours', 0)} hours",
+                'fitness_distribution': analytics.get('fitness_distribution', []),
+                'purpose_distribution': analytics.get('purpose_distribution', []),
+                'issuance_status_breakdown': analytics.get('issuance_status_distribution', []),
+                'doctor_workload_tally': analytics.get('doctor_workload', []),
+                'certificates_log': results
             }
         except Exception as e:
             logger.error(f"Error in get_certification_summary_data: {str(e)}")
@@ -2206,7 +2215,126 @@ class ReportGenerationService:
                 </table>
             </div>
 
-            {{% if hourly_traffic_density %}}
+            {{% elif report_type == "MEDICAL_CERTIFICATE" %}}
+            <div class="section">
+                <div class="section-title">Certification Issuance Summary</div>
+                <table class="metric-table">
+                    <tr>
+                        <td class="metric-box">
+                            <span class="metric-val">{{{{ total_certificates_issued|default:"0" }}}}</span>
+                            <span class="metric-lbl">Total Certificates</span>
+                        </td>
+                        <td class="metric-box">
+                            <span class="metric-val">{{{{ average_issuance_turnaround|default:"0h" }}}}</span>
+                            <span class="metric-lbl">Avg Turnaround Time</span>
+                        </td>
+                        <td class="metric-box">
+                            <span class="metric-val">{{{{ certificates_log|length }}}}</span>
+                            <span class="metric-lbl">Detailed Audit Rows</span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Fitness Distribution Analysis</div>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Fitness Determination</th><th>Volume</th></tr>
+                    </thead>
+                    <tbody>
+                        {{% for item in fitness_distribution %}}
+                        <tr>
+                            <td>{{{{ item.status|title_clean }}}}</td>
+                            <td>{{{{ item.count }}}} certificates</td>
+                        </tr>
+                        {{% endfor %}}
+                    </tbody>
+                </table>
+            </div>
+
+            {{% if purpose_distribution %}}
+            <div class="section">
+                <div class="section-title">Certificate Purpose Distribution</div>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Template / Purpose</th><th>Volume</th></tr>
+                    </thead>
+                    <tbody>
+                        {{% for item in purpose_distribution %}}
+                        <tr>
+                            <td>{{{{ item.name|title_clean }}}}</td>
+                            <td>{{{{ item.count }}}} certificates</td>
+                        </tr>
+                        {{% endfor %}}
+                    </tbody>
+                </table>
+            </div>
+            {{% endif %}}
+
+            {{% if issuance_status_breakdown %}}
+            <div class="section">
+                <div class="section-title">Issuance Status Breakdown</div>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Status</th><th>Volume</th></tr>
+                    </thead>
+                    <tbody>
+                        {{% for item in issuance_status_breakdown %}}
+                        <tr>
+                            <td>{{{{ item.status|title_clean }}}}</td>
+                            <td>{{{{ item.count }}}} certificates</td>
+                        </tr>
+                        {{% endfor %}}
+                    </tbody>
+                </table>
+            </div>
+            {{% endif %}}
+
+            {{% if doctor_workload_tally %}}
+            <div class="section">
+                <div class="section-title">Physician Issuance Workload</div>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Medical Officer</th><th>Certificates Signed</th></tr>
+                    </thead>
+                    <tbody>
+                        {{% for item in doctor_workload_tally %}}
+                        <tr>
+                            <td>Dr. {{{{ item.name|title_clean }}}}</td>
+                            <td>{{{{ item.count }}}} certificates</td>
+                        </tr>
+                        {{% endfor %}}
+                    </tbody>
+                </table>
+            </div>
+            {{% endif %}}
+
+            <div class="section">
+                <div class="section-title">Certificate Issuance Log</div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Patient Name</th>
+                            <th>Fitness Status</th>
+                            <th>Issuing Doctor</th>
+                            <th>Date Issued</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{% for item in certificates_log %}}
+                        <tr>
+                            <td>{{{{ item.patient }}}} ({{{{ item.usc_id }}}})</td>
+                            <td>{{{{ item.fitness }}}}</td>
+                            <td>{{{{ item.doctor }}}}</td>
+                            <td>{{{{ item.date }}}}</td>
+                        </tr>
+                        {{% endfor %}}
+                    </tbody>
+                </table>
+            </div>
+
+            {{% elif hourly_traffic_density %}}
             <div class="section">
                 <div class="section-title">Hourly Traffic Density & Workload Classification</div>
                 <table class="data-table">
@@ -2236,7 +2364,6 @@ class ReportGenerationService:
                     </tbody>
                 </table>
             </div>
-            {{% endif %}}
 
             {{% else %}}
             <div class="section">
@@ -2656,13 +2783,13 @@ class ReportGenerationService:
                         dist = data['fitness_distribution']
                         charts.append(self._generate_chart_url_complex('pie',
                             [d.get('status', 'N/A') for d in dist],
-                            [{'label': 'Fitness', 'data': [d.get('count', 0) for d in dist]}],
+                            [{'label': 'Fitness Determination', 'data': [d.get('count', 0) for d in dist]}],
                             "Fitness Determination Distribution"))
                     if data.get('purpose_distribution'):
                         dist = data['purpose_distribution']
                         charts.append(self._generate_chart_url_complex('bar',
                             [d.get('name', 'N/A')[:20] for d in dist[:8]],
-                            [{'label': 'Issued', 'data': [d.get('count', 0) for d in dist[:8]]}],
+                            [{'label': 'Certificates Issued', 'data': [d.get('count', 0) for d in dist[:8]]}],
                             "Top Certificate Purposes"))
 
             elif rtype == 'HEALTH_METRICS':
@@ -2721,6 +2848,7 @@ class ReportGenerationService:
     def generate_operations_report(self, **kwargs): return self._generate_generic_report('OPERATIONS', "Clinic Operational Flow & Density", **kwargs)
     def generate_health_metrics_report(self, **kwargs): return self._generate_generic_report('HEALTH_METRICS', "Health Metrics", **kwargs)
     def generate_health_history_report(self, **kwargs): return self._generate_generic_report('HEALTH_HISTORY', "Health History", **kwargs)
+    def generate_medical_certificate_report(self, **kwargs): return self._generate_generic_report('MEDICAL_CERTIFICATE', "Medical Fitness & Certification Analysis", **kwargs)
 
 class ReportSchemaService:
     """Service for providing configuration schemas for customizable reports"""

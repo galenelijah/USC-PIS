@@ -421,6 +421,7 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
                     'OPERATIONS': service.generate_operations_report,
                     'HEALTH_METRICS': service.generate_health_metrics_report,
                     'HEALTH_HISTORY': service.generate_health_history_report,
+                    'MEDICAL_CERTIFICATE': service.generate_medical_certificate_report,
                 }
                 
                 rtype = str(report.template.report_type or '').strip().upper()

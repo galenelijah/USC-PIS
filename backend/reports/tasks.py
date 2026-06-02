@@ -69,6 +69,7 @@ def generate_report_task_celery(report_id, is_sync=False):
             'OPERATIONS': service.generate_operations_report,
             'HEALTH_METRICS': service.generate_health_metrics_report,
             'HEALTH_HISTORY': service.generate_health_history_report,
+            'MEDICAL_CERTIFICATE': service.generate_medical_certificate_report,
         }
 
         # Normalize report type for robust lookup

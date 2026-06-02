@@ -149,7 +149,7 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
       datasets: [
         {
           label: 'Case Volume',
-          data: diagnoses.map(d => d.count),
+          data: diagnoses.map(d => d.case_count || d.count || 0),
           backgroundColor: '#2563eb',
           borderRadius: 4,
           hoverBackgroundColor: '#1d4ed8'
@@ -197,8 +197,10 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
     }
 
     return [...filtered].sort((a, b) => {
-      const valA = a[sortField];
-      const valB = b[sortField];
+      // Handle both count and case_count for sorting robustness
+      const valA = a[sortField] !== undefined ? a[sortField] : (sortField === 'count' ? a.case_count : undefined);
+      const valB = b[sortField] !== undefined ? b[sortField] : (sortField === 'count' ? b.case_count : undefined);
+      
       if (sortDirection === 'asc') {
         return valA > valB ? 1 : -1;
       } else {
@@ -416,12 +418,13 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
               </TableHead>
               <TableBody>
                 {getSortedTableData().map((row, idx) => {
-                  const total = data.clinical.top_diagnoses.reduce((sum, d) => sum + d.count, 0);
-                  const percentage = (row.count / (total || 1)) * 100;
+                  const currentCount = row.case_count || row.count || 0;
+                  const total = data.clinical.top_diagnoses.reduce((sum, d) => sum + (d.case_count || d.count || 0), 0);
+                  const percentage = (currentCount / (total || 1)) * 100;
                   return (
                     <TableRow key={idx} hover>
                       <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>{row.name}</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700, color: '#2563eb' }}>{(row.count || 0).toLocaleString()}</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: '#2563eb' }}>{currentCount.toLocaleString()}</TableCell>
                       <TableCell align="right">
                         <Box display="flex" alignItems="center" justifyContent="flex-end" gap={1}>
                           <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
@@ -434,12 +437,12 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
                       </TableCell>
                       <TableCell align="right">
                         <Chip 
-                          label={row.count > 10 ? 'High Prevalence' : row.count > 5 ? 'Moderate' : 'Stable'} 
+                          label={currentCount > 10 ? 'High Prevalence' : currentCount > 5 ? 'Moderate' : 'Stable'} 
                           size="small" 
                           variant="outlined"
                           sx={{ 
-                            borderColor: row.count > 10 ? '#ef4444' : '#94a3b8', 
-                            color: row.count > 10 ? '#ef4444' : '#64748b',
+                            borderColor: currentCount > 10 ? '#ef4444' : '#94a3b8', 
+                            color: currentCount > 10 ? '#ef4444' : '#64748b',
                             fontSize: '0.65rem'
                           }}
                         />
