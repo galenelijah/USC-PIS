@@ -114,7 +114,8 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
         filters: {
           rating: selectedRatings,
           recommend: recommendFilter !== 'all' ? recommendFilter : undefined,
-          courteous: courtesyFilter !== 'all' ? courtesyFilter : undefined
+          courteous: courtesyFilter !== 'all' ? courtesyFilter : undefined,
+          search: searchQuery || undefined
         }
       };
 

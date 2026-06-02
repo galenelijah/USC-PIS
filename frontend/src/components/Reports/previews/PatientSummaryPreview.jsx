@@ -46,6 +46,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
   const [modalEndDate, setModalEndDate] = useState('');
 
   // Domain Specific Filters (University Hierarchy)
+  const [patientScope, setPatientScope] = useState('active_with_records');
   const [selectedCampuses, setSelectedCampuses] = useState([]);
   const [selectedSchools, setSelectedSchools] = useState([]);
   const [selectedCourses, setSelectedCourses] = useState([]);
@@ -90,10 +91,12 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
 
       // If specific filters are active in modal, pass them to backend
       if (isModal) {
+        params.patient_scope = patientScope;
         if (selectedCampuses.length > 0) params.campus = selectedCampuses.join(',');
         if (selectedSchools.length > 0) params.school = selectedSchools.join(',');
         if (selectedCourses.length > 0) params.course = selectedCourses.join(',');
         if (selectedYearLevels.length > 0) params.year_level = selectedYearLevels.join(',');
+        if (searchQuery) params.search = searchQuery;
       }
 
       const response = await reportService.getDashboardAnalytics(params);
@@ -104,7 +107,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [modalDateRange, dateRange, modalStartDate, customStart, modalEndDate, customEnd, selectedCampuses, selectedSchools, selectedCourses, selectedYearLevels]);
+  }, [modalDateRange, dateRange, modalStartDate, customStart, modalEndDate, customEnd, patientScope, selectedCampuses, selectedSchools, selectedCourses, selectedYearLevels, searchQuery]);
 
   useEffect(() => {
     fetchMappings();
@@ -129,10 +132,12 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
         date_range_start: modalDateRange === 'custom' ? modalStartDate : undefined,
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
+          patient_scope: patientScope,
           campus: selectedCampuses,
           school: selectedSchools,
           course: selectedCourses,
-          year_level: selectedYearLevels
+          year_level: selectedYearLevels,
+          search: searchQuery || undefined
         }
       };
 
@@ -353,7 +358,20 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
 
           {/* FILTERS ROW */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={2.5}>
+            <Grid item xs={12} sm={4}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Population Scope</InputLabel>
+                <Select 
+                  value={patientScope} 
+                  label="Population Scope" 
+                  onChange={(e) => setPatientScope(e.target.value)}
+                >
+                  <MenuItem value="active_with_records">All active patients (With Records)</MenuItem>
+                  <MenuItem value="all_profiles">All Patients with completed profile setup</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={3}>
               <Autocomplete
                 multiple
                 size="small"
@@ -392,7 +410,22 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
                 renderInput={(params) => <TextField {...params} label="School / College" variant="outlined" />}
               />
             </Grid>
-            <Grid item xs={12} sm={3.5}>
+            <Grid item xs={12} sm={2}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Timeline</InputLabel>
+                <Select value={modalDateRange} label="Timeline" onChange={(e) => setModalDateRange(e.target.value)}>
+                  <MenuItem value="all">Full Academic History</MenuItem>
+                  <MenuItem value="7days">Last 7 Days</MenuItem>
+                  <MenuItem value="30days">Last 30 Days</MenuItem>
+                  <MenuItem value="6months">Last 6 Months</MenuItem>
+                  <MenuItem value="custom">Manual Range Selection</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid item xs={12} sm={7}>
               <Autocomplete
                 multiple
                 size="small"
@@ -417,7 +450,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
                 renderInput={(params) => <TextField {...params} label="Academic Program" variant="outlined" />}
               />
             </Grid>
-            <Grid item xs={12} sm={1.5}>
+            <Grid item xs={12} sm={2}>
               <Autocomplete
                 multiple
                 size="small"
@@ -427,19 +460,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
                 renderInput={(params) => <TextField {...params} label="Year" variant="outlined" />}
               />
             </Grid>
-            <Grid item xs={12} sm={1.5}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Timeline</InputLabel>
-                <Select value={modalDateRange} label="Timeline" onChange={(e) => setModalDateRange(e.target.value)}>
-                  <MenuItem value="all">Full Academic History</MenuItem>
-                  <MenuItem value="7days">Last 7 Days</MenuItem>
-                  <MenuItem value="30days">Last 30 Days</MenuItem>
-                  <MenuItem value="6months">Last 6 Months</MenuItem>
-                  <MenuItem value="custom">Manual Range Selection</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            {modalDateRange === 'custom' && (
+            {modalDateRange === 'custom' ? (
               <>
                 <Grid item xs={12} sm={1.5}>
                   <TextField fullWidth type="date" label="Start" size="small" value={modalStartDate} onChange={(e) => setModalStartDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ max: modalEndDate || getTodayString() }} />
@@ -448,6 +469,10 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
                   <TextField fullWidth type="date" label="End" size="small" value={modalEndDate} onChange={(e) => setModalEndDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ min: modalStartDate, max: getTodayString() }} />
                 </Grid>
               </>
+            ) : (
+              <Grid item xs={12} sm={3}>
+                {/* Space for search or padding */}
+              </Grid>
             )}
           </Grid>
 

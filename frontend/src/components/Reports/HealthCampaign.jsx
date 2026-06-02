@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 /**
  * HealthCampaign.jsx
- * Updated: May 29, 2026 - Analytical Reports Workshop
+ * Updated: June 2, 2026 - Restored Individual Filters
  * Integrated with Enterprise Export Engine
  */
 import { 
@@ -44,7 +44,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
   // Modal Internal Independent Filtering Controls
   const [openModal, setOpenModal] = useState(false);
   const [selectedCampaigns, setSelectedCampaigns] = useState([]); 
-  const [modalDateRange, setModalDateRange] = useState('30days'); 
+  const [modalDateRange, setModalDateRange] = useState('all'); 
   const [modalStartDate, setModalStartDate] = useState('');
   const [modalEndDate, setModalEndDate] = useState('');
 
@@ -260,7 +260,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
     if (dateRange === '30days') return "(Last 30 Days)";
     if (dateRange === '6months') return "(Last 6 Months)";
     if (dateRange === 'custom') return `(${customStart} to ${customEnd})`;
-    return "(All History)";
+    return "(Full Academic History)";
   };
 
   const uniqueCampaignTitles = Array.from(new Set(campaigns.map(c => c.title).filter(Boolean)));
@@ -276,7 +276,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
             <Box display="flex" alignItems="center" gap={1}>
               <ChartIcon sx={{ color: '#ea580c', fontSize: 26 }} />
               <Typography variant="h6" sx={{ fontWeight: 600, color: '#ea580c', fontSize: '1.1rem' }}>
-                Campaign Views {renderDashboardHeadlineString()}
+                Campaign Views
               </Typography>
             </Box>
             {!loading && (
@@ -349,7 +349,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
                 <FormControl fullWidth size="small">
                   <InputLabel>Workshop Timeline</InputLabel>
                   <Select value={modalDateRange} label="Workshop Timeline" onChange={(e) => setModalDateRange(e.target.value)}>
-                    <MenuItem value="all">Full Academic History (Up to 2025)</MenuItem>
+                    <MenuItem value="all">Full Academic History</MenuItem>
                     <MenuItem value="7days">Last 7 Days</MenuItem>
                     <MenuItem value="30days">Last 30 Days</MenuItem>
                     <MenuItem value="6months">Last 6 Months</MenuItem>

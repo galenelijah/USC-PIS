@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Box, Card, CardContent, Typography, CircularProgress, Button,
   Alert, TextField, FormControl, InputLabel, Select, MenuItem, Grid,
@@ -107,7 +107,7 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
     if (openModal) {
       fetchAnalytics(true);
     }
-  }, [openModal, modalDateRange, modalStartDate, modalEndDate, streamFilter]);
+  }, [openModal, streamFilter, modalDateRange, modalStartDate, modalEndDate]);
 
   const handleGenerateReport = async (format = 'PDF') => {
     try {
@@ -122,10 +122,10 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
           service_type: streamFilter !== 'all' ? streamFilter : undefined,
+          search: searchQuery || undefined,
           charts_base64: chartRef.current ? [chartRef.current.toBase64Image()] : []
         }
       };
-
 
       const response = await reportService.generateReport(2, payload).catch(async (err) => {
         if (err.response?.status === 404) {
@@ -331,7 +331,7 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
               <FormControl fullWidth size="small">
                 <InputLabel>Reporting Range</InputLabel>
                 <Select value={modalDateRange} label="Reporting Range" onChange={(e) => setModalDateRange(e.target.value)}>
-                  <MenuItem value="all">Full Academic History (Up to 2025)</MenuItem>
+                  <MenuItem value="all">Full Academic History</MenuItem>
                   <MenuItem value="7days">Last 7 Days</MenuItem>
                   <MenuItem value="30days">Last 30 Days</MenuItem>
                   <MenuItem value="6months">Last 6 Months</MenuItem>
@@ -349,7 +349,7 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
                 </Grid>
               </>
             )}
-            <Grid item xs={12} sm={3}>
+            <Grid item xs={12} sm={2}>
               <ToggleButtonGroup
                 value={viewType}
                 exclusive
@@ -365,7 +365,7 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
                 </ToggleButton>
               </ToggleButtonGroup>
             </Grid>
-            <Grid item xs={12} sm={3}>
+            <Grid item xs={12} sm={modalDateRange === 'custom' ? 2 : 4}>
                 <TextField
                   fullWidth
                   size="small"
@@ -424,8 +424,6 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
               <TableBody>
                 {getSortedTableData().map((row, idx, array) => {
                   const total = row.medical_visits + row.dental_visits;
-                  // Simple change calculation compared to previous in list (which is next month or prev month depending on sort)
-                  // For simplicity, we just show the total
                   return (
                     <TableRow key={idx} hover>
                       <TableCell sx={{ fontWeight: 600 }}>{row.month}</TableCell>
@@ -435,10 +433,10 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
                       <TableCell align="right">
                         <Box display="flex" alignItems="center" justifyContent="flex-end" gap={1}>
                           <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-                            {((total / (data.visits.total || 1)) * 100).toFixed(2)}%
+                            {((total / (data?.visits?.total || 1)) * 100).toFixed(2)}%
                           </Typography>
                           <Box sx={{ width: 60, height: 6, bgcolor: '#f1f5f9', borderRadius: 10, overflow: 'hidden' }}>
-                            <Box sx={{ width: `${(total / (data.visits.total || 1)) * 100}%`, height: '100%', bgcolor: '#2563eb' }} />
+                            <Box sx={{ width: `${(total / (data?.visits?.total || 1)) * 100}%`, height: '100%', bgcolor: '#2563eb' }} />
                           </Box>
                         </Box>
                       </TableCell>

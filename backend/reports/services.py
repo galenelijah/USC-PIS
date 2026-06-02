@@ -259,14 +259,17 @@ class ReportDataService:
                 table_name = 'patients_patient'
                 id_col = 'id'
 
-                # Active patients with records in the given date range
-                if date_start and date_end:
-                    med_p_ids = MedicalRecord.objects.filter(visit_date__range=(date_start, date_end)).values_list('patient_id', flat=True)
-                    den_p_ids = DentalRecord.objects.filter(visit_date__range=(date_start, date_end)).values_list('patient_id', flat=True)
-                    all_ids = set(list(med_p_ids) + list(den_p_ids))
-                    queryset = queryset.filter(id__in=all_ids)
-                else:
-                    # Fallback for legacy calls or missing dates
+                # Standardize scope-based filtering
+                if patient_scope == 'active_with_records':
+                    if date_start and date_end:
+                        med_p_ids = MedicalRecord.objects.filter(visit_date__range=(date_start, date_end)).values_list('patient_id', flat=True)
+                        den_p_ids = DentalRecord.objects.filter(visit_date__range=(date_start, date_end)).values_list('patient_id', flat=True)
+                        all_ids = set(list(med_p_ids) + list(den_p_ids))
+                        queryset = queryset.filter(id__in=all_ids)
+                elif patient_scope == 'all_profiles':
+                    # All verified patients who completed setup (have a Patient object)
+                    queryset = queryset.filter(user__is_verified=True)
+                    # Use created_at for the date range filter
                     if date_start:
                         queryset = queryset.filter(created_at__gte=date_start)
                     if date_end:
@@ -876,6 +879,13 @@ class ReportDataService:
                             feedback_qs = feedback_qs.filter(medical_record__isnull=False)
                         elif v_type == 'DENTAL':
                             feedback_qs = feedback_qs.filter(dental_record__isnull=False)
+
+                if filters.get('search'):
+                    from django.db.models import Q
+                    feedback_qs = feedback_qs.filter(
+                        Q(comments__icontains=filters['search']) | 
+                        Q(improvement__icontains=filters['search'])
+                    )
             
             total = feedback_qs.count()
             
@@ -1079,10 +1089,13 @@ class ReportDataService:
             
             # Apply filters
             if filters:
-                if filters.get('diagnosis_category'):
-                    diag_list = filters['diagnosis_category']
+                if filters.get('diagnosis_category') or filters.get('diagnosis'):
+                    diag_list = filters.get('diagnosis_category') or filters.get('diagnosis')
                     if isinstance(diag_list, str): diag_list = diag_list.split(',')
                     if diag_list: records = records.filter(diagnosis__in=diag_list)
+
+                if filters.get('search'):
+                    records = records.filter(diagnosis__icontains=filters['search'])
 
                 # Campus filter - Map to course IDs
                 if filters.get('campus'):
@@ -1254,6 +1267,9 @@ class ReportDataService:
                     priorities = filters['priority']
                     if isinstance(priorities, str): priorities = priorities.split(',')
                     if priorities: records = records.filter(priority__in=priorities)
+
+                if filters.get('search'):
+                    records = records.filter(procedure_performed__icontains=filters['search'])
             
             total_records = records.count()
 
@@ -1529,6 +1545,15 @@ class ReportDataService:
                 queryset = queryset.filter(issuance_status=filters['issuance_status'])
             if filters.get('template'):
                 queryset = queryset.filter(template_id=filters['template'])
+
+            if filters.get('search'):
+                from django.db.models import Q
+                queryset = queryset.filter(
+                    Q(patient__first_name__icontains=filters['search']) |
+                    Q(patient__last_name__icontains=filters['search']) |
+                    Q(patient__user__id_number__icontains=filters['search']) |
+                    Q(template__name__icontains=filters['search'])
+                )
             
             results = []
             for c in queryset.order_by('-created_at'):
@@ -1582,7 +1607,8 @@ class ReportDataService:
                 elif range_type == '6months':
                     date_start = now - timedelta(days=180)
                 elif range_type == 'all':
-                    date_start = now - timedelta(days=3650) # 10 years
+                    # Full Academic History starts from 2024 institutional rollout
+                    date_start = timezone.make_aware(datetime(2024, 1, 1, 0, 0, 0))
                     # Full Academic History capped at end of 2025 as requested
                     date_end = timezone.make_aware(datetime(2025, 12, 31, 23, 59, 59))
                 
@@ -1642,6 +1668,17 @@ class ReportDataService:
                     levels = filters['year_level'].split(',')
                     medical_records = medical_records.filter(patient__user__year_level__in=levels)
                     dental_records = dental_records.filter(patient__user__year_level__in=levels)
+
+                if filters.get('service_type'):
+                    stype = filters['service_type'].upper()
+                    if stype == 'MEDICAL':
+                        dental_records = dental_records.none()
+                    elif stype == 'DENTAL':
+                        medical_records = medical_records.none()
+
+                if filters.get('search'):
+                    medical_records = medical_records.filter(diagnosis__icontains=filters['search'])
+                    dental_records = dental_records.filter(procedure_performed__icontains=filters['search'])
 
                 # Role filter
                 if filters.get('role'):

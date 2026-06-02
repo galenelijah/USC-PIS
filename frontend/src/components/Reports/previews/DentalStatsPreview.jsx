@@ -113,6 +113,7 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
         filters: {
           procedure: selectedProcedures,
           campus: campusFilter !== 'all' ? [campusFilter] : undefined,
+          search: searchQuery || undefined,
           charts_base64: chartRef.current ? [chartRef.current.toBase64Image()] : []
         }
       };
@@ -198,8 +199,8 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
     }
 
     return [...filtered].sort((a, b) => {
-      const valA = a[sortField];
-      const valB = b[sortField];
+      const valA = a[sortField] !== undefined ? a[sortField] : (sortField === 'count' ? a.case_count : undefined);
+      const valB = b[sortField] !== undefined ? b[sortField] : (sortField === 'count' ? b.case_count : undefined);
       if (sortDirection === 'asc') {
         return valA > valB ? 1 : -1;
       } else {
@@ -354,7 +355,7 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
                     labels: data.clinical.top_procedures.map(p => p.name),
                     datasets: [{
                       label: 'Total Procedures',
-                      data: data.clinical.top_procedures.map(p => p.count),
+                      data: data.clinical.top_procedures.map(p => p.count || p.case_count || 0),
                       backgroundColor: (context) => {
                         const chart = context.chart;
                         const {ctx, chartArea} = chart;
@@ -417,12 +418,13 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
               </TableHead>
               <TableBody>
                 {getSortedTableData().map((row, idx) => {
-                  const total = data.clinical.top_procedures.reduce((sum, p) => sum + p.count, 0);
-                  const weight = (row.count / (total || 1)) * 100;
+                  const currentCount = row.count || row.case_count || 0;
+                  const total = data.clinical.top_procedures.reduce((sum, p) => sum + (p.count || p.case_count || 0), 0);
+                  const weight = (currentCount / (total || 1)) * 100;
                   return (
                     <TableRow key={idx} hover>
                       <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>{row.name}</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700, color: '#7c3aed' }}>{(row.count || 0).toLocaleString()}</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: '#7c3aed' }}>{currentCount.toLocaleString()}</TableCell>
                       <TableCell align="right">
                         <Box display="flex" alignItems="center" justifyContent="flex-end" gap={1}>
                           <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
@@ -435,12 +437,12 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
                       </TableCell>
                       <TableCell align="right">
                         <Chip 
-                          label={row.count > 5 ? 'High Demand' : row.count > 2 ? 'Moderate' : 'Low Frequency'} 
+                          label={currentCount > 5 ? 'High Demand' : currentCount > 2 ? 'Moderate' : 'Low Frequency'} 
                           size="small" 
                           variant="outlined"
                           sx={{ 
-                            borderColor: row.count > 5 ? '#7c3aed' : '#94a3b8', 
-                            color: row.count > 5 ? '#7c3aed' : '#64748b',
+                            borderColor: currentCount > 5 ? '#7c3aed' : '#94a3b8', 
+                            color: currentCount > 5 ? '#7c3aed' : '#64748b',
                             fontSize: '0.65rem'
                           }}
                         />

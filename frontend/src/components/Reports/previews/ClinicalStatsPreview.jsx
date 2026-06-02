@@ -112,6 +112,7 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
         filters: {
           diagnosis: selectedDiagnoses,
           campus: campusFilter !== 'all' ? [campusFilter] : undefined,
+          search: searchQuery || undefined,
           charts_base64: chartRef.current ? [chartRef.current.toBase64Image()] : []
         }
       };
@@ -355,7 +356,7 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
                     labels: data.clinical.top_diagnoses.map(d => d.name),
                     datasets: [{
                       label: 'Total Cases',
-                      data: data.clinical.top_diagnoses.map(d => d.count),
+                      data: data.clinical.top_diagnoses.map(d => d.case_count || d.count || 0),
                       backgroundColor: (context) => {
                         const chart = context.chart;
                         const {ctx, chartArea} = chart;

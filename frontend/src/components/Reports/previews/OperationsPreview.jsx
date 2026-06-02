@@ -129,6 +129,7 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
         filters: {
           service_type: serviceType !== 'all' ? serviceType : undefined,
           workload_class: workloadClass !== 'all' ? workloadClass : undefined,
+          search: searchQuery || undefined,
           include_peak_hours: true,
           include_demographics: true,
           charts_base64: [

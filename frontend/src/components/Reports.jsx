@@ -54,7 +54,7 @@ const Reports = () => {
                       <MenuItem value="7days">Last 7 Days</MenuItem>
                       <MenuItem value="30days">Last 30 Days</MenuItem>
                       <MenuItem value="6months">Last 6 Months</MenuItem>
-                      <MenuItem value="all">Full Academic History (Up to 2025)</MenuItem>
+                      <MenuItem value="all">Full Academic History</MenuItem>
                       <MenuItem value="custom">Manual Range Selection</MenuItem>
                     </Select>
                   </FormControl>

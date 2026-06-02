@@ -3,7 +3,7 @@ import {
   Box, Card, CardContent, Typography, CircularProgress, Button,
   Alert, TextField, FormControl, InputLabel, Select, MenuItem, Grid,
   Dialog, DialogTitle, DialogContent, 
-  DialogActions, IconButton, Chip, Divider
+  DialogActions, IconButton, Chip, Divider, InputAdornment
 } from '@mui/material';
 import { 
   VerifiedUser as CertIcon,
@@ -11,7 +11,8 @@ import {
   Close as CloseIcon,
   FileDownload as DownloadIcon,
   Assessment as StatsIcon,
-  PieChart as PieIcon
+  PieChart as PieIcon,
+  Search as SearchIcon
 } from '@mui/icons-material';
 import { Bar, Pie } from 'react-chartjs-2';
 import { reportService } from '../../../services/api';
@@ -37,13 +38,14 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
   
   // Workshop Modal Internal Independent Filtering Controls
   const [openModal, setOpenModal] = useState(false);
-  const [modalDateRange, setModalDateRange] = useState('30days'); 
+  const [modalDateRange, setModalDateRange] = useState('all'); 
   const [modalStartDate, setModalStartDate] = useState('');
   const [modalEndDate, setModalEndDate] = useState('');
 
   // Domain Specific Filters
   const [fitnessFilter, setFitnessFilter] = useState('all');
   const [issuanceFilter, setIssuanceFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const chartRef = React.useRef(null);
 
@@ -64,12 +66,13 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
       const params = {
         date_start: isModal ? (modalDateRange === 'custom' ? modalStartDate : undefined) : (dateRange === 'custom' ? customStart : undefined),
         date_end: isModal ? (modalDateRange === 'custom' ? modalEndDate : undefined) : (dateRange === 'custom' ? customEnd : undefined),
-        date_range: currentRange === 'all' ? undefined : currentRange,
+        date_range: currentRange,
       };
 
       if (isModal) {
         if (fitnessFilter !== 'all') params.fitness_status = fitnessFilter;
         if (issuanceFilter !== 'all') params.issuance_status = issuanceFilter;
+        if (searchQuery) params.search = searchQuery;
       }
 
       const response = await reportService.getDashboardAnalytics(params);
@@ -80,7 +83,7 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [modalDateRange, dateRange, modalStartDate, customStart, modalEndDate, customEnd, fitnessFilter, issuanceFilter]);
+  }, [modalDateRange, dateRange, modalStartDate, customStart, modalEndDate, customEnd, fitnessFilter, issuanceFilter, searchQuery]);
 
   useEffect(() => {
     fetchAnalytics(false);
@@ -106,6 +109,7 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
         filters: {
           fitness_status: fitnessFilter !== 'all' ? fitnessFilter : undefined,
           issuance_status: issuanceFilter !== 'all' ? issuanceFilter : undefined,
+          search: searchQuery || undefined,
           charts_base64: chartRef.current ? [chartRef.current.toBase64Image()] : []
         }
       };
@@ -265,7 +269,7 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
               <FormControl fullWidth size="small">
                 <InputLabel>Timeline</InputLabel>
                 <Select value={modalDateRange} label="Timeline" onChange={(e) => setModalDateRange(e.target.value)}>
-                  <MenuItem value="all">Full Academic History (Up to 2025)</MenuItem>
+                  <MenuItem value="all">Full Academic History</MenuItem>
                   <MenuItem value="7days">Last 7 Days</MenuItem>
                   <MenuItem value="30days">Last 30 Days</MenuItem>
                   <MenuItem value="6months">Last 6 Months</MenuItem>
@@ -313,6 +317,20 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
           </Grid>
 
           <Divider sx={{ mb: 3 }} />
+
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Certification Audit Log</Typography>
+            <TextField
+              size="small"
+              placeholder="Search by name, ID, or template..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>
+              }}
+              sx={{ width: 350 }}
+            />
+          </Box>
 
           <Box sx={{ p: 2, bgcolor: '#ffffff', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Doctor Workload & Issuance Metrics</Typography>
