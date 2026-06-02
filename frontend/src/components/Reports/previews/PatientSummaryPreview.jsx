@@ -544,7 +544,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
                 {getSortedTableData().map((row, idx) => (
                   <TableRow key={idx} hover>
                     <TableCell sx={{ fontWeight: 500 }}>{row.college || 'Other'}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: '#1e3a8a' }}>{row.count.toLocaleString()}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, color: '#1e3a8a' }}>{(row.count || 0).toLocaleString()}</TableCell>
                     <TableCell align="right">
                       <Box display="flex" alignItems="center" justifyContent="flex-end" gap={1}>
                         <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>

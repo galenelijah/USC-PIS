@@ -448,7 +448,7 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
                   return (
                     <TableRow key={idx} hover>
                       <TableCell sx={{ fontWeight: 600 }}>{formatHourRange(row.hour)}</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700, color: '#b45309' }}>{row.count.toLocaleString()}</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: '#b45309' }}>{(row.count || 0).toLocaleString()}</TableCell>
                       <TableCell align="center">
                         <Chip 
                           label={meta.label} 

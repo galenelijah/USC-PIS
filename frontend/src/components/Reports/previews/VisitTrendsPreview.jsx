@@ -429,9 +429,9 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
                   return (
                     <TableRow key={idx} hover>
                       <TableCell sx={{ fontWeight: 600 }}>{row.month}</TableCell>
-                      <TableCell align="right" sx={{ color: '#2563eb', fontWeight: 600 }}>{row.medical_visits.toLocaleString()}</TableCell>
-                      <TableCell align="right" sx={{ color: '#7c3aed', fontWeight: 600 }}>{row.dental_visits.toLocaleString()}</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700, color: '#1e293b' }}>{total.toLocaleString()}</TableCell>
+                      <TableCell align="right" sx={{ color: '#2563eb', fontWeight: 600 }}>{(row.medical_visits || 0).toLocaleString()}</TableCell>
+                      <TableCell align="right" sx={{ color: '#7c3aed', fontWeight: 600 }}>{(row.dental_visits || 0).toLocaleString()}</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: '#1e293b' }}>{(total || 0).toLocaleString()}</TableCell>
                       <TableCell align="right">
                         <Box display="flex" alignItems="center" justifyContent="flex-end" gap={1}>
                           <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
