@@ -169,6 +169,11 @@ const SystemAuditWorkshop = () => {
         return { icon: <VpnKey />, color: '#1a237e', label: 'Authentication' };
     }
 
+    // Explicitly hide notification-related models from the audit trail
+    if (model && (model.includes('Notification') || model === 'NotificationLog')) {
+        return null;
+    }
+
     switch (model) {
       case 'User': return { icon: <AccountCircle />, color: '#1976d2', label: 'Accounts' };
       case 'Patient': return { icon: <Person />, color: '#2e7d32', label: 'Patients' };
@@ -182,7 +187,10 @@ const SystemAuditWorkshop = () => {
   const generateSummary = (log) => {
     const actor = log.actor_name || log.actor_email || 'System';
     const action = log.action_type;
-    const module = getModuleConfig(log.target_model, action).label;
+    const moduleConfig = getModuleConfig(log.target_model, action);
+    
+    // Fallback if module is hidden or unknown
+    const moduleLabel = moduleConfig ? moduleConfig.label : (log.target_model || 'record');
     
     let description = log.changes_summary?.description || `record #${log.target_object_id}`;
     if (description.includes('Object') || description.includes('at 0x')) {
@@ -196,18 +204,18 @@ const SystemAuditWorkshop = () => {
     
     switch (action) {
         case 'CREATE': 
-            return `${actor} created a new ${module.toLowerCase()} (${description}).`;
+            return `${actor} created a new ${moduleLabel.toLowerCase()} (${description}).`;
         case 'UPDATE': 
             const changedFields = log.changes_summary ? Object.keys(log.changes_summary).filter(k => k !== 'status' && k !== 'description') : [];
             if (changedFields.length > 0) {
                 const fieldsList = changedFields.map(f => f.replace(/_/g, ' ')).join(', ');
-                return `${actor} updated ${fieldsList} for ${module.toLowerCase()} (${description}).`;
+                return `${actor} updated ${fieldsList} for ${moduleLabel.toLowerCase()} (${description}).`;
             }
-            return `${actor} updated ${module.toLowerCase()} (${description}).`;
+            return `${actor} updated ${moduleLabel.toLowerCase()} (${description}).`;
         case 'DELETE': 
-            return `${actor} removed ${module.toLowerCase()} (${description}) from the system.`;
+            return `${actor} removed ${moduleLabel.toLowerCase()} (${description}) from the system.`;
         default: 
-            return `${actor} performed ${action.toLowerCase()} on ${module.toLowerCase()}.`;
+            return `${actor} performed ${action.toLowerCase()} on ${moduleLabel.toLowerCase()}.`;
     }
   };
 
@@ -379,7 +387,7 @@ const SystemAuditWorkshop = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              logs.map((log) => {
+              logs.filter(log => getModuleConfig(log.target_model, log.action_type) !== null).map((log) => {
                 const module = getModuleConfig(log.target_model, log.action_type);
                 return (
                   <TableRow key={log.id} hover>

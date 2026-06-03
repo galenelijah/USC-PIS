@@ -54,7 +54,6 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     ViewSet for viewing administrative activity logs.
     Strictly limited to ADMIN role.
     """
-    queryset = AuditLog.objects.all().select_related('actor')
     serializer_class = AuditLogSerializer
     permission_classes = [IsAuthenticated, IsAdminUserRole]
     filter_backends = [filters.OrderingFilter, filters.SearchFilter, DjangoFilterBackend]
@@ -69,6 +68,17 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ['actor_email', 'target_model', 'action_type', 'target_object_id', 'changes_summary']
     ordering_fields = ['timestamp', 'action_type', 'target_model']
     ordering = ['-timestamp']
+
+    def get_queryset(self):
+        """
+        Exclude notification-related noise from the audit trail to focus on 
+        human-driven clinical and administrative actions.
+        """
+        return AuditLog.objects.exclude(
+            target_model__icontains='Notification'
+        ).exclude(
+            target_model__in=['NotificationLog', 'NotificationCampaign', 'NotificationTemplate']
+        ).select_related('actor')
 
 def get_client_ip(request):
     """Get client IP address from request."""

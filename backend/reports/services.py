@@ -764,7 +764,11 @@ class ReportDataService:
             date_end = date_end or timezone.now()
             
             # Use AuditLog for exhaustive mutation tracking
-            audit_qs = AuditLog.objects.filter(timestamp__range=(date_start, date_end))
+            audit_qs = AuditLog.objects.filter(timestamp__range=(date_start, date_end)).exclude(
+                target_model__icontains='Notification'
+            ).exclude(
+                target_model__in=['NotificationLog', 'NotificationCampaign', 'NotificationTemplate']
+            )
             
             if filters.get('user_id'):
                 audit_qs = audit_qs.filter(actor_id=filters['user_id'])
@@ -2690,7 +2694,11 @@ class ReportGenerationService:
                     }
                     
                     # Enhanced Audit Trail Collection with filtering
-                    audit_qs = AuditLog.objects.filter(timestamp__range=(date_start, date_end))
+                    audit_qs = AuditLog.objects.filter(timestamp__range=(date_start, date_end)).exclude(
+                        target_model__icontains='Notification'
+                    ).exclude(
+                        target_model__in=['NotificationLog', 'NotificationCampaign', 'NotificationTemplate']
+                    )
                     
                     if filters:
                         if filters.get('search'):
