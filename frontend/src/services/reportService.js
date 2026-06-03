@@ -78,7 +78,7 @@ class ReportService {
   }
 
   /**
-   * Standardized Excel Export (TSV-based for compatibility)
+   * Standardized Excel Export (HTML-based for MS Excel native compatibility)
    * @param {Array} data - Array of objects to export
    * @param {string} filename - Output filename
    */
@@ -86,17 +86,29 @@ class ReportService {
     if (!data || !data.length) return;
 
     const headers = Object.keys(data[0]);
-    const tsvContent = [
-      headers.join('\t'),
-      ...data.map(row => 
-        headers.map(header => {
-          const value = row[header] === null || row[header] === undefined ? '' : row[header];
-          return String(value).replace(/\t/g, ' ').replace(/\n/g, ' ');
-        }).join('\t')
-      )
-    ].join('\n');
+    let tableHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+    <head><meta charset="utf-8"></head><body><table>`;
+    
+    // Add Headers
+    tableHtml += '<tr>';
+    headers.forEach(header => {
+      tableHtml += `<th style="background-color: #003366; color: white;">${header}</th>`;
+    });
+    tableHtml += '</tr>';
 
-    this._downloadFile(tsvContent, 'application/vnd.ms-excel;charset=utf-8;', filename);
+    // Add Rows
+    data.forEach(row => {
+      tableHtml += '<tr>';
+      headers.forEach(header => {
+        const value = row[header] === null || row[header] === undefined ? '' : row[header];
+        tableHtml += `<td>${String(value).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>`;
+      });
+      tableHtml += '</tr>';
+    });
+    
+    tableHtml += '</table></body></html>';
+
+    this._downloadFile(tableHtml, 'application/vnd.ms-excel;charset=utf-8;', filename);
   }
 
   /**
@@ -118,9 +130,20 @@ class ReportService {
   /**
    * Formats clinical data for export based on record type
    * @param {Array} records - Raw clinical records
-   * @param {string} type - 'MEDICAL', 'DENTAL', or 'FEEDBACK'
+   * @param {string} type - 'MEDICAL', 'DENTAL', 'FEEDBACK', or 'HISTORY'
    */
   prepareDataForExport(records, type = 'MEDICAL') {
+    if (type === 'HISTORY') {
+      return records.map(record => ({
+        'Date': dayjs(record.visit_date || record.created_at || record.date).format('YYYY-MM-DD'),
+        'Patient': record.patient_name || 'N/A',
+        'Record Type': record.record_type || 'Consultation',
+        'Diagnosis / Purpose': record.diagnosis || record.purpose || record.concern || 'N/A',
+        'Status': record.status || record.fitness_status || record.issuance_status || 'Completed',
+        'Doctor': record.physician || record.issuing_doctor_name || 'N/A'
+      }));
+    }
+
     if (type === 'DENTAL') {
       return records.map(record => ({
         'Date': dayjs(record.visit_date).format('YYYY-MM-DD'),

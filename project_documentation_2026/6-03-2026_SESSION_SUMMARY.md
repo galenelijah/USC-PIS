@@ -29,6 +29,7 @@ Expand report export capabilities and enhance the visual density and professiona
 - **Faculty Role Classification:** Standardized backend data aggregation to explicitly group users with the 'FACULTY' role under a unified "Faculty" label in academic distribution charts, rather than tracking their individual departments.
 - **Frontend Reference Errors:** Fixed a `ReferenceError: Autocomplete is not defined` crash by explicitly importing the `Autocomplete` component in all workshop previews where the new multi-select Campus filter was added.
 - **Vite Build Error:** Fixed a Heroku compilation crash by safely repositioning a newly injected string-wrapping utility outside of ES6 import blocks.
+- **Patient Classification Visual:** Repaired the broken "Patient Classification" doughnut chart in client-side PDF exports. Replaced the unsupported `conic-gradient` CSS with a robust horizontal progress bar and refactored the role detection logic to accurately classify students vs. faculty while excluding non-clinical records like attachments.
 
 ## Impact
 The reporting system is now significantly more versatile and professional. The high-density visual layout ensures that clinical staff can quickly interpret granular data trends without manually cross-referencing tables. The addition of HTML and JSON formats makes the system highly interoperable with external data analysis workflows.

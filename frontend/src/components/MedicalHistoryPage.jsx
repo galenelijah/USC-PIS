@@ -526,21 +526,7 @@ const MedicalHistoryPage = () => {
   const handleExportRecords = () => {
     if (filteredRecords.length === 0) return;
 
-    const exportData = filteredRecords.map(record => ({
-      'Date': formatDate(record.visit_date).formatted,
-      'Patient': record.patient_name || `ID: ${record.patient}`,
-      'Type': record.record_type || 'MEDICAL',
-      'Diagnosis': record.diagnosis || 'N/A',
-      'Treatment/Plan': record.treatment || record.treatment_performed || 'N/A',
-      'Chief Complaint': record.chief_complaint || record.concern || 'N/A',
-      'Medications': record.medications || 'N/A',
-      'Vital Signs': record.record_type === 'MEDICAL' ? 
-        `BP: ${record.vital_signs?.blood_pressure || 'N/A'}, Temp: ${record.vital_signs?.temperature || 'N/A'}°C` : 'N/A',
-      'Dental Info': record.record_type === 'DENTAL' ? 
-        `Proc: ${record.procedure_performed}, Tooth: ${record.tooth_numbers || 'N/A'}` : 'N/A',
-      'Notes': record.notes || record.clinical_notes || 'N/A'
-    }));
-
+    const exportData = reportService.prepareDataForExport(filteredRecords, 'HISTORY');
     reportService.exportToCSV(exportData, `unified-health-history-${dayjs().format('YYYY-MM-DD')}.csv`);
   };
 

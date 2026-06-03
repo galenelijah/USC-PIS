@@ -18,11 +18,29 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
     : 'N/A';
   
   // Categorize for summary
-  const studentVisits = data.filter(r => {
-    const role = (r.patient_role || '').toUpperCase();
-    return role === 'STUDENT' || role === 'PATIENT'; // PATIENT role often maps to students in some contexts
-  }).length;
-  const facultyVisits = totalVisits - studentVisits;
+  const validInteractionData = reportType === 'FEEDBACK' ? data : data.filter(r => r.record_type !== 'ATTACHMENT');
+  const totalInteractions = validInteractionData.length || totalVisits; // Fallback to total if all are attachments
+
+  let studentVisits = 0;
+  let facultyVisits = 0;
+
+  validInteractionData.forEach(r => {
+    // Attempt to extract role from various common locations in the payload
+    let roleStr = '';
+    if (r.patient_role) roleStr = String(r.patient_role).toUpperCase();
+    else if (r.role) roleStr = String(r.role).toUpperCase();
+    else if (patient && patient.role) roleStr = String(patient.role).toUpperCase();
+    else if (patient && patient.user && patient.user.role) roleStr = String(patient.user.role).toUpperCase();
+    
+    // Default to student if completely ambiguous to prevent broken chart percentages
+    if (!roleStr) roleStr = 'STUDENT'; 
+
+    if (roleStr.includes('STUDENT') || roleStr.includes('PATIENT')) {
+      studentVisits++;
+    } else {
+      facultyVisits++;
+    }
+  });
 
   // Determine if this is a single-patient report
   const isSinglePatient = patient && new Set(data.map(r => r.patient)).size <= 1;
@@ -201,36 +219,33 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
             </Paper>
           </Grid>
 
-          {/* Classification Doughnut-like Chart */}
+          {/* Classification Horizontal Bar Chart */}
           <Grid item xs={5}>
-            <Paper variant="outlined" sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <Paper variant="outlined" sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
               <Typography variant="caption" sx={{ fontWeight: 'bold', mb: 2, display: 'block', width: '100%', textAlign: 'left' }}>
                 {reportType === 'HISTORY' ? 'CLINICAL INTERACTION DENSITY' : 'PATIENT CLASSIFICATION'}
               </Typography>
-              <Box sx={{ 
-                position: 'relative', 
-                width: 100, 
-                height: 100, 
-                borderRadius: '50%', 
-                background: `conic-gradient(#1976d2 0% ${totalVisits > 0 ? Math.round((studentVisits/totalVisits)*100) : 0}%, #f57c00 ${totalVisits > 0 ? Math.round((studentVisits/totalVisits)*100) : 0}% 100%)`,
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                mb: 2,
-                mt: 1
-              }}>
-                <Box sx={{ width: 60, height: 60, bgcolor: 'white', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                  <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>{totalVisits}</Typography>
+              
+              <Box sx={{ width: '100%', mb: 3, mt: 1 }}>
+                <Box sx={{ display: 'flex', width: '100%', height: '24px', borderRadius: '4px', overflow: 'hidden', bgcolor: '#f0f0f0' }}>
+                  <Box sx={{ width: `${totalInteractions > 0 ? Math.round((studentVisits/totalInteractions)*100) : 0}%`, bgcolor: '#1976d2', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.65rem', fontWeight: 'bold' }}>
+                    {totalInteractions > 0 && Math.round((studentVisits/totalInteractions)*100) > 10 ? `${Math.round((studentVisits/totalInteractions)*100)}%` : ''}
+                  </Box>
+                  <Box sx={{ width: `${totalInteractions > 0 ? Math.round((facultyVisits/totalInteractions)*100) : 0}%`, bgcolor: '#f57c00', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.65rem', fontWeight: 'bold' }}>
+                    {totalInteractions > 0 && Math.round((facultyVisits/totalInteractions)*100) > 10 ? `${Math.round((facultyVisits/totalInteractions)*100)}%` : ''}
+                  </Box>
                 </Box>
+                <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', mt: 0.5, color: '#666' }}>Total: {totalInteractions} Records</Typography>
               </Box>
-              <Box sx={{ width: '100%' }}>
+
+              <Box sx={{ width: '100%', mt: 'auto' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
                   <Box sx={{ width: 10, height: 10, bgcolor: '#1976d2', mr: 1, borderRadius: '2px' }} />
-                  <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>STUDENTS: {studentVisits} ({totalVisits > 0 ? Math.round((studentVisits/totalVisits)*100) : 0}%)</Typography>
+                  <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>STUDENTS: {studentVisits} ({totalInteractions > 0 ? Math.round((studentVisits/totalInteractions)*100) : 0}%)</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <Box sx={{ width: 10, height: 10, bgcolor: '#f57c00', mr: 1, borderRadius: '2px' }} />
-                  <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>FACULTY/STAFF: {facultyVisits} ({totalVisits > 0 ? Math.round((facultyVisits/totalVisits)*100) : 0}%)</Typography>
+                  <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>FACULTY/STAFF: {facultyVisits} ({totalInteractions > 0 ? Math.round((facultyVisits/totalInteractions)*100) : 0}%)</Typography>
                 </Box>
               </Box>
             </Paper>
@@ -279,7 +294,7 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
       </Typography>
       
       <TableContainer component={Box} sx={{ border: '1px solid #ddd' }}>
-        <Table size="small">
+        <Table size="small" sx={{ '& td, & th': { p: 0.5, fontSize: '8pt', lineHeight: 1.2 } }}>
           <TableHead sx={{ bgcolor: '#f2f2f2' }}>
             <TableRow>
               <TableCell sx={{ fontWeight: 'bold', width: '20%' }}>DATE</TableCell>
@@ -458,7 +473,10 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
       )}
 
       {/* Signature & Validation */}
-      <Box sx={{ mt: 'auto', pt: 4, display: 'flex', justifyContent: 'flex-end' }}>
+      <Box sx={{ mt: 'auto', pt: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', maxWidth: '60%' }}>
+          * This document is a client-side snapshot of the current view. For exhaustive multi-page historical data, please use the standardized CSV/Excel exports or refer to the primary electronic medical record interface.
+        </Typography>
         <Box sx={{ width: '60mm', textAlign: 'center' }}>
           <Divider sx={{ mb: 1, borderBottomWidth: 2 }} />
           <Typography variant="body2" sx={{ fontWeight: 'bold' }}>AUTHORIZED CLINIC STAFF</Typography>
