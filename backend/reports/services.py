@@ -2389,12 +2389,8 @@ class ReportGenerationService:
                 <table class="metric-table">
                     <tr>
                         <td class="metric-box">
-                            <span class="metric-val">{{{{ total_certificates_issued|default:"0" }}}}</span>
-                            <span class="metric-lbl">Total Certificates</span>
-                        </td>
-                        <td class="metric-box">
-                            <span class="metric-val">{{{{ average_issuance_turnaround|default:"0h" }}}}</span>
-                            <span class="metric-lbl">Avg Turnaround Time</span>
+                            <span class="metric-val">{{{{ total_certificates|default:"0" }}}}</span>
+                            <span class="metric-lbl">Total Certificates*</span>
                         </td>
                         <td class="metric-box">
                             <span class="metric-val">{{{{ certificates_log|length }}}}</span>
@@ -2402,6 +2398,9 @@ class ReportGenerationService:
                         </td>
                     </tr>
                 </table>
+                <p style="font-size: 8pt; color: #64748b; font-style: italic; margin-top: 5px;">
+                    * Institutional aggregate includes certificates across all issuance and workflow statuses (including Issued, Pending, and Rejected).
+                </p>
             </div>
 
             <div class="section">

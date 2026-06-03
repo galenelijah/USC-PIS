@@ -226,8 +226,11 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
                 <Typography variant="h4" sx={{ fontWeight: 800, color: '#166534' }}>
                   {loading ? '...' : data?.certifications?.total_certificates || 0}
                 </Typography>
-                <Typography variant="caption" sx={{ fontWeight: 600, color: '#15803d', textTransform: 'uppercase' }}>
-                  Total Certificates (All Statuses)
+                <Typography variant="caption" sx={{ fontWeight: 600, color: '#15803d', textTransform: 'uppercase', display: 'block' }}>
+                  Total Certificates
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#166534', fontStyle: 'italic', fontSize: '0.65rem' }}>
+                  Includes all issuance & workflow statuses
                 </Typography>
               </Box>
             </Grid>
