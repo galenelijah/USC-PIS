@@ -1814,8 +1814,9 @@ const MedicalHistoryPage = () => {
               </CardContent>
             </Card>
 
-            <TableContainer component={Paper} elevation={1} sx={{ overflowX: 'auto' }}>
-              <Table size="small" sx={{ minWidth: 1200 }}>
+            <Box sx={{ width: '100%', overflow: 'hidden' }}>
+              <TableContainer component={Paper} elevation={1} sx={{ width: '100%', overflowX: 'auto' }}>
+                <Table size="small" sx={{ minWidth: 1200 }}>
                 <TableHead sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 'bold' }}>Date</TableCell>
@@ -1913,6 +1914,7 @@ const MedicalHistoryPage = () => {
               onPageChange={handleDocsChangePage}
               onRowsPerPageChange={handleDocsChangeRowsPerPage}
             />
+            </Box>
           </TabPanel>
 
           <TabPanel value={tabValue} index={2}>

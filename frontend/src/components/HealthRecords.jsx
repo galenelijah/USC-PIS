@@ -827,8 +827,8 @@ Treatment: ${r.treatment || 'N/A'}
           <ClinicalAnalytics records={records} />
         </Box>
       ) : (
-        <Box sx={{ mt: 2 }}>
-          <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+        <Box sx={{ mt: 2, width: '100%', overflow: 'hidden' }}>
+          <TableContainer component={Paper} sx={{ width: '100%', overflowX: 'auto' }}>
             <Table stickyHeader sx={{ minWidth: 1200 }}>
             <TableHead>
               <TableRow>

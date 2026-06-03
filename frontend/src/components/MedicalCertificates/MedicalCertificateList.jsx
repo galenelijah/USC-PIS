@@ -245,8 +245,9 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole, refreshTri
       </Stack>
 
       {/* Desktop Table View */}
-      <TableContainer component={Paper} sx={{ display: { xs: 'none', md: 'block' } }}>
-        <Table sx={{ minWidth: 1200 }}>
+      <Box sx={{ display: { xs: 'none', md: 'block' }, width: '100%', overflow: 'hidden' }}>
+        <TableContainer component={Paper} sx={{ width: '100%', overflowX: 'auto' }}>
+          <Table sx={{ minWidth: 1200 }}>
           <TableHead>
             <TableRow>
               <TableCell>Patient Name</TableCell>
@@ -334,7 +335,8 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole, refreshTri
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
-      </TableContainer>
+        </TableContainer>
+      </Box>
 
       {/* Mobile Card View */}
       <Box sx={{ display: { xs: 'block', md: 'none' } }}>

@@ -125,8 +125,8 @@ const PatientList = memo(({ patients, onPatientClick }) => {
   return (
     <Box>
       {/* Desktop Table View */}
-      <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-        <TableContainer component={Paper} elevation={1} sx={{ overflowX: 'auto' }}>
+      <Box sx={{ display: { xs: 'none', md: 'block' }, width: '100%', overflow: 'hidden' }}>
+        <TableContainer component={Paper} elevation={1} sx={{ width: '100%', overflowX: 'auto' }}>
           <Table stickyHeader sx={{ minWidth: 1200 }}>
             <TableHead>
               <TableRow>
