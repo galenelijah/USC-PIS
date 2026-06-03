@@ -17,5 +17,12 @@ Expand report export capabilities and enhance the visual density and professiona
 - **Export Synchronization:** Verified that all five export formats (PDF, Excel, CSV, HTML, JSON) strictly honor identical filters and produce uniform datasets.
 - **Backend Fallback:** Reinforced the dual-layer visualization strategy where frontend-captured charts are used if available, with automatic backend QuickChart fallback to guarantee no document is ever generated without visuals.
 
+### 4. Bug Fixes & UX Enhancements
+- **PDF Table Layout Fix:** Resolved a text overlapping issue in PDF exports for long horizontal tables by changing the template to A4 Landscape, implementing dynamic table layout, and optimizing font sizes.
+- **Chart Label Readability:** Implemented a dynamic text-wrapping utility across both the frontend React UI and backend QuickChart engine to ensure long labels (e.g., full course or diagnosis names) are rendered on multiple lines instead of being truncated with ellipses.
+- **Responsive Data Tables:** Added explicit horizontal scrolling boundaries (`overflowX: auto`) to large data tables across the `/patients`, `/health-records`, and `/medical-certificates` pages to prevent UI breakage on smaller screens.
+- **Faculty Role Classification:** Standardized backend data aggregation to explicitly group users with the 'FACULTY' role under a unified "Faculty" label in academic distribution charts, rather than tracking their individual departments.
+- **Vite Build Error:** Fixed a Heroku compilation crash by safely repositioning a newly injected string-wrapping utility outside of ES6 import blocks.
+
 ## Impact
 The reporting system is now significantly more versatile and professional. The high-density visual layout ensures that clinical staff can quickly interpret granular data trends without manually cross-referencing tables. The addition of HTML and JSON formats makes the system highly interoperable with external data analysis workflows.

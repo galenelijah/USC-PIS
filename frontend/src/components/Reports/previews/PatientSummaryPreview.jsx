@@ -526,8 +526,8 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Course Classification</Typography>
                 <Box sx={{ height: 280, display: 'flex', justifyContent: 'center' }}>
                   {data?.demographics?.courses ? (
-                    <Bar 
-                      data={generateCoursePieData()} 
+                    <Bar
+                      data={generateCoursePieData()}
                       options={{
                         indexAxis: 'y',
                         responsive: true,
@@ -535,9 +535,9 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
                         plugins: { legend: { display: false } },
                         scales: {
                           x: { beginAtZero: true, grid: { display: false }, ticks: { font: { size: 9 } } },
-                          y: { grid: { display: false }, ticks: { font: { size: 9 } } }
+                          y: { grid: { display: false }, ticks: { font: { size: 9 }, autoSkip: false } }
                         }
-                      }} 
+                      }}
                     />
                   ) : <Typography variant="body2" color="text.secondary" textAlign="center" mt={10}>No course data</Typography>}
                 </Box>

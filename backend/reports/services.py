@@ -1548,7 +1548,7 @@ class ReportDataService:
         for obj in patients:
             # Handle both Patient and User objects
             user = obj if isinstance(obj, User) else getattr(obj, 'user', None)
-            course = "Unspecified"
+            course = None
             
             if user:
                 if user.role == 'FACULTY':
@@ -1556,7 +1556,9 @@ class ReportDataService:
                 elif user.course:
                     course_id = str(user.course)
                     course = PROGRAMS_CHOICES.get(course_id, f"Program {course_id}")
-            courses[course] = courses.get(course, 0) + 1
+            
+            if course:
+                courses[course] = courses.get(course, 0) + 1
         
         return sorted([{'name': k, 'count': v} for k, v in courses.items()], key=lambda x: x['count'], reverse=True)
 
