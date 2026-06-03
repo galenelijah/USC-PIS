@@ -58,9 +58,12 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
   const [modalEndDate, setModalEndDate] = useState('');
 
   // Domain Specific Filters (Operations Dimensions)
+  const [selectedCampuses, setSelectedCampuses] = useState([]);
   const [serviceType, setServiceType] = useState('all'); // 'all', 'medical', 'dental'
   const [workloadClass, setWorkloadClass] = useState('all'); // 'all', 'peak', 'moderate', 'low'
   const [searchQuery, setSearchQuery] = useState('');
+
+  const campusOptions = ['Talamban Campus (TC)', 'Downtown Campus (DC)'];
 
   const [sortField, setSortField] = useState('hour');
   const [sortDirection, setSortDirection] = useState('asc');
@@ -90,6 +93,7 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
       };
 
       if (isModal) {
+        if (selectedCampuses.length > 0) params.campus = selectedCampuses.join(',');
         if (serviceType !== 'all') params.service_type = serviceType;
         if (workloadClass !== 'all') params.workload_class = workloadClass;
         if (searchQuery) params.search = searchQuery;
@@ -103,7 +107,7 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, serviceType, workloadClass, searchQuery]);
+  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedCampuses, serviceType, workloadClass, searchQuery]);
 
   useEffect(() => {
     fetchAnalytics(openModal);
@@ -121,6 +125,7 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
         date_range_start: modalDateRange === 'custom' ? modalStartDate : undefined,
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
+          campus: selectedCampuses.length > 0 ? selectedCampuses : undefined,
           service_type: serviceType !== 'all' ? serviceType : undefined,
           workload_class: workloadClass !== 'all' ? workloadClass : undefined,
           search: searchQuery || undefined,
@@ -329,12 +334,28 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
           {/* FILTERS ROW */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid item xs={12} sm={3}>
+              <Autocomplete
+                multiple
+                size="small"
+                options={campusOptions}
+                value={selectedCampuses}
+                onChange={(e, v) => setSelectedCampuses(v)}
+                renderTags={(tagValue, getTagProps) =>
+                  tagValue.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return <Chip key={key} label={option.split(' (')[1]?.replace(')', '') || option} size="small" color="primary" {...tagProps} />;
+                  })
+                }
+                renderInput={(params) => <TextField {...params} label="Campus Location" variant="outlined" />}
+              />
+            </Grid>
+            <Grid item xs={12} sm={2}>
               <FormControl fullWidth size="small">
                 <InputLabel>Service Stream</InputLabel>
                 <Select value={serviceType} label="Service Stream" onChange={(e) => setServiceType(e.target.value)}>
-                  <MenuItem value="all">Unified Clinic Traffic</MenuItem>
-                  <MenuItem value="medical">Medical Consultations</MenuItem>
-                  <MenuItem value="dental">Dental Procedures</MenuItem>
+                  <MenuItem value="all">Unified Clinic</MenuItem>
+                  <MenuItem value="medical">Medical</MenuItem>
+                  <MenuItem value="dental">Dental</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -346,11 +367,11 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
                   <MenuItem value="peak">Peak Intensity (10+)</MenuItem>
                   <MenuItem value="heavy">Heavy Intensity (5-9)</MenuItem>
                   <MenuItem value="moderate">Moderate Intensity (2-4)</MenuItem>
-                  <MenuItem value="light">Light Intensity (0-1)</MenuItem>
+                  <MenuItem value="light">Light (0-1)</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={3}>
+            <Grid item xs={12} sm={4}>
               <FormControl fullWidth size="small">
                 <InputLabel>Reporting Scope</InputLabel>
                 <Select value={modalDateRange} label="Reporting Scope" onChange={(e) => setModalDateRange(e.target.value)}>

@@ -44,11 +44,14 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
   const [modalEndDate, setModalEndDate] = useState('');
 
   // Domain Specific Filters (Feedback Dimensions)
+  const [selectedCampuses, setSelectedCampuses] = useState([]);
   const [selectedRatings, setSelectedRatings] = useState([]);
   const [serviceFilter, setServiceFilter] = useState('all');
   const [recommendFilter, setRecommendFilter] = useState('all');
   const [courtesyFilter, setCourtesyFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const campusOptions = ['Talamban Campus (TC)', 'Downtown Campus (DC)'];
 
   const [sortField, setSortField] = useState('created_at');
   const [sortDirection, setSortDirection] = useState('desc');
@@ -75,6 +78,7 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
       };
 
       if (isModal) {
+        if (selectedCampuses.length > 0) params.campus = selectedCampuses.join(',');
         if (selectedRatings.length > 0) params.rating = selectedRatings.join(',');
         if (serviceFilter !== 'all') params.service_type = serviceFilter;
         if (recommendFilter !== 'all') params.recommend = recommendFilter;
@@ -90,7 +94,7 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedRatings, serviceFilter, recommendFilter, courtesyFilter, searchQuery]);
+  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedCampuses, selectedRatings, serviceFilter, recommendFilter, courtesyFilter, searchQuery]);
 
   useEffect(() => {
     fetchAnalytics(openModal);
@@ -108,6 +112,7 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
         date_range_start: modalDateRange === 'custom' ? modalStartDate : undefined,
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
+          campus: selectedCampuses.length > 0 ? selectedCampuses : undefined,
           rating: selectedRatings,
           service_type: serviceFilter !== 'all' ? serviceFilter : undefined,
           recommend: recommendFilter !== 'all' ? recommendFilter : undefined,
@@ -291,6 +296,22 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
 
           {/* FILTERS ROW */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid item xs={12} sm={3}>
+              <Autocomplete
+                multiple
+                size="small"
+                options={campusOptions}
+                value={selectedCampuses}
+                onChange={(e, v) => setSelectedCampuses(v)}
+                renderTags={(tagValue, getTagProps) =>
+                  tagValue.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return <Chip key={key} label={option.split(' (')[1]?.replace(')', '') || option} size="small" color="primary" {...tagProps} />;
+                  })
+                }
+                renderInput={(params) => <TextField {...params} label="Campus Location" variant="outlined" />}
+              />
+            </Grid>
             <Grid item xs={12} sm={2.5}>
               <Autocomplete
                 multiple
@@ -317,10 +338,10 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={2.5}>
+            <Grid item xs={12} sm={2}>
               <FormControl fullWidth size="small">
-                <InputLabel>Recommend Service</InputLabel>
-                <Select value={recommendFilter} label="Recommend Service" onChange={(e) => setRecommendFilter(e.target.value)}>
+                <InputLabel>Recommend</InputLabel>
+                <Select value={recommendFilter} label="Recommend" onChange={(e) => setRecommendFilter(e.target.value)}>
                   <MenuItem value="all">All Responses</MenuItem>
                   <MenuItem value="yes">Yes (Positive)</MenuItem>
                   <MenuItem value="no">No (Negative)</MenuItem>

@@ -58,8 +58,11 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
 
   // Domain Specific Filters (Trends Dimensions)
   const [viewType, setViewType] = useState('line'); // 'line' vs 'area'
+  const [selectedCampuses, setSelectedCampuses] = useState([]);
   const [streamFilter, setStreamFilter] = useState('all'); // 'all', 'medical', 'dental'
   const [searchQuery, setSearchQuery] = useState('');
+
+  const campusOptions = ['Talamban Campus (TC)', 'Downtown Campus (DC)'];
 
   const [sortField, setSortField] = useState('month');
   const [sortDirection, setSortDirection] = useState('desc');
@@ -86,6 +89,7 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
       };
 
       if (isModal) {
+        if (selectedCampuses.length > 0) params.campus = selectedCampuses.join(',');
         if (streamFilter !== 'all') params.service_type = streamFilter;
         if (searchQuery) params.search = searchQuery;
       }
@@ -98,7 +102,7 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, streamFilter, searchQuery]);
+  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedCampuses, streamFilter, searchQuery]);
 
   useEffect(() => {
     fetchAnalytics(openModal);
@@ -116,6 +120,7 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
         date_range_start: modalDateRange === 'custom' ? modalStartDate : undefined,
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
+          campus: selectedCampuses.length > 0 ? selectedCampuses : undefined,
           service_type: streamFilter !== 'all' ? streamFilter : undefined,
           search: searchQuery || undefined,
           charts_base64: chartRef.current ? [chartRef.current.toBase64Image()] : []
@@ -313,6 +318,22 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
           {/* FILTERS ROW */}
           <Grid container spacing={2} sx={{ mb: 3 }} alignItems="center">
             <Grid item xs={12} sm={3}>
+              <Autocomplete
+                multiple
+                size="small"
+                options={campusOptions}
+                value={selectedCampuses}
+                onChange={(e, v) => setSelectedCampuses(v)}
+                renderTags={(tagValue, getTagProps) =>
+                  tagValue.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return <Chip key={key} label={option.split(' (')[1]?.replace(')', '') || option} size="small" color="primary" {...tagProps} />;
+                  })
+                }
+                renderInput={(params) => <TextField {...params} label="Campus Location" variant="outlined" />}
+              />
+            </Grid>
+            <Grid item xs={12} sm={2}>
               <FormControl fullWidth size="small">
                 <InputLabel>Clinical Stream</InputLabel>
                 <Select value={streamFilter} label="Clinical Stream" onChange={(e) => setStreamFilter(e.target.value)}>

@@ -65,10 +65,12 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
 
   // Domain Specific Filters (Dental Dimensions)
   const [selectedProcedures, setSelectedProcedures] = useState([]);
-  const [campusFilter, setCampusFilter] = useState('all');
+  const [selectedCampuses, setSelectedCampuses] = useState([]);
   const [roleFilter, setRoleFilter] = useState('all');
   const [yearLevelFilter, setYearLevelFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const campusOptions = ['Talamban Campus (TC)', 'Downtown Campus (DC)'];
 
   const chartRef = React.useRef(null);
 
@@ -98,7 +100,7 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
 
       if (isModal) {
         if (selectedProcedures.length > 0) params.procedure = selectedProcedures.join(',');
-        if (campusFilter !== 'all') params.campus = campusFilter;
+        if (selectedCampuses.length > 0) params.campus = selectedCampuses.join(',');
         if (roleFilter !== 'all') params.role = roleFilter;
         if (yearLevelFilter !== 'all') params.year_level = yearLevelFilter;
         if (searchQuery) params.search = searchQuery;
@@ -112,7 +114,7 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedProcedures, campusFilter, roleFilter, yearLevelFilter, searchQuery]);
+  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedProcedures, selectedCampuses, roleFilter, yearLevelFilter, searchQuery]);
 
   useEffect(() => {
     fetchAnalytics(openModal);
@@ -131,7 +133,7 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
           procedure: selectedProcedures,
-          campus: campusFilter !== 'all' ? [campusFilter] : undefined,
+          campus: selectedCampuses.length > 0 ? selectedCampuses : undefined,
           role: roleFilter !== 'all' ? roleFilter : undefined,
           year_level: yearLevelFilter !== 'all' ? yearLevelFilter : undefined,
           search: searchQuery || undefined,
@@ -331,14 +333,20 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
               />
             </Grid>
             <Grid item xs={12} sm={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Campus Location</InputLabel>
-                <Select value={campusFilter} label="Campus Location" onChange={(e) => setCampusFilter(e.target.value)}>
-                  <MenuItem value="all">Unified Dental Records</MenuItem>
-                  <MenuItem value="Talamban">Talamban Dental Clinic</MenuItem>
-                  <MenuItem value="Downtown">Downtown Dental Clinic</MenuItem>
-                </Select>
-              </FormControl>
+              <Autocomplete
+                multiple
+                size="small"
+                options={campusOptions}
+                value={selectedCampuses}
+                onChange={(e, v) => setSelectedCampuses(v)}
+                renderTags={(tagValue, getTagProps) =>
+                  tagValue.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return <Chip key={key} label={option.split(' (')[1]?.replace(')', '') || option} size="small" color="primary" {...tagProps} />;
+                  })
+                }
+                renderInput={(params) => <TextField {...params} label="Campus Location" variant="outlined" />}
+              />
             </Grid>
             <Grid item xs={12} sm={4}>
               <FormControl fullWidth size="small">

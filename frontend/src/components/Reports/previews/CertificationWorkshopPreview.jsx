@@ -68,10 +68,12 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
   const [fitnessFilter, setFitnessFilter] = useState('all');
   const [issuanceFilter, setIssuanceFilter] = useState('all');
   const [doctorFilter, setDoctorFilter] = useState('all');
-  const [campusFilter, setCampusFilter] = useState('all');
+  const [selectedCampuses, setSelectedCampuses] = useState([]);
   const [roleFilter, setRoleFilter] = useState('all');
   const [yearLevelFilter, setYearLevelFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const campusOptions = ['Talamban Campus (TC)', 'Downtown Campus (DC)'];
 
   const chartRef = React.useRef(null);
 
@@ -99,7 +101,7 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
         if (fitnessFilter !== 'all') params.fitness_status = fitnessFilter;
         if (issuanceFilter !== 'all') params.issuance_status = issuanceFilter;
         if (doctorFilter !== 'all') params.doctor = doctorFilter;
-        if (campusFilter !== 'all') params.campus = campusFilter;
+        if (selectedCampuses.length > 0) params.campus = selectedCampuses.join(',');
         if (roleFilter !== 'all') params.role = roleFilter;
         if (yearLevelFilter !== 'all') params.year_level = yearLevelFilter;
         if (searchQuery) params.search = searchQuery;
@@ -113,7 +115,7 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [modalDateRange, dateRange, modalStartDate, customStart, modalEndDate, customEnd, fitnessFilter, issuanceFilter, doctorFilter, campusFilter, roleFilter, yearLevelFilter, searchQuery]);
+  }, [modalDateRange, dateRange, modalStartDate, customStart, modalEndDate, customEnd, fitnessFilter, issuanceFilter, doctorFilter, selectedCampuses, roleFilter, yearLevelFilter, searchQuery]);
 
   useEffect(() => {
     fetchAnalytics(openModal);
@@ -134,7 +136,7 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
           fitness_status: fitnessFilter !== 'all' ? fitnessFilter : undefined,
           issuance_status: issuanceFilter !== 'all' ? issuanceFilter : undefined,
           doctor: doctorFilter !== 'all' ? doctorFilter : undefined,
-          campus: campusFilter !== 'all' ? [campusFilter] : undefined,
+          campus: selectedCampuses.length > 0 ? selectedCampuses : undefined,
           role: roleFilter !== 'all' ? roleFilter : undefined,
           year_level: yearLevelFilter !== 'all' ? yearLevelFilter : undefined,
           search: searchQuery || undefined,
@@ -165,7 +167,11 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
       datasets: [
         {
           data: dist.map(d => d.count),
-          backgroundColor: ['#10b981', '#ef4444', '#f59e0b', '#3b82f6'],
+          backgroundColor: dist.map(d => 
+            d.status.toLowerCase().includes('unfit') ? '#ef4444' : 
+            d.status.toLowerCase().includes('fit') ? '#10b981' : 
+            '#3b82f6'
+          ),
           borderWidth: 1
         }
       ]
@@ -322,14 +328,20 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
           {/* FILTERS ROW 2 */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid item xs={12} sm={4}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Campus Location</InputLabel>
-                <Select value={campusFilter} label="Campus Location" onChange={(e) => setCampusFilter(e.target.value)}>
-                  <MenuItem value="all">Unified Records</MenuItem>
-                  <MenuItem value="Talamban">Talamban Campus</MenuItem>
-                  <MenuItem value="Downtown">Downtown Campus</MenuItem>
-                </Select>
-              </FormControl>
+              <Autocomplete
+                multiple
+                size="small"
+                options={campusOptions}
+                value={selectedCampuses}
+                onChange={(e, v) => setSelectedCampuses(v)}
+                renderTags={(tagValue, getTagProps) =>
+                  tagValue.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return <Chip key={key} label={option.split(' (')[1]?.replace(')', '') || option} size="small" color="primary" {...tagProps} />;
+                  })
+                }
+                renderInput={(params) => <TextField {...params} label="Campus Location" variant="outlined" />}
+              />
             </Grid>
             <Grid item xs={12} sm={4}>
               <FormControl fullWidth size="small">
@@ -381,7 +393,7 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
             <Grid item xs={12} md={6}>
               <Box sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: '8px', bgcolor: '#ffffff', height: '100%' }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <StatsIcon sx={{ color: '#3b82f6' }} fontSize="small" /> Top Certificate Purposes (Templates)
+                  <StatsIcon sx={{ color: '#3b82f6' }} fontSize="small" /> Top Certificate Purposes
                 </Typography>
                 <Box sx={{ height: 250 }}>
                   {data?.certifications?.purpose_distribution?.length > 0 ? (
