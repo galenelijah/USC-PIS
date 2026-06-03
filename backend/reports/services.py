@@ -650,14 +650,32 @@ class ReportDataService:
                 
                 counts['total'] = counts['medical'] + counts['dental']
                 
-                # Calculate growth
-                counts['growth'] = counts['total'].pct_change(fill_value=0) * 100
+                # Calculate growth safely
+                prev_total = counts['total'].shift(1)
+                counts['growth'] = 0.0
+                
+                # Use a custom function to handle growth to avoid inf%
+                def calculate_growth(current, previous):
+                    if previous == 0:
+                        return 100.0 if current > 0 else 0.0
+                    return ((current - previous) / previous) * 100.0
+
+                growth_values = []
+                for i in range(len(counts)):
+                    curr = counts['total'].iloc[i]
+                    prev = prev_total.iloc[i]
+                    if pd.isna(prev):
+                        growth_values.append(0.0)
+                    else:
+                        growth_values.append(calculate_growth(curr, prev))
+                
+                counts['growth'] = growth_values
                 counts = counts.fillna(0)
                 
+                longitudinal_trends = []
                 for timestamp, row in counts.iterrows():
-                    monthly_data.append({
-                        'month': timestamp.strftime(date_format),
-                        'timestamp': timestamp.isoformat(),
+                    longitudinal_trends.append({
+                        'period': timestamp.strftime(date_format),
                         'total_visits': int(row['total']),
                         'medical_visits': int(row.get('medical', 0)), 
                         'dental_visits': int(row.get('dental', 0)),
@@ -665,10 +683,10 @@ class ReportDataService:
                     })
             else:
                 # Return empty intervals for the entire range
+                longitudinal_trends = []
                 for timestamp in full_range:
-                    monthly_data.append({
-                        'month': timestamp.strftime(date_format),
-                        'timestamp': timestamp.isoformat(),
+                    longitudinal_trends.append({
+                        'period': timestamp.strftime(date_format),
                         'total_visits': 0,
                         'medical_visits': 0,
                         'dental_visits': 0,
@@ -690,7 +708,7 @@ class ReportDataService:
                 'total_dental': total_dental,
                 'avg_daily_visits': avg_daily, 
                 'peak_day_visits': peak_day_visits,
-                'monthly': monthly_data, 
+                'longitudinal_trends': longitudinal_trends, 
                 'summary_by_type': {'Medical': total_medical, 'Dental': total_dental},
                 'granularity': freq
             }
@@ -2519,15 +2537,21 @@ class ReportGenerationService:
                                 <thead>
                                     <tr>
                                         {{% for key in first_item.keys %}}
-                                            {{% if key != "id" %}}
-                                                {{% if key|lower == "comments" or key|lower == "summary" or key|lower == "improvement" or key|lower == "notes" %}}
+                                            {{% if key != "id" and key != "timestamp" and key != "charts_base64" and key != "meta" %}}
+                                                {{% if key|lower == "comments" or key|lower == "improvement" %}}
+                                                    <th width="32%">{{{{ key|title_clean }}}}</th>
+                                                {{% elif key|lower == "summary" or key|lower == "notes" or key|lower == "findings" %}}
                                                     <th width="40%">{{{{ key|title_clean }}}}</th>
-                                                {{% elif key|lower == "diagnosis" or key|lower == "procedure" or key|lower == "primary_info" %}}
-                                                    <th width="25%">{{{{ key|title_clean }}}}</th>
-                                                {{% elif key|lower == "recommend" or key|lower == "courteous" or key|lower == "rating" %}}
-                                                    <th width="10%">{{{{ key|title_clean }}}}</th>
-                                                {{% elif key|lower == "date" or key|lower == "created_at" or key|lower == "visit_date" or key|lower == "timestamp" %}}
+                                                {{% elif key|lower == "diagnosis" or key|lower == "procedure" or key|lower == "primary_info" or key|lower == "title" %}}
+                                                    <th width="20%">{{{{ key|title_clean }}}}</th>
+                                                {{% elif key|lower == "recommend" or key|lower == "courteous" or key|lower == "status" or key|lower == "rating" %}}
+                                                    <th width="7%">{{{{ key|title_clean }}}}</th>
+                                                {{% elif key|lower == "date" or key|lower == "created_at" or key|lower == "visit_date" or key|lower == "period" %}}
                                                     <th width="12%">{{{{ key|title_clean }}}}</th>
+                                                {{% elif key|lower == "total_visits" or key|lower == "view_count" or key|lower == "count" or key|lower == "medical_visits" or key|lower == "dental_visits" %}}
+                                                    <th width="9%">{{{{ key|title_clean }}}}</th>
+                                                {{% elif key|lower == "growth_percentage" %}}
+                                                    <th width="10%">{{{{ key|title_clean }}}}</th>
                                                 {{% else %}}
                                                     <th>{{{{ key|title_clean }}}}</th>
                                                 {{% endif %}}
@@ -2539,8 +2563,8 @@ class ReportGenerationService:
                                     {{% for item in v %}}
                                         <tr>
                                             {{% for key in first_item.keys %}}
-                                                {{% if key != "id" %}}
-                                                <td style="word-wrap: break-word; overflow-wrap: break-word;">{{{{ item|get_item:key }}}}</td>
+                                                {{% if key != "id" and key != "timestamp" and key != "charts_base64" and key != "meta" %}}
+                                                <td style="word-wrap: break-word; overflow-wrap: break-word; vertical-align: top;">{{{{ item|get_item:key }}}}</td>
                                                 {{% endif %}}
                                             {{% endfor %}}
                                         </tr>
@@ -2859,14 +2883,14 @@ class ReportGenerationService:
                             [{'label': 'Roles', 'data': [d.get('count', 0) for d in data['role_distribution']]}],
                             "Role Distribution")
 
-                elif rtype == 'VISIT_TRENDS' and data.get('monthly') and data.get('total_visits', 0) > 0:
-                    monthly = data['monthly']
-                    mapped_charts['monthly'] = self._generate_chart_url_complex('line', 
-                        [m['month'] for m in monthly], 
+                elif rtype == 'VISIT_TRENDS' and data.get('longitudinal_trends') and data.get('total_visits', 0) > 0:
+                    periodic = data['longitudinal_trends']
+                    mapped_charts['longitudinal_trends'] = self._generate_chart_url_complex('line', 
+                        [p['period'] for p in periodic], 
                         [
-                            {'label': 'Aggregate Trends', 'data': [m['total_visits'] for m in monthly], 'borderDash': [5, 5], 'borderColor': '#1e293b'},
-                            {'label': 'Medical', 'data': [m['medical_visits'] for m in monthly], 'borderColor': '#3b82f6'},
-                            {'label': 'Dental', 'data': [m['dental_visits'] for m in monthly], 'borderColor': '#10b981'}
+                            {'label': 'Aggregate Trends', 'data': [p['total_visits'] for p in periodic], 'borderDash': [5, 5], 'borderColor': '#1e293b'},
+                            {'label': 'Medical', 'data': [p['medical_visits'] for p in periodic], 'borderColor': '#3b82f6'},
+                            {'label': 'Dental', 'data': [p['dental_visits'] for p in periodic], 'borderColor': '#10b981'}
                         ],
                         "Longitudinal Interaction Timeline")
                     

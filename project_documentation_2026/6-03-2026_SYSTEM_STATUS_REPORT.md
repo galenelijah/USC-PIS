@@ -31,5 +31,8 @@
 - Validated that UI data tables (Patients, Health Records, Certificates) accurately trigger horizontal scrolling on small screens.
 - **Verified Excel Standard:** Confirmed that downloads use the `.xlsx` extension and are recognized as standard workbooks by Microsoft Excel.
 - **Verified Certificate Count:** Confirmed the PostgreSQL database correctly reports 18 certificates (17 in the last 30 days) and that the summary includes all statuses.
-- **Verified PDF Layout:** Manually audited all 11 PDF types to ensure no text overlap in Feedback comments or duplicated charts in Visit Trends.
+- **Verified PDF Layout:** Manually audited all 11 PDF types to ensure no text overlap in Feedback comments, no duplicated charts in Visit Trends, and clean page breaks before visual sections.
+- **Verified Data Consistency:** Confirmed that legacy gender codes ('1', '2') now correctly report as 'Male'/'Female'.
+- **Verified Chart Readability:** Confirmed that top 15 diagnosis charts render all labels without skipping.
 - Verified that the "Unspecified" data anomaly and the auto-skipping labels issue in the Course Classification chart are fully resolved.
+d" data anomaly and the auto-skipping labels issue in the Course Classification chart are fully resolved.

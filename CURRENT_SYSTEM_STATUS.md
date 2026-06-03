@@ -21,8 +21,8 @@ The USC-PIS has reached **Absolute Maturity & Operational Stability**, successfu
 ### 3. Resilient Reporting Infrastructure (v3.0)
 *   **Status:** Multi-Format Institutional Standard
 *   **Format Expansion:** Support now includes **PDF, Excel (.xlsx), CSV, HTML, and JSON**. All formats maintain strict mathematical parity via the `ReportDataService` single-source-of-truth.
-*   **Visual Intelligence:** Implemented `mapped_charts` ensuring every data section in a report is paired with its own visualization. Audited all 11 PDF templates for professional column widths and layout stability.
-*   **Reliability:** Hardened the Excel export engine to use the modern `.xlsx` standard and resolved institutional certificate reporting anomalies.
+*   **Visual Intelligence:** Implemented `mapped_charts` ensuring every data section in a report is paired with its own visualization. Audited all 11 PDF templates for professional column widths and forced page-break layout stability.
+*   **Reliability:** Hardened the Excel export engine to use the modern `.xlsx` standard, resolved institutional certificate reporting anomalies, and implemented legacy data translation for demographic parity.
 *   **Access Resilience:** Implemented a **Silent Re-generation Fallback** for report downloads. If a physical file is missing, the system automatically re-renders it on-the-fly.
 
 ### 4. Simplified Dental Consultation & Referrals

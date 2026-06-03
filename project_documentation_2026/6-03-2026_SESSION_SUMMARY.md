@@ -38,6 +38,12 @@ Expand report export capabilities and enhance the visual density and professiona
 - **PDF Table Layout Audit:** Conducted a comprehensive audit of all 11 PDF report types. Standardized column widths (Comments/Notes at 40%, Diagnosis at 25%) to eliminate text overlapping in high-density sections like Service Satisfaction.
 - **Visual Duplicate Fix:** Resolved a chart duplication issue in the Visit Trends PDF export by correcting the mapping logic for the Service Distribution Analysis chart.
 - **Institutional Metric Notes:** Added explicit footnotes to both the UI and PDF exports explaining that "Total Certificates" represents an institutional aggregate of all workflow statuses.
+- **Dental Analytics Refinement:** Stripped legacy data fields (Oral Hygiene, Gum Condition, Priority) from the Dental Statistics module and PDF exports, as these are no longer measured in the current workflow.
+- **Redundancy Removal:** Removed the "Monthly Trends" chart from the Medical Clinical Statistics workshop to eliminate overlap with the dedicated "Clinical Capacity & Visit Trends" report.
+- **Legacy Gender Mapping:** Hardened the gender distribution logic to correctly translate legacy numeric codes (`1` for Male, `2` for Female) into human-readable labels across all statistical modules.
+- **Chart Label Integrity:** Disabled `autoSkip` in the backend chart engine and implemented a 45-degree rotation for X-axis labels to ensure 100% label visibility for high-density bar charts.
+- **PDF Page Management:** Implemented a new `visual-section` CSS rule that forces a page break before any section containing a chart. This ensures that visualizations and their corresponding data tables are never awkwardly split across pages.
+- **CI Pipeline Stabilization:** Resolved a `SyntaxError` in the report generation service caused by unescaped CSS braces in a Python f-string, restoring pipeline integrity for deployment.
 
 ## Impact
 The reporting system is now significantly more versatile and professional. The high-density visual layout ensures that clinical staff can quickly interpret granular data trends without manually cross-referencing tables. The addition of HTML and JSON formats makes the system highly interoperable with external data analysis workflows.
