@@ -2570,8 +2570,14 @@ class ReportGenerationService:
                                     <tr>
                                         {{% for key in first_item.keys %}}
                                             {{% if key != "id" %}}
-                                                {{% if key|lower == "comments" or key|lower == "summary" or key|lower == "improvement" %}}
+                                                {{% if key|lower == "comments" or key|lower == "summary" or key|lower == "improvement" or key|lower == "notes" %}}
                                                     <th width="40%">{{{{ key|title_clean }}}}</th>
+                                                {{% elif key|lower == "diagnosis" or key|lower == "procedure" or key|lower == "primary_info" %}}
+                                                    <th width="25%">{{{{ key|title_clean }}}}</th>
+                                                {{% elif key|lower == "recommend" or key|lower == "courteous" or key|lower == "rating" %}}
+                                                    <th width="10%">{{{{ key|title_clean }}}}</th>
+                                                {{% elif key|lower == "date" or key|lower == "created_at" or key|lower == "visit_date" or key|lower == "timestamp" %}}
+                                                    <th width="12%">{{{{ key|title_clean }}}}</th>
                                                 {{% else %}}
                                                     <th>{{{{ key|title_clean }}}}</th>
                                                 {{% endif %}}
@@ -2926,10 +2932,10 @@ class ReportGenerationService:
                             "Top Clinical Treatments")
 
                     if data.get('total_medical') or data.get('total_dental'):
-                        charts.append(self._generate_chart_url_complex('doughnut',
+                        mapped_charts['service_distribution'] = self._generate_chart_url_complex('doughnut',
                             ['Medical', 'Dental'],
                             [{'label': 'Service Share', 'data': [data.get('total_medical', 0), data.get('total_dental', 0)]}],
-                            "Service Distribution Analysis"))
+                            "Service Distribution Analysis")
 
                 elif rtype in ['CAMPAIGN_PERFORMANCE', 'HEALTH_CAMPAIGN'] and data.get('campaign_performance'):
                     perf = data['campaign_performance']
