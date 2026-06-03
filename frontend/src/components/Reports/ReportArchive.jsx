@@ -63,7 +63,14 @@ const ReportArchive = () => {
       link.href = url;
       
       // Get filename from response headers or use a default
-      const extension = report.export_format.toLowerCase();
+      const extMap = {
+        'PDF': 'pdf',
+        'EXCEL': 'xlsx',
+        'CSV': 'csv',
+        'JSON': 'json',
+        'HTML': 'html'
+      };
+      const extension = extMap[report.export_format] || report.export_format.toLowerCase();
       const filename = `${report.title.replace(/\s+/g, '_')}_${dayjs(report.created_at).format('YYYYMMDD')}.${extension}`;
       
       link.setAttribute('download', filename);

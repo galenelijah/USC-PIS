@@ -1631,13 +1631,6 @@ class ReportDataService:
                 doctor_name = filters['doctor']
                 certs = certs.filter(issuing_doctor__last_name=doctor_name)
 
-            total_issued = certs.count()
-            if total_issued == 0:
-                return {
-                    'total_certificates': 0, 'fitness_distribution': [], 'purpose_distribution': [],
-                    'avg_turnaround_hours': 0, 'doctor_workload': [], 'issuance_status_distribution': []
-                }
-
             # 1. Fitness Distribution
             fitness_counts = certs.values('fitness_status').annotate(count=Count('id'))
             fitness_map = dict(MedicalCertificate.FITNESS_STATUS_CHOICES)
@@ -1679,17 +1672,16 @@ class ReportDataService:
                                   .annotate(count=Count('id')).order_by('-count'))
 
             return {
-                'total_certificates': total_issued,
+                'total_certificates': certs.count(),
                 'fitness_distribution': fitness_distribution,
                 'purpose_distribution': purpose_distribution,
-                'issuance_status_distribution': issuance_distribution,
                 'avg_turnaround_hours': round(avg_turnaround, 2),
-                'doctor_workload': doctor_workload
+                'doctor_workload': doctor_workload,
+                'issuance_status_distribution': issuance_distribution
             }
         except Exception as e:
             logger.error(f"Error in get_certification_analytics: {str(e)}")
             return {'error': str(e)}
-
     @staticmethod
     def get_certification_summary_data(date_start=None, date_end=None, filters=None):
         """Standardized data collection for tabular certification exports"""

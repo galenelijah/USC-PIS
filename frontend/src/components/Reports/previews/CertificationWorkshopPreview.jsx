@@ -221,27 +221,17 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
           </Box>
 
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6}>
               <Box sx={{ p: 2, bgcolor: '#f0fdf4', borderRadius: '8px', textAlign: 'center', border: '1px solid #dcfce7' }}>
                 <Typography variant="h4" sx={{ fontWeight: 800, color: '#166534' }}>
                   {loading ? '...' : data?.certifications?.total_certificates || 0}
                 </Typography>
                 <Typography variant="caption" sx={{ fontWeight: 600, color: '#15803d', textTransform: 'uppercase' }}>
-                  Total Issued
+                  Total Certificates (All Statuses)
                 </Typography>
               </Box>
             </Grid>
-            <Grid item xs={12} sm={4}>
-              <Box sx={{ p: 2, bgcolor: '#fff7ed', borderRadius: '8px', textAlign: 'center', border: '1px solid #ffedd5' }}>
-                <Typography variant="h4" sx={{ fontWeight: 800, color: '#9a3412' }}>
-                  {loading ? '...' : (data?.certifications?.avg_turnaround_hours || 0).toFixed(1)}h
-                </Typography>
-                <Typography variant="caption" sx={{ fontWeight: 600, color: '#c2410c', textTransform: 'uppercase' }}>
-                  Avg. Turnaround
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6}>
               <Box sx={{ height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {loading ? <CircularProgress size={20} /> : (
                   <Pie 

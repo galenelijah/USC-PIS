@@ -341,7 +341,17 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
             
             # Create safe filename
             safe_filename = re.sub(r'[^\w\-_\.]', '_', report.title)
-            filename = f"{safe_filename}.{report.export_format.lower()}"
+            
+            # Use proper extension mapping
+            ext_map = {
+                'PDF': 'pdf',
+                'EXCEL': 'xlsx',
+                'CSV': 'csv',
+                'JSON': 'json',
+                'HTML': 'html'
+            }
+            extension = ext_map.get(report.export_format, report.export_format.lower())
+            filename = f"{safe_filename}.{extension}"
 
             # Preferred: stream via storage backend (works for local and Cloudinary raw storage)
             try:
