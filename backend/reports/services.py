@@ -686,6 +686,8 @@ class ReportDataService:
                 
             return {
                 'total_visits': total_visits, 
+                'total_medical': total_medical,
+                'total_dental': total_dental,
                 'avg_daily_visits': avg_daily, 
                 'peak_day_visits': peak_day_visits,
                 'monthly': monthly_data, 
@@ -706,21 +708,33 @@ class ReportDataService:
             queryset = MedicalRecord.objects.filter(visit_date__range=(date_start, date_end))
             
             if filters:
+                if filters.get('gender'):
+                    queryset = queryset.filter(patient__gender=filters['gender'])
+                if filters.get('role'):
+                    roles = filters['role']
+                    if isinstance(roles, str): roles = roles.split(',')
+                    if roles: queryset = queryset.filter(patient__user__role__in=roles)
+                if filters.get('year_level'):
+                    levels = filters['year_level']
+                    if isinstance(levels, str): levels = levels.split(',')
+                    if levels: queryset = queryset.filter(patient__user__year_level__in=levels)
+
                 if filters.get('diagnosis'):
                     diags = filters['diagnosis']
                     if isinstance(diags, list) and diags:
                         queryset = queryset.filter(diagnosis__in=diags)
                 if filters.get('school'):
                     schools = filters['school']
-                    if isinstance(schools, list) and schools:
-                        queryset = queryset.filter(patient__user__school__in=schools)
+                    if isinstance(schools, str): schools = schools.split(',')
+                    if schools: queryset = queryset.filter(patient__user__school__in=schools)
                 if filters.get('course'):
                     courses = filters['course']
-                    if isinstance(courses, list) and courses:
-                        queryset = queryset.filter(patient__user__course__in=courses)
+                    if isinstance(courses, str): courses = courses.split(',')
+                    if courses: queryset = queryset.filter(patient__user__course__in=courses)
                 if filters.get('campus'):
                     campuses = filters['campus']
-                    if campuses and isinstance(campuses, list):
+                    if isinstance(campuses, str): campuses = campuses.split(',')
+                    if campuses:
                         course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() if info['campus'] in campuses]
                         queryset = queryset.filter(patient__user__course__in=course_ids)
                 if filters.get('providers'):
@@ -1073,6 +1087,10 @@ class ReportDataService:
             if not campaign_ids:
                 queryset = queryset.filter(created_at__range=(date_start, date_end))
             
+            # 1. Category Distribution
+            type_counts = queryset.values('campaign_type').annotate(count=Count('id'))
+            type_distribution = [{'type': item['campaign_type'], 'count': item['count']} for item in type_counts]
+
             total_campaigns = queryset.count()
             
             if total_campaigns == 0:
@@ -1147,7 +1165,8 @@ class ReportDataService:
                 'total_views': total_views,
                 'avg_views_per_campaign': round(avg_views, 2), 
                 'campaign_performance': perf,
-                'asset_effectiveness': asset_effectiveness
+                'asset_effectiveness': asset_effectiveness,
+                'category_distribution': type_distribution
             }
         except Exception as e: 
             logger.error(f"Error in get_campaign_performance_data: {str(e)}")
@@ -1206,6 +1225,21 @@ class ReportDataService:
             
             # Calculate real avg age
             patients = Patient.objects.filter(medical_records__in=records).distinct()
+            
+            # Gender distribution
+            gender_map = {'M': 'Male', 'F': 'Female', 'O': 'Other'}
+            g_dist = {}
+            for p in patients:
+                g = gender_map.get(p.gender, 'Unspecified')
+                g_dist[g] = g_dist.get(g, 0) + 1
+            
+            # Role distribution
+            r_dist = {'STUDENT': 0, 'FACULTY': 0}
+            for p in patients:
+                if p.user:
+                    r = p.user.role
+                    r_dist[r] = r_dist.get(r, 0) + 1
+
             avg_age = 0
             if patients.exists():
                 ages = [p.age for p in patients if p.age is not None]
@@ -1289,13 +1323,16 @@ class ReportDataService:
             monthly_trends = ReportDataService._apply_customization(monthly_trends, filters or {})
 
             return {
-                'total_patients': patients.count(), 
-                'total_consultations': records.count(), 
-                'avg_age': round(float(avg_age), 2), 
-                'top_diagnoses': diag, 
-                'vitals_summary': vitals,
-                'monthly_trends': sorted(monthly_trends, key=lambda x: x['name']) if isinstance(monthly_trends, list) else monthly_trends
+               'total_patients': patients.count(),
+               'total_consultations': records.count(),
+               'avg_age': round(float(avg_age), 2),
+               'top_diagnoses': diag,
+               'vitals_summary': vitals,
+               'gender_distribution': [{'name': k, 'count': v} for k, v in g_dist.items() if v > 0],
+               'role_distribution': [{'name': k.title(), 'count': v} for k, v in r_dist.items() if v > 0],
+               'monthly_trends': sorted(monthly_trends, key=lambda x: x['name']) if isinstance(monthly_trends, list) else monthly_trends
             }
+
         except Exception as e: 
             logger.error(f"Error in get_medical_statistics_data: {str(e)}")
             return {'error': str(e), 'total_consultations': 0}
@@ -1364,6 +1401,23 @@ class ReportDataService:
                 if filters.get('search'):
                     records = records.filter(procedure_performed__icontains=filters['search'])
             
+            # Calculate distributions
+            patients = Patient.objects.filter(dental_records__in=records).distinct()
+            
+            # Gender distribution
+            gender_map = {'M': 'Male', 'F': 'Female', 'O': 'Other'}
+            g_dist = {}
+            for p in patients:
+                g = gender_map.get(p.gender, 'Unspecified')
+                g_dist[g] = g_dist.get(g, 0) + 1
+            
+            # Role distribution
+            r_dist = {'STUDENT': 0, 'FACULTY': 0}
+            for p in patients:
+                if p.user:
+                    r = p.user.role
+                    r_dist[r] = r_dist.get(r, 0) + 1
+
             total_records = records.count()
 
             if total_records == 0:
@@ -1437,7 +1491,9 @@ class ReportDataService:
                 'common_procedures': common_procedures,
                 'hygiene_stats': hygiene_stats,
                 'gum_stats': gum_stats,
-                'priority_stats': priority_stats
+                'priority_stats': priority_stats,
+                'gender_distribution': [{'name': k, 'count': v} for k, v in g_dist.items() if v > 0],
+                'role_distribution': [{'name': k.title(), 'count': v} for k, v in r_dist.items() if v > 0]
             }
         except Exception as e: 
             logger.error(f"Error in get_dental_statistics_data: {str(e)}")
@@ -2119,6 +2175,7 @@ class ReportExportService:
                     ['Generated At', timezone.now().strftime('%Y-%m-%d %H:%M:%S')],
                     ['Date Range Start', str(report_data.get('date_range_start', 'N/A'))],
                     ['Date Range End', str(report_data.get('date_range_end', 'N/A'))],
+                    ['Applied Filters', ", ".join(report_data.get('applied_filters', ["None"]))],
                     ['System', 'USC Patient Information System']
                 ]
                 pd.DataFrame(info_data, columns=['Report Metadata', 'Value']).to_excel(writer, sheet_name='Report Info', index=False)
@@ -2159,7 +2216,10 @@ class ReportExportService:
         if not report_data: return None
         try:
             output = StringIO(); writer = csv.writer(output)
-            writer.writerow([f"REPORT: {title.upper()}"]); writer.writerow([f"Generated: {timezone.now().strftime('%Y-%m-%d %H:%M')}"]); writer.writerow([])
+            writer.writerow([f"REPORT: {title.upper()}"])
+            writer.writerow([f"Generated: {timezone.now().strftime('%Y-%m-%d %H:%M')}"])
+            writer.writerow([f"Filters: {', '.join(report_data.get('applied_filters', ['None']))}"])
+            writer.writerow([])
             list_keys = []; writer.writerow(["SUMMARY OVERVIEW"])
             skip_keys = ['report_title', 'date_range_start', 'date_range_end', 'generated_at', 'system_name', 'report_date', 'report_type', 'visual_charts', 'charts_base64', 'visual_analytics']
             
@@ -2267,46 +2327,32 @@ class ReportGenerationService:
             
             <div class="report-title">{{{{ title }}}}</div>
 
-            {{% if administrative_audit_trail %}}
-            <div class="section">
-                <div class="section-title">Administrative Operational Audit Trail</div>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th width="15%">Timestamp</th>
-                            <th width="20%">Actor (Role/Email)</th>
-                            <th width="15%">Module</th>
-                            <th width="15%">Action Type</th>
-                            <th width="35%">Change Summary</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {{% for log in administrative_audit_trail %}}
-                        <tr>
-                            <td>{{{{ log.timestamp|format_date:"%Y-%m-%d %H:%M" }}}}</td>
-                            <td>
-                                <strong>{{{{ log.actor_role|default:"N/A" }}}}</strong><br/>
-                                <span style="font-size: 8pt; color: #64748b;">{{{{ log.actor_email|default:"System" }}}}</span>
-                            </td>
-                            <td>{{{{ log.target_model|title_clean }}}}</td>
-                            <td><strong>{{{{ log.action_type }}}}</strong></td>
-                            <td style="font-size: 8.5pt;">{{{{ log.formatted_summary }}}}</td>
-                        </tr>
-                        {{% endfor %}}
-                    </tbody>
-                </table>
+            <div class="section" style="margin-top: -15px; margin-bottom: 20px;">
+                <div style="font-size: 9pt; color: #475569; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <strong>Institutional Reporting Context</strong><br/>
+                    <span style="color: #64748b;">Reporting Period:</span> {{{{ date_range_start|format_date:"%b %d, %Y" }}}} to {{{{ date_range_end|format_date:"%b %d, %Y" }}}}<br/>
+                    <span style="color: #64748b;">Applied Parameters:</span> {{{{ applied_filters|join:", " }}}}
+                </div>
             </div>
-            {{% endif %}}
 
             {{% if visual_charts or charts_base64 %}}
             <div class="section">
-                <div class="section-title">Institutional Activity & Performance Dashboard</div>
-                {{% for chart_url in visual_charts %}}
-                <div class="chart-container"><img src="{{{{ chart_url }}}}" width="450" /></div>
-                {{% endfor %}}
-                {{% for chart_b64 in charts_base64 %}}
-                <div class="chart-container"><img src="{{{{ chart_b64 }}}}" width="450" /></div>
-                {{% endfor %}}
+                <div class="section-title">Comparative Analysis & Visual Intelligence</div>
+                <div style="text-align: center;">
+                    {{% for chart_url in visual_charts %}}
+                    <div class="chart-container" style="display: inline-block; width: 48%; margin: 1%;">
+                        <img src="{{{{ chart_url }}}}" width="100%" />
+                    </div>
+                    {{% endfor %}}
+                    {{% for chart_b64 in charts_base64 %}}
+                    <div class="chart-container" style="display: inline-block; width: 48%; margin: 1%;">
+                        <img src="{{{{ chart_b64 }}}}" width="100%" />
+                    </div>
+                    {{% endfor %}}
+                </div>
+                <p style="font-size: 8pt; color: #64748b; font-style: italic; text-align: center; margin-top: 10px;">
+                    * Data visualizations generated based on institutional parameters and historical trends.
+                </p>
             </div>
             {{% endif %}}
 
@@ -2796,19 +2842,27 @@ class ReportGenerationService:
                             [d.get('name', 'Other') for d in data['course_distribution'][:8]], 
                             [{'label': 'Enrollment', 'data': [d.get('count', 0) for d in data['course_distribution'][:8]]}],
                             "Course Enrollment Distribution"))
-                    if data.get('role_distribution'):
-                        roles = data['role_distribution']
-                        if isinstance(roles, dict):
-                            role_names = list(roles.keys())
-                            role_counts = list(roles.values())
-                        else:
-                            role_names = [d.get('name', 'N/A') for d in roles]
-                            role_counts = [d.get('count', 0) for d in roles]
-                            
-                        charts.append(self._generate_chart_url_complex('doughnut', 
-                            role_names, 
-                            [{'label': 'Role Share', 'data': role_counts}],
-                            "Institutional Role Classification"))
+                    
+                    if data.get('age_distribution'):
+                        age_data = data['age_distribution']
+                        charts.append(self._generate_chart_url_complex('bar',
+                            [d.get('group', 'N/A') for d in age_data],
+                            [{'label': 'Patients', 'data': [d.get('count', 0) for d in age_data], 'backgroundColor': '#10b981'}],
+                            "Age Demographic Distribution"))
+
+                    if data.get('gender_distribution'):
+                        gender_data = data['gender_distribution']
+                        charts.append(self._generate_chart_url_complex('doughnut',
+                            [d.get('gender', 'N/A') for d in gender_data],
+                            [{'label': 'Gender', 'data': [d.get('count', 0) for d in gender_data]}],
+                            "Gender Classification Share"))
+
+                    if data.get('year_level_distribution'):
+                        yl_data = data['year_level_distribution']
+                        charts.append(self._generate_chart_url_complex('bar',
+                            [f"Year {d.get('year_level', 'N/A')}" for d in yl_data],
+                            [{'label': 'Students', 'data': [d.get('count', 0) for d in yl_data], 'backgroundColor': '#6366f1'}],
+                            "Year Level Distribution"))
 
                 elif rtype == 'VISIT_TRENDS' and data.get('monthly') and data.get('total_visits', 0) > 0:
                     monthly = data['monthly']
@@ -2820,16 +2874,27 @@ class ReportGenerationService:
                             {'label': 'Dental', 'data': [m['dental_visits'] for m in monthly], 'borderColor': '#10b981'}
                         ],
                         "Longitudinal Interaction Timeline"))
+                    
+                    if data.get('total_medical') or data.get('total_dental'):
+                        charts.append(self._generate_chart_url_complex('doughnut',
+                            ['Medical', 'Dental'],
+                            [{'label': 'Service Share', 'data': [data.get('total_medical', 0), data.get('total_dental', 0)]}],
+                            "Service Distribution Analysis"))
 
                 elif rtype in ['CAMPAIGN_PERFORMANCE', 'HEALTH_CAMPAIGN'] and data.get('campaign_performance'):
                     perf = data['campaign_performance']
                     charts.append(self._generate_chart_url_complex('bar', 
                         [c.get('title', 'N/A')[:20] for c in perf[:8]], 
                         [
-                            {'label': 'Total Views', 'data': [c.get('views', 0) for c in perf[:8]], 'backgroundColor': '#ea580c'},
-                            {'label': 'Engagement', 'data': [c.get('engagement', 0) for c in perf[:8]], 'backgroundColor': '#f97316'}
+                            {'label': 'Total Views', 'data': [c.get('views', c.get('view_count', 0)) for c in perf[:8]], 'backgroundColor': '#ea580c'}
                         ],
-                        "Campaign Impact Metrics"))
+                        "Individual Campaign Reach"))
+                    
+                    if data.get('category_distribution'):
+                        charts.append(self._generate_chart_url_complex('pie',
+                            [d.get('type', 'N/A') for d in data['category_distribution']],
+                            [{'label': 'Category Share', 'data': [d.get('count', 0) for d in data['category_distribution']]}],
+                            "Campaign Category Distribution"))
 
                 elif rtype in ['FEEDBACK_ANALYSIS', 'PATIENT_FEEDBACK'] and data.get('rating_distribution'):
                     dist = data['rating_distribution']
@@ -2840,7 +2905,17 @@ class ReportGenerationService:
                             'data': [d.get('count', 0) for d in dist],
                             'backgroundColor': ['#4caf50', '#8bc34a', '#ffeb3b', '#ff9800', '#f44336']
                         }],
-                        "Patient Satisfaction Index"))
+                        "Institutional Satisfaction Index"))
+                    
+                    if data.get('service_metrics'):
+                        metrics = data['service_metrics']
+                        charts.append(self._generate_chart_url_complex('bar',
+                            ['Would Recommend', 'Provider Courtesy'],
+                            [
+                                {'label': 'Yes', 'data': [metrics.get('recommend_yes', 0), metrics.get('courteous_yes', 0)], 'backgroundColor': '#10b981'},
+                                {'label': 'No', 'data': [metrics.get('recommend_no', 0), metrics.get('courteous_no', 0)], 'backgroundColor': '#ef4444'}
+                            ],
+                            "Service Sentiment Breakdown"))
 
                 elif rtype in ['MEDICAL_STATISTICS', 'MEDICAL_STATS'] and data.get('top_diagnoses'):
                     diag = data['top_diagnoses']
@@ -2848,6 +2923,18 @@ class ReportGenerationService:
                         [d.get('name', 'N/A')[:25] for d in diag[:10]], 
                         [{'label': 'Frequency', 'data': [d.get('case_count', d.get('count', 0)) for d in diag[:10]]}],
                         "Top Clinical Diagnoses (Medical)"))
+                    
+                    if data.get('gender_distribution'):
+                        charts.append(self._generate_chart_url_complex('pie',
+                            [d.get('name', 'N/A') for d in data['gender_distribution']],
+                            [{'label': 'Patients', 'data': [d.get('count', 0) for d in data['gender_distribution']]}],
+                            "Medical Service Gender Share"))
+                    
+                    if data.get('role_distribution'):
+                        charts.append(self._generate_chart_url_complex('doughnut',
+                            [d.get('name', 'N/A') for d in data['role_distribution']],
+                            [{'label': 'Patients', 'data': [d.get('count', 0) for d in data['role_distribution']]}],
+                            "Medical Service Role Share"))
 
                 elif rtype in ['DENTAL_STATISTICS', 'DENTAL_STATS'] and data.get('common_procedures'):
                     proc = data['common_procedures']
@@ -2855,6 +2942,18 @@ class ReportGenerationService:
                         [p.get('name', 'N/A')[:25] for p in proc[:10]], 
                         [{'label': 'Frequency', 'data': [p.get('count', 0) for p in proc[:10]]}],
                         "Top Procedural Metrics (Dental)"))
+                    
+                    if data.get('gender_distribution'):
+                        charts.append(self._generate_chart_url_complex('pie',
+                            [d.get('name', 'N/A') for d in data['gender_distribution']],
+                            [{'label': 'Patients', 'data': [d.get('count', 0) for d in data['gender_distribution']]}],
+                            "Dental Service Gender Share"))
+                    
+                    if data.get('role_distribution'):
+                        charts.append(self._generate_chart_url_complex('doughnut',
+                            [d.get('name', 'N/A') for d in data['role_distribution']],
+                            [{'label': 'Patients', 'data': [d.get('count', 0) for d in data['role_distribution']]}],
+                            "Dental Service Role Share"))
 
                 elif rtype in ['TREATMENT_OUTCOMES', 'TREATMENT_OUTCOME']:
                     if data.get('top_diagnoses'):
@@ -2924,6 +3023,14 @@ class ReportGenerationService:
                 pass
 
             # Standardize Metadata
+            applied_filters = []
+            if filters:
+                for k, v in filters.items():
+                    if v and k not in ['charts_base64', 'visual_analytics']:
+                        label = k.replace('_', ' ').title()
+                        val = v if not isinstance(v, list) else ", ".join(map(str, v))
+                        applied_filters.append(f"{label}: {val}")
+
             data.update({
                 'report_title': report_title,
                 'date_range_start': data.get('date_range_start', date_start),
@@ -2933,7 +3040,8 @@ class ReportGenerationService:
                 'system_name': "USC Patient Information System",
                 'report_type': rtype,
                 'visual_charts': charts,
-                'charts_base64': filters.get('charts_base64', [])
+                'charts_base64': filters.get('charts_base64', []),
+                'applied_filters': applied_filters or ["None"]
             })
             return data
 
