@@ -282,9 +282,11 @@ class ReportDataService:
                 
                 if filters.get('school'):
                     schools = filters['school']
-                    school_field = 'school' if patient_scope == 'all_verified' else 'user__school'
                     if isinstance(schools, str): schools = schools.split(',')
-                    if schools: queryset = queryset.filter(**{f"{school_field}__in": schools})
+                    if schools:
+                        course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() if info['school'] in schools]
+                        course_field = 'course' if patient_scope == 'all_verified' else 'user__course'
+                        queryset = queryset.filter(**{f"{course_field}__in": course_ids})
 
                 if filters.get('course'):
                     courses = filters['course']
@@ -583,10 +585,13 @@ class ReportDataService:
                         medical_records = medical_records.filter(patient__user__year_level__in=level_list)
                         dental_records = dental_records.filter(patient__user__year_level__in=level_list)
                 
-                if filters.get('service_type') == 'medical':
-                    dental_records = dental_records.none()
-                elif filters.get('service_type') == 'dental':
-                    medical_records = medical_records.none()
+                s_type = filters.get('service_type') or filters.get('visit_type')
+                if s_type:
+                    s_type = s_type.upper()
+                    if s_type == 'MEDICAL':
+                        dental_records = dental_records.none()
+                    elif s_type == 'DENTAL':
+                        medical_records = medical_records.none()
 
             total_medical = medical_records.count()
             total_dental = dental_records.count()
@@ -914,8 +919,8 @@ class ReportDataService:
                     else:
                         feedback_qs = feedback_qs.filter(courteous=courteous)
 
-                if filters.get('visit_type'):
-                    v_type = filters['visit_type']
+                if filters.get('visit_type') or filters.get('service_type'):
+                    v_type = filters.get('visit_type') or filters.get('service_type')
                     if isinstance(v_type, list): v_type = v_type[0]
                     if isinstance(v_type, str):
                         v_type = v_type.upper()
@@ -1040,6 +1045,13 @@ class ReportDataService:
             campaign_type = filters.get('campaign_type') or filters.get('category')
             if campaign_type:
                 queryset = queryset.filter(campaign_type=campaign_type)
+
+            min_views = filters.get('min_views')
+            if min_views:
+                try:
+                    queryset = queryset.filter(view_count__gte=int(min_views))
+                except ValueError:
+                    pass
 
             if filters.get('campus'):
                 campus_names = filters['campus']
@@ -1169,8 +1181,8 @@ class ReportDataService:
                     campus_names = filters['campus']
                     if isinstance(campus_names, str): campus_names = campus_names.split(',')
                     if campus_names:
-                        course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items()
-                                     if any(c in info['campus'] for c in campus_names)]
+                        course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() 
+                                     if info['campus'] in campus_names]
                         records = records.filter(patient__user__course__in=course_ids)
 
                 # School filter - Map to course IDs
@@ -1178,8 +1190,8 @@ class ReportDataService:
                     school_names = filters['school']
                     if isinstance(school_names, str): school_names = school_names.split(',')
                     if school_names:
-                        course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items()
-                                     if any(s in info['school'] for s in school_names)]
+                        course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() 
+                                     if info['school'] in school_names]
                         records = records.filter(patient__user__course__in=course_ids)
 
                 if filters.get('course'):
@@ -1300,15 +1312,29 @@ class ReportDataService:
                 if filters.get('procedure'):
                     proc_list = filters['procedure']
                     if isinstance(proc_list, str): proc_list = proc_list.split(',')
-                    if proc_list: records = records.filter(procedure_performed__in=proc_list)
+                    if proc_list:
+                        # Handle both display names and database values
+                        proc_map_rev = {v: k for k, v in dict(DentalRecord.PROCEDURE_CHOICES).items()}
+                        final_procs = []
+                        for p in proc_list:
+                            if p in proc_map_rev:
+                                final_procs.append(proc_map_rev[p])
+                            else:
+                                final_procs.append(p)
+                        records = records.filter(procedure_performed__in=final_procs)
+
+                if filters.get('role'):
+                    roles = filters['role']
+                    if isinstance(roles, str): roles = roles.split(',')
+                    if roles: records = records.filter(patient__user__role__in=roles)
 
                 # Campus filter - Map to course IDs
                 if filters.get('campus'):
                     campus_names = filters['campus']
                     if isinstance(campus_names, str): campus_names = campus_names.split(',')
                     if campus_names:
-                        course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items()
-                                     if any(c in info['campus'] for c in campus_names)]
+                        course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() 
+                                     if info['campus'] in campus_names]
                         records = records.filter(patient__user__course__in=course_ids)
 
                 # School filter - Map to course IDs
@@ -1316,8 +1342,8 @@ class ReportDataService:
                     school_names = filters['school']
                     if isinstance(school_names, str): school_names = school_names.split(',')
                     if school_names:
-                        course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items()
-                                     if any(s in info['school'] for s in school_names)]
+                        course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() 
+                                     if info['school'] in school_names]
                         records = records.filter(patient__user__course__in=course_ids)
 
                 if filters.get('course'):
@@ -1510,11 +1536,11 @@ class ReportDataService:
                     if roles: certs = certs.filter(patient__user__role__in=roles)
                 if filters.get('campus'):
                     campus_names = filters['campus'].split(',') if isinstance(filters['campus'], str) else filters['campus']
-                    course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() if any(c in info['campus'] for c in campus_names)]
+                    course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() if info['campus'] in campus_names]
                     certs = certs.filter(patient__user__course__in=course_ids)
                 if filters.get('school'):
                     school_names = filters['school'].split(',') if isinstance(filters['school'], str) else filters['school']
-                    course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() if any(s in info['school'] for s in school_names)]
+                    course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() if info['school'] in school_names]
                     certs = certs.filter(patient__user__course__in=course_ids)
                 if filters.get('course'):
                     courses = filters['course'].split(',') if isinstance(filters['course'], str) else filters['course']
@@ -1522,6 +1548,15 @@ class ReportDataService:
                 if filters.get('year_level'):
                     levels = filters['year_level'].split(',') if isinstance(filters['year_level'], str) else filters['year_level']
                     certs = certs.filter(patient__user__year_level__in=levels)
+
+            if filters.get('search'):
+                from django.db.models import Q
+                certs = certs.filter(
+                    Q(patient__first_name__icontains=filters['search']) |
+                    Q(patient__last_name__icontains=filters['search']) |
+                    Q(patient__user__id_number__icontains=filters['search']) |
+                    Q(template__name__icontains=filters['search'])
+                )
 
             # Domain specific filters
             if filters.get('fitness_status'):
@@ -1605,11 +1640,11 @@ class ReportDataService:
                 if roles: queryset = queryset.filter(patient__user__role__in=roles)
             if filters.get('campus'):
                 campus_names = filters['campus'].split(',') if isinstance(filters['campus'], str) else filters['campus']
-                course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() if any(c in info['campus'] for c in campus_names)]
+                course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() if info['campus'] in campus_names]
                 queryset = queryset.filter(patient__user__course__in=course_ids)
             if filters.get('school'):
                 school_names = filters['school'].split(',') if isinstance(filters['school'], str) else filters['school']
-                course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() if any(s in info['school'] for s in school_names)]
+                course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() if info['school'] in school_names]
                 queryset = queryset.filter(patient__user__course__in=course_ids)
             if filters.get('course'):
                 courses = filters['course'].split(',') if isinstance(filters['course'], str) else filters['course']
@@ -1728,7 +1763,7 @@ class ReportDataService:
                 if filters.get('campus'):
                     campus_names = filters['campus'].split(',')
                     course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() 
-                                 if any(c in info['campus'] for c in campus_names)]
+                                 if info['campus'] in campus_names]
                     medical_records = medical_records.filter(patient__user__course__in=course_ids)
                     dental_records = dental_records.filter(patient__user__course__in=course_ids)
                 
@@ -1736,7 +1771,7 @@ class ReportDataService:
                 if filters.get('school'):
                     school_names = filters['school'].split(',')
                     course_ids = [cid for cid, info in ACADEMIC_DIRECTORY_MAP.items() 
-                                 if any(s in info['school'] for s in school_names)]
+                                 if info['school'] in school_names]
                     medical_records = medical_records.filter(patient__user__course__in=course_ids)
                     dental_records = dental_records.filter(patient__user__course__in=course_ids)
 
@@ -1752,11 +1787,13 @@ class ReportDataService:
                     medical_records = medical_records.filter(patient__user__year_level__in=levels)
                     dental_records = dental_records.filter(patient__user__year_level__in=levels)
 
-                if filters.get('service_type'):
-                    stype = filters['service_type'].upper()
-                    if stype == 'MEDICAL':
+                # Standardized service/visit type filtering
+                s_type = filters.get('service_type') or filters.get('visit_type')
+                if s_type:
+                    s_type = s_type.upper()
+                    if s_type == 'MEDICAL':
                         dental_records = dental_records.none()
-                    elif stype == 'DENTAL':
+                    elif s_type == 'DENTAL':
                         medical_records = medical_records.none()
 
                 if filters.get('search'):
@@ -1768,11 +1805,6 @@ class ReportDataService:
                     roles = filters['role'].split(',')
                     medical_records = medical_records.filter(patient__user__role__in=roles)
                     dental_records = dental_records.filter(patient__user__role__in=roles)
-
-                if filters.get('service_type') == 'medical':
-                    dental_records = DentalRecord.objects.none()
-                elif filters.get('service_type') == 'dental':
-                    medical_records = medical_records.none()
 
 
             trends = ReportDataService.get_visit_trends_data(date_start, date_end, filters)

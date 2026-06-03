@@ -354,7 +354,7 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
                   {['1', '2', '3', '4', '5'].map(y => (
                     <MenuItem key={y} value={y}>{y}{y === '1' ? 'st' : y === '2' ? 'nd' : y === '3' ? 'rd' : 'th'} Year</MenuItem>
                   ))}
-                  <MenuItem value="N/A">N/A</MenuItem>
+                  <MenuItem value="6">Batch X</MenuItem>
                 </Select>
               </FormControl>
             </Grid>

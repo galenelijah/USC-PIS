@@ -76,7 +76,7 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
 
       if (isModal) {
         if (selectedRatings.length > 0) params.rating = selectedRatings.join(',');
-        if (serviceFilter !== 'all') params.visit_type = serviceFilter;
+        if (serviceFilter !== 'all') params.service_type = serviceFilter;
         if (recommendFilter !== 'all') params.recommend = recommendFilter;
         if (courtesyFilter !== 'all') params.courteous = courtesyFilter;
         if (searchQuery) params.search = searchQuery;
@@ -109,7 +109,7 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
           rating: selectedRatings,
-          visit_type: serviceFilter !== 'all' ? serviceFilter : undefined,
+          service_type: serviceFilter !== 'all' ? serviceFilter : undefined,
           recommend: recommendFilter !== 'all' ? recommendFilter : undefined,
           courteous: courtesyFilter !== 'all' ? courtesyFilter : undefined,
           search: searchQuery || undefined

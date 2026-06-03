@@ -180,6 +180,7 @@ const SystemAuditWorkshop = () => {
       case 'MedicalRecord': return { icon: <LocalHospital />, color: '#d32f2f', label: 'Medical Records' };
       case 'DentalRecord': return { icon: <MedicalServices />, color: '#7b1fa2', label: 'Dental Records' };
       case 'MedicalCertificate': return { icon: <Description />, color: '#ed6c02', label: 'Certificates' };
+      case 'GeneratedReport': return { icon: <DownloadIcon />, color: '#4527a0', label: 'Reports' };
       default: return { icon: <Dns />, color: '#757575', label: model };
     }
   };
@@ -332,6 +333,7 @@ const SystemAuditWorkshop = () => {
                 <MenuItem value="MedicalRecord">Medical Records</MenuItem>
                 <MenuItem value="DentalRecord">Dental Records</MenuItem>
                 <MenuItem value="MedicalCertificate">Certificates</MenuItem>
+                <MenuItem value="GeneratedReport">System Reports</MenuItem>
               </Select>
             </FormControl>
           </Grid>

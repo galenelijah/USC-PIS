@@ -36,6 +36,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
   const [campaigns, setCampaigns] = useState([]);
   const [dashboardCampaigns, setDashboardCampaigns] = useState([]); 
   const [modalCampaigns, setModalCampaigns] = useState([]);         
+  const [allCampaignTitles, setAllCampaignTitles] = useState([]);   
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
@@ -44,9 +45,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
   // Modal Internal Independent Filtering Controls
   const [openModal, setOpenModal] = useState(false);
   const [selectedCampaigns, setSelectedCampaigns] = useState([]); 
-  const [campusFilter, setCampusFilter] = useState('all');
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [yearLevelFilter, setYearLevelFilter] = useState('all');
+  const [minViewsFilter, setMinViewsFilter] = useState('');
   const [modalDateRange, setModalDateRange] = useState('all'); 
   const [modalStartDate, setModalStartDate] = useState('');
   const [modalEndDate, setModalEndDate] = useState('');
@@ -67,10 +66,26 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
     { id: 'title', label: 'Campaign Title', align: 'left' },
     { id: 'campaign_type', label: 'Category', align: 'left' },
     { id: 'view_count', label: 'Total Views', align: 'right' },
-    { id: 'engagement_count', label: 'Engagement', align: 'right' },
     { id: 'created_by_name', label: 'Created By', align: 'left' },
     { id: 'created_at', label: 'Date Created', align: 'left' },
   ];
+
+  // Fetch all campaign titles for comparison filter
+  useEffect(() => {
+    const fetchAllTitles = async () => {
+      try {
+        const response = await reportService.getDashboardAnalytics({ 
+          date_range: 'all',
+          report_type: 'CAMPAIGN_PERFORMANCE' 
+        });
+        const titles = Array.from(new Set((response?.data?.campaign_performance || []).map(c => c.title).filter(Boolean)));
+        setAllCampaignTitles(titles);
+      } catch (err) {
+        console.error("Failed to fetch campaign titles:", err);
+      }
+    };
+    fetchAllTitles();
+  }, []);
 
   useEffect(() => {
     const fetchCampaignData = async () => {
@@ -84,9 +99,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
           date_start: modalDateRange === 'custom' ? modalStartDate : undefined,
           date_end: modalDateRange === 'custom' ? modalEndDate : undefined,
           campaign_titles: selectedCampaigns.length > 0 ? selectedCampaigns.join(',') : undefined,
-          campus: campusFilter !== 'all' ? campusFilter : undefined,
-          role: roleFilter !== 'all' ? roleFilter : undefined,
-          year_level: yearLevelFilter !== 'all' ? yearLevelFilter : undefined,
+          min_views: minViewsFilter || undefined,
           search: searchQuery || undefined
         } : {
           date_range: dateRange,
@@ -114,7 +127,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
       }
     };
     fetchCampaignData();
-  }, [openModal, dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedCampaigns, campusFilter, roleFilter, yearLevelFilter, searchQuery]);
+  }, [openModal, dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedCampaigns, minViewsFilter, searchQuery]);
 
   const sortDataList = (list) => {
     return list.sort((a, b) => {
@@ -155,9 +168,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
           campaign_titles: selectedCampaigns,
-          campus: campusFilter !== 'all' ? [campusFilter] : undefined,
-          role: roleFilter !== 'all' ? roleFilter : undefined,
-          year_level: yearLevelFilter !== 'all' ? yearLevelFilter : undefined,
+          min_views: minViewsFilter || undefined,
           search: searchQuery
         }
       };
@@ -232,7 +243,6 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
     return "(Full Academic History)";
   };
 
-  const uniqueCampaignTitles = Array.from(new Set(campaigns.map(c => c.title).filter(Boolean)));
   const isCampaignFilterActive = selectedCampaigns.length > 0;
 
   return (
@@ -301,7 +311,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
               <Autocomplete
                 multiple
                 size="small"
-                options={uniqueCampaignTitles}
+                options={allCampaignTitles}
                 value={selectedCampaigns}
                 onChange={(e, v) => setSelectedCampaigns(v)}
                 renderTags={(tagValue, getTagProps) =>
@@ -314,14 +324,15 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
               />
             </Grid>
             <Grid item xs={12} sm={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Campus Location</InputLabel>
-                <Select value={campusFilter} label="Campus Location" onChange={(e) => setCampusFilter(e.target.value)}>
-                  <MenuItem value="all">Unified Analytics</MenuItem>
-                  <MenuItem value="Talamban">Talamban Campus</MenuItem>
-                  <MenuItem value="Downtown">Downtown Campus</MenuItem>
-                </Select>
-              </FormControl>
+              <TextField 
+                fullWidth 
+                size="small" 
+                label="Minimum Views" 
+                type="number"
+                value={minViewsFilter} 
+                onChange={(e) => setMinViewsFilter(e.target.value)} 
+                InputProps={{ inputProps: { min: 0 } }}
+              />
             </Grid>
             <Grid item xs={12} sm={3}>
               <FormControl fullWidth size="small">
@@ -339,28 +350,6 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
 
           {/* FILTERS ROW 2 (Extra Filters) */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Target Role</InputLabel>
-                <Select value={roleFilter} label="Target Role" onChange={(e) => setRoleFilter(e.target.value)}>
-                  <MenuItem value="all">All Roles</MenuItem>
-                  <MenuItem value="STUDENT">Student</MenuItem>
-                  <MenuItem value="FACULTY">Faculty</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Year Level</InputLabel>
-                <Select value={yearLevelFilter} label="Year Level" onChange={(e) => setYearLevelFilter(e.target.value)}>
-                  <MenuItem value="all">All Years</MenuItem>
-                  {['1', '2', '3', '4', '5'].map(y => (
-                    <MenuItem key={y} value={y}>{y}{y === '1' ? 'st' : y === '2' ? 'nd' : y === '3' ? 'rd' : 'th'} Year</MenuItem>
-                  ))}
-                  <MenuItem value="N/A">N/A</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
             {modalDateRange === 'custom' && (
               <>
                 <Grid item xs={12} sm={3}>
@@ -377,7 +366,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
 
           {/* ANALYTICS PREVIEW SECTION */}
           <Box sx={{ mb: 4, p: 2, border: '1px solid #e0e0e0', borderRadius: '8px', bgcolor: '#ffffff', height: 350 }}>
-             <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Engagement Comparative Visualization</Typography>
+             <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Campaign Impact Comparative Visualization</Typography>
              <Box sx={{ height: 280 }}>
                {modalCampaigns.length > 0 ? (
                  <Bar data={generateChartData(modalCampaigns)} options={chartOptions} />
@@ -433,18 +422,13 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
                         {(row.view_count || 0).toLocaleString()}
                       </Typography>
                     </TableCell>
-                    <TableCell align="right">
-                      <Typography variant="body2" sx={{ fontWeight: 700, color: '#3b82f6' }}>
-                        {(row.engagement_count || 0).toLocaleString()}
-                      </Typography>
-                    </TableCell>
                     <TableCell>{row.created_by_name || 'System'}</TableCell>
                     <TableCell>{row.created_at ? new Date(row.created_at).toLocaleDateString() : 'N/A'}</TableCell>
                   </TableRow>
                 ))}
                 {modalCampaigns.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
+                    <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
                        <Typography variant="body2" color="text.secondary">No campaigns found matching your workshop filter selection.</Typography>
                     </TableCell>
                   </TableRow>

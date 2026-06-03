@@ -700,7 +700,7 @@ const App = () => {
             <RequireAuth isAuthenticated={isAuthenticated}>
               <RequireVerification>
                 <RequireProfileSetup>
-                {userRoles.isAdminOrStaff || userRoles.isDoctor || userRoles.isNurse || userRoles.isDentist ? (
+                {userRoles.isAdminOrStaffOrDoctor ? (
                   <Layout>
                     <Reports />
                   </Layout>

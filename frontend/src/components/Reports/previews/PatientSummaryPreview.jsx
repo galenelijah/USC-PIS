@@ -28,7 +28,7 @@ import {
 
 // Import USC Directory Mapping for deep extraction
 import { ACADEMIC_DIRECTORY_MAP } from '../CampusList';
-import { ProgramsChoices } from '../../static/choices';
+import { ProgramsChoices, YearLevelChoices } from '../../static/choices';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
 
@@ -279,7 +279,6 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
 
   const campusOptions = ['Talamban Campus (TC)', 'Downtown Campus (DC)'];
   const schoolOptions = Array.from(new Set(Object.values(ACADEMIC_DIRECTORY_MAP).map(e => e.school))).sort();
-  const yearLevelOptions = ['1', '2', '3', '4', '5'];
 
   const courseOptions = Object.entries(ACADEMIC_DIRECTORY_MAP)
     .filter(([, meta]) => {
@@ -450,9 +449,10 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
               <Autocomplete
                 multiple
                 size="small"
-                options={yearLevelOptions}
-                value={selectedYearLevels}
-                onChange={(e, v) => setSelectedYearLevels(v)}
+                options={YearLevelChoices}
+                getOptionLabel={(option) => option.label}
+                value={YearLevelChoices.filter(opt => selectedYearLevels.includes(opt.id.toString()))}
+                onChange={(e, v) => setSelectedYearLevels(v.map(item => item.id.toString()))}
                 renderInput={(params) => <TextField {...params} label="Year" variant="outlined" />}
               />
             </Grid>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Typography, Divider, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 import dayjs from 'dayjs';
+import { getYearLevelLabel, getCourseLabel } from '../../utils/fieldMappers';
 
 /**
  * Professional Clinical Report Template for PDF Generation
@@ -255,7 +256,7 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
               </Grid>
               <Grid item xs={4}>
                 <Typography variant="caption" color="text.secondary">PROGRAM / YEAR</Typography>
-                <Typography variant="body2">{patient.course || patient.program || 'N/A'} - Year {patient.year_level || 'N/A'}</Typography>
+                <Typography variant="body2">{getCourseLabel(patient.course || patient.program)} - {getYearLevelLabel(patient.year_level)}</Typography>
               </Grid>
               <Grid item xs={4}>
                 <Typography variant="caption" color="text.secondary">GENDER / AGE</Typography>

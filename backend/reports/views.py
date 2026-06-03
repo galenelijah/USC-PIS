@@ -82,11 +82,13 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             queryset = queryset.exclude(report_type='USER_ACTIVITY')
             
-        # Admin and Staff can see all active templates
-        if user.is_staff or user.role in ['ADMIN', 'STAFF']:
+        # Clinic staff roles (Admin, Staff, Doctor, Dentist, Nurse) can see all active templates
+        is_clinic_staff = user.is_staff or user.role in ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE']
+        
+        if is_clinic_staff:
             return queryset.filter(is_active=True)
             
-        # For clinical roles and others, filter by allowed_roles
+        # For other roles (if any), filter by allowed_roles
         # SQLite doesn't support __contains on JSONField, so we use a different approach
         from django.db import connection
         if connection.vendor == 'sqlite':
@@ -145,7 +147,9 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
             
             # Check user permissions
             user_role = request.user.role
-            if template.allowed_roles and user_role not in template.allowed_roles:
+            is_clinic_staff = request.user.is_staff or user_role in ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE']
+            
+            if template.allowed_roles and user_role not in template.allowed_roles and not is_clinic_staff:
                 return Response(
                     {'error': 'You do not have permission to generate this report'},
                     status=status.HTTP_403_FORBIDDEN
@@ -222,7 +226,9 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
             
             # Check user permissions
             user_role = request.user.role
-            if template.allowed_roles and user_role not in template.allowed_roles:
+            is_clinic_staff = request.user.is_staff or user_role in ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE']
+            
+            if template.allowed_roles and user_role not in template.allowed_roles and not is_clinic_staff:
                 return Response(
                     {'error': 'You do not have permission to preview this report'},
                     status=status.HTTP_403_FORBIDDEN
@@ -274,8 +280,9 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             queryset = queryset.exclude(template__report_type='USER_ACTIVITY')
         
-        # Users can only see their own reports unless they're staff
-        if not (self.request.user.is_staff or self.request.user.role in ['ADMIN', 'STAFF']):
+        # Users can only see their own reports unless they're clinic staff
+        is_clinic_staff = self.request.user.is_staff or self.request.user.role in ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE']
+        if not is_clinic_staff:
             queryset = queryset.filter(generated_by=self.request.user)
         
         # Filter out expired reports
@@ -475,7 +482,8 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
         user = request.user
         
         # Base queryset for user's reports - exclude system audit activities from dashboard
-        if user.is_staff or user.role in ['ADMIN', 'STAFF']:
+        is_clinic_staff = user.is_staff or user.role in ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE']
+        if is_clinic_staff:
             base_queryset = GeneratedReport.objects.exclude(template__report_type='USER_ACTIVITY')
         else:
             base_queryset = GeneratedReport.objects.filter(generated_by=user).exclude(template__report_type='USER_ACTIVITY')
@@ -520,9 +528,9 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
                 'reports': day_reports
             })
         
-        # User activity (if staff)
+        # User activity (if clinic staff)
         user_activity = []
-        if user.is_staff or user.role in ['ADMIN', 'STAFF']:
+        if is_clinic_staff:
             user_activity = GeneratedReport.objects.values(
                 'generated_by__first_name', 'generated_by__last_name'
             ).annotate(
@@ -587,8 +595,9 @@ class ReportScheduleViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             queryset = queryset.exclude(template__report_type='USER_ACTIVITY')
         
-        # Users can only see their own schedules unless they're staff
-        if not (self.request.user.is_staff or self.request.user.role in ['ADMIN', 'STAFF']):
+        # Users can only see their own schedules unless they're clinic staff
+        is_clinic_staff = self.request.user.is_staff or self.request.user.role in ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE']
+        if not is_clinic_staff:
             queryset = queryset.filter(created_by=self.request.user)
         
         return queryset
@@ -745,12 +754,18 @@ class ReportAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):
             'year_level': request.query_params.get('year_level'),
             'patient_scope': request.query_params.get('patient_scope'),
             'diagnosis_category': request.query_params.get('diagnosis_category'),
+            'diagnosis': request.query_params.get('diagnosis'),
             'procedure': request.query_params.get('procedure'),
             'service_type': request.query_params.get('service_type'),
             'workload_class': request.query_params.get('workload_class'),
             'rating': request.query_params.get('rating'),
             'recommend': request.query_params.get('recommend'),
             'courteous': request.query_params.get('courteous'),
+            'min_views': request.query_params.get('min_views'),
+            'fitness_status': request.query_params.get('fitness_status'),
+            'issuance_status': request.query_params.get('issuance_status'),
+            'doctor': request.query_params.get('doctor'),
+            'template': request.query_params.get('template'),
         }
         
         analytics_data = ReportDataService.get_comprehensive_system_analytics(
