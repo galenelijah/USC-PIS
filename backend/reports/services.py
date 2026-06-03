@@ -194,6 +194,14 @@ class ReportDataService:
                         'date_time', 'chief_complaints', 'treatment_plan', 'remarks'
                     )[:10])
                     
+                    # Format dates for JSON/PDF consistency
+                    for r in medical_records: 
+                        if r.get('visit_date'): r['visit_date'] = r['visit_date'].strftime('%Y-%m-%d')
+                    for r in dental_records: 
+                        if r.get('visit_date'): r['visit_date'] = r['visit_date'].strftime('%Y-%m-%d')
+                    for r in consultations: 
+                        if r.get('date_time'): r['date_time'] = r['date_time'].strftime('%Y-%m-%d %H:%M')
+                    
                     # Apply customization (field selection and grouping)
                     medical_records = ReportDataService._apply_customization(medical_records, filters)
                     dental_records = ReportDataService._apply_customization(dental_records, filters)
@@ -213,7 +221,7 @@ class ReportDataService:
                             'student_id': getattr(patient.user, 'id_number', 'N/A') if patient.user else 'N/A',
                             'email': patient.email,
                             'contact_number': getattr(patient.user, 'phone', patient.phone_number) if patient.user else patient.phone_number,
-                            'date_of_birth': patient.date_of_birth,
+                            'date_of_birth': patient.date_of_birth.strftime('%Y-%m-%d') if patient.date_of_birth else 'N/A',
                             'age': age,
                             'gender': patient.get_gender_display(),
                             'blood_type': getattr(patient, 'blood_type', 'N/A'),
@@ -709,6 +717,7 @@ class ReportDataService:
                 'avg_daily_visits': avg_daily, 
                 'peak_day_visits': peak_day_visits,
                 'longitudinal_trends': longitudinal_trends, 
+                'monthly': longitudinal_trends,  # Backward compatibility for frontend charts
                 'summary_by_type': {'Medical': total_medical, 'Dental': total_dental},
                 'granularity': freq
             }
@@ -818,7 +827,7 @@ class ReportDataService:
             system_log = []
             for entry in audit_qs.select_related('actor').order_by('-timestamp')[:100]:
                 system_log.append({
-                    'timestamp': entry.timestamp,
+                    'timestamp': entry.timestamp.strftime('%Y-%m-%d %H:%M'),
                     'user': entry.actor_email or (entry.actor.get_full_name() if entry.actor else 'Unknown'),
                     'role': entry.actor_role or (entry.actor.role if entry.actor else 'N/A'),
                     'action': entry.get_action_type_display(),
@@ -1005,10 +1014,10 @@ class ReportDataService:
                     'id': f.id,
                     'rating': f.rating,
                     'comments': f.comments,
-                    'improvement': f.improvement,
+                    'suggestions': f.improvement,
                     'recommend': f.recommend,
                     'courteous': f.courteous,
-                    'created_at': f.created_at
+                    'created_at': f.created_at.strftime('%Y-%m-%d')
                 })
 
             # Calculate Yes/No Metrics
@@ -1136,8 +1145,8 @@ class ReportDataService:
                     'campaign_type': c.get_campaign_type_display(),
                     'priority': c.get_priority_display(),
                     'created_by_name': c.created_by.get_full_name() if c.created_by else 'System',
-                    'created_at': c.created_at.isoformat(),
-                    'updated_at': c.updated_at.isoformat(),
+                    'created_at': c.created_at.strftime('%Y-%m-%d'),
+                    'updated_at': c.updated_at.strftime('%Y-%m-%d'),
                     'performance': 'High' if c.view_count > 100 else ('Medium' if c.view_count > 50 else 'Low')
                 })
                 
@@ -1607,11 +1616,11 @@ class ReportDataService:
             ]
 
             # 2. Purpose Distribution (using 'diagnosis' field which represents Purpose/Requirement)
-            raw_purposes = certs.values('diagnosis').annotate(count=Count('id')).order_by('-count')
+            raw_purposes = certs.values(name=F('diagnosis')).annotate(count=Count('id')).order_by('-count')
             purpose_distribution = []
             for item in raw_purposes:
-                name = item['diagnosis'].strip() if item['diagnosis'] else 'Unspecified Purpose'
-                purpose_distribution.append({'name': name, 'count': item['count']})
+                purpose_name = item['name'].strip() if item['name'] else 'Unspecified Purpose'
+                purpose_distribution.append({'name': purpose_name, 'count': item['count']})
 
             # 3. Issuance Status Distribution
             issuance_counts = certs.values('issuance_status').annotate(count=Count('id'))
@@ -2252,7 +2261,7 @@ class ReportGenerationService:
 
                 .report-title {{ text-align: center; font-size: 14pt; color: #0f172a; margin-bottom: 20px; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }}
 
-                .section {{ margin-bottom: 20px; page-break-inside: avoid; }}
+                .section {{ margin-bottom: 20px; }}
                 .visual-section {{ page-break-before: always; margin-bottom: 20px; }}
                 .section-title {{
                     background-color: #f1f5f9;
@@ -2267,7 +2276,7 @@ class ReportGenerationService:
 
                 .chart-container {{ text-align: center; margin: 15px auto; padding: 10px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #fafafa; display: block; width: 95%; max-width: 800px; }}
 
-                .data-table {{ width: 100%; border-collapse: collapse; margin-top: 5px; }}
+                .data-table {{ width: 100%; border-collapse: collapse; margin-top: 5px; table-layout: fixed; }}
                 .data-table th {{ background-color: #003366; color: #ffffff; padding: 6px; text-align: left; font-size: 8pt; text-transform: uppercase; }}
                 .data-table td {{ padding: 6px; border-bottom: 1px solid #e2e8f0; font-size: 8pt; color: #334155; word-wrap: break-word; }}
                 .data-table tr:nth-child(even) {{ background-color: #f8fafc; }}
@@ -2538,17 +2547,19 @@ class ReportGenerationService:
                                     <tr>
                                         {{% for key in first_item.keys %}}
                                             {{% if key != "id" and key != "timestamp" and key != "charts_base64" and key != "meta" and key != "usc_id" %}}
-                                                {{% if key|lower == "comments" or key|lower == "improvement" %}}
-                                                    <th width="35%">{{{{ key|title_clean }}}}</th>
+                                                {{% if key|lower == "comments" or key|lower == "improvement" or key|lower == "suggestions" %}}
+                                                    <th width="30%">{{{{ key|title_clean }}}}</th>
                                                 {{% elif key|lower == "summary" or key|lower == "notes" or key|lower == "findings" or key|lower == "formatted_summary" %}}
                                                     <th width="40%">{{{{ key|title_clean }}}}</th>
                                                 {{% elif key|lower == "diagnosis" or key|lower == "procedure" or key|lower == "treatment" or key|lower == "primary_info" or key|lower == "title" or key|lower == "actor_email" %}}
                                                     <th width="22%">{{{{ key|title_clean }}}}</th>
-                                                {{% elif key|lower == "recommend" or key|lower == "courteous" or key|lower == "status" or key|lower == "rating" or key|lower == "performance" or key|lower == "priority" %}}
+                                                {{% elif key|lower == "recommend" or key|lower == "courteous" %}}
+                                                    <th width="10%">{{{{ key|title_clean }}}}</th>
+                                                {{% elif key|lower == "status" or key|lower == "rating" or key|lower == "performance" or key|lower == "priority" %}}
                                                     <th width="8%">{{{{ key|title_clean }}}}</th>
-                                                {{% elif key|lower == "date" or key|lower == "created_at" or key|lower == "visit_date" or key|lower == "period" or key|lower == "timestamp" %}}
+                                                {{% elif key|lower == "date" or key|lower == "created_at" or key|lower == "updated_at" or key|lower == "visit_date" or key|lower == "period" or key|lower == "timestamp" %}}
                                                     <th width="12%">{{{{ key|title_clean }}}}</th>
-                                                {{% elif key|lower == "total_visits" or key|lower == "view_count" or key|lower == "count" or key|lower == "engagement_count" or key|lower == "enrollment" %}}
+                                                {{% elif key|lower == "total_visits" or key|lower == "view_count" or key|lower == "count" or key|lower == "engagement_count" or key|lower == "enrollment" or key|lower == "percentage" %}}
                                                     <th width="9%">{{{{ key|title_clean }}}}</th>
                                                 {{% else %}}
                                                     <th>{{{{ key|title_clean }}}}</th>
@@ -2581,9 +2592,9 @@ class ReportGenerationService:
                 {{% elif v|is_dict and v|has_data and k not in "patient,demographics,visits,clinical,feedback,service_segmentation,clinical_service_intensity,population_demographics" %}}
                 <div class="section">
                     <div class="section-title">{{{{ k|title_clean }}}} Detailed Metrics</div>
-                    <table class="data-table">
+                    <table class="data-table" width="100%">
                         <thead>
-                            <tr><th>Dimension</th><th>Metric Value</th></tr>
+                            <tr><th width="40%">Dimension / Metric</th><th width="60%">Clinical Value</th></tr>
                         </thead>
                         <tbody>
                             {{% for key, val in v.items %}}
