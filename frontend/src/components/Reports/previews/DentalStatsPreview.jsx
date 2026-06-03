@@ -18,6 +18,25 @@ import {
 import { Bar } from 'react-chartjs-2';
 import { reportService } from '../../../services/api';
 import {
+
+
+const wrapText = (text, maxLength = 20) => {
+  if (!text) return '';
+  const words = text.split(' ');
+  const lines = [];
+  let currentLine = '';
+  words.forEach(word => {
+    if ((currentLine + word).length > maxLength) {
+      if (currentLine) lines.push(currentLine.trim());
+      currentLine = word + ' ';
+    } else {
+      currentLine += word + ' ';
+    }
+  });
+  if (currentLine) lines.push(currentLine.trim());
+  return lines;
+};
+
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
@@ -147,7 +166,7 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
     const palette = ['#7c3aed', '#2563eb', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6', '#64748b'];
     
     return {
-      labels: procedures.map(p => p.name.length > 15 ? p.name.substring(0, 12) + '...' : p.name),
+      labels: procedures.map(p => wrapText(p.name, 20)),
       datasets: [
         {
           label: 'Frequency',
@@ -371,7 +390,7 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
               {data?.clinical?.top_procedures?.length > 0 ? (
                 <Bar 
                   data={{
-                    labels: data.clinical.top_procedures.map(p => p.name),
+                    labels: data.clinical.top_procedures.map(p => wrapText(p.name, 20)),
                     datasets: [{
                       label: 'Total Procedures',
                       data: data.clinical.top_procedures.map(p => p.count || p.case_count || 0),

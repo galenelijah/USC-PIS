@@ -18,6 +18,25 @@ import {
 import { Bar, Pie } from 'react-chartjs-2';
 import { reportService } from '../../../services/api';
 import {
+
+
+const wrapText = (text, maxLength = 20) => {
+  if (!text) return '';
+  const words = text.split(' ');
+  const lines = [];
+  let currentLine = '';
+  words.forEach(word => {
+    if ((currentLine + word).length > maxLength) {
+      if (currentLine) lines.push(currentLine.trim());
+      currentLine = word + ' ';
+    } else {
+      currentLine += word + ' ';
+    }
+  });
+  if (currentLine) lines.push(currentLine.trim());
+  return lines;
+};
+
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
@@ -156,7 +175,7 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
     
     const dist = data.certifications.purpose_distribution.slice(0, 10);
     return {
-      labels: dist.map(d => d.name.length > 20 ? d.name.substring(0, 17) + '...' : d.name),
+      labels: dist.map(d => wrapText(d.name, 20)),
       datasets: [
         {
           label: 'Certificates',

@@ -30,6 +30,25 @@ import {
 import { ACADEMIC_DIRECTORY_MAP } from '../CampusList';
 import { ProgramsChoices, YearLevelChoices } from '../../static/choices';
 
+
+const wrapText = (text, maxLength = 20) => {
+  if (!text) return '';
+  const words = text.split(' ');
+  const lines = [];
+  let currentLine = '';
+  words.forEach(word => {
+    if ((currentLine + word).length > maxLength) {
+      if (currentLine) lines.push(currentLine.trim());
+      currentLine = word + ' ';
+    } else {
+      currentLine += word + ' ';
+    }
+  });
+  if (currentLine) lines.push(currentLine.trim());
+  return lines;
+};
+
+
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
 
 const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
@@ -164,7 +183,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
     const colleges = [...data.demographics.colleges].sort((a, b) => b.count - a.count).slice(0, 8);
     
     return {
-      labels: colleges.map(c => c.college || 'Other'),
+      labels: colleges.map(c => wrapText(c.college || 'Other', 20)),
       datasets: [
         {
           data: colleges.map(c => c.count),
@@ -183,12 +202,12 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
   const generateRoleBarData = () => {
     if (!data?.demographics?.roles) return { labels: [], datasets: [] };
     
-    const roles = data.demographics.roles; // { 'STUDENT': X, 'FACULTY / STAFF': Y }
+    const roles = data.demographics.roles;
     return {
-      labels: Object.keys(roles).map(r => r.charAt(0) + r.slice(1).toLowerCase()),
+      labels: roles.map(r => r.name),
       datasets: [
         {
-          data: Object.values(roles),
+          data: roles.map(r => r.count),
           backgroundColor: ['#1e3a8a', '#fbbf24'],
           borderWidth: 0,
           hoverOffset: 15,
@@ -212,7 +231,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
     }
 
     return {
-      labels: finalData.map(c => c.name),
+      labels: finalData.map(c => wrapText(c.name, 20)),
       datasets: [
         {
           data: finalData.map(c => c.count),
@@ -481,7 +500,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
                   {data?.demographics?.colleges?.length > 0 ? (
                     <Bar 
                       data={{
-                        labels: data.demographics.colleges.map(c => c.college),
+                        labels: data.demographics.colleges.map(c => wrapText(c.college, 20)),
                         datasets: [{
                           label: 'Total Students',
                           data: data.demographics.colleges.map(c => c.count),

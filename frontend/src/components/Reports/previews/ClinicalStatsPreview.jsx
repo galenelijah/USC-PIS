@@ -17,6 +17,25 @@ import {
 import { Bar } from 'react-chartjs-2';
 import { reportService } from '../../../services/api';
 import {
+
+
+const wrapText = (text, maxLength = 20) => {
+  if (!text) return '';
+  const words = text.split(' ');
+  const lines = [];
+  let currentLine = '';
+  words.forEach(word => {
+    if ((currentLine + word).length > maxLength) {
+      if (currentLine) lines.push(currentLine.trim());
+      currentLine = word + ' ';
+    } else {
+      currentLine += word + ' ';
+    }
+  });
+  if (currentLine) lines.push(currentLine.trim());
+  return lines;
+};
+
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
@@ -146,7 +165,7 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
     const diagnoses = data.clinical.top_diagnoses.slice(0, 8);
     
     return {
-      labels: diagnoses.map(d => d.name.length > 15 ? d.name.substring(0, 12) + '...' : d.name),
+      labels: diagnoses.map(d => wrapText(d.name, 20)),
       datasets: [
         {
           label: 'Case Volume',
@@ -379,7 +398,7 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
               {data?.clinical?.top_diagnoses?.length > 0 ? (
                 <Bar 
                   data={{
-                    labels: data.clinical.top_diagnoses.map(d => d.name),
+                    labels: data.clinical.top_diagnoses.map(d => wrapText(d.name, 20)),
                     datasets: [{
                       label: 'Total Cases',
                       data: data.clinical.top_diagnoses.map(d => d.case_count || d.count || 0),

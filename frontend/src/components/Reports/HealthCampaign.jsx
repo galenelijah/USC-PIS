@@ -21,6 +21,25 @@ import {
 import { Bar } from 'react-chartjs-2';
 import { campaignService, reportService } from '../../services/api';
 import {
+
+
+const wrapText = (text, maxLength = 20) => {
+  if (!text) return '';
+  const words = text.split(' ');
+  const lines = [];
+  let currentLine = '';
+  words.forEach(word => {
+    if ((currentLine + word).length > maxLength) {
+      if (currentLine) lines.push(currentLine.trim());
+      currentLine = word + ' ';
+    } else {
+      currentLine += word + ' ';
+    }
+  });
+  if (currentLine) lines.push(currentLine.trim());
+  return lines;
+};
+
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
@@ -198,7 +217,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
     if (limit) sorted = sorted.slice(0, limit);
 
     return {
-      labels: sorted.map(c => c.title.length > 20 ? c.title.substring(0, 17) + '...' : c.title),
+      labels: sorted.map(c => wrapText(c.title, 25)),
       datasets: [
         {
           label: 'Total Student Views',

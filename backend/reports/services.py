@@ -1524,16 +1524,17 @@ class ReportDataService:
             user = obj if isinstance(obj, User) else getattr(obj, 'user', None)
             college = "Other"
             
-            if user and user.course:
-                course_id = str(user.course)
-                if course_id in ACADEMIC_DIRECTORY_MAP:
-                    college = ACADEMIC_DIRECTORY_MAP[course_id]['school']
-                elif user.school:
-                    college = user.school
-            elif user and user.department:
-                 college = user.department
-            else:
-                 college = "Other"
+            if user:
+                if user.role == 'FACULTY':
+                    college = "Faculty"
+                elif user.course:
+                    course_id = str(user.course)
+                    if course_id in ACADEMIC_DIRECTORY_MAP:
+                        college = ACADEMIC_DIRECTORY_MAP[course_id]['school']
+                    elif user.school:
+                        college = user.school
+                elif user.department:
+                     college = user.department
 
             colleges[college] = colleges.get(college, 0) + 1
 
@@ -1549,9 +1550,12 @@ class ReportDataService:
             user = obj if isinstance(obj, User) else getattr(obj, 'user', None)
             course = "Unspecified"
             
-            if user and user.course:
-                course_id = str(user.course)
-                course = PROGRAMS_CHOICES.get(course_id, f"Program {course_id}")
+            if user:
+                if user.role == 'FACULTY':
+                    course = "Faculty"
+                elif user.course:
+                    course_id = str(user.course)
+                    course = PROGRAMS_CHOICES.get(course_id, f"Program {course_id}")
             courses[course] = courses.get(course, 0) + 1
         
         return sorted([{'name': k, 'count': v} for k, v in courses.items()], key=lambda x: x['count'], reverse=True)
@@ -2640,7 +2644,24 @@ class ReportGenerationService:
         import urllib.parse
         
         # Limit labels for readability - increased for workshop support
-        labels = labels[:60]
+        raw_labels = labels[:60]
+        wrapped_labels = []
+        for label in raw_labels:
+            if not isinstance(label, str):
+                wrapped_labels.append(label)
+                continue
+            words = label.split(' ')
+            lines = []
+            curr_line = ""
+            for word in words:
+                if len(curr_line + word) > 20:
+                    if curr_line: lines.append(curr_line.strip())
+                    curr_line = word + " "
+                else:
+                    curr_line += word + " "
+            if curr_line: lines.append(curr_line.strip())
+            wrapped_labels.append(lines if len(lines) > 1 else lines[0] if lines else "")
+        labels = wrapped_labels
         
         processed_datasets = []
         for i, ds in enumerate(datasets):
