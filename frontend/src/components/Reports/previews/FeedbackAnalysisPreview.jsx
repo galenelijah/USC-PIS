@@ -470,17 +470,17 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
                     </TableCell>
                     <TableCell>
                       <Chip 
-                        label={row.recommend === 'yes' ? 'Yes' : 'No'} 
+                        label={String(row.recommend).toLowerCase() === 'yes' ? 'Yes' : 'No'} 
                         size="small" 
-                        color={row.recommend === 'yes' ? 'success' : 'error'} 
+                        color={String(row.recommend).toLowerCase() === 'yes' ? 'success' : 'error'} 
                         variant="outlined"
                       />
                     </TableCell>
                     <TableCell>
                       <Chip 
-                        label={row.courteous === 'yes' ? 'Courteous' : 'Needs Work'} 
+                        label={String(row.courteous).toLowerCase() === 'yes' ? 'Courteous' : 'Needs Work'} 
                         size="small" 
-                        color={row.courteous === 'yes' ? 'primary' : 'warning'} 
+                        color={String(row.courteous).toLowerCase() === 'yes' ? 'primary' : 'warning'} 
                         variant="outlined"
                       />
                     </TableCell>

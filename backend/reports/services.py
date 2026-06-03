@@ -390,15 +390,19 @@ class ReportDataService:
                     elif age <= 60: age_groups_counts['46-60'] += 1
                     else: age_groups_counts['60+'] += 1
                 
-                # Handle Year Level
+                # Handle Year Level (STUDENTS ONLY)
                 if patient_scope == 'all_verified':
-                    yl = getattr(obj, 'year_level', 'N/A')
+                    role = getattr(obj, 'role', 'STUDENT')
+                    yl = getattr(obj, 'year_level', None)
                 else:
                     user = getattr(obj, 'user', None)
-                    yl = getattr(user, 'year_level', 'N/A') if user else 'N/A'
+                    role = getattr(user, 'role', 'STUDENT') if user else 'STUDENT'
+                    yl = getattr(user, 'year_level', None) if user else None
                 
-                yl_label = str(yl) if yl else 'N/A'
-                yl_counts[yl_label] = yl_counts.get(yl_label, 0) + 1
+                # Only include in distribution if they are a student
+                if role == 'STUDENT':
+                    yl_label = str(yl) if yl else 'N/A'
+                    yl_counts[yl_label] = yl_counts.get(yl_label, 0) + 1
 
             year_level_distribution = sorted(
                 [{'year_level': k, 'count': v} for k, v in yl_counts.items()],
@@ -963,14 +967,14 @@ class ReportDataService:
                     if isinstance(recommend, list):
                         feedback_qs = feedback_qs.filter(recommend__in=recommend)
                     else:
-                        feedback_qs = feedback_qs.filter(recommend=recommend)
+                        feedback_qs = feedback_qs.filter(recommend__iexact=recommend)
 
                 if filters.get('courteous'):
                     courteous = filters['courteous']
                     if isinstance(courteous, list):
                         feedback_qs = feedback_qs.filter(courteous__in=courteous)
                     else:
-                        feedback_qs = feedback_qs.filter(courteous=courteous)
+                        feedback_qs = feedback_qs.filter(courteous__iexact=courteous)
 
                 if filters.get('visit_type') or filters.get('service_type'):
                     v_type = filters.get('visit_type') or filters.get('service_type')
@@ -1032,12 +1036,12 @@ class ReportDataService:
                     'created_at': f.created_at.strftime('%Y-%m-%d')
                 })
 
-            # Calculate Yes/No Metrics
+            # Calculate Yes/No Metrics (Case-insensitive)
             metrics = {
-                'recommend_yes': feedback_qs.filter(recommend='yes').count(),
-                'recommend_no': feedback_qs.filter(recommend='no').count(),
-                'courteous_yes': feedback_qs.filter(courteous='yes').count(),
-                'courteous_no': feedback_qs.filter(courteous='no').count(),
+                'recommend_yes': feedback_qs.filter(recommend__iexact='yes').count(),
+                'recommend_no': feedback_qs.filter(recommend__iexact='no').count(),
+                'courteous_yes': feedback_qs.filter(courteous__iexact='yes').count(),
+                'courteous_no': feedback_qs.filter(courteous__iexact='no').count(),
             }
 
             # Star Distribution (Fixed categories)
@@ -2606,13 +2610,7 @@ class ReportGenerationService:
                                                 {{% if key != "id" and key != "timestamp" and key != "charts_base64" and key != "meta" and key != "usc_id" %}}
                                                 <td style="vertical-align: top; padding: 6px;">
                                                     <div style="word-wrap: break-word; white-space: normal; line-height: 1.2;">
-                                                        {{% with val=item|get_item:key %}}
-                                                            {{% if val|is_chart_url %}}
-                                                                <span style="color: #94a3b8; font-style: italic;">[Visual Component]</span>
-                                                            {{% else %}}
-                                                                {{{{ val|default:"N/A" }}}}
-                                                            {{% endif %}}
-                                                        {{% endwith %}}
+                                                        {{{{ item|get_item:key|default:"N/A" }}}}
                                                     </div>
                                                 </td>
                                                 {{% endif %}}
@@ -2630,7 +2628,7 @@ class ReportGenerationService:
                         {{% endwith %}}
                     </table>
                 </div>
-                {{% elif v|is_dict and v|has_data and k not in "patient,demographics,visits,clinical,feedback,service_segmentation,clinical_service_intensity,population_demographics" %}}
+                {{% elif v|is_dict and v|has_data and k not in "patient,demographics,visits,clinical,feedback,service_segmentation,clinical_service_intensity,population_demographics,mapped_charts" %}}
                 <div class="section">
                     <div class="section-title">{{{{ k|title_clean }}}} Detailed Metrics Analysis</div>
                     <table class="data-table" width="100%">
@@ -2639,18 +2637,38 @@ class ReportGenerationService:
                         </thead>
                         <tbody>
                             {{% for key, val in v.items %}}
-                            {{% if not val|is_chart_url %}}
                             <tr>
                                 <td style="vertical-align: top;"><strong>{{{{ key|title_clean }}}}</strong></td>
                                 <td style="vertical-align: top;"><div style="word-wrap: break-word; white-space: normal;">{{{{ val|default:"N/A" }}}}</div></td>
                             </tr>
-                            {{% endif %}}
                             {{% endfor %}}
                         </tbody>
                     </table>
                 </div>
                 {{% endif %}}
             {{% endfor %}}
+
+            {{% if mapped_charts %}}
+            <div class="section" page-break-before="always">
+                <div class="section-title">Mapped Charts & Analytical Reference</div>
+                <p style="font-size: 8pt; color: #64748b; margin-bottom: 10px;">
+                    The following engine query strings represent the standardized data visualizations embedded within this report.
+                </p>
+                <table class="data-table" width="100%">
+                    <thead>
+                        <tr><th width="30%">Visualization Key</th><th width="70%">Engine Rendering URL</th></tr>
+                    </thead>
+                    <tbody>
+                        {{% for key, val in mapped_charts.items %}}
+                        <tr>
+                            <td style="vertical-align: top;"><strong>{{{{ key|title_clean }}}}</strong></td>
+                            <td style="vertical-align: top;"><div style="word-wrap: break-word; white-space: normal; font-family: monospace; font-size: 7pt; color: #475569;">{{{{ val|default:"N/A" }}}}</div></td>
+                        </tr>
+                        {{% endfor %}}
+                    </tbody>
+                </table>
+            </div>
+            {{% endif %}}
             {{% endif %}}
 
             <div class="footer-sign">
@@ -2929,9 +2947,9 @@ class ReportGenerationService:
                     if data.get('year_level_distribution'):
                         yl_data = data['year_level_distribution']
                         mapped_charts['year_level_distribution'] = self._generate_chart_url_complex('bar',
-                            [f"Year {d.get('year_level', 'N/A')}" for d in yl_data],
+                            [(f"Year {d.get('year_level')}" if str(d.get('year_level')) not in ['N/A', 'None', ''] else 'Year Unspecified') for d in yl_data],
                             [{'label': 'Students', 'data': [d.get('count', 0) for d in yl_data], 'backgroundColor': '#6366f1'}],
-                            "Year Level Distribution")
+                            "Institutional Year Level Distribution")
                     
                     if data.get('college_participation'):
                         mapped_charts['college_participation'] = self._generate_chart_url_complex('pie',
