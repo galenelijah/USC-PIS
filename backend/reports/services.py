@@ -2537,21 +2537,19 @@ class ReportGenerationService:
                                 <thead>
                                     <tr>
                                         {{% for key in first_item.keys %}}
-                                            {{% if key != "id" and key != "timestamp" and key != "charts_base64" and key != "meta" %}}
+                                            {{% if key != "id" and key != "timestamp" and key != "charts_base64" and key != "meta" and key != "usc_id" %}}
                                                 {{% if key|lower == "comments" or key|lower == "improvement" %}}
-                                                    <th width="32%">{{{{ key|title_clean }}}}</th>
-                                                {{% elif key|lower == "summary" or key|lower == "notes" or key|lower == "findings" %}}
+                                                    <th width="35%">{{{{ key|title_clean }}}}</th>
+                                                {{% elif key|lower == "summary" or key|lower == "notes" or key|lower == "findings" or key|lower == "formatted_summary" %}}
                                                     <th width="40%">{{{{ key|title_clean }}}}</th>
-                                                {{% elif key|lower == "diagnosis" or key|lower == "procedure" or key|lower == "primary_info" or key|lower == "title" %}}
-                                                    <th width="20%">{{{{ key|title_clean }}}}</th>
-                                                {{% elif key|lower == "recommend" or key|lower == "courteous" or key|lower == "status" or key|lower == "rating" %}}
-                                                    <th width="7%">{{{{ key|title_clean }}}}</th>
-                                                {{% elif key|lower == "date" or key|lower == "created_at" or key|lower == "visit_date" or key|lower == "period" %}}
+                                                {{% elif key|lower == "diagnosis" or key|lower == "procedure" or key|lower == "treatment" or key|lower == "primary_info" or key|lower == "title" or key|lower == "actor_email" %}}
+                                                    <th width="22%">{{{{ key|title_clean }}}}</th>
+                                                {{% elif key|lower == "recommend" or key|lower == "courteous" or key|lower == "status" or key|lower == "rating" or key|lower == "performance" or key|lower == "priority" %}}
+                                                    <th width="8%">{{{{ key|title_clean }}}}</th>
+                                                {{% elif key|lower == "date" or key|lower == "created_at" or key|lower == "visit_date" or key|lower == "period" or key|lower == "timestamp" %}}
                                                     <th width="12%">{{{{ key|title_clean }}}}</th>
-                                                {{% elif key|lower == "total_visits" or key|lower == "view_count" or key|lower == "count" or key|lower == "medical_visits" or key|lower == "dental_visits" %}}
+                                                {{% elif key|lower == "total_visits" or key|lower == "view_count" or key|lower == "count" or key|lower == "engagement_count" or key|lower == "enrollment" %}}
                                                     <th width="9%">{{{{ key|title_clean }}}}</th>
-                                                {{% elif key|lower == "growth_percentage" %}}
-                                                    <th width="10%">{{{{ key|title_clean }}}}</th>
                                                 {{% else %}}
                                                     <th>{{{{ key|title_clean }}}}</th>
                                                 {{% endif %}}
@@ -2563,7 +2561,7 @@ class ReportGenerationService:
                                     {{% for item in v %}}
                                         <tr>
                                             {{% for key in first_item.keys %}}
-                                                {{% if key != "id" and key != "timestamp" and key != "charts_base64" and key != "meta" %}}
+                                                {{% if key != "id" and key != "timestamp" and key != "charts_base64" and key != "meta" and key != "usc_id" %}}
                                                 <td style="word-wrap: break-word; overflow-wrap: break-word; vertical-align: top;">{{{{ item|get_item:key }}}}</td>
                                                 {{% endif %}}
                                             {{% endfor %}}
