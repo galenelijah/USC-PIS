@@ -32,13 +32,13 @@ def test_trends():
     else:
         print(f"Total Visits: {data['total_visits']}")
         print(f"Granularity: {data.get('granularity')}")
-        print(f"Summary Count: {len(data.get('monthly_summary', []))}")
-        if data.get('monthly_summary'):
+        print(f"Summary Count: {len(data.get('monthly', []))}")
+        if data.get('monthly'):
             # Print entries that have non-zero visits
-            non_zero = [e for e in data['monthly_summary'] if e['total_visits'] > 0]
+            non_zero = [e for e in data['monthly'] if e['total_visits'] > 0]
             print(f"Non-zero entries: {non_zero}")
-            print(f"First Entry: {data['monthly_summary'][0]}")
-            print(f"Last Entry: {data['monthly_summary'][-1]}")
+            print(f"First Entry: {data['monthly'][0]}")
+            print(f"Last Entry: {data['monthly'][-1]}")
 
 if __name__ == "__main__":
     test_trends()

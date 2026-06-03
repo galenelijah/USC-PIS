@@ -109,18 +109,26 @@ class ReportDataService:
         selected_fields = filters.get('selected_fields')
         group_by = filters.get('group_by')
         
-        # 1. Prune fields
-        if selected_fields:
-            pruned_list = []
-            for item in data_list:
-                if isinstance(item, dict):
-                    # Always keep the group_by field if it exists, so grouping still works
-                    effective_fields = set(selected_fields)
-                    if group_by: effective_fields.add(group_by)
-                    pruned_list.append({k: v for k, v in item.items() if k in effective_fields})
-                else:
-                    pruned_list.append(item)
-            data_list = pruned_list
+        # 1. Prune fields & Sanitize
+        pruned_list = []
+        for item in data_list:
+            if isinstance(item, dict):
+                # Always keep the group_by field if it exists, so grouping still works
+                effective_fields = set(selected_fields) if selected_fields else set(item.keys())
+                if group_by: effective_fields.add(group_by)
+                
+                # Sanitize values to N/A for display consistency
+                sanitized = {}
+                for k, v in item.items():
+                    if k in effective_fields:
+                        if v is None or (isinstance(v, str) and not v.strip()):
+                            sanitized[k] = "N/A"
+                        else:
+                            sanitized[k] = v
+                pruned_list.append(sanitized)
+            else:
+                pruned_list.append(item if item is not None else "N/A")
+        data_list = pruned_list
             
         # 2. Group data (returns a dict of lists if grouping is active)
         if group_by and data_list and isinstance(data_list[0], dict) and group_by in data_list[0]:
@@ -683,7 +691,9 @@ class ReportDataService:
                 longitudinal_trends = []
                 for timestamp, row in counts.iterrows():
                     longitudinal_trends.append({
+                        'timestamp': timestamp.isoformat(),
                         'period': timestamp.strftime(date_format),
+                        'month': timestamp.strftime(date_format),  # Compatibility with older frontend code
                         'total_visits': int(row['total']),
                         'medical_visits': int(row.get('medical', 0)), 
                         'dental_visits': int(row.get('dental', 0)),
@@ -694,7 +704,9 @@ class ReportDataService:
                 longitudinal_trends = []
                 for timestamp in full_range:
                     longitudinal_trends.append({
+                        'timestamp': timestamp.isoformat(),
                         'period': timestamp.strftime(date_format),
+                        'month': timestamp.strftime(date_format),  # Compatibility with older frontend code
                         'total_visits': 0,
                         'medical_visits': 0,
                         'dental_visits': 0,
@@ -1015,8 +1027,8 @@ class ReportDataService:
                     'rating': f.rating,
                     'comments': f.comments,
                     'suggestions': f.improvement,
-                    'recommend': f.recommend,
-                    'courteous': f.courteous,
+                    'recommend': 'Yes' if str(f.recommend).lower() in ['yes', 'true', '1'] else 'No',
+                    'courteous': 'Yes' if str(f.courteous).lower() in ['yes', 'true', '1'] else 'No',
                     'created_at': f.created_at.strftime('%Y-%m-%d')
                 })
 
@@ -1719,6 +1731,9 @@ class ReportDataService:
                     'date': c.created_at.strftime('%Y-%m-%d')
                 })
             
+            # Apply customization and sanitization
+            results = ReportDataService._apply_customization(results, filters)
+            
             # Get enriched analytics once safely
             try:
                 analytics = ReportDataService.get_certification_analytics(date_start, date_end, filters)
@@ -1967,7 +1982,7 @@ class USCUnifiedHistoryReport:
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
         canvas.line(20*mm, 15*mm, A4[0]-20*mm, 15*mm)
         canvas.setFont('Helvetica', 7)
-        canvas.drawString(20*mm, 10*mm, f"Generated: {timestamp} | By: {self.user['name']}")
+        canvas.drawString(20*mm, 10*mm, f"Generated: {timestamp} PHT | By: {self.user['name']}")
         canvas.drawRightString(A4[0]-20*mm, 10*mm, f"Page {doc.page} | Confidential Medical Record")
         canvas.restoreState()
 
@@ -2022,11 +2037,19 @@ class USCUnifiedHistoryReport:
                 backColor=type_colors.get(item['type'], colors.grey)
             )
             
+            # Global sanitization for ReportLab paragraphs
+            def clean(val):
+                if val is None or (isinstance(val, str) and not val.strip()):
+                    return "N/A"
+                if isinstance(val, str) and ("quickchart.io/chart" in val or "/chart?" in val):
+                    return "<i>[Visual Component]</i>"
+                return str(val)
+
             table_data.append([
-                Paragraph(item['date'], self.styles['WrappedCell']),
-                Paragraph(item['type'], type_style),
-                Paragraph(f"<b>{item['title']}</b><br/>{item['primary_info']}", self.styles['WrappedCell']),
-                Paragraph(item['secondary_info'], self.styles['WrappedCell'])
+                Paragraph(clean(item.get('date')), self.styles['WrappedCell']),
+                Paragraph(clean(item.get('type')), type_style),
+                Paragraph(f"<b>{clean(item.get('title'))}</b><br/>{clean(item.get('primary_info'))}", self.styles['WrappedCell']),
+                Paragraph(clean(item.get('secondary_info')), self.styles['WrappedCell'])
             ])
             
         t = Table(table_data, colWidths=[30*mm, 20*mm, 60*mm, 60*mm], repeatRows=1)
@@ -2150,7 +2173,7 @@ class ReportExportService:
                 info_data = [
                     ['Report Title', title.upper()],
                     ['University', 'University of San Carlos Clinic'],
-                    ['Generated At', timezone.now().strftime('%Y-%m-%d %H:%M:%S')],
+                    ['Generated At', timezone.now().strftime('%Y-%m-%d %H:%M:%S') + ' PHT'],
                     ['Date Range Start', str(report_data.get('date_range_start', 'N/A'))],
                     ['Date Range End', str(report_data.get('date_range_end', 'N/A'))],
                     ['Applied Filters', ", ".join(report_data.get('applied_filters', ["None"]))],
@@ -2195,7 +2218,7 @@ class ReportExportService:
         try:
             output = StringIO(); writer = csv.writer(output)
             writer.writerow([f"REPORT: {title.upper()}"])
-            writer.writerow([f"Generated: {timezone.now().strftime('%Y-%m-%d %H:%M')}"])
+            writer.writerow([f"Generated: {timezone.now().strftime('%Y-%m-%d %H:%M')} PHT"])
             writer.writerow([f"Filters: {', '.join(report_data.get('applied_filters', ['None']))}"])
             writer.writerow([])
             list_keys = []; writer.writerow(["SUMMARY OVERVIEW"])
@@ -2389,8 +2412,8 @@ class ReportGenerationService:
                     <tbody>
                         {{% for item in fitness_distribution %}}
                         <tr>
-                            <td>{{{{ item.status|title_clean }}}}</td>
-                            <td>{{{{ item.count }}}} certificates</td>
+                            <td style="vertical-align: top;"><div style="word-wrap: break-word; white-space: normal;">{{{{ item.status|title_clean }}}}</div></td>
+                            <td style="vertical-align: top;">{{{{ item.count }}}} certificates</td>
                         </tr>
                         {{% endfor %}}
                     </tbody>
@@ -2407,8 +2430,8 @@ class ReportGenerationService:
                     <tbody>
                         {{% for item in purpose_distribution %}}
                         <tr>
-                            <td>{{{{ item.name|title_clean }}}}</td>
-                            <td>{{{{ item.count }}}} certificates</td>
+                            <td style="vertical-align: top;"><div style="word-wrap: break-word; white-space: normal;">{{{{ item.name|title_clean }}}}</div></td>
+                            <td style="vertical-align: top;">{{{{ item.count }}}} certificates</td>
                         </tr>
                         {{% endfor %}}
                     </tbody>
@@ -2426,8 +2449,8 @@ class ReportGenerationService:
                     <tbody>
                         {{% for item in issuance_status_breakdown %}}
                         <tr>
-                            <td>{{{{ item.status|title_clean }}}}</td>
-                            <td>{{{{ item.count }}}} certificates</td>
+                            <td style="vertical-align: top;"><div style="word-wrap: break-word; white-space: normal;">{{{{ item.status|title_clean }}}}</div></td>
+                            <td style="vertical-align: top;">{{{{ item.count }}}} certificates</td>
                         </tr>
                         {{% endfor %}}
                     </tbody>
@@ -2445,8 +2468,8 @@ class ReportGenerationService:
                     <tbody>
                         {{% for item in doctor_workload_tally %}}
                         <tr>
-                            <td>Dr. {{{{ item.name|title_clean }}}}</td>
-                            <td>{{{{ item.count }}}} certificates</td>
+                            <td style="vertical-align: top;"><div style="word-wrap: break-word; white-space: normal;">Dr. {{{{ item.name|title_clean }}}}</div></td>
+                            <td style="vertical-align: top;">{{{{ item.count }}}} certificates</td>
                         </tr>
                         {{% endfor %}}
                     </tbody>
@@ -2468,10 +2491,10 @@ class ReportGenerationService:
                     <tbody>
                         {{% for item in certificates_log %}}
                         <tr>
-                            <td>{{{{ item.patient }}}} ({{{{ item.usc_id }}}})</td>
-                            <td>{{{{ item.fitness }}}}</td>
-                            <td>{{{{ item.doctor }}}}</td>
-                            <td>{{{{ item.date }}}}</td>
+                            <td style="vertical-align: top;"><div style="word-wrap: break-word; white-space: normal;">{{{{ item.patient }}}} ({{{{ item.usc_id }}}})</div></td>
+                            <td style="vertical-align: top;"><div style="word-wrap: break-word; white-space: normal;">{{{{ item.fitness }}}}</div></td>
+                            <td style="vertical-align: top;"><div style="word-wrap: break-word; white-space: normal;">{{{{ item.doctor }}}}</div></td>
+                            <td style="vertical-align: top;">{{{{ item.date }}}}</td>
                         </tr>
                         {{% endfor %}}
                     </tbody>
@@ -2492,9 +2515,9 @@ class ReportGenerationService:
                     <tbody>
                         {{% for entry in hourly_traffic_density %}}
                         <tr>
-                            <td><strong>{{{{ entry.hour }}}}:00 - {{{{ entry.hour }}}}:59</strong></td>
-                            <td>{{{{ entry.count }}}} interactions</td>
-                            <td>
+                            <td style="vertical-align: top;"><strong>{{{{ entry.hour }}}}:00 - {{{{ entry.hour }}}}:59</strong></td>
+                            <td style="vertical-align: top;">{{{{ entry.count }}}} interactions</td>
+                            <td style="vertical-align: top;">
                                 {{% if entry.count >= 10 %}}
                                     <span class="density-badge" style="background-color: #fee2e2; color: #991b1b;">PEAK INTENSITY</span>
                                 {{% elif entry.count >= 5 %}}
@@ -2520,8 +2543,16 @@ class ReportGenerationService:
                     {{% for k, v in report_data.items %}}
                         {{% if v|is_simple and k not in "report_title,date_range_start,date_range_end,generated_at,system_name,report_type,visual_charts,charts_base64,report_focus" %}}
                             <tr>
-                                <td><strong>{{{{ k|title_clean }}}}</strong></td>
-                                <td>{{{{ v }}}}</td>
+                                <td style="vertical-align: top;"><strong>{{{{ k|title_clean }}}}</strong></td>
+                                <td style="vertical-align: top;">
+                                    <div style="word-wrap: break-word; white-space: normal;">
+                                        {{% if v|is_chart_url %}}
+                                            <span style="color: #94a3b8; font-style: italic;">[Visual Component]</span>
+                                        {{% else %}}
+                                            {{{{ v }}}}
+                                        {{% endif %}}
+                                    </div>
+                                </td>
                             </tr>
                         {{% endif %}}
                     {{% endfor %}}
@@ -2573,7 +2604,17 @@ class ReportGenerationService:
                                         <tr>
                                             {{% for key in first_item.keys %}}
                                                 {{% if key != "id" and key != "timestamp" and key != "charts_base64" and key != "meta" and key != "usc_id" %}}
-                                                <td style="word-wrap: break-word; overflow-wrap: break-word; vertical-align: top;">{{{{ item|get_item:key }}}}</td>
+                                                <td style="vertical-align: top; padding: 6px;">
+                                                    <div style="word-wrap: break-word; white-space: normal; line-height: 1.2;">
+                                                        {{% with val=item|get_item:key %}}
+                                                            {{% if val|is_chart_url %}}
+                                                                <span style="color: #94a3b8; font-style: italic;">[Visual Component]</span>
+                                                            {{% else %}}
+                                                                {{{{ val|default:"N/A" }}}}
+                                                            {{% endif %}}
+                                                        {{% endwith %}}
+                                                    </div>
+                                                </td>
                                                 {{% endif %}}
                                             {{% endfor %}}
                                         </tr>
@@ -2582,7 +2623,7 @@ class ReportGenerationService:
                             {{% else %}}
                                 <tbody>
                                     {{% for item in v %}}
-                                        <tr><td>{{{{ item }}}}</td></tr>
+                                        <tr><td style="vertical-align: top;"><div style="word-wrap: break-word; white-space: normal;">{{{{ item|default:"N/A" }}}}</div></td></tr>
                                     {{% endfor %}}
                                 </tbody>
                             {{% endif %}}
@@ -2591,17 +2632,19 @@ class ReportGenerationService:
                 </div>
                 {{% elif v|is_dict and v|has_data and k not in "patient,demographics,visits,clinical,feedback,service_segmentation,clinical_service_intensity,population_demographics" %}}
                 <div class="section">
-                    <div class="section-title">{{{{ k|title_clean }}}} Detailed Metrics</div>
+                    <div class="section-title">{{{{ k|title_clean }}}} Detailed Metrics Analysis</div>
                     <table class="data-table" width="100%">
                         <thead>
-                            <tr><th width="40%">Dimension / Metric</th><th width="60%">Clinical Value</th></tr>
+                            <tr><th width="40%">Institutional Dimension / Metric</th><th width="60%">Clinical Value</th></tr>
                         </thead>
                         <tbody>
                             {{% for key, val in v.items %}}
+                            {{% if not val|is_chart_url %}}
                             <tr>
-                                <td><strong>{{{{ key|title_clean }}}}</strong></td>
-                                <td>{{{{ val }}}}</td>
+                                <td style="vertical-align: top;"><strong>{{{{ key|title_clean }}}}</strong></td>
+                                <td style="vertical-align: top;"><div style="word-wrap: break-word; white-space: normal;">{{{{ val|default:"N/A" }}}}</div></td>
                             </tr>
+                            {{% endif %}}
                             {{% endfor %}}
                         </tbody>
                     </table>
@@ -2612,14 +2655,14 @@ class ReportGenerationService:
 
             <div class="footer-sign">
                 <div class="signature-line"></div>
-                <p><strong>AUTHORIZED MEDICAL PERSONNEL</strong></p>
-                <p>University of San Carlos Health Services</p>
+                <p><strong>AUTHORIZED CLINICAL PERSONNEL</strong></p>
+                <p>University of San Carlos Health Services Department</p>
             </div>
 
             <div class="usc-footer">
-                <p><strong>CONFIDENTIAL INSTITUTIONAL DOCUMENT</strong></p>
-                <p>Generated by {{{{ user.get_full_name|default:user|default:"Clinic Administrator" }}}} on {{{{ generated_at|format_date:"%Y-%m-%d %H:%M:%S" }}}}</p>
-                <p>&copy; 2026 USC Health Services Department</p>
+                <p style="margin-bottom: 5px;"><strong>CONFIDENTIAL INSTITUTIONAL DOCUMENT - DO NOT DISCLOSE</strong></p>
+                <p>Generated by {{{{ user.get_full_name|default:user|default:"Clinic Administrator" }}}} on {{{{ generated_at|format_date:"%Y-%m-%d %H:%M:%S" }}}} PHT</p>
+                <p>&copy; 2026 USC Health Services Department | Integrated Patient Information System</p>
             </div>
         </body>
         </html>"""
@@ -2692,6 +2735,16 @@ class ReportGenerationService:
             'options': {
                 'title': { 'display': True, 'text': title, 'fontSize': 16, 'fontColor': '#1e293b' },
                 'legend': { 'display': True, 'position': 'bottom' },
+                'layout': { 'padding': 35 },
+                'plugins': {
+                    'datalabels': {
+                        'anchor': 'end',
+                        'align': 'start',
+                        'offset': 10,
+                        'display': 'auto',
+                        'font': { 'weight': 'bold' }
+                    }
+                },
                 'scales': {
                     'yAxes': [{'ticks': {'beginAtZero': True}}],
                     'xAxes': [{'ticks': {'autoSkip': False, 'maxRotation': 45, 'minRotation': 45}}]

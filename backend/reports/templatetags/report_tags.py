@@ -61,6 +61,13 @@ def title_clean(value):
     cleaned = re.sub(r'[_|-]', ' ', value)
     return cleaned.title()
 
+@register.filter(name='is_chart_url')
+def is_chart_url(value):
+    """Check if a string is a QuickChart URL to prevent diagnostic leaks in tables"""
+    if not isinstance(value, str):
+        return False
+    return "quickchart.io/chart" in value or (value.startswith("http") and "/chart?" in value)
+
 @register.filter(name='format_audit_summary')
 def format_audit_summary(log):
     """Convert JSON changes_summary into a human-readable string for reports"""

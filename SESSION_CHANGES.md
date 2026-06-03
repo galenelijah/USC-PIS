@@ -1,5 +1,45 @@
 ---
 
+# Session Changes (2026-06-03)
+
+This session focused on hardening the USC-PIS reporting and analytics system, ensuring institutional-grade data accuracy, professional export layouts, and seamless multi-format interoperability.
+
+## Key Accomplishments
+- **Reporting System Hardening (v3.0)**:
+  - **Institutional PDF Standard**: Implemented a dynamic PDF width engine that automatically assigns optimal widths based on clinical column types (e.g., 40% for Findings, 22% for Diagnoses, 12% for Dates).
+  - **Landscape Optimization**: Enforced `table-layout: fixed` and removed aggressive page-break constraints to ensure all 11 report categories perfectly utilize the A4 landscape orientation without distortion.
+  - **Timestamp Standardization**: Shortened all ISO-formatted timestamps in exports to `YYYY-MM-DD` (and `HH:M` for forensics), preventing column overlap and improving legibility.
+- **Data Integrity & Legacy Mapping**:
+  - **Gender Code Synchronization**: Corrected legacy data mapping in `ReportDataService` to handle integer-based gender codes ('1' for Male, '2' for Female) found in the production database.
+  - **Medical Certificate Audit**: Patched certificate analytics to count all issuance statuses (18 records) and added institutional notes explaining the workflow inclusion policy.
+  - **Dental Cleanup**: Refactored dental statistics to strip legacy fields (Hygiene, Gum, Priority) and handle division-by-zero errors in growth percentage math.
+- **Frontend Restoration & Compatibility**:
+  - **Fixed Visit Trends Regression**: Restored the `monthly` data key for backward compatibility with the frontend "Clinical Capacity" chart while retaining the improved `longitudinal_trends` naming internally.
+  - **Excel Interoperability**: Standardized Excel exports to the modern `.xlsx` format to prevent security warnings and file association errors in Microsoft Office.
+- **UX & Branding Refinements**:
+  - Renamed "Monthly Trends" to **"Longitudinal Trends"** across all reports for accuracy in custom/academic time-range filters.
+  - Integrated **Forced Page Breaks** (`.visual-section`) before charts to ensure data tables and their corresponding visualizations are never fragmented across pages.
+  - Renamed feedback "Improvement" field to **"Suggestions"** for better alignment with institutional terminology.
+
+## Modified Files
+- `backend/reports/services.py`: Overhauled the data service with standard width logic, shortened timestamps, and robust error handling.
+- `backend/reports/views.py`: Corrected extension mapping for `.xlsx` exports.
+- `frontend/src/components/Reports/ReportArchive.jsx`: Updated download logic for modern Excel formats.
+- `project_documentation_2026/USC_PIS_THESIS_EVALUATION.md`: Generated a comprehensive tech/performance summary based on thesis manuscript alignment.
+
+## Rationale
+- **Professionalism**: Reports are the primary output of the system; ensuring they meet USC institutional standards is critical for administrative approval.
+- **Reliability**: Fixing division-by-zero and legacy mapping errors ensures the system remains robust when processing years of historical clinical data.
+- **User Trust**: Shortened timestamps and fixed table layouts directly address user feedback regarding export "clutter" and visual overlapping.
+
+## Verify Quickly
+- **Excel Export**: Download any report in Excel format and verify it opens in Excel without "Corrupt file" warnings.
+- **Visit Trends**: Open the "Clinical Capacity" workshop on the frontend and verify the line chart displays correctly.
+- **Service Satisfaction PDF**: Export a satisfaction report and verify the "Comments" and "Suggestions" columns are legible and don't overlap.
+- **Audit Logs**: Generate an Operations report and verify the "Actor Email" and "Action Summary" columns are correctly prioritized.
+
+---
+
 # Session Changes (2026-05-28)
 
 This session focused on hardening the clinical notification ecosystem, ensuring accurate patient classification in reports, and enhancing UI responsiveness for all clinical tables.
