@@ -2295,7 +2295,7 @@ class ReportGenerationService:
                     text-transform: uppercase;
                 }}
                 
-                .chart-container { text-align: center; margin: 20px auto; padding: 10px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #fafafa; display: block; width: 95%; max-width: 800px; }
+                .chart-container {{ text-align: center; margin: 20px auto; padding: 10px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #fafafa; display: block; width: 95%; max-width: 800px; }}
                 
                 .data-table {{ width: 100%; border-collapse: collapse; margin-top: 5px; table-layout: fixed; }}
                 .data-table th {{ background-color: #003366; color: #ffffff; padding: 10px 8px; text-align: left; font-size: 8.5pt; text-transform: uppercase; overflow: hidden; }}
@@ -2872,10 +2872,10 @@ class ReportGenerationService:
                             [{'label': 'Students', 'data': [d.get('count', 0) for d in yl_data], 'backgroundColor': '#6366f1'}],
                             "Year Level Distribution")
                     
-                    if data.get('college_distribution'):
-                        mapped_charts['college_distribution'] = self._generate_chart_url_complex('pie',
-                            [d.get('name', 'N/A') for d in data['college_distribution'][:8]],
-                            [{'label': 'Students', 'data': [d.get('count', 0) for d in data['college_distribution'][:8]]}],
+                    if data.get('college_participation'):
+                        mapped_charts['college_participation'] = self._generate_chart_url_complex('pie',
+                            [d.get('name', 'N/A') for d in data['college_participation'][:8]],
+                            [{'label': 'Students', 'data': [d.get('count', 0) for d in data['college_participation'][:8]]}],
                             "College Distribution")
 
                     if data.get('role_distribution'):
