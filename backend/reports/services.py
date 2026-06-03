@@ -2295,7 +2295,7 @@ class ReportGenerationService:
                     text-transform: uppercase;
                 }}
                 
-                .chart-container {{ text-align: center; margin: 20px 0; padding: 10px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #fafafa; }}
+                .chart-container { text-align: center; margin: 20px auto; padding: 10px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #fafafa; display: block; width: 95%; max-width: 800px; }
                 
                 .data-table {{ width: 100%; border-collapse: collapse; margin-top: 5px; table-layout: fixed; }}
                 .data-table th {{ background-color: #003366; color: #ffffff; padding: 10px 8px; text-align: left; font-size: 8.5pt; text-transform: uppercase; overflow: hidden; }}
@@ -2340,12 +2340,12 @@ class ReportGenerationService:
                 <div class="section-title">Comparative Analysis & Visual Intelligence</div>
                 <div style="text-align: center;">
                     {{% for chart_url in visual_charts %}}
-                    <div class="chart-container" style="display: inline-block; width: 48%; margin: 1%;">
+                    <div class="chart-container" style="display: block; width: 95%; max-width: 800px; margin: 15px auto;">
                         <img src="{{{{ chart_url }}}}" width="100%" />
                     </div>
                     {{% endfor %}}
                     {{% for chart_b64 in charts_base64 %}}
-                    <div class="chart-container" style="display: inline-block; width: 48%; margin: 1%;">
+                    <div class="chart-container" style="display: block; width: 95%; max-width: 800px; margin: 15px auto;">
                         <img src="{{{{ chart_b64 }}}}" width="100%" />
                     </div>
                     {{% endfor %}}
@@ -2555,6 +2555,13 @@ class ReportGenerationService:
                 {{% if v|is_list and v|has_data and k not in "visual_charts,charts_base64,visual_analytics,system_log,administrative_audit_trail,hourly_traffic_density" %}}
                 <div class="section">
                     <div class="section-title">{{{{ k|title_clean }}}} Data Analysis</div>
+                    
+                    {{% if mapped_charts|get_item:k %}}
+                    <div class="chart-container" style="display: block; width: 95%; max-width: 800px; margin: 15px auto;">
+                        <img src="{{{{ mapped_charts|get_item:k }}}}" width="100%" />
+                    </div>
+                    {{% endif %}}
+                    
                     <table class="data-table">
                         {{% with first_item=v|first %}}
                             {{% if first_item|is_dict %}}
@@ -2832,49 +2839,74 @@ class ReportGenerationService:
             
             if not isinstance(data, dict): data = {'error': 'Invalid data format', 'report_type': rtype}
             
-            # Enrich with Workshop-Standard Charts (Skip if already captured from Workshop UI)
+            # Enrich with Workshop-Standard Charts
             charts = []
+            mapped_charts = {}
             
-            if not filters.get('charts_base64'):
+            if True:
                 if rtype == 'PATIENT_SUMMARY':
                     if data.get('course_distribution'):
-                        charts.append(self._generate_chart_url_complex('pie', 
+                        mapped_charts['course_distribution'] = self._generate_chart_url_complex('pie', 
                             [d.get('name', 'Other') for d in data['course_distribution'][:8]], 
                             [{'label': 'Enrollment', 'data': [d.get('count', 0) for d in data['course_distribution'][:8]]}],
-                            "Course Enrollment Distribution"))
+                            "Course Enrollment Distribution")
                     
                     if data.get('age_distribution'):
                         age_data = data['age_distribution']
-                        charts.append(self._generate_chart_url_complex('bar',
+                        mapped_charts['age_distribution'] = self._generate_chart_url_complex('bar',
                             [d.get('group', 'N/A') for d in age_data],
                             [{'label': 'Patients', 'data': [d.get('count', 0) for d in age_data], 'backgroundColor': '#10b981'}],
-                            "Age Demographic Distribution"))
+                            "Age Demographic Distribution")
 
                     if data.get('gender_distribution'):
                         gender_data = data['gender_distribution']
-                        charts.append(self._generate_chart_url_complex('doughnut',
+                        mapped_charts['gender_distribution'] = self._generate_chart_url_complex('doughnut',
                             [d.get('gender', 'N/A') for d in gender_data],
                             [{'label': 'Gender', 'data': [d.get('count', 0) for d in gender_data]}],
-                            "Gender Classification Share"))
+                            "Gender Classification Share")
 
                     if data.get('year_level_distribution'):
                         yl_data = data['year_level_distribution']
-                        charts.append(self._generate_chart_url_complex('bar',
+                        mapped_charts['year_level_distribution'] = self._generate_chart_url_complex('bar',
                             [f"Year {d.get('year_level', 'N/A')}" for d in yl_data],
                             [{'label': 'Students', 'data': [d.get('count', 0) for d in yl_data], 'backgroundColor': '#6366f1'}],
-                            "Year Level Distribution"))
+                            "Year Level Distribution")
+                    
+                    if data.get('college_distribution'):
+                        mapped_charts['college_distribution'] = self._generate_chart_url_complex('pie',
+                            [d.get('name', 'N/A') for d in data['college_distribution'][:8]],
+                            [{'label': 'Students', 'data': [d.get('count', 0) for d in data['college_distribution'][:8]]}],
+                            "College Distribution")
+
+                    if data.get('role_distribution'):
+                        mapped_charts['role_distribution'] = self._generate_chart_url_complex('doughnut',
+                            [d.get('name', 'N/A') for d in data['role_distribution']],
+                            [{'label': 'Roles', 'data': [d.get('count', 0) for d in data['role_distribution']]}],
+                            "Role Distribution")
 
                 elif rtype == 'VISIT_TRENDS' and data.get('monthly') and data.get('total_visits', 0) > 0:
                     monthly = data['monthly']
-                    charts.append(self._generate_chart_url_complex('line', 
+                    mapped_charts['monthly'] = self._generate_chart_url_complex('line', 
                         [m['month'] for m in monthly], 
                         [
                             {'label': 'Aggregate Trends', 'data': [m['total_visits'] for m in monthly], 'borderDash': [5, 5], 'borderColor': '#1e293b'},
                             {'label': 'Medical', 'data': [m['medical_visits'] for m in monthly], 'borderColor': '#3b82f6'},
                             {'label': 'Dental', 'data': [m['dental_visits'] for m in monthly], 'borderColor': '#10b981'}
                         ],
-                        "Longitudinal Interaction Timeline"))
+                        "Longitudinal Interaction Timeline")
                     
+                    if data.get('top_diagnoses'):
+                        mapped_charts['top_diagnoses'] = self._generate_chart_url_complex('bar',
+                            [d.get('name', 'N/A')[:20] for d in data['top_diagnoses'][:8]],
+                            [{'label': 'Cases', 'data': [d.get('count', 0) for d in data['top_diagnoses'][:8]]}],
+                            "Top Clinical Diagnoses")
+                    
+                    if data.get('top_treatments'):
+                        mapped_charts['top_treatments'] = self._generate_chart_url_complex('bar',
+                            [d.get('name', 'N/A')[:20] for d in data['top_treatments'][:8]],
+                            [{'label': 'Treatments', 'data': [d.get('count', 0) for d in data['top_treatments'][:8]]}],
+                            "Top Clinical Treatments")
+
                     if data.get('total_medical') or data.get('total_dental'):
                         charts.append(self._generate_chart_url_complex('doughnut',
                             ['Medical', 'Dental'],
@@ -2883,140 +2915,174 @@ class ReportGenerationService:
 
                 elif rtype in ['CAMPAIGN_PERFORMANCE', 'HEALTH_CAMPAIGN'] and data.get('campaign_performance'):
                     perf = data['campaign_performance']
-                    charts.append(self._generate_chart_url_complex('bar', 
+                    mapped_charts['campaign_performance'] = self._generate_chart_url_complex('bar', 
                         [c.get('title', 'N/A')[:20] for c in perf[:8]], 
                         [
                             {'label': 'Total Views', 'data': [c.get('views', c.get('view_count', 0)) for c in perf[:8]], 'backgroundColor': '#ea580c'}
                         ],
-                        "Individual Campaign Reach"))
+                        "Individual Campaign Reach")
                     
                     if data.get('category_distribution'):
-                        charts.append(self._generate_chart_url_complex('pie',
+                        mapped_charts['category_distribution'] = self._generate_chart_url_complex('pie',
                             [d.get('type', 'N/A') for d in data['category_distribution']],
                             [{'label': 'Category Share', 'data': [d.get('count', 0) for d in data['category_distribution']]}],
-                            "Campaign Category Distribution"))
+                            "Campaign Category Distribution")
+                    
+                    if data.get('asset_effectiveness'):
+                        mapped_charts['asset_effectiveness'] = self._generate_chart_url_complex('bar',
+                            [d.get('asset_type', 'N/A') for d in data['asset_effectiveness']],
+                            [{'label': 'Avg Views', 'data': [d.get('avg_views', 0) for d in data['asset_effectiveness']]}],
+                            "Asset Effectiveness Analysis")
 
                 elif rtype in ['FEEDBACK_ANALYSIS', 'PATIENT_FEEDBACK'] and data.get('rating_distribution'):
                     dist = data['rating_distribution']
-                    charts.append(self._generate_chart_url_complex('doughnut', 
+                    mapped_charts['rating_distribution'] = self._generate_chart_url_complex('doughnut', 
                         [f"{d.get('category', 'N/A')} Stars" for d in dist], 
                         [{
                             'label': 'Satisfaction', 
                             'data': [d.get('count', 0) for d in dist],
                             'backgroundColor': ['#4caf50', '#8bc34a', '#ffeb3b', '#ff9800', '#f44336']
                         }],
-                        "Institutional Satisfaction Index"))
+                        "Institutional Satisfaction Index")
                     
                     if data.get('service_metrics'):
                         metrics = data['service_metrics']
-                        charts.append(self._generate_chart_url_complex('bar',
+                        mapped_charts['service_metrics'] = self._generate_chart_url_complex('bar',
                             ['Would Recommend', 'Provider Courtesy'],
                             [
                                 {'label': 'Yes', 'data': [metrics.get('recommend_yes', 0), metrics.get('courteous_yes', 0)], 'backgroundColor': '#10b981'},
                                 {'label': 'No', 'data': [metrics.get('recommend_no', 0), metrics.get('courteous_no', 0)], 'backgroundColor': '#ef4444'}
                             ],
-                            "Service Sentiment Breakdown"))
+                            "Service Sentiment Breakdown")
+                    
+                    if data.get('feedback_trends'):
+                        mapped_charts['feedback_trends'] = self._generate_chart_url_complex('line',
+                            [m.get('month', 'N/A') for m in data['feedback_trends']],
+                            [{'label': 'Avg Rating', 'data': [m.get('avg_rating', 0) for m in data['feedback_trends']]}],
+                            "Feedback Satisfaction Trends")
 
                 elif rtype in ['MEDICAL_STATISTICS', 'MEDICAL_STATS'] and data.get('top_diagnoses'):
                     diag = data['top_diagnoses']
-                    charts.append(self._generate_chart_url_complex('bar', 
+                    mapped_charts['top_diagnoses'] = self._generate_chart_url_complex('bar', 
                         [d.get('name', 'N/A')[:25] for d in diag[:10]], 
                         [{'label': 'Frequency', 'data': [d.get('case_count', d.get('count', 0)) for d in diag[:10]]}],
-                        "Top Clinical Diagnoses (Medical)"))
+                        "Top Clinical Diagnoses (Medical)")
                     
                     if data.get('gender_distribution'):
-                        charts.append(self._generate_chart_url_complex('pie',
+                        mapped_charts['gender_distribution'] = self._generate_chart_url_complex('pie',
                             [d.get('name', 'N/A') for d in data['gender_distribution']],
                             [{'label': 'Patients', 'data': [d.get('count', 0) for d in data['gender_distribution']]}],
-                            "Medical Service Gender Share"))
+                            "Medical Service Gender Share")
                     
                     if data.get('role_distribution'):
-                        charts.append(self._generate_chart_url_complex('doughnut',
+                        mapped_charts['role_distribution'] = self._generate_chart_url_complex('doughnut',
                             [d.get('name', 'N/A') for d in data['role_distribution']],
                             [{'label': 'Patients', 'data': [d.get('count', 0) for d in data['role_distribution']]}],
-                            "Medical Service Role Share"))
+                            "Medical Service Role Share")
+                    
+                    if data.get('monthly_trends'):
+                        mapped_charts['monthly_trends'] = self._generate_chart_url_complex('line',
+                            [m.get('month', 'N/A') for m in data['monthly_trends']],
+                            [{'label': 'Volume', 'data': [m.get('count', 0) for m in data['monthly_trends']]}],
+                            "Monthly Medical Volume Trends")
 
                 elif rtype in ['DENTAL_STATISTICS', 'DENTAL_STATS'] and data.get('common_procedures'):
                     proc = data['common_procedures']
-                    charts.append(self._generate_chart_url_complex('bar', 
+                    mapped_charts['common_procedures'] = self._generate_chart_url_complex('bar', 
                         [p.get('name', 'N/A')[:25] for p in proc[:10]], 
                         [{'label': 'Frequency', 'data': [p.get('count', 0) for p in proc[:10]]}],
-                        "Top Procedural Metrics (Dental)"))
+                        "Top Procedural Metrics (Dental)")
                     
                     if data.get('gender_distribution'):
-                        charts.append(self._generate_chart_url_complex('pie',
+                        mapped_charts['gender_distribution'] = self._generate_chart_url_complex('pie',
                             [d.get('name', 'N/A') for d in data['gender_distribution']],
                             [{'label': 'Patients', 'data': [d.get('count', 0) for d in data['gender_distribution']]}],
-                            "Dental Service Gender Share"))
+                            "Dental Service Gender Share")
                     
                     if data.get('role_distribution'):
-                        charts.append(self._generate_chart_url_complex('doughnut',
+                        mapped_charts['role_distribution'] = self._generate_chart_url_complex('doughnut',
                             [d.get('name', 'N/A') for d in data['role_distribution']],
                             [{'label': 'Patients', 'data': [d.get('count', 0) for d in data['role_distribution']]}],
-                            "Dental Service Role Share"))
+                            "Dental Service Role Share")
+
+                    if data.get('monthly_trends'):
+                        mapped_charts['monthly_trends'] = self._generate_chart_url_complex('line',
+                            [m.get('month', 'N/A') for m in data['monthly_trends']],
+                            [{'label': 'Volume', 'data': [m.get('count', 0) for m in data['monthly_trends']]}],
+                            "Monthly Dental Volume Trends")
 
                 elif rtype in ['TREATMENT_OUTCOMES', 'TREATMENT_OUTCOME']:
                     if data.get('top_diagnoses'):
                         diag = data['top_diagnoses']
-                        charts.append(self._generate_chart_url_complex('bar', 
+                        mapped_charts['top_diagnoses'] = self._generate_chart_url_complex('bar', 
                             [d.get('name', 'N/A')[:25] for d in diag[:10]], 
                             [{'label': 'Diagnosis Frequency', 'data': [d.get('count', 0) for d in diag[:10]]}],
-                            "Clinical Diagnosis Breakdown"))
+                            "Clinical Diagnosis Breakdown")
                     if data.get('treatment_distribution'):
                         treatments = data['treatment_distribution']
-                        charts.append(self._generate_chart_url_complex('doughnut', 
+                        mapped_charts['treatment_distribution'] = self._generate_chart_url_complex('doughnut', 
                             [t.get('name', 'N/A')[:20] for t in treatments[:6]], 
                             [{'label': 'Treatment Share', 'data': [t.get('count', 0) for t in treatments[:6]]}],
-                            "Treatment Outcomes Distribution"))
+                            "Treatment Outcomes Distribution")
+                    if data.get('recovery_rates'):
+                        mapped_charts['recovery_rates'] = self._generate_chart_url_complex('bar',
+                            [r.get('condition', 'N/A')[:20] for r in data['recovery_rates'][:6]],
+                            [{'label': 'Rate', 'data': [r.get('rate', 0) for r in data['recovery_rates'][:6]]}],
+                            "Condition Recovery Efficiency")
 
                 elif rtype == 'USER_ACTIVITY' or rtype == 'OPERATIONS' or rtype == 'AUDIT_LOG':
                     peak_hours = data.get('hourly_traffic_density', [])
                     if peak_hours:
-                        charts.append(self._generate_chart_url_complex('bar', 
+                        mapped_charts['hourly_traffic_density'] = self._generate_chart_url_complex('bar', 
                             [f"{h['hour']}:00" for h in peak_hours], 
                             [{
                                 'label': 'Hourly Visit Density', 
                                 'data': [h['count'] for h in peak_hours],
                                 'backgroundColor': '#f59e0b'
                             }],
-                            "Operational Flow & Density Analysis"))
+                            "Operational Flow & Density Analysis")
                     
                     if data.get('service_segmentation'):
                         breakdown = data['service_segmentation']
-                        charts.append(self._generate_chart_url_complex('pie',
+                        mapped_charts['service_segmentation'] = self._generate_chart_url_complex('pie',
                             ['Medical', 'Dental'],
                             [{'label': 'Service Share', 'data': [breakdown.get('medical', 0), breakdown.get('dental', 0)]}],
-                            "Institutional Service Distribution"))
+                            "Institutional Service Distribution")
 
                 elif rtype == 'COMPREHENSIVE_ANALYTICS' or rtype == 'COMPREHENSIVE':
                     # Multi-dimensional analytics for comprehensive reports
                     if data.get('visits', {}).get('monthly') and data.get('visits', {}).get('total_visits', 0) > 0:
                         monthly = data['visits']['monthly']
-                        charts.append(self._generate_chart_url_complex('line', 
+                        mapped_charts['monthly'] = self._generate_chart_url_complex('line', 
                             [m['month'] for m in monthly], 
                             [{'label': 'Total Visit Volume', 'data': [m['total_visits'] for m in monthly], 'borderColor': '#3b82f6', 'fill': True}],
-                            "Institutional Clinical Throughput"))
+                            "Institutional Clinical Throughput")
                     
                     if data.get('clinical', {}).get('top_diagnoses'):
                         diag = data['clinical']['top_diagnoses']
-                        charts.append(self._generate_chart_url_complex('pie', 
+                        mapped_charts['top_diagnoses'] = self._generate_chart_url_complex('pie', 
                             [d.get('name', 'N/A')[:20] for d in diag[:6]], 
                             [{'label': 'Diagnosis Share', 'data': [d.get('case_count', d.get('count', 0)) for d in diag[:6]]}],
-                            "Clinical Case Distribution"))
+                            "Clinical Case Distribution")
 
                 elif rtype == 'MEDICAL_CERTIFICATE':
                     if data.get('fitness_distribution'):
                         dist = data['fitness_distribution']
-                        charts.append(self._generate_chart_url_complex('pie',
+                        mapped_charts['fitness_distribution'] = self._generate_chart_url_complex('pie',
                             [d.get('status', 'N/A') for d in dist],
                             [{'label': 'Fitness Determination', 'data': [d.get('count', 0) for d in dist]}],
-                            "Fitness Determination Distribution"))
+                            "Fitness Determination Distribution")
                     if data.get('purpose_distribution'):
                         dist = data['purpose_distribution']
-                        charts.append(self._generate_chart_url_complex('bar',
+                        mapped_charts['purpose_distribution'] = self._generate_chart_url_complex('bar',
                             [d.get('name', 'N/A')[:20] for d in dist[:8]],
                             [{'label': 'Certificates Issued', 'data': [d.get('count', 0) for d in dist[:8]]}],
-                            "Top Certificate Purposes"))
+                            "Top Certificate Purposes")
+                    if data.get('monthly_trends'):
+                        mapped_charts['monthly_trends'] = self._generate_chart_url_complex('line',
+                            [m.get('month', 'N/A') for m in data['monthly_trends']],
+                            [{'label': 'Volume', 'data': [m.get('count', 0) for m in data['monthly_trends']]}],
+                            "Monthly Issuance Trends")
 
             elif rtype == 'HEALTH_METRICS':
                 # Future: Add charts for blood pressure/BMI trends if data is available
@@ -3040,6 +3106,7 @@ class ReportGenerationService:
                 'system_name': "USC Patient Information System",
                 'report_type': rtype,
                 'visual_charts': charts,
+                'mapped_charts': mapped_charts,
                 'charts_base64': filters.get('charts_base64', []),
                 'applied_filters': applied_filters or ["None"]
             })

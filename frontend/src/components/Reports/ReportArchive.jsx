@@ -185,8 +185,12 @@ const ReportArchive = () => {
                         size="small" 
                         sx={{ 
                           fontWeight: 700, 
-                          bgcolor: report.export_format === 'PDF' ? '#fee2e2' : '#dcfce7',
-                          color: report.export_format === 'PDF' ? '#ef4444' : '#16a34a'
+                          bgcolor: report.export_format === 'PDF' ? '#fee2e2' : 
+                                   report.export_format === 'HTML' ? '#e0f2fe' : 
+                                   report.export_format === 'JSON' ? '#fef3c7' : '#dcfce7',
+                          color: report.export_format === 'PDF' ? '#ef4444' : 
+                                 report.export_format === 'HTML' ? '#0284c7' : 
+                                 report.export_format === 'JSON' ? '#d97706' : '#16a34a'
                         }} 
                       />
                     </TableCell>

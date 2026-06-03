@@ -454,24 +454,10 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
         <DialogActions sx={{ p: 2, bgcolor: '#fafafa', borderTop: '1px solid #e0e0e0' }}>
           <Button onClick={() => setOpenModal(false)} sx={{ color: 'text.secondary' }}>Close Workshop</Button>
           <Box sx={{ flexGrow: 1 }} />
-          <Button 
-            variant="outlined" 
-            size="small" 
-            onClick={() => handleGenerateReport('EXCEL')} 
-            disabled={generating} 
-            sx={{ mr: 1 }}
-          >
-            Excel
-          </Button>
-          <Button 
-            variant="outlined" 
-            size="small" 
-            onClick={() => handleGenerateReport('CSV')} 
-            disabled={generating} 
-            sx={{ mr: 1 }}
-          >
-            CSV
-          </Button>
+          <Button variant="outlined" size="small" onClick={() => handleGenerateReport('EXCEL')} disabled={generating} sx={{ mr: 1 }}>Excel</Button>
+          <Button variant="outlined" size="small" onClick={() => handleGenerateReport('CSV')} disabled={generating} sx={{ mr: 1 }}>CSV</Button>
+          <Button variant="outlined" size="small" onClick={() => handleGenerateReport('HTML')} disabled={generating} sx={{ mr: 1 }}>HTML</Button>
+          <Button variant="outlined" size="small" onClick={() => handleGenerateReport('JSON')} disabled={generating} sx={{ mr: 1 }}>JSON</Button>
           <Button 
             variant="contained" 
             onClick={() => handleGenerateReport('PDF')}
