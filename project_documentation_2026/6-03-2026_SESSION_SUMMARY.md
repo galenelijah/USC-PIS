@@ -27,6 +27,7 @@ Expand report export capabilities and enhance the visual density and professiona
 - **Campus Filter Resolution:** Repaired the campus location filter in the Certification Workshop to successfully match short campus names to the ACADEMIC_DIRECTORY_MAP.
 - **Responsive Data Tables:** Added explicit horizontal scrolling boundaries (`overflowX: auto`) to large data tables across the `/patients`, `/health-records`, and `/medical-certificates` pages to prevent UI breakage on smaller screens.
 - **Faculty Role Classification:** Standardized backend data aggregation to explicitly group users with the 'FACULTY' role under a unified "Faculty" label in academic distribution charts, rather than tracking their individual departments.
+- **Frontend Reference Errors:** Fixed a `ReferenceError: Autocomplete is not defined` crash by explicitly importing the `Autocomplete` component in all workshop previews where the new multi-select Campus filter was added.
 - **Vite Build Error:** Fixed a Heroku compilation crash by safely repositioning a newly injected string-wrapping utility outside of ES6 import blocks.
 
 ## Impact
