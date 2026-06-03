@@ -2234,9 +2234,9 @@ class ReportGenerationService:
 
                 .report-title {{ text-align: center; font-size: 14pt; color: #0f172a; margin-bottom: 20px; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }}
 
-                .section { margin-bottom: 20px; page-break-inside: avoid; }
-                .visual-section { page-break-before: always; margin-bottom: 20px; }
-                .section-title {
+                .section {{ margin-bottom: 20px; page-break-inside: avoid; }}
+                .visual-section {{ page-break-before: always; margin-bottom: 20px; }}
+                .section-title {{
                     background-color: #f1f5f9;
                     color: #0f172a;
                     font-size: 10pt;
