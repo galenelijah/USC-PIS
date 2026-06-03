@@ -1569,7 +1569,7 @@ class ReportDataService:
                     roles['STUDENT'] += 1
                 elif role == 'FACULTY':
                     roles['FACULTY'] += 1
-        return roles
+        return [{'name': k.title(), 'role': k, 'count': v} for k, v in roles.items()]
     @staticmethod
     def get_certification_analytics(date_start=None, date_end=None, filters=None):
         """Get medical certificate analytics for health clearance process insights"""
@@ -2266,40 +2266,40 @@ class ReportGenerationService:
             <title>{{{{ title }}}}</title>
             <meta name="engine" content="xhtml2pdf-engine-verification">
             <style>
-                @page {{ 
-                    size: A4; 
-                    margin: 1.5cm; 
+                @page {{
+                    size: A4 landscape;
+                    margin: 1.0cm;
                 }}
-                body {{ font-family: 'Helvetica', 'Arial', sans-serif; line-height: 1.6; color: #1e293b; font-size: 10pt; }}
-                
-                .usc-header {{ 
-                    text-align: center; 
-                    border-bottom: 3px solid #003366; 
-                    margin-bottom: 25px; 
-                    padding-bottom: 15px; 
-                }}
-                .usc-logo-text {{ font-size: 20pt; font-weight: bold; color: #003366; margin: 0; text-transform: uppercase; }}
-                .usc-sub-text {{ font-size: 11pt; color: #64748b; margin: 5px 0 0 0; font-weight: bold; }}
-                
-                .report-title {{ text-align: center; font-size: 16pt; color: #0f172a; margin-bottom: 25px; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }}
+                body {{ font-family: 'Helvetica', 'Arial', sans-serif; line-height: 1.6; color: #1e293b; font-size: 9pt; }}
 
-                .section {{ margin-bottom: 25px; page-break-inside: avoid; }}
-                .section-title {{ 
-                    background-color: #f1f5f9; 
-                    color: #0f172a; 
-                    font-size: 11pt; 
-                    font-weight: bold; 
-                    padding: 8px 12px; 
-                    border-left: 5px solid #003366; 
-                    margin-bottom: 15px;
+                .usc-header {{
+                    text-align: center;
+                    border-bottom: 3px solid #003366;
+                    margin-bottom: 20px;
+                    padding-bottom: 10px;
+                }}
+                .usc-logo-text {{ font-size: 18pt; font-weight: bold; color: #003366; margin: 0; text-transform: uppercase; }}
+                .usc-sub-text {{ font-size: 10pt; color: #64748b; margin: 5px 0 0 0; font-weight: bold; }}
+
+                .report-title {{ text-align: center; font-size: 14pt; color: #0f172a; margin-bottom: 20px; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }}
+
+                .section {{ margin-bottom: 20px; page-break-inside: avoid; }}
+                .section-title {{
+                    background-color: #f1f5f9;
+                    color: #0f172a;
+                    font-size: 10pt;
+                    font-weight: bold;
+                    padding: 6px 10px;
+                    border-left: 5px solid #003366;
+                    margin-bottom: 10px;
                     text-transform: uppercase;
                 }}
-                
-                .chart-container {{ text-align: center; margin: 20px auto; padding: 10px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #fafafa; display: block; width: 95%; max-width: 800px; }}
-                
-                .data-table {{ width: 100%; border-collapse: collapse; margin-top: 5px; table-layout: fixed; }}
-                .data-table th {{ background-color: #003366; color: #ffffff; padding: 10px 8px; text-align: left; font-size: 8.5pt; text-transform: uppercase; overflow: hidden; }}
-                .data-table td {{ padding: 8px; border-bottom: 1px solid #e2e8f0; font-size: 9pt; color: #334155; word-wrap: break-word; overflow-wrap: break-word; }}
+
+                .chart-container {{ text-align: center; margin: 15px auto; padding: 10px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #fafafa; display: block; width: 95%; max-width: 800px; }}
+
+                .data-table {{ width: 100%; border-collapse: collapse; margin-top: 5px; }}
+                .data-table th {{ background-color: #003366; color: #ffffff; padding: 6px; text-align: left; font-size: 8pt; text-transform: uppercase; }}
+                .data-table td {{ padding: 6px; border-bottom: 1px solid #e2e8f0; font-size: 8pt; color: #334155; word-wrap: break-word; }}
                 .data-table tr:nth-child(even) {{ background-color: #f8fafc; }}
                 
                 .metric-table {{ width: 100%; margin-bottom: 20px; border-spacing: 10px; border-collapse: separate; }}
