@@ -1227,7 +1227,7 @@ class ReportDataService:
             patients = Patient.objects.filter(medical_records__in=records).distinct()
             
             # Gender distribution
-            gender_map = {'M': 'Male', 'F': 'Female', 'O': 'Other'}
+            gender_map = {'M': 'Male', 'F': 'Female', 'O': 'Other', '1': 'Male', '2': 'Female'}
             g_dist = {}
             for p in patients:
                 g = gender_map.get(p.gender, 'Unspecified')
@@ -1303,24 +1303,8 @@ class ReportDataService:
                     'avg_age': round(diag_avg_age, 2)
                 })
             
-            # Monthly trends
-            monthly_trends = []
-            if records.exists():
-                df = pd.DataFrame(list(records.values('visit_date')))
-                df['visit_date'] = pd.to_datetime(df['visit_date'])
-                df['month'] = df['visit_date'].dt.strftime('%b %Y')
-                counts = df.groupby('month').size()
-                for month, count in counts.items():
-                    monthly_trends.append({
-                        'name': month, 
-                        'total': int(count), 
-                        'medical': int(count), 
-                        'emergency': 0 
-                    })
-
             # Apply customization (field selection and grouping)
             diag = ReportDataService._apply_customization(diag, filters or {})
-            monthly_trends = ReportDataService._apply_customization(monthly_trends, filters or {})
 
             return {
                'total_patients': patients.count(),
@@ -1329,8 +1313,7 @@ class ReportDataService:
                'top_diagnoses': diag,
                'vitals_summary': vitals,
                'gender_distribution': [{'name': k, 'count': v} for k, v in g_dist.items() if v > 0],
-               'role_distribution': [{'name': k.title(), 'count': v} for k, v in r_dist.items() if v > 0],
-               'monthly_trends': sorted(monthly_trends, key=lambda x: x['name']) if isinstance(monthly_trends, list) else monthly_trends
+               'role_distribution': [{'name': k.title(), 'count': v} for k, v in r_dist.items() if v > 0]
             }
 
         except Exception as e: 
@@ -1404,8 +1387,8 @@ class ReportDataService:
             # Calculate distributions
             patients = Patient.objects.filter(dental_records__in=records).distinct()
             
-            # Gender distribution
-            gender_map = {'M': 'Male', 'F': 'Female', 'O': 'Other'}
+            # Gender distribution - handle legacy numeric values ('1', '2')
+            gender_map = {'M': 'Male', 'F': 'Female', 'O': 'Other', '1': 'Male', '2': 'Female'}
             g_dist = {}
             for p in patients:
                 g = gender_map.get(p.gender, 'Unspecified')
@@ -1423,7 +1406,7 @@ class ReportDataService:
             if total_records == 0:
                 return {
                     'total_records': 0, 'common_procedures': [], 
-                    'hygiene_stats': [], 'gum_stats': [], 'priority_stats': []
+                    'gender_distribution': [], 'role_distribution': []
                 }
             
             # Common procedures with display labels
@@ -1445,34 +1428,6 @@ class ReportDataService:
                     'percentage': round((item['count'] / total_records) * 100, 2),
                     'avg_age': round(proc_avg_age, 2)
                 })
-            # Oral hygiene status distribution
-            hygiene_counts = records.exclude(oral_hygiene_status='').values('oral_hygiene_status').annotate(count=Count('id'))
-            hygiene_map = dict([
-                ('EXCELLENT', 'Excellent'), ('GOOD', 'Good'), ('FAIR', 'Fair'), ('POOR', 'Poor')
-            ])
-            hygiene_stats = [{
-                'status': hygiene_map.get(item['oral_hygiene_status'], item['oral_hygiene_status']),
-                'count': item['count']
-            } for item in hygiene_counts]
-
-            # Gum condition distribution
-            gum_counts = records.exclude(gum_condition='').values('gum_condition').annotate(count=Count('id'))
-            gum_map = dict([
-                ('HEALTHY', 'Healthy'), ('GINGIVITIS', 'Gingivitis'), 
-                ('PERIODONTITIS', 'Periodontitis'), ('INFLAMMATION', 'Inflammation')
-            ])
-            gum_stats = [{
-                'condition': gum_map.get(item['gum_condition'], item['gum_condition']),
-                'count': item['count']
-            } for item in gum_counts]
-
-            # Priority breakdown
-            priority_counts = records.values('priority').annotate(count=Count('id'))
-            priority_map = dict(DentalRecord.PRIORITY_CHOICES)
-            priority_stats = [{
-                'label': priority_map.get(item['priority'], item['priority']),
-                'count': item['count']
-            } for item in priority_counts]
 
             # Preventive care calculation (Cleaning, Prophylaxis, Fluoride, Sealant)
             preventive_types = ['CLEANING', 'PROPHYLAXIS', 'FLUORIDE', 'SEALANT']
@@ -1481,17 +1436,11 @@ class ReportDataService:
 
             # Apply customization (field selection and grouping)
             common_procedures = ReportDataService._apply_customization(common_procedures, filters or {})
-            hygiene_stats = ReportDataService._apply_customization(hygiene_stats, filters or {})
-            gum_stats = ReportDataService._apply_customization(gum_stats, filters or {})
-            priority_stats = ReportDataService._apply_customization(priority_stats, filters or {})
 
             return {
-                'total_records': total_records,
-                'preventive_care_rate': round(preventive_rate, 2),
+                'total_dental_visits': total_records,
+                'preventive_care_rate': f"{round(preventive_rate, 2)}%",
                 'common_procedures': common_procedures,
-                'hygiene_stats': hygiene_stats,
-                'gum_stats': gum_stats,
-                'priority_stats': priority_stats,
                 'gender_distribution': [{'name': k, 'count': v} for k, v in g_dist.items() if v > 0],
                 'role_distribution': [{'name': k.title(), 'count': v} for k, v in r_dist.items() if v > 0]
             }
@@ -2285,8 +2234,9 @@ class ReportGenerationService:
 
                 .report-title {{ text-align: center; font-size: 14pt; color: #0f172a; margin-bottom: 20px; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }}
 
-                .section {{ margin-bottom: 20px; page-break-inside: avoid; }}
-                .section-title {{
+                .section { margin-bottom: 20px; page-break-inside: avoid; }
+                .visual-section { page-break-before: always; margin-bottom: 20px; }
+                .section-title {
                     background-color: #f1f5f9;
                     color: #0f172a;
                     font-size: 10pt;
@@ -2338,7 +2288,7 @@ class ReportGenerationService:
             </div>
 
             {{% if visual_charts or charts_base64 %}}
-            <div class="section">
+            <div class="visual-section">
                 <div class="section-title">Comparative Analysis & Visual Intelligence</div>
                 <div style="text-align: center;">
                     {{% for chart_url in visual_charts %}}
@@ -2554,7 +2504,7 @@ class ReportGenerationService:
 
             {{% for k, v in report_data.items %}}
                 {{% if v|is_list and v|has_data and k not in "visual_charts,charts_base64,visual_analytics,system_log,administrative_audit_trail,hourly_traffic_density" %}}
-                <div class="section">
+                <div class="{{% if mapped_charts|get_item:k %}}visual-section{{% else %}}section{{% endif %}}">
                     <div class="section-title">{{{{ k|title_clean }}}} Data Analysis</div>
                     
                     {{% if mapped_charts|get_item:k %}}
@@ -2710,7 +2660,8 @@ class ReportGenerationService:
                 'title': { 'display': True, 'text': title, 'fontSize': 16, 'fontColor': '#1e293b' },
                 'legend': { 'display': True, 'position': 'bottom' },
                 'scales': {
-                    'yAxes': [{'ticks': {'beginAtZero': True}}]
+                    'yAxes': [{'ticks': {'beginAtZero': True}}],
+                    'xAxes': [{'ticks': {'autoSkip': False, 'maxRotation': 45, 'minRotation': 45}}]
                 } if chart_type not in ['pie', 'doughnut'] else {}
             }
         }
@@ -3003,12 +2954,6 @@ class ReportGenerationService:
                             [d.get('name', 'N/A') for d in data['role_distribution']],
                             [{'label': 'Patients', 'data': [d.get('count', 0) for d in data['role_distribution']]}],
                             "Medical Service Role Share")
-                    
-                    if data.get('monthly_trends'):
-                        mapped_charts['monthly_trends'] = self._generate_chart_url_complex('line',
-                            [m.get('month', 'N/A') for m in data['monthly_trends']],
-                            [{'label': 'Volume', 'data': [m.get('count', 0) for m in data['monthly_trends']]}],
-                            "Monthly Medical Volume Trends")
 
                 elif rtype in ['DENTAL_STATISTICS', 'DENTAL_STATS'] and data.get('common_procedures'):
                     proc = data['common_procedures']
@@ -3028,12 +2973,6 @@ class ReportGenerationService:
                             [d.get('name', 'N/A') for d in data['role_distribution']],
                             [{'label': 'Patients', 'data': [d.get('count', 0) for d in data['role_distribution']]}],
                             "Dental Service Role Share")
-
-                    if data.get('monthly_trends'):
-                        mapped_charts['monthly_trends'] = self._generate_chart_url_complex('line',
-                            [m.get('month', 'N/A') for m in data['monthly_trends']],
-                            [{'label': 'Volume', 'data': [m.get('count', 0) for m in data['monthly_trends']]}],
-                            "Monthly Dental Volume Trends")
 
                 elif rtype in ['TREATMENT_OUTCOMES', 'TREATMENT_OUTCOME']:
                     if data.get('top_diagnoses'):

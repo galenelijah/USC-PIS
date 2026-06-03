@@ -31,5 +31,13 @@ Expand report export capabilities and enhance the visual density and professiona
 - **Vite Build Error:** Fixed a Heroku compilation crash by safely repositioning a newly injected string-wrapping utility outside of ES6 import blocks.
 - **Patient Classification Visual:** Repaired the broken "Patient Classification" doughnut chart in client-side PDF exports. Replaced the unsupported `conic-gradient` CSS with a robust horizontal progress bar and refactored the role detection logic to accurately classify students vs. faculty while excluding non-clinical records like attachments.
 
+### 5. Reporting System Hardening & Maintenance
+- **Excel Extension Standardization:** Corrected a bug where Excel exports were being saved with a non-standard `.excel` extension. The system now correctly uses the `.xlsx` standard across both the backend and frontend.
+- **Certification Workshop Refinement:** Removed the "Average Turnaround Time" metric from the Medical Fitness & Certification workshop (both UI and PDF) as per clinical request to focus on fitness distribution.
+- **Reporting Parity Fix (Postgres vs SQLite):** Identified and resolved a discrepancy where the local dashboard was reporting 0 certificates due to SQLite fallbacks. Verified 18 active certificates in the production PostgreSQL database and updated the backend to reliably count all certificates (Draft, Pending, Issued, Rejected) in the summary.
+- **PDF Table Layout Audit:** Conducted a comprehensive audit of all 11 PDF report types. Standardized column widths (Comments/Notes at 40%, Diagnosis at 25%) to eliminate text overlapping in high-density sections like Service Satisfaction.
+- **Visual Duplicate Fix:** Resolved a chart duplication issue in the Visit Trends PDF export by correcting the mapping logic for the Service Distribution Analysis chart.
+- **Institutional Metric Notes:** Added explicit footnotes to both the UI and PDF exports explaining that "Total Certificates" represents an institutional aggregate of all workflow statuses.
+
 ## Impact
 The reporting system is now significantly more versatile and professional. The high-density visual layout ensures that clinical staff can quickly interpret granular data trends without manually cross-referencing tables. The addition of HTML and JSON formats makes the system highly interoperable with external data analysis workflows.

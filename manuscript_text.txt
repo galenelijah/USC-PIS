@@ -1,0 +1,4152 @@
+--- PAGE 1 ---
+Modernizing the USC Clinic’s Patient Information
+System: A Design and Implementation Project
+An Undergraduate Thesis presented to the
+School of Engineering
+of the University of San Carlos
+In partial fulfillment
+of the requirements for the degree
+Bachelor of Science in Computer Engineering
+Ron Vanz Petiluna
+Janren Renegado
+Galen Elijah Sabequil
+Main Adviser: Engr. Elline Fabian
+Assistant Adviser: Engr. Kenneth Carl Labarosa
+May 2026
+
+--- PAGE 3 ---
+Declaration
+The authors hereby declare that, except where explicit reference is made to the
+work of others, the content of this thesis is original and has not been submitted, in
+whole or in part, for consideration towards any other degree or qualification at this or
+any other university. To the best of our knowledge and belief, this thesis contains no
+material authored by another person, whether published or unpublished, nor does it
+include any falsified or fabricated content. This thesis represents our independent work,
+with no contributions from external collaborators unless specifically acknowledged in
+the content and acknowledgments sections.
+Ron Vanz Petiluna
+Janren Renegado
+Galen Elijah Sabequil
+May 2026
+
+--- PAGE 5 ---
+Acknowledgments
+We extend our deepest gratitude to the individuals and organizations who con-
+tributed their time, expertise, and support to the successful completion of this thesis.
+First and foremost, we are immensely grateful to our Main Adviser, Engr. Elline
+Fabian, for her invaluable guidance, unwavering support, and insightful advice through-
+out the development of the USC Patient Information System (USC-PIS). Her expertise
+and dedication have been instrumental in shaping our research and ensuring its success.
+We would also like to express our heartfelt thanks to our Assistant Adviser, Engr.
+Kenneth Carl Labarosa, for his technical guidance, encouragement, and constructive
+feedback, which greatly enriched the quality of our software architecture and testing
+methodologies.
+We extend our sincere appreciation to the esteemed members of our thesis panel.
+Their critical evaluations, thorough assessments, and valuable recommendations played
+a crucial role in refining and strengthening our final manuscript and system implemen-
+tation.
+Our profound gratitude goes to the USC Clinic staff, including the doctors, nurses,
+and clinic personnel, who actively collaborated with us during the needs assessment
+and the User Acceptance Testing (UAT). Their practical insights, patience, and opera-
+tional feedback were vital in ensuring that the system truly addresses the real-world
+workflows of the clinic.
+We would also like to express our heartfelt appreciation to the 1st-year students
+from the Bachelor of Science in Computer Engineering (BSCPE) who participated in
+our pilot deployment and UAT phase. Their time, effort, and feedback were critical in
+evaluating the platform’s accessibility and helping us refine the student-facing features
+of the system.
+Finally, we are deeply grateful to our families, friends, and colleagues for their
+continuous moral support, encouragement, and understanding throughout this jour-
+ney. Their unwavering belief in us provided the motivation needed to complete this
+endeavor.
+
+--- PAGE 7 ---
+Abstract
+The modernization of the University of San Carlos (USC) Clinic’s Patient In-
+formation System (PIS) aims to resolve significant operational inefficiencies caused
+by legacy paper-based workflows. The previous system struggled with fragmented
+health records, slow retrieval times, and limited capabilities for health information
+dissemination and data-driven reporting. This project deployed a robust, three-tier
+web-based architecture utilizing React 18, Django 5.0.2, and PostgreSQL, specifically
+designed to digitalize daily treatment records, consultation management, and medical
+certificate issuance (USC Form ACA-HSD-04F). To ensure strict compliance with
+data privacy regulations, the system integrates the pgcrypto extension, enforcing
+column-level symmetric encryption (AES-256) for all Protected Health Information
+(PHI).
+Rigorous Software Quality Assurance (SQA) audits and performance benchmark-
+ing demonstrated exceptional system reliability. The optimized database architecture
+successfully handled search queries with an average latency of 127.81ms, operating
+nearly four times faster than the 500ms maximum acceptable threshold. Furthermore,
+the custom PDF rendering module generated official medical certificates, optimally
+rendering between 122.93ms and 124.53ms. During User Acceptance Testing (UAT),
+the system garnered an overwhelmingly positive response, with the student demo-
+graphic (N=70) reporting an overall satisfaction mean of 4.76 out of 5.00. Ultimately,
+the USC-PIS is a fully matured, production-ready system that successfully digitalizes
+clinical workflows, enhances administrative efficiency, and significantly improves the
+quality of healthcare delivery for the university community.
+
+--- PAGE 9 ---
+Table of Contents
+List of Figures xiii
+List of Tables xv
+Nomenclature xvii
+1 Introduction 1
+1.1 Problem Background . . . . . . . . . . . . . . . . . . . . . . . . . . 1
+1.1.1 Incomplete Student Health Records . . . . . . . . . . . . . . 1
+1.1.2 Inefficient Consultation Management . . . . . . . . . . . . . 1
+1.1.3 Medication Inventory Control Issues . . . . . . . . . . . . . . 2
+1.1.4 Limited Reporting and Data Analysis . . . . . . . . . . . . . 2
+1.1.5 Cumbersome Administrative Processes . . . . . . . . . . . . 2
+1.1.6 Inadequate Information Dissemination . . . . . . . . . . . . . 2
+1.1.7 Ineffective Patient Feedback Collection . . . . . . . . . . . . 2
+1.2 Statement of the Problem . . . . . . . . . . . . . . . . . . . . . . . . 3
+1.3 Goals and Objectives . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+1.4 Significance of the Study . . . . . . . . . . . . . . . . . . . . . . . . 4
+1.5 Scope and Limitations . . . . . . . . . . . . . . . . . . . . . . . . . 5
+1.5.1 Scope . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 5
+1.5.2 Limitations . . . . . . . . . . . . . . . . . . . . . . . . . . . 6
+1.5.3 Collaboration and Alignment . . . . . . . . . . . . . . . . . . 7
+2 Review of Related Literature 9
+2.1 Challenges in University Clinic PIMS . . . . . . . . . . . . . . . . . 9
+2.1.1 Incomplete Patient Data . . . . . . . . . . . . . . . . . . . . 9
+2.1.2 Inefficient Consultation Management . . . . . . . . . . . . . 10
+2.1.3 Medication Inventory Control . . . . . . . . . . . . . . . . . 10
+2.1.4 Daily Treatment Records (DTR) and Reporting . . . . . . . . 10
+2.1.5 Medical Certificate Issuance . . . . . . . . . . . . . . . . . . 10
+
+--- PAGE 10 ---
+xTable of Contents
+2.1.6 Information Dissemination . . . . . . . . . . . . . . . . . . . 10
+2.1.7 Patient Feedback and Evaluation . . . . . . . . . . . . . . . . 10
+2.2 Latest Trends in HIS Technology . . . . . . . . . . . . . . . . . . . . 11
+3 Methodology 13
+3.1 Conceptual Framework . . . . . . . . . . . . . . . . . . . . . . . . . 13
+3.2 Systems Analysis and Design . . . . . . . . . . . . . . . . . . . . . . 14
+3.2.1 System Architecture . . . . . . . . . . . . . . . . . . . . . . 14
+3.3 System Workflows and Visual Analysis . . . . . . . . . . . . . . . . 15
+3.3.1 Context Diagram . . . . . . . . . . . . . . . . . . . . . . . . 15
+3.3.2 User Roles and Functionalities . . . . . . . . . . . . . . . . . 15
+3.3.3 Authentication Workflow . . . . . . . . . . . . . . . . . . . . 17
+3.3.4 Clinical Record and Security Pipeline . . . . . . . . . . . . . 17
+3.3.5 The Medical Certificate Pipeline . . . . . . . . . . . . . . . . 18
+3.4 Software Tools and Technology Stack . . . . . . . . . . . . . . . . . 19
+3.5 Graphical User Interface (GUI) Design . . . . . . . . . . . . . . . . . 19
+3.5.1 The Patient Medical Dashboard . . . . . . . . . . . . . . . . 20
+3.5.2 Clinic Staff Management Interface . . . . . . . . . . . . . . . 20
+3.5.3 Health Awareness Campaign Feed . . . . . . . . . . . . . . . 21
+3.5.4 Medical Certificate Generation Preview . . . . . . . . . . . . 22
+3.6 Data Privacy and Cryptographic Architecture . . . . . . . . . . . . . 22
+3.7 Entity Relationship Diagram (ERD) and Database Schema . . . . . . 23
+3.7.1 User Identity and Role Authorization . . . . . . . . . . . . . 23
+3.7.2 Entity Specialization: Patients and Clinic Staff . . . . . . . . 24
+3.7.3 Medical and Dental Record Management . . . . . . . . . . . 24
+3.7.4 Medical Certificates and Administrative Workflows . . . . . . 25
+3.8 Database Schema and Data Dictionary . . . . . . . . . . . . . . . . . 25
+3.8.1 Identity and Authentication Schema . . . . . . . . . . . . . . 25
+3.8.2 Clinical Profile Schema . . . . . . . . . . . . . . . . . . . . 25
+3.8.3 Clinical Records Schema . . . . . . . . . . . . . . . . . . . . 25
+3.8.4 Administrative Workflow Schema . . . . . . . . . . . . . . . 27
+3.9 Network Configuration and Deployment Architecture . . . . . . . . . 27
+3.9.1 CI/CD Pipeline and Cloud Hosting . . . . . . . . . . . . . . 28
+3.9.2 Dual-Database Environment . . . . . . . . . . . . . . . . . . 28
+3.9.3 Scalable Content Delivery Network (CDN) . . . . . . . . . . 28
+3.9.4 Secure Communications Integration . . . . . . . . . . . . . . 28
+3.10 Development and Testing Strategy . . . . . . . . . . . . . . . . . . . 29
+3.10.1 Functional and Security Testing . . . . . . . . . . . . . . . . 29
+
+--- PAGE 11 ---
+Table of Contentsxi
+3.10.2 Performance Testing . . . . . . . . . . . . . . . . . . . . . . 29
+3.10.3 User Acceptance Testing (UAT) . . . . . . . . . . . . . . . . 30
+3.11 Validation and Pilot Deployment . . . . . . . . . . . . . . . . . . . . 30
+3.11.1 Pilot Deployment . . . . . . . . . . . . . . . . . . . . . . . . 30
+3.11.2 Training and Support . . . . . . . . . . . . . . . . . . . . . . 30
+4 Results and Discussion 33
+4.1 Functional Testing Results . . . . . . . . . . . . . . . . . . . . . . . 33
+4.1.1 Unit Testing . . . . . . . . . . . . . . . . . . . . . . . . . . . 34
+4.1.2 Integration Testing . . . . . . . . . . . . . . . . . . . . . . . 34
+4.1.3 Manual System Feature Validation . . . . . . . . . . . . . . . 35
+4.2 Non-Functional Testing Results . . . . . . . . . . . . . . . . . . . . 37
+4.2.1 Performance Benchmarking . . . . . . . . . . . . . . . . . . 37
+4.3 User Acceptance Testing (UAT) Results and Feedback . . . . . . . . 38
+4.3.1 Participant Demographics and Testing Environment . . . . . . 38
+4.3.2 Clinic Staff Evaluation . . . . . . . . . . . . . . . . . . . . . 38
+4.3.3 Student Evaluation . . . . . . . . . . . . . . . . . . . . . . . 41
+4.3.4 Qualitative Analysis of UAT Feedback . . . . . . . . . . . . . 44
+4.4 Database Analysis and Data Quality Assessment . . . . . . . . . . . 45
+4.4.1 Database Consistency and Normalization . . . . . . . . . . . 45
+4.4.2 Query Optimization and Latency Benchmarking . . . . . . . 45
+4.5 Security, Cryptography, and Vulnerability Assessment . . . . . . . . . 46
+4.5.1 Cryptographic Benchmarking (pgcrypto) . . . . . . . . . . . 46
+4.5.2 Vulnerability Mitigation and File Security . . . . . . . . . . . 47
+4.5.3 Role-Based Access Control (RBAC) Integrity . . . . . . . . . 47
+5 Conclusions and Recommendations 49
+5.1 Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 49
+5.2 Conclusions . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 49
+5.3 Recommendations . . . . . . . . . . . . . . . . . . . . . . . . . . . . 50
+References 53
+Appendix A Software Requirements Specification (SRS) 55
+Appendix B Software Design Document (SDD) 61
+Appendix C Comprehensive Training Plan (Deliverable D4): USC-PIS 65
+Appendix D USC-PIS User Manuals 69
+
+--- PAGE 12 ---
+xiiTable of Contents
+Appendix E Technical Audit and Validation Summary 75
+Appendix F Exhaustive Manual Software Testing Results 79
+Appendix G Meeting Logs 89
+Appendix H Updated Cost Estimates 95
+Appendix I Project Schedule and Sprint Checklist 97
+Appendix J Medical and Dental Forms 101
+Appendix K System Feedback Forms 107
+Appendix L User Interface Screens 133
+Appendix M USC PIS Data Gathering Presentation 149
+Appendix N Original Project Deliverables and Features List 159
+Appendix O Memorandum of Agreement (MOA) 161
+Appendix P Certificate of Completion 165
+
+--- PAGE 13 ---
+List of Figures
+3.1 Conceptual Framework of the USC-PIS . . . . . . . . . . . . . . . . 13
+3.2 Top-Level System Architecture of the USC-PIS . . . . . . . . . . . . 14
+3.3 Context Diagram of the USC-PIS . . . . . . . . . . . . . . . . . . . . 16
+3.4 Sequential Authentication Workflow of the USC-PIS . . . . . . . . . 17
+3.5 Clinical Record Data Flow and Security Pipeline . . . . . . . . . . . 18
+3.6 Role-Gated Medical Certificate Issuance Pipeline . . . . . . . . . . . 18
+3.7 The USC-PIS Home Dashboard Overview . . . . . . . . . . . . . . . 20
+3.8 The Student-Facing Patient Medical Dashboard . . . . . . . . . . . . 20
+3.9 Clinic Staff Advanced Search/Filter Interface . . . . . . . . . . . . . 21
+3.10 Health Awareness Campaign Student Feed . . . . . . . . . . . . . . . 21
+3.11 Generated Medical Certificate PDF Preview . . . . . . . . . . . . . . 22
+3.12 Entity Relationship Diagram (ERD) of the USC-PIS . . . . . . . . . . 23
+4.1 Staff Role in the Clinic . . . . . . . . . . . . . . . . . . . . . . . . . 39
+4.2 Frequency of using the system . . . . . . . . . . . . . . . . . . . . . 40
+4.3 The system is efficient for managing patient records. (Mean: 3.29) . . 40
+4.4 The data stored and retrieved is accurate and reliable. (Mean: 3.57) . . 40
+4.5 The system helps avoid duplicate or missing records. (Mean: 3.57) . . 40
+4.6 The system improves time management and workflow. (Mean: 3.43) . 40
+4.7 Generating reports is easy. (Mean: 3.29) . . . . . . . . . . . . . . . . 40
+4.8 Sufficient tools for analyzing patient data. (Mean: 3.29) . . . . . . . . 40
+4.9 Feedback analysis is helpful for operations. (Mean: 3.29) . . . . . . . 40
+4.10 Logs and audit trails are sufficient. (Mean: 3.43) . . . . . . . . . . . 41
+4.11 The interface is intuitive and easy to use. (Mean: 3.29) . . . . . . . . 41
+4.12 Technical issues are minimal. (Mean: 3.17) . . . . . . . . . . . . . . 41
+4.13 Integrates well with clinic workflow. (Mean: 3.14) . . . . . . . . . . 41
+4.14 Tasks are easier compared to manual. (Mean: 2.86) . . . . . . . . . . 41
+4.15 Reduces need for external tools. (Mean: 2.71) . . . . . . . . . . . . . 41
+4.16 Overall, staff satisfaction. (Mean: 3.29) . . . . . . . . . . . . . . . . 41
+
+--- PAGE 14 ---
+xivList of Figures
+4.17 It was easy for me to log in and access my records. (Mean: 4.7) . . . 42
+4.18 The health information displayed was clear and easy to understand.
+(Mean: 4.76) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 43
+4.19 The system was responsive and worked smoothly. (Mean: 4.61) . . . 43
+4.20 I was able to access the system anytime and anywhere. (Mean: 4.61) . 43
+4.21 The notifications (updates, reminders) were useful and timely. (Mean:
+4.49) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 43
+4.22 The certificate issuance process was clear and easy. (Mean: 4.47) . . . 43
+4.23 The features of the system are helpful to me as a student. (Mean: 4.6) 43
+4.24 Overall, student satisfaction. (Mean: 4.76) . . . . . . . . . . . . . . . 43
+
+--- PAGE 15 ---
+List of Tables
+3.1 Data Dictionary for authentication_user . . . . . . . . . . . . . . . . 26
+3.2 Data Dictionary for patients_patient . . . . . . . . . . . . . . . . . . 26
+3.3 Data Dictionary for patients_medicalrecord . . . . . . . . . . . . . . 26
+3.4 Data Dictionary for patients_dentalrecord . . . . . . . . . . . . . . . 27
+3.5 Data Dictionary for medical_certificates . . . . . . . . . . . . . . . . 27
+4.1 Unit Testing Results (Security & Logic) . . . . . . . . . . . . . . . . 34
+4.2 Integration Testing Results (Workflows & RBAC) . . . . . . . . . . . 35
+4.3 Sample Validation - Login and Authentication . . . . . . . . . . . . . 36
+4.4 Sample Validation - Medical Record Management . . . . . . . . . . . 36
+4.5 Sample Validation - Reporting Engine Formats . . . . . . . . . . . . 36
+4.6 Performance Benchmarking Results . . . . . . . . . . . . . . . . . . 37
+4.7 Database Query Optimization and Latency Benchmarking . . . . . . 45
+4.8 Security and Vulnerability Assessment Results . . . . . . . . . . . . 46
+
+--- PAGE 17 ---
+Nomenclature
+Acronyms / Abbreviations
+AES-256 Advanced Encryption Standard (256-bit)
+API Application Programming Interface
+BSCPE Bachelor of Science in Computer Engineering
+CDN Content Delivery Network
+CI/CD Continuous Integration / Continuous Deployment
+DRF Django REST Framework
+DTR Daily Treatment Records
+FDI Fédération Dentaire Internationale (World Dental Federation tooth notation)
+GUI Graphical User Interface
+HIS Health Information System
+HTTP Hypertext Transfer Protocol
+JSON JavaScript Object Notation
+MFA Multi-Factor Authentication
+OAuth 2.0 Open Authorization (Version 2.0)
+OTP One-Time Password
+pgcrypto PostgreSQL Cryptographic Extension
+PHI Protected Health Information
+PII Personally Identifiable Information
+
+--- PAGE 18 ---
+xviiiNomenclature
+PIS Patient Information System
+RBAC Role-Based Access Control
+SMR Student Medical Record
+SMTP Simple Mail Transfer Protocol
+SQA Software Quality Assurance
+UAT User Acceptance Testing
+UCD User-Centered Design
+UI User Interface
+USC-PIS University of San Carlos Patient Information System
+USC University of San Carlos
+
+--- PAGE 19 ---
+Chapter 1
+Introduction
+1.1 Problem Background
+The University of San Carlos (USC) Clinic plays a crucial role in ensuring the
+health and well-being of its students, faculty, and staff. However, the clinic’s current
+Health Information System (HIS) is predominantly paper-based and fragmented,
+creating several challenges that impede the delivery of efficient, comprehensive, and
+high-quality healthcare services.
+1.1.1 Incomplete Student Health Records
+The clinic’s existing system struggles to capture complete medical records, particu-
+larly for incoming first-year students. This gap in health histories can result in missed
+opportunities for preventive care, delays in diagnosis and treatment, and difficulties in
+tracking health trends across the student population. Comprehensive health records
+are essential for effective healthcare delivery, enabling the clinic to provide timely and
+appropriate interventions.
+1.1.2 Inefficient Consultation Management
+Managing a high volume of consultations, especially for minor ailments such as
+coughs and colds, is a significant challenge under the current system. This ineffi-
+ciency leads to longer wait times, overcrowding, and frustration for both students
+and staff. Additionally, it delays the attention needed for more urgent medical issues,
+compromising the clinic’s overall effectiveness.
+
+--- PAGE 20 ---
+2Introduction
+1.1.3 Medication Inventory Control Issues
+The existing manual inventory management system, while adhering to the First-In,
+First-Out (FIFO) principle, is prone to errors. These errors can lead to stockouts
+and the expiration of unused medications, impacting the timely provision of care and
+resulting in unnecessary costs due to wasted resources. A robust inventory control
+system is vital for maintaining adequate medication supplies and ensuring patient
+safety.
+1.1.4 Limited Reporting and Data Analysis
+The clinic relies on Google Sheets for daily treatment records, which, while
+convenient, limits data accuracy, reporting capabilities, and long-term data analysis.
+This limitation hampers the clinic’s ability to generate comprehensive reports and
+gain valuable insights into clinic utilization and student health outcomes. Effective
+data analysis is crucial for informed decision-making and continuous improvement of
+healthcare services.
+1.1.5 Cumbersome Administrative Processes
+The manual process for issuing medical certificates is time-consuming and in-
+efficient, creating delays for both clinic staff and students. This inefficiency can
+hinder students’ ability to promptly return to their academic and extracurricular activi-
+ties. Streamlined administrative processes are necessary to reduce staff workload and
+improve the overall patient experience.
+1.1.6 Inadequate Information Dissemination
+The clinic lacks a robust mechanism for disseminating health information and
+educational materials to the USC community across both the Downtown and Talamban
+campuses. This gap limits opportunities for preventive care, health promotion, and
+timely updates on relevant health issues. Effective communication channels are
+essential for fostering a well-informed and health-conscious university community.
+1.1.7 Ineffective Patient Feedback Collection
+The current method of collecting student feedback is cumbersome and does not
+lend itself to systematic analysis. This inefficiency makes it difficult to gauge student
+satisfaction, identify areas for improvement, and make data-driven decisions to enhance
+
+--- PAGE 21 ---
+1.2 Statement of the Problem3
+the quality of care provided by the clinic. A streamlined feedback collection process is
+critical for ensuring continuous improvement and high standards of patient care.
+1.2 Statement of the Problem
+The USC Clinic’s reliance on a predominantly paper-based and fragmented patient
+information management system has resulted in several inefficiencies, including:
+1. Incomplete patient records
+2. Limited reporting capabilities
+3. Lack of streamlined communication channels for health information dissemina-
+tion
+4. Inefficient patient feedback collection
+These challenges hinder the clinic’s ability to provide timely, efficient, and compre-
+hensive healthcare services to the USC community. Addressing these issues is critical
+to improving clinic efficiency, enhancing patient satisfaction, and ensuring the highest
+quality of care for all USC students, faculty, and staff.
+The project aims to tackle these specific problems by implementing a modern,
+web-based PIS that focuses on capturing comprehensive health and dental records,
+facilitating effective health information dissemination, and collecting and analyzing
+patient feedback. This initiative will lay the groundwork for future enhancements and
+broader deployment, ultimately transforming the USC Clinic’s healthcare delivery.
+1.3 Goals and Objectives
+This project aims to design, develop, and implement a modern PIS for the USC
+Clinic to address the following specific objectives:
+1. Capture comprehensive medical and dental records for students:Streamline
+data collection to ensure complete and up-to-date medical and dental records for
+all students, including medical histories, treatment plans, and dental records.
+2. Increase the reach of health awareness campaigns:Use the PIS to promote
+health campaigns with dedicated pages featuring PubMats, banners, and other
+materials, encouraging proactive health management.
+
+--- PAGE 22 ---
+4Introduction
+3. Facilitate student feedback collection and analysis:Integrate digital eval-
+uation forms to systematically collect and analyze patient feedback, enabling
+continuous improvement in healthcare services.
+4. Generate Detailed Reports for Data Analysis and Decision-Making:Imple-
+ment a module for generating customizable reports on patient visits, treatment
+outcomes, and feedback analysis to aid decision-making.
+5. Issue Notifications for Health Campaigns, and Clinic Updates:Include a
+notification system for sending alerts on health campaigns and important clinic
+updates via email and in-app notifications.
+6. Optimize the Issuance of Medical Certificates:Streamline the process of
+issuing medical certificates by allowing quick access and input of relevant
+patient information, ensuring accuracy and efficiency.
+By achieving these objectives, this project aims to transform the USC Clinic’s
+patient information management, leading to improved healthcare delivery, enhanced
+patient satisfaction, and increased operational efficiency for the clinic staff.
+1.4 Significance of the Study
+The successful implementation of a modernized PIS at the USC Clinic has the
+potential to transform healthcare delivery for the USC community. This project will
+directly benefit students by:
+1. Improving access to care:Streamlined data collection and notifications will
+reduce wait times and make it easier for students to manage their health.
+2. Enhancing the student experience:Faster service, personalized care, and
+access to their health information electronically will improve the overall student
+healthcare experience.
+3. Promoting student well-being:Access to educational materials and targeted
+health campaigns through the PIS will empower students to take a more active
+role in their health, leading to better health outcomes.
+The benefits extend to the clinic as well:
+1. Increasing efficiency:By optimizing processes and centralizing data, the new
+PIS will free up staff time, allowing them to focus on direct patient care.
+
+--- PAGE 23 ---
+1.5 Scope and Limitations5
+2. Improving decision-making:Accurate data and detailed reports will empower
+clinic leadership to make informed decisions regarding resource allocation and
+service improvement.
+3. Reducing costs:Streamlining workflows, reducing paperwork, and optimizing
+medication inventory management will contribute to cost savings.
+Beyond the immediate impact on the USC Clinic, this project can serve as a model
+for other university health centers seeking to modernize their systems and enhance
+student care. The lessons learned and best practices identified can be shared with the
+broader healthcare community, potentially contributing to improvements in patient
+care across diverse settings.
+Additionally, the data collected through the new PIS can be used for research,
+potentially leading to new insights into student health trends and contributing to the
+development of more effective healthcare interventions in academic settings.
+1.5 Scope and Limitations
+1.5.1 Scope
+The proposed PIS for the USC Clinic is designed to modernize and enhance the
+clinic’s healthcare delivery through the following core functionalities:
+1.Comprehensive Health and Dental Records:
+(a) Centralized and secure storage of all student health information, including
+medical histories, treatment plans, and dental records.
+(b) Focus on capturing comprehensive records from the start of student enroll-
+ment, ensuring complete and up-to-date information.
+(c) The system will focus on students, but is not limited to students since
+faculty and university staff will be filling up the same forms.
+2.Health Information Dissemination:
+(a) Utilization of targeted communication tools to disseminate health informa-
+tion and promote preventive care.
+(b) Dedicated web pages within the system for health awareness campaigns,
+featuring PubMats, banners, and other educational materials.
+3.Patient Feedback System:
+
+--- PAGE 24 ---
+6Introduction
+(a) Integration of user-friendly digital evaluation forms to collect and analyze
+patient feedback.
+(b) Automated reminders to encourage continuous patient input, enabling the
+clinic to identify areas for improvement.
+4.Report Generation:
+(a) The system will include a report generation module that allows clinic
+staff to create detailed, customizable reports on various metrics such as
+patient visits, treatment outcomes, and feedback analysis. These reports
+will be exportable to formats like PDF and Excel for further analysis and
+record-keeping.
+5.Notifications:
+(a) The system will feature a notification system that sends alerts and reminders
+for health campaigns, and important clinic updates via email and in-app
+notifications.
+6.Medical Certificate Issuance Optimization:
+(a) The PIS will optimize the process of issuing medical certificates by allow-
+ing clinic staff to quickly access and input relevant patient information and
+include all necessary details. This will reduce administrative workload and
+speed up the issuance process.
+7.Platform:
+(a) The system will be web-based, ensuring accessibility through standard
+web browsers.
+8.Scalability:
+(a) The system will be designed to scale for future iterations and broader
+deployment across other clinics as needed.
+1.5.2 Limitations
+1. Scope of Records:The initial focus will be on capturing comprehensive medical
+and dental records for students, aligning with the clinic’s objective to gather
+extensive health information during enrollment phases.
+
+--- PAGE 25 ---
+1.5 Scope and Limitations7
+2. User Adoption:The success of the PIS implementation depends heavily on
+comprehensive training and ongoing support for clinic staff. Effective user
+adoption strategies are critical to ensure the system is used both reliably and
+effectively.
+3. Resource Constraints:As a student-led project with limited resources, the
+development team may need to prioritize certain features over others. Some
+functionalities, such as medication tracking, inventory management, may be
+deferred to future iterations.
+4. Security Measures:Initially, only basic security measures will be implemented
+to protect patient data, with plans to enhance security features in future updates.
+The system’s user authentication will be basic and will not be able to verify
+whether a student is currently enrolled or has graduated.
+5. Standalone System:The system will be operated independently and will not be
+integrated with existing systems.
+1.5.3 Collaboration and Alignment
+The project team will collaborate closely with the USC Clinic to ensure the system
+aligns with the clinic’s operational needs and objectives. This collaboration includes
+regular feedback sessions and iterative development to refine and enhance the system
+based on real-world use and requirements.
+By addressing these scopes and limitations, the project team aims to deliver a
+functional, user-friendly, and scalable PIS that significantly improves the USC Clinic’s
+healthcare delivery, while also setting the stage for future enhancements and broader
+deployment.
+
+--- PAGE 27 ---
+Chapter 2
+Review of Related Literature
+Effective patient information management systems (PIMS) are indispensable in
+modern healthcare settings, improving efficiency, accuracy, and patient care [1]. How-
+ever, university clinics often face unique challenges due to their diverse patient popula-
+tions, resource constraints, and specific operational needs [2]. Modernizing the Patient
+Information System (PIS) at the USC Clinic is crucial to address these challenges and
+leverage the latest technological advancements to enhance healthcare delivery.
+2.1 Challenges in University Clinic PIMS
+Research highlights several key challenges in university clinic PIMS that must be
+addressed during modernization:
+2.1.1 Incomplete Patient Data
+1. Studies have shown that incomplete or inaccurate patient data can lead to medical
+errors, missed diagnoses, and delayed treatment [3].
+2. In university settings, capturing comprehensive health information, especially
+for incoming students, can be particularly challenging due to various factors such
+as time constraints, limited resources, and varying levels of student engagement
+[4].
+3. Effective strategies for addressing this issue include integrating student health
+records with enrollment systems and implementing proactive outreach programs
+to encourage students to provide their medical information [4, 5].
+
+--- PAGE 28 ---
+10Review of Related Literature
+2.1.2 Inefficient Consultation Management
+1. Long wait times and inefficient scheduling are common issues in university
+clinics, leading to patient dissatisfaction and potential delays in care [6].
+2. Implementing online self-scheduling tools and utilizing telemedicine for minor
+ailments can help improve patient flow and reduce wait times [7].
+2.1.3 Medication Inventory Control
+1. Manual inventory management in clinics can be error-prone and lead to stockouts
+or expired medications [8].
+2. Electronic inventory systems, especially those using the First-In, First-Out
+(FIFO) principle, have been shown to optimize medication usage, reduce waste,
+and improve cost-effectiveness [9].
+2.1.4 Daily Treatment Records (DTR) and Reporting
+Paper-based or spreadsheet-based DTRs are inefficient and hinder data analysis.
+Electronic DTRs integrated within a PIMS can automate reporting, improve data
+accuracy, and provide valuable insights into clinic utilization and patient outcomes
+[10].
+2.1.5 Medical Certificate Issuance
+Manual issuance of medical certificates can be time-consuming for both staff and
+students. Automating this process through the PIMS can streamline operations and
+improve student satisfaction [11].
+2.1.6 Information Dissemination
+University clinics play a crucial role in health promotion and disease prevention.
+However, disseminating health information effectively across a large and dispersed
+campus can be challenging. Leveraging the PIMS to deliver targeted health campaigns,
+educational materials, and reminders can enhance the clinic’s reach and impact [12].
+2.1.7 Patient Feedback and Evaluation
+Collecting and analyzing patient feedback is essential for continuous improvement
+in healthcare settings. Electronic feedback systems integrated into the PIMS can
+
+--- PAGE 29 ---
+2.2 Latest Trends in HIS Technology11
+streamline data collection, increase response rates, and enable the clinic to make
+data-driven decisions to improve service quality [13].
+2.2 Latest Trends in HIS Technology
+Modernizing the USC Clinic’s PIS requires consideration of the latest technological
+advancements:
+1. Cloud-based Solutions:Cloud-based HIS platforms offer scalability, cost-
+effectiveness, and remote accessibility, making them an attractive option for
+university clinics [14].
+2. Mobile Health (mHealth):mHealth applications can empower patients to
+manage their health information, schedule appointments, and communicate with
+providers, enhancing patient engagement and convenience [15].
+3. Artificial Intelligence (AI):AI and machine learning can be integrated into
+HIS to improve diagnostics, predict patient outcomes, and personalize treatment
+plans, ultimately enhancing the quality of care [16].
+
+--- PAGE 31 ---
+Chapter 3
+Methodology
+This chapter details the methodology guiding the system design, core features,
+software tools utilized, and the overall deployment and testing strategies employed for
+the University of San Carlos Patient Information System (USC-PIS). The development
+process follows a highly structured, user-centered engineering approach tailored to
+modernize the clinic’s healthcare delivery.
+3.1 Conceptual Framework
+The conceptual framework for developing the USC-PIS (illustrated in Fig. 3.1) is
+anchored in a User-Centered Design (UCD) approach, which prioritizes the workflows
+of clinic staff and the accessibility needs of the students. The legacy system at the
+USC Clinic was heavily reliant on fragmented, paper-based records (such as the
+Daily Treatment Records) and basic Google Forms for feedback, which introduced
+significant inefficiencies in data retrieval and program evaluation.
+Fig. 3.1 Conceptual Framework of the USC-PIS
+To resolve these bottlenecks, the modernized framework was constructed upon the
+following core pillars:
+1. Comprehensive Record Keeping:Centralizing medical histories, treatment
+plans, and dental charts in a secure database.
+2. Effective Health Information Dissemination:Utilizing dedicated digital cam-
+paigns to promote preventive care and health awareness across the campus.
+
+--- PAGE 32 ---
+14Methodology
+3. Patient Feedback Collection and Analysis:Integrating automated, digital eval-
+uation forms following consultations to enable data-driven service refinement.
+4. Basic Security Measures & Privacy:Enforcing robust data encryption and
+Role-Based Access Control (RBAC) to safeguard Protected Health Information
+(PHI).
+3.2 Systems Analysis and Design
+3.2.1 System Architecture
+The USC-PIS is engineered using a modern, scalable three-tier web architecture
+(illustrated in Fig. 3.2). This design ensures a clean separation of concerns, allowing
+for independent scaling and maintenance of the presentation, logic, and data storage
+components.
+Fig. 3.2 Top-Level System Architecture of the USC-PIS
+The architectural flow centers on the RESTful communication between the React
+frontend and the Django backend. As shown in the diagram, the backend serves as the
+
+--- PAGE 33 ---
+3.3 System Workflows and Visual Analysis15
+central hub, managing secure data access to the PostgreSQL database while delegating
+time-consuming operations, such as PDF generation and automated email dispatch, to
+an asynchronous task queue managed by Celery and Redis.
+• Presentation Layer (Frontend):Developed using React 18 with a Vite build
+system and Material-UI components, providing a highly responsive and low-
+latency Graphical User Interface (GUI) across various devices.
+• Application Layer (Backend):Powered by Python and Django 5.0.2, integrated
+with the Django REST Framework (DRF) 3.14.0. This layer handles business
+logic, automated notifications, and the system’s strict RBAC middleware.
+• Data Layer (Database):The system utilizes a dual-database paradigm: Post-
+greSQL 16.8 for production deployment and SQLite for local development,
+utilizing vendor-aware logic to ensure environment compatibility.
+3.3 System Workflows and Visual Analysis
+3.3.1 Context Diagram
+The Context Diagram provides a high-level overview of the USC-PIS and its
+interactions with external entities. The system acts as the central hub bridging the
+clinical staff and the student body. Students interact with the platform to access
+their personal health information and submit visit-linked feedback, while Clinic Staff
+(Doctors, Nurses, and Dentists) input clinical data, issue medical certificates, and
+manage health campaigns. All transactions are routed securely to the central Patient
+Database, ensuring real-time data synchronization across all user endpoints.
+3.3.2 User Roles and Functionalities
+To safeguard Protected Health Information (PHI) and Personally Identifiable In-
+formation (PII), the USC-PIS employs a strict Role-Based Access Control (RBAC)
+architecture enforced via Django REST Framework (DRF) permission classes. The
+system dynamically restricts access and capabilities across the following hierarchical
+user classes:
+• Admin:Possesses global system access, which includes managing RBAC
+adjustments, monitoring system health, administering the email notification
+system, and generating enterprise reports.
+
+--- PAGE 34 ---
+16Methodology
+Fig. 3.3 Context Diagram of the USC-PIS
+• Doctor and Dentist:Both roles are endowed with full clinical and administrative
+access, allowing them to diagnose, prescribe treatments, and access all feedback
+analytics. However, the system’s middleware explicitly grants only the Doctor
+role the exclusive authority to approve and issue medical certificates.
+• Nurse:Functions in a supervisory and clinical data-entry capacity. Nurses are
+authorized to manage patient intake, record vital signs, input treatment plans,
+and draft medical certificates (which remain pending until Doctor approval).
+• Staff:Responsible for clinic administration. This role manages patient intake
+processing, certificate issuance, asynchronous report generation, and the creation
+and deployment of health awareness campaigns.
+
+--- PAGE 35 ---
+3.3 System Workflows and Visual Analysis17
+• Student and Faculty (Patient):This role is heavily restricted strictly to their
+own data. Patients are only permitted to view their personal medical and dental
+timelines via the Health Insights dashboard, submit visit-linked feedback, and
+view public health campaigns.
+3.3.3 Authentication Workflow
+The authentication sequence is designed to ensure stringent identity verification
+before granting system access. The sequential workflow begins with a student regis-
+tering an account, where the system actively enforces a domain constraint, requiring
+the email to end in @usc.edu.ph. Upon validation, the Django backend generates a
+6-digit One-Time Password (OTP) with a precise 10-minute expiration window. This
+OTP is transmitted to the user via the Gmail API OAuth 2.0 integration. Once the user
+inputs the correct OTP, the system authenticates the session and issues a secure JWT
+token, granting access to the role-gated dashboards.
+Fig. 3.4 Sequential Authentication Workflow of the USC-PIS
+3.3.4 Clinical Record and Security Pipeline
+To comply with strict data privacy mandates, the USC-PIS employs a highly
+secure data flow pipeline for clinical records. When medical personnel utilize the
+Unified Record Component to enter vital signs and a clinical diagnosis, the data is
+transmitted to the Application Layer. Before the data is committed to the PostgreSQL
+database, a Django post_save signal intercepts the transaction. This signal executes
+the pgp_sym_encrypt function, instantly converting plaintext Protected Health Infor-
+mation (PHI), such as patient names and diagnoses, into secure BinaryField (bytea)
+
+--- PAGE 36 ---
+18Methodology
+hashes. This ensures military-grade encryption-at-rest with minimal computational
+overhead.
+Fig. 3.5 Clinical Record Data Flow and Security Pipeline
+3.3.5 The Medical Certificate Pipeline
+The issuance of the USC Form ACA-HSD-04F Medical Certificate follows a
+digitized, role-gated sequential pipeline. The workflow initiates when a Nurse or
+Staff member accesses a patient’s record to draft the certificate and input the “Pur-
+pose/Requirement”. However, the system’s RBAC middleware restricts the rendering
+of the document until a user with the DOCTOR role assesses the draft. The Doctor
+must select the Medical Fitness Status (“Fit” or “Not Fit”) and authorize the ap-
+proval. Once the IsDoctorUser permission is validated, the backend dual-engine
+PDF module autonomously renders the landscape-formatted certificate for download.
+Fig. 3.6 Role-Gated Medical Certificate Issuance Pipeline
+
+--- PAGE 37 ---
+3.4 Software Tools and Technology Stack19
+3.4 Software Tools and Technology Stack
+The USC-PIS is engineered upon a modern, highly scalable three-tier web archi-
+tecture designed to ensure a clean separation of concerns.
+• Presentation Layer (Frontend):The client-side interface was developed uti-
+lizing React 18 with a Vite build system and Material-UI components. This
+combination provides a responsive, low-latency, and component-based Graph-
+ical User Interface (GUI) that seamlessly adapts to both desktop and mobile
+environments for clinic staff and patients.
+• Application Layer (Backend):The server-side logic is powered by Python
+and Django 5.0.2, deeply integrated with the Django REST Framework (DRF)
+3.14.0. This layer encapsulates the core clinical business logic, API routing,
+and the Role-Based Access Control (RBAC) middleware that globally restricts
+endpoint access based on user classes. Heavy data aggregations, such as the
+synthesis of clinic reports, are processed asynchronously via Celery and Redis
+background workers to prevent HTTP thread blocking.
+• Data Layer (Database):The system operates on a dual-database paradigm,
+utilizing PostgreSQL 16.8 for production deployment and SQLite for local
+development. The PostgreSQL database natively integrates the pgcrypto ex-
+tension to enforce column-level symmetric encryption for all Protected Health
+Information (PHI).
+• Enterprise Integrations:The platform relies on Heroku for continuous deploy-
+ment and hosting, Cloudinary for scalable Content Delivery Network (CDN)
+file storage (handling attachments and PubMats), and the Gmail API utilizing
+OAuth 2.0 to dispatch automated post-visit evaluations and authentication codes.
+3.5 Graphical User Interface (GUI) Design
+The Presentation Layer of the USC-PIS was engineered to be highly intuitive and
+responsive, minimizing the learning curve for both clinical staff and the student body.
+Built utilizing React 18, a Vite build system, and Material-UI (MUI) components, the
+interface strictly adheres to a clean, healthcare-appropriate aesthetic.
+The interface employs progressive disclosure and a component-based architecture
+to adapt seamlessly to both desktop and mobile environments. To visually document
+the system’s frontend capabilities, the following key interfaces were captured:
+
+--- PAGE 38 ---
+20Methodology
+Fig. 3.7 The USC-PIS Home Dashboard Overview
+3.5.1 The Patient Medical Dashboard
+The student-facing dashboard was designed to provide personalized health analyt-
+ics. It features real-time counts of medical records and consultations, a 6-month visit
+frequency analysis, and automated BMI calculations.
+Fig. 3.8 The Student-Facing Patient Medical Dashboard
+3.5.2 Clinic Staff Management Interface
+The administrative interface prioritizes dense data processing and rapid retrieval.
+It features the newly engineered advanced filtering architecture, allowing staff to
+
+--- PAGE 39 ---
+3.5 Graphical User Interface (GUI) Design21
+dynamically filter the patients list by Role, Program, Year Level, and Registration
+Period (Academic Year and Semester).
+Fig. 3.9 Clinic Staff Advanced Search/Filter Interface
+3.5.3 Health Awareness Campaign Feed
+The Health Information module acts as the clinic’s digital bulletin board. This
+interface supports high-quality interactive image viewing (PubMats) and displays
+clinical alerts filtered strictly by active date ranges, eliminating cluttered or outdated
+announcements.
+Fig. 3.10 Health Awareness Campaign Student Feed
+
+--- PAGE 40 ---
+22Methodology
+3.5.4 Medical Certificate Generation Preview
+The system’s dual-engine PDF module autonomously generates the USC Form
+ACA-HSD-04F. The interface previews the landscape-formatted certificate, show-
+casing the automated mapping of the student’s full course name, year level, and the
+Doctor’s digital authorization.
+Fig. 3.11 Generated Medical Certificate PDF Preview
+3.6 Data Privacy and Cryptographic Architecture
+Beyond basic role-gated access, the USC-PIS addresses the critical necessity of
+medico-legal documentation security. To safeguard Protected Health Information
+(PHI) and Personally Identifiable Information (PII), the system integrates advanced
+cryptographic measures at the database level. Utilizing the PostgreSQL pgcrypto
+extension, the platform enforces column-level symmetric encryption. All sensitive
+clinical inputs are instantly converted into secure bytea (BinaryField) hashes upon
+database commit, shielding plaintext data from unauthorized backend exposure. This
+ensures military-grade encryption-at-rest with an entirely negligible computational
+overhead of less than 1.0ms, allowing the clinic to maintain strict data privacy com-
+pliance without sacrificing system speed. To ensure absolute security, the symmetric
+AES-256 key is strictly managed via Heroku Environment Variables, ensuring it is
+
+--- PAGE 41 ---
+3.7 Entity Relationship Diagram (ERD) and Database Schema23
+never hardcoded into the GitHub repository or accessible via the source code. Fur-
+thermore, the file upload module implements stringent validation, rejecting high-risk
+executable formats (e.g.,.EXE,.JS) to prevent malicious script injections.
+3.7 Entity Relationship Diagram (ERD) and Database
+Schema
+To ensure high data integrity, secure role-based access, and rapid query retrieval,
+the USC-PIS database is normalized and structured into highly interdependent rela-
+tional tables. The Entity Relationship Diagram (ERD) illustrates the complete core
+architecture of the system, defining how user identities specialize into distinct pro-
+files, and how clinical records and official certificates are securely mapped within the
+PostgreSQL environment.
+Fig. 3.12 Entity Relationship Diagram (ERD) of the USC-PIS
+3.7.1 User Identity and Role Authorization
+The foundation of the system’s architecture relies on the central USER entity,
+which stores core credentials such as the unique email (enforcing the Unique Key
+constraint), password_hash, and foundational demographic data including contact,
+address, and emergency_contact_name. To enforce the system’s strict Role-Based
+Access Control (RBAC) middleware, the USER table is directly linked via a Foreign
+Key (role_id) to the ROLES entity. This table defines the absolute privileges of the
+
+--- PAGE 42 ---
+24Methodology
+account, specifically categorizing users as "Admin, Doctor, Nurse, Staff, Student,
+Faculty".
+3.7.2 Entity Specialization: Patients and Clinic Staff
+To eliminate data redundancy and cleanly separate clinical responsibilities, the
+database employs an entity specialization hierarchy. The base USER entity specializes
+into two distinct tables, utilizinguser_idas both a Primary Key and Foreign Key:
+• CLINIC STAFF:This table isolates medical personnel (Doctors, Nurses, Den-
+tists, etc.) and associates them with their specific department. As illustrated in
+the schema, this entity holds the explicitly defined authority to "create" medical
+records, dental records, and certificates.
+• PATIENT:This table captures extensive academic and medical metadata for stu-
+dents and faculty. It maps the uniqueusc_id, course, school, and year_level.
+Furthermore, it acts as a comprehensive health profile by tracking longitu-
+dinal data such as childhood_diseases, existing_medical_condition,
+surgical_procedures,allergies, andmedications.
+3.7.3 Medical and Dental Record Management
+The core of the clinic’s digital operations is handled by theMedical Records and
+Dental Records entities. The ERD explicitly illustrates that these records accumulate
+under a specific patient (via patient_id) and are permanently audited to the staff
+member who created them (viastaff_id).
+• Medical Records:This entity tracks the visit_date, chief concern, and
+the resulting diagnosis and treatment. It also features dedicated fields for
+comprehensive vital_signs, physical_examination inputs, and additional
+clinical notes. (Note: As detailed in Section 3.6, sensitive text payloads within
+these clinical fields are intercepted by backend signals and cryptographically
+hashed at rest using pgcrypto).
+• Dental Records:The dental entity is highly specialized to accommodate
+complex oral health charting. It captures specific clinical metrics including
+oral_hygiene_status, gum_condition, pain_level, and materials_used.
+It also maps exact oral geography through thetooth_numbers and affected_teeth_display
+fields, which restrict input to standard FDI notation boundaries.
+
+--- PAGE 43 ---
+3.8 Database Schema and Data Dictionary25
+3.7.4 Medical Certificates and Administrative Workflows
+Crucially, the database schema seamlessly integrates theMedical Certificates
+entity to manage the digital issuance of the USC Form ACA-HSD-04F. This table is di-
+rectly linked to the patient (patient_id) and securely captures the fitness_status,
+fitness_reason, diagnosis, and recommendations. It also defines the exact valid-
+ity timeframe via the valid_from and valid_until fields. To enforce strict clinical
+hierarchies and data integrity, the workflow is governed by two distinct tracking fields:
+issued_by and approved_by. This schema constraint ensures that while clinical staff
+can draft and issue the initial document, an authorized Doctor must execute the final
+approval (approved_at) before the backend dual-engine PDF rendering is unlocked.
+3.8 Database Schema and Data Dictionary
+While the ERD visualizes the high-level entity relationships, the physical database
+schema dictates the strict data types, cryptographic boundaries, and structural con-
+straints required for healthcare data management. The USC-PIS is normalized to
+eliminate data redundancy and ensure relationship integrity. The following data dic-
+tionaries outline the core tables powering the system’s authentication and clinical
+operations.
+3.8.1 Identity and Authentication Schema
+The authentication_user table serves as the core identity provider for the Role-
+Based Access Control (RBAC) middleware. To comply with data privacy protocols,
+sensitive health preconditions collected during registration are instantly encrypted into
+binary hashes.
+3.8.2 Clinical Profile Schema
+The patients_patient table acts as the comprehensive demographic profile. It is
+logically decoupled from the authentication credentials to resolve over-normalization
+risks.
+3.8.3 Clinical Records Schema
+The patients_medicalrecord and patients_dentalrecord tables capture
+the specialized clinical data. These tables enforce rigorous validation, such as JSON
+structuring for vitals and regex validation for FDI dental notation.
+
+--- PAGE 44 ---
+26Methodology
+Field Name Data Type Constraint / Description
+id Integer Primary Key (PK). Unique identifier for
+the user.
+email String (varchar) Unique Key (UK). Enforces the
+@usc.edu.phdomain constraint.
+password String (varchar) Securely hashed user password.
+role String (varchar) RBAC identifier (ADMIN, DOCTOR,
+NURSE, DENTIST, STAFF, STUDENT).
+is_verified Boolean Flag indicating successful MFA OTP veri-
+fication.
+illness_enc BinaryField (bytea) pgcrypto encrypted string of chronic ill-
+nesses.
+allergies_enc BinaryField (bytea) pgcrypto encrypted string of patient al-
+lergies.
+Table 3.1 Data Dictionary for authentication_user
+Field Name Data Type Constraint / Description
+id Integer Primary Key (PK).
+user_id Integer Foreign Key (FK) mapping to
+authentication_user.id.
+usc_id String (varchar) 8-digit official University ID number.
+academic_year String (varchar) Retooling filter field (e.g., 2025-2026) for
+cohort isolation.
+first_name_enc BinaryField (bytea) pgcryptoencrypted first name payload.
+last_name_enc BinaryField (bytea) pgcryptoencrypted last name payload.
+created_at Datetime Immutable audit trail timestamp for record
+creation.
+Table 3.2 Data Dictionary for patients_patient
+Field Name Data Type Constraint / Description
+id Integer Primary Key (PK).
+patient_id Integer Foreign Key (FK) mapping to
+patients_patient.id.
+created_by_id Integer Foreign Key (FK) mapping to the attend-
+ing medical staff’suser_id.
+concern String (varchar) Mandatory chief complaint or reason for
+clinical visit.
+diagnosis_enc BinaryField (bytea) pgcrypto encrypted clinical diagnosis
+payload.
+vital_signs JSON Structured JSON array capturing BP, HR,
+Temp, and SpO2.
+Table 3.3 Data Dictionary for patients_medicalrecord
+
+--- PAGE 45 ---
+3.9 Network Configuration and Deployment Architecture27
+Field Name Data Type Constraint / Description
+id Integer Primary Key (PK).
+patient_id Integer Foreign Key (FK) mapping to
+patients_patient.id.
+tooth_numbers String (varchar) CSV string of affected teeth enforcing FDI
+Notation (11-48) limits.
+procedure_performed String (varchar) Defined choices constraint (e.g., CLEAN-
+ING, EXTRACTION).
+tooth_chart JSON Structured representation of the visual den-
+tal diagram.
+Table 3.4 Data Dictionary for patients_dentalrecord
+3.8.4 Administrative Workflow Schema
+The medical_certificates table manages the End-to-End issuance of the USC
+Form ACA-HSD-04F. It utilizes dual Foreign Keys to track both the staff member who
+drafted the document and the Doctor who finalized it.
+Field Name Data Type Constraint / Description
+id Integer Primary Key (PK).
+patient_id Integer Foreign Key (FK) mapping to
+patients_patient.id.
+fitness_status String (varchar) Constrained to choices: ’fit’ or ’not_fit’.
+approval_status String (varchar) Tracks document state: ’draft’, ’pending’,
+’approved’, ’rejected’.
+issued_by Integer Foreign Key (FK) mapping to the
+Nurse/Staff who drafted the form.
+approved_by Integer Foreign Key (FK) mapping strictly to an
+authorized Doctor.
+Table 3.5 Data Dictionary for medical_certificates
+3.9 Network Configuration and Deployment Architec-
+ture
+To guarantee high availability and real-time synchronization between the clinic staff
+and student users, the USC-PIS utilizes a robust cloud-based deployment architecture.
+The infrastructure is specifically configured to handle enterprise-level healthcare
+operations, leveraging several cloud services to manage hosting, media delivery, and
+secure communications.
+
+--- PAGE 46 ---
+28Methodology
+3.9.1 CI/CD Pipeline and Cloud Hosting
+The application is hosted on Heroku, which serves as the primary deployment
+platform for the backend Application Layer. To ensure that no critical bugs or security
+vulnerabilities enter the production environment, the deployment process utilizes a
+Continuous Integration and Continuous Deployment (CI/CD) pipeline engineered via
+GitHub Actions. This automated DevOps pipeline mandates that all code commits
+must successfully pass 15 rigorous automated tests—ranging from unit tests (UT-01
+to UT-06) to integration and performance tests (PT-01 to PT-04)—before the system
+permits the build to be deployed to the live Heroku dynos.
+3.9.2 Dual-Database Environment
+The system employs a dual-database paradigm to balance rapid development with
+secure production data handling. During local testing and development, the system
+utilizes SQLite to allow for lightweight operations. However, the live production
+environment is powered by a PostgreSQL 16.8 server hosted on Heroku. To prevent
+crashes between the two environments, "Vendor-Aware" logic is implemented within
+the system’s backend migrations, ensuring that PostgreSQL-exclusive functions (such
+as pgcrypto cryptographic extensions) are safely bypassed in the local environment
+but strictly enforced in the cloud.
+3.9.3 Scalable Content Delivery Network (CDN)
+Due to the significant file storage requirements of digital health records, including
+PubMats, campaign banners, and PDF attachments, the system offloads media storage
+from the primary database. Cloudinary is integrated as a scalable Content Delivery
+Network (CDN) to manage these file uploads natively. By offloading media processing
+to Cloudinary, the primary Django application is relieved of heavy bandwidth tasks,
+ensuring the HTTP threads remain unblocked and patient data loads seamlessly across
+devices.
+3.9.4 Secure Communications Integration
+To automate clinic communications such as verification codes, patient feedback
+reminders, and password resets, the system interfaces directly with the Gmail API.
+Instead of relying on traditional SMTP configurations, which are prone to being
+flagged by strict firewall policies, the USC-PIS implements an OAuth 2.0 protocol.
+
+--- PAGE 47 ---
+3.10 Development and Testing Strategy29
+This ensures reliable, uninterrupted delivery of automated clinic alerts directly to the
+students’@usc.edu.phinstitutional inboxes.
+3.10 Development and Testing Strategy
+The development adhered to an Agile methodology, ensuring iterative cycles
+that adapted to clinical staff feedback. To ensure software quality and alignment
+with functional requirements, the system underwent a rigorous, multi-layered testing
+pipeline.
+3.10.1 Functional and Security Testing
+• Unit Testing (UT-01 to UT-06):Validated isolated components and logic
+constraints. Key tests verified the strict binary storage of pgcrypto encrypted
+data, accurate regex enforcement of the FDI 11-48 dental charting range, and
+the rejection of.EXEand.JSfile uploads to secure system integrity.
+• Integration Testing (IT-01 to IT-05):Evaluated end-to-end interactions be-
+tween the frontend, backend, and external APIs. This included simulating the
+end-to-end medical certificate pipeline (from a Nurse’s draft to a Doctor’s ap-
+proval to PDF rendering) and executing RBAC stress tests to ensure unauthorized
+users could not bypass role-gated endpoints.
+3.10.2 Performance Testing
+Quantitative benchmarks evaluated the system’s operational capability to handle
+peak clinical loads (PT-01 to PT-04).
+• Search Efficiency:Patient search query latency was successfully recorded
+between 123.16ms and 127.81ms, functioning nearly four times faster than the
+500ms maximum threshold.
+• PDF Generation:The dual-engine PDF module consistently generated official
+Medical Certificates in 122.93ms to 124.53ms.
+• Concurrency:The architecture stabilized processing 20 simultaneous HTTP
+requests in 0.66 seconds with a 0% data drop rate.
+
+--- PAGE 48 ---
+30Methodology
+3.10.3 User Acceptance Testing (UAT)
+Preliminary User Acceptance Testing (UAT) was conducted to measure the sys-
+tem’s usability and feature relevance.
+• Staff Evaluation:Nurses, Doctors, and Dentists noted strong efficiency im-
+provements over legacy operations, citing that generating data was significantly
+easier. Feedback from this group directly resulted in the engineering of the “Ap-
+plication Retooling” filter bar to filter the patients list dynamically by Academic
+Year.
+• Student Evaluation:UAT was conducted with the student demographic to
+evaluate accessibility. Based on the responses, the system received overwhelm-
+ingly positive feedback, with users praising the Patient Medical Dashboard and
+automated BMI calculations. Constructive feedback included a request for a
+“Dark Mode” toggle and improved mobile responsiveness.
+3.11 Validation and Pilot Deployment
+To guarantee a smooth transition from a paper-based system to the fully digital
+USC-PIS, the deployment will follow a highly structured roll-out.
+3.11.1 Pilot Deployment
+The initial pilot deployment exclusively targeted 70 out of the 99 enrolled students
+(approximately 71%) currently enrolled in CPE 1202L (Data Structures and Algo-
+rithms), resulting in a student sample size of N=70, alongside selected clinical staff.
+This targeted demographic offers a representative sample size to accurately validate
+data synchronization, performance thresholds, and operational workflows under real
+clinic loads before expanding the system to the entire university.
+3.11.2 Training and Support
+To equip the clinic personnel with the necessary digital competency, training
+will be executed via a hybrid approach utilizing hands-on demonstration modules
+supplemented by comprehensive User Manuals.
+• Role-Specific Modules:Nurses will be trained to utilize the Retooling Filter
+Bar to segment patient datasets via Academic Year logic. Dentists will be trained
+to optimize high-volume clinic days by utilizing the streamlined “Consultation
+
+--- PAGE 49 ---
+3.11 Validation and Pilot Deployment31
+Only” mode. Administrative Staff will be trained on the asynchronous Celery-
+powered reporting module and the strict RBAC constraints mandated for Medical
+Certificate issuance.
+
+--- PAGE 51 ---
+Chapter 4
+Results and Discussion
+This chapter presents the outcomes of the various evaluations conducted throughout
+the development of the web-based University of San Carlos Patient Information System
+(USC-PIS). It covers the results of the functional testing (Unit and Integration), non-
+functional testing (Performance and Security), and User Acceptance Testing (UAT).
+The findings validate the system’s reliability, efficiency, and usability in modernizing
+the clinic’s healthcare delivery.
+4.1 Functional Testing Results
+Functional testing was executed to verify that individual components and integrated
+modules behaved exactly as specified in the system requirements. To ensure a highly
+reliable and continuous testing environment, a professional Continuous Integration
+and Continuous Deployment (CI/CD) pipeline was established via GitHub Actions.
+An automated testing script (using the Django manage.py test runner) was
+configured to execute the full Software Quality Assurance (SQA) audit suite upon
+every code commit to the GitHub repository. This automated DevOps pipeline verified
+100% test coverage across all clinical workflows and security constraints before
+every production deployment to Heroku. By automating the system auditing process,
+the researchers ensured that no build failures, syntax errors, or vulnerabilities were
+introduced into the live clinical system.
+The functional testing pipeline was divided into Unit Testing and Integration
+Testing, ensuring rigorous validation of clinical logic, database encryption constraints,
+and Role-Based Access Control (RBAC).
+
+--- PAGE 52 ---
+34Results and Discussion
+4.1.1 Unit Testing
+Unit testing evaluated the foundational components and security middleware of the
+USC-PIS. A total of six primary unit tests (UT-01 to UT-06) were executed to validate
+clinical logic and database security.
+Test ID Requirement Evalu-
+ated
+Expected Result Actual Result Status
+UT-01 pgcrypto SQL En-
+cryption Audit
+Binary storage for
+Name/Diagnosis
+Binary (bytea)
+hashes detected
+PASS
+UT-02 Academic Year-
+Level Logic
+Filter 1st-4th Year ac-
+curately
+100% Accuracy in
+filtering
+PASS
+UT-03 MFA Token Expira-
+tion
+Expired codes return
+invalid
+is_expired()
+logic triggered
+PASS
+UT-04 Clinical Field Con-
+straints
+Regex validation for
+Dental FDI
+"11,12" accepted;
+"1,2" blocked
+PASS
+UT-05 Safe List Onboard-
+ing
+Automatic Role As-
+signment
+Assigned: DOCTOR
+/ NURSE
+PASS
+UT-06 File Upload Security Reject .EXE, .JS,
+.PY files
+100% Rejection rate PASS
+Table 4.1 Unit Testing Results (Security & Logic)
+The unit testing phase systematically verified the foundational security and clinical
+constraints of the system. Specifically, UT-01 confirmed the successful integration of
+the PostgreSQL pgcrypto extension, ensuring that all Protected Health Information
+(PHI), such as patient diagnoses and names, is strictly converted into binary bytea
+hashes upon database commit, shielding data from plaintext exposure. Clinical logic
+was also rigorously validated in UT-04, where the system successfully applied back-
+end regex constraints to restrict dental charting strictly to the FDI notation range
+(11-48), preventing erroneous user data entry. Furthermore, UT-05 confirmed the
+efficiency of the SafeList onboarding protocol, automatically assigning clinical roles
+(DOCTOR/NURSE) to pre-authorized emails, bypassing the standard student routing.
+Finally, UT-06 demonstrated robust cybersecurity measures by actively intercepting
+and rejecting high-risk executable files (such as.EXE and .JS) while safely processing
+valid clinical documents.
+4.1.2 Integration Testing
+Integration testing verified that different modules, such as frontend forms, backend
+APIs, and external enterprise integrations, worked seamlessly together to execute
+complex clinical pipelines.
+
+--- PAGE 53 ---
+4.1 Functional Testing Results35
+Test ID Workflow / Require-
+ment
+Expected Result Actual Result Status
+IT-01 Clinical Certificate
+Pipeline
+Nurse → Doctor →
+PDF Flow
+Flow Completed
+(HTTP 200 OK)
+PASS
+IT-02 Feedback Analytics Persistence of Sur-
+vey Data
+Record successfully
+created in database
+PASS
+IT-03 RBAC Security
+Stress Test
+Cross-patient access
+restricted
+HTTP 403 (Denied) /
+404 (Hidden)
+PASS
+IT-04 Academic Year Sort Filter specific
+records via API
+1/1 Match (e.g., 4th
+Year isolated)
+PASS
+IT-05 Health Campaign
+Flow
+Student sees Admin
+alert
+Visible in Student
+Dashboard Feed
+PASS
+Table 4.2 Integration Testing Results (Workflows & RBAC)
+Integration testing evaluated the seamless interaction between the React frontend,
+the Django REST Framework APIs, and external enterprise tools. Test IT-01 suc-
+cessfully validated the End-to-End Medical Certificate issuance pipeline, confirming
+that while a Nurse can draft the USC Form ACA-HSD-04F, the system’s middleware
+strictly requires a Doctor’s authorization before the backend dual-engine PDF module
+renders the final document. Additionally, IT-03 stress-tested the Role-Based Access
+Control (RBAC) architecture; malicious attempts to access cross-patient records were
+successfully blocked, returning HTTP 403 (Denied) or 404 (Not Found) errors, proving
+data isolation between students. IT-04 also confirmed the success of the "Application
+Retooling" feature, proving that the API can dynamically sort, filter, and isolate spe-
+cific student cohorts by Academic Year and Semester in real-time, effectively resolving
+the clinic’s previous reporting inefficiencies.
+4.1.3 Manual System Feature Validation
+In addition to the automated testing pipelines, an exhaustive manual system feature
+validation was conducted to ensure that all front-facing User Interface (UI) modules and
+role-specific dashboards functioned intuitively for the Clinic Staff, Administrators, and
+Students. This manual audit was divided into three primary modules: Authentication
+and Security, Clinic Operations, and Analytics & Reporting.
+To demonstrate the rigorous nature of this validation phase, representative test
+matrices for critical system features are presented below.
+Discussion and Analysis for Manual Validation:The manual testing evaluated
+precise data inputs, expected system behaviors, and error-handling capabilities under
+real-world human interaction. The validation confirmed that the Role-Based Access
+
+--- PAGE 54 ---
+36Results and Discussion
+Test ID Scenario Pre-condition Input Provided Expected / Ac-
+tual Result
+Status
+AUTH-01 Student login
+Success
+Student ac-
+count exists
+Email: s t u d
+e n t @ u s c . e d u .
+ph, Pass: Valid-
+Pass@123
+User redirected to
+Dashboard.
+PASS
+AUTH-02 Incorrect Pass-
+word
+User account
+exists
+Correct Email, In-
+correct Password
+Access Denied;
+Error: "Invalid
+password"
+PASS
+AUTH-05 Non-USC
+email
+Invalid email
+format
+Email:
+test@gmail.com
+Error: "Invalid
+email format"
+PASS
+AUTH-06 Persistent Ses-
+sion
+User is logged
+in
+Close & Reopen
+Browser
+User remains
+authenticated via
+stored token.
+PASS
+Table 4.3 Sample Validation - Login and Authentication
+Test ID Scenario Input Provided Expected / Actual Result Status
+MRM-01 Create New
+Clinical
+Record
+Temp: 38.4°C, BP:
+120/80, Diagnosis:
+Fever, Treatment:
+Paracetamol
+New record is generated
+and stored accurately.
+PASS
+MRM-02 Edit Clinical
+Record
+Change Temp to
+38.8°C
+Record is updated accu-
+rately in the database.
+PASS
+MRM-04 Search Clin-
+ical Record
+(Concern)
+Search Input: Stom-
+ach
+Only records matching the
+exact concern are filtered.
+PASS
+MRM-06 Delete Clinical
+Record
+Select record and
+confirm delete
+Record successfully re-
+moved from the medical
+history.
+PASS
+Table 4.4 Sample Validation - Medical Record Management
+Report Category
+Tested
+Formats Successfully Generated
+& Downloaded
+Execution Status
+Health Campaign Per-
+formance
+PDF, Excel, CSV , JSON, HTML PASS (5/5)
+Patient Feedback Analy-
+sis
+PDF, Excel, CSV , JSON, HTML PASS (5/5)
+Monthly Visit Trends PDF, Excel, CSV , JSON, HTML PASS (5/5)
+Table 4.5 Sample Validation - Reporting Engine Formats
+
+--- PAGE 55 ---
+4.2 Non-Functional Testing Results37
+Control (RBAC) securely isolated dashboards, clinical records correctly processed
+complex medical inputs (such as vital signs and FDI dental charting), and the back-
+ground reporting engine successfully synthesized large datasets into five distinct export
+formats without data loss. All manual test scenarios yielded a 100% pass rate.
+Note: The complete, exhaustive tables detailing all test scenarios, specific inputs,
+and results across the entire system can be found in Appendix F (Software Testing
+Results).
+4.2 Non-Functional Testing Results
+To ensure the system could handle peak clinical loads and address the operational
+inefficiencies of the legacy paper-based method, rigorous non-functional performance
+benchmarking was conducted.
+4.2.1 Performance Benchmarking
+The USC-PIS was benchmarked against strict latency and concurrency thresholds
+to prove its operational efficiency in a real-world clinical environment.
+Test ID Performance Met-
+ric
+Target Threshold Measured Result Status
+PT-01 Report / PDF La-
+tency
+< 1000 ms 124.53 ms PASS
+PT-02 System Concurrency
+(20 Users)
+20 Concurrent Re-
+quests
+20/20 Success (0%
+Drop)
+PASS
+PT-03 Encryption Lag /
+Overhead
+< 50 ms overhead < 1 ms (Standard) PASS
+PT-04 Search Query Effi-
+ciency
+< 500 ms (for 100+
+records)
+123.16 ms PASS
+Table 4.6 Performance Benchmarking Results
+The non-functional benchmarks confirm that the architectural optimizations of
+the USC-PIS successfully eliminated the latency issues associated with manual clinic
+operations. As demonstrated in PT-04, the system’s advanced search query optimiza-
+tion processes 100+ patient records with an average latency ranging strictly between
+123.16ms and 127.81ms, operating nearly four times faster than the maximum accept-
+able threshold of 500ms. Furthermore, PT-01 confirmed that the dual-engine PDF
+module renders official medical certificates in roughly 122.93ms to 124.53ms, ensuring
+zero delays in administrative output during peak consultation hours. PT-02 verified
+the system’s high-availability architecture by successfully processing 20 simultaneous
+
+--- PAGE 56 ---
+38Results and Discussion
+HTTP requests in just 0.66 seconds, suffering a 0% data drop or failure rate. Lastly,
+PT-03 proved that the military-grade pgcrypto encryption applied to clinical records
+introduces an entirely negligible computational overhead of less than 1.0ms, ensuring
+maximum data security without sacrificing system speed or responsiveness.
+4.3 User Acceptance Testing (UAT) Results and Feed-
+back
+User Acceptance Testing (UAT) was conducted to gather qualitative and quantita-
+tive feedback, assessing whether the platform met the intended objectives of both the
+clinic staff and the student body.
+4.3.1 Participant Demographics and Testing Environment
+The User Acceptance Testing (UAT) was conducted using a highly targeted pilot
+deployment to accurately measure system usability, data synchronization, and opera-
+tional workflows under real clinic loads. The testing demographic was divided into
+two distinct user classes: the clinical staff and the student body.
+The clinical staff sample consisted of exactly seven (N=7) authorized personnel
+from the USC Clinic, specifically comprising Doctors, Nurses, and Dentists. This
+targeted administrative group was tasked with evaluating system efficiency, clinical
+record creation, and report generation functionalities.
+Simultaneously, the student demographic testing was executed targeting 70 out of
+the 99 enrolled students (approximately 71%) currently enrolled in the CPE 1202L
+(Data Structures and Algorithms) course. This yielded a representative student sample
+size of seventy respondents (N=70). The student participants evaluated the platform’s
+accessibility, mobile responsiveness, the medical certificate issuance pipeline, and the
+clarity of their personalized health insights.
+4.3.2 Clinic Staff Evaluation
+Testing was conducted with a clinical sample of N=7 staff members, consisting
+of two Doctors, three Nurses, and two Dentists. The majority of the respondents (5
+out of 7) reported using the system on a daily basis. Based on the statistical means
+measured on a 5.00-point Likert scale, the staff provided moderate to positive feedback,
+reflecting both operational improvements and the transitional challenges of adopting a
+new digital workflow.
+
+--- PAGE 57 ---
+4.3 User Acceptance Testing (UAT) Results and Feedback39
+• System Efficiency & Accuracy:The system achieved a mean score of 3.29/5.00
+for efficiency in managing patient records, while data accuracy and the preven-
+tion of duplicate records both scored higher at a mean of 3.57/5.00. Staff
+respondents noted that the platform provides an “Easy and fast system flow”
+and makes “generating data” significantly easier. Doctors explicitly praised the
+organization of patient profiles, stating that the interface makes “everything a lot
+more organize[d]”.
+• Reporting & Workflow Integration:The generation of reports and the provi-
+sion of tools for analyzing patient data both received a mean score of 3.29/5.00.
+During testing, Nurses stated that while the reporting system is efficient, “adding
+a feature to filter the patients list strictly by academic year would further improve
+our ability to generate monitoring reports”. This direct qualitative feedback
+led to the engineering of the “Application Retooling” dynamic filter bar. How-
+ever, the system’s integration with existing manual workflows scored a mean of
+3.14/5.00, and the ability to reduce the need for external tools scored 2.71/5.00,
+indicating that staff still heavily rely on parallel physical documentation.
+• Overall Satisfaction & Constructive Feedback:The general satisfaction
+among clinic staff reached a mean of 3.29/5.00. While many users praised
+the streamlined data gathering, one Doctor provided highly critical feedback,
+citing concerns over “No security features to protect confidential data” and the
+continued necessity of “written records for documentation and possibly, medico-
+legal purposes”. This critical feedback is particularly valuable; while it reflects
+a user misunderstanding of the system’s invisible backend security, it strongly
+validates the architectural necessity of the PostgreSQL pgcrypto column-level
+encryption implemented by the researchers. Furthermore, it highlights a critical
+need to better educate medical staff on digital security protocols during the
+training phase.
+Staff Evaluation: System Efficiency & Reporting
+2
+3
+2
+Doctor
+Nurse
+Dentist
+Fig. 4.1 Staff Role in the Clinic
+
+--- PAGE 58 ---
+40Results and Discussion
+5
+1
+1
+Daily
+Weekly
+Monthly
+Fig. 4.2 Frequency of using the system
+1 2 3 4 5
+0
+1
+2
+3
+1 1 1
+3
+1
+Fig. 4.3 The system is efficient for manag-
+ing patient records. (Mean: 3.29)
+1 2 3 4 5
+0
+1
+2
+1
+0
+2 2 2
+Fig. 4.4 The data stored and retrieved is
+accurate and reliable. (Mean: 3.57)
+1 2 3 4 5
+0
+1
+2
+1
+0
+2 2 2
+Fig. 4.5 The system helps avoid duplicate
+or missing records. (Mean: 3.57)
+1 2 3 4 5
+0
+1
+2
+1 1 1
+2 2
+Fig. 4.6 The system improves time man-
+agement and workflow. (Mean: 3.43)
+1 2 3 4 5
+0
+1
+2
+3
+1 1 1
+3
+1
+Fig. 4.7 Generating reports is easy. (Mean:
+3.29)
+1 2 3 4 5
+0
+1
+2
+3
+1 1 1
+3
+1
+Fig. 4.8 Sufficient tools for analyzing pa-
+tient data. (Mean: 3.29)
+1 2 3 4 5
+0
+1
+2
+3
+1
+0
+3
+2
+1
+Fig. 4.9 Feedback analysis is helpful for
+operations. (Mean: 3.29)
+
+--- PAGE 59 ---
+4.3 User Acceptance Testing (UAT) Results and Feedback41
+1 2 3 4 5
+0
+1
+2
+3
+1
+0
+2
+3
+1
+Fig. 4.10 Logs and audit trails are suffi-
+cient. (Mean: 3.43)
+1 2 3 4 5
+0
+1
+2
+3
+1 1 1
+3
+1
+Fig. 4.11 The interface is intuitive and
+easy to use. (Mean: 3.29)
+1 2 3 4 5
+0
+1
+2
+3
+1
+0
+3
+1 1
+Fig. 4.12 Technical issues are minimal.
+(Mean: 3.17)
+1 2 3 4 5
+0
+1
+2
+1
+2
+1 1
+2
+Fig. 4.13 Integrates well with clinic work-
+flow. (Mean: 3.14)
+1 2 3 4 5
+0
+1
+2
+3
+1
+3
+0
+2
+1
+Fig. 4.14 Tasks are easier compared to
+manual. (Mean: 2.86)
+1 2 3 4 5
+0
+1
+2
+3
+1
+3
+0
+3
+0
+Fig. 4.15 Reduces need for external tools.
+(Mean: 2.71)
+1 2 3 4 5
+0
+1
+2
+3
+1
+0
+3
+2
+1
+Fig. 4.16 Overall, staff satisfaction.
+(Mean: 3.29)
+4.3.3 Student Evaluation
+UAT was conducted with N=70 students from the CPE 1202L course to evaluate
+the platform’s accessibility, responsiveness, and feature relevance. Based on the survey
+
+--- PAGE 60 ---
+42Results and Discussion
+responses and statistical means (measured on a 5.00-point Likert scale), the system
+received overwhelmingly positive feedback.
+• Accessibility & Usability:Students consistently highlighted the system’s clean
+user interface and accessibility. The system scored an exceptional mean of
+4.70/5.00 for the ease of logging in and accessing personal records. The clarity
+of the health information displayed was rated even higher, achieving a mean
+of 4.76/5.00. Furthermore, system responsiveness and the ability to access the
+platform anytime and anywhere both achieved a high mean score of 4.61/5.00,
+indicating a highly stable and available web architecture.
+• Feature Relevance & Satisfaction:The student body overwhelmingly iden-
+tified the platform’s core functionalities as highly beneficial, awarding a mean
+score of 4.60/5.00 for overall feature helpfulness. Specifically, the automated
+Medical Certificate issuance process received a mean of 4.47/5.00, while the
+timeliness of system notifications scored 4.49/5.00. In qualitative feedback,
+users specifically praised the Patient Medical Dashboard and the automated BMI
+Calculation tools, noting that the ability to obtain a medical certificate without
+queueing in physical lines was a massive operational improvement.
+• Overall Satisfaction & Constructive Feedback:The general satisfaction with
+the USC-PIS reached an impressive mean of 4.76/5.00. While the system was
+highly praised, the most recurring constructive suggestions from the demo-
+graphic were requests for a “Dark Mode” toggle and further optimizations for
+mobile responsiveness to prevent interface stretching. Additionally, several users
+noted that the strict password creation requirements during registration were
+slightly confusing and could benefit from clearer prompt instructions. These sug-
+gestions have been documented to guide future post-deployment maintenance.
+Student Evaluation: Accessibility & Satisfaction
+1 2 3 4 5
+0
+20
+40
+60
+0 2 3
+9
+56
+Fig. 4.17 It was easy for me to log in and
+access my records. (Mean: 4.7)
+
+--- PAGE 61 ---
+4.3 User Acceptance Testing (UAT) Results and Feedback43
+1 2 3 4 5
+0
+20
+40
+60
+0 0
+4
+9
+57
+Fig. 4.18 The health information displayed
+was clear and easy to understand. (Mean:
+4.76)
+1 2 3 4 5
+0
+20
+40
+0 1 3
+18
+48
+Fig. 4.19 The system was responsive and
+worked smoothly. (Mean: 4.61)
+1 2 3 4 5
+0
+20
+40
+0 0
+6
+15
+49
+Fig. 4.20 I was able to access the system
+anytime and anywhere. (Mean: 4.61)
+1 2 3 4 5
+0
+20
+40
+1 1
+5
+19
+44
+Fig. 4.21 The notifications (updates, re-
+minders) were useful and timely. (Mean:
+4.49)
+1 2 3 4 5
+0
+20
+40
+1 0
+4
+25
+40
+Fig. 4.22 The certificate issuance process
+was clear and easy. (Mean: 4.47)
+1 2 3 4 5
+0
+20
+40
+1 1 1
+19
+48
+Fig. 4.23 The features of the system are
+helpful to me as a student. (Mean: 4.6)
+1 2 3 4 5
+0
+20
+40
+60
+0 0 1
+15
+54
+Fig. 4.24 Overall, student satisfaction.
+(Mean: 4.76)
+
+--- PAGE 62 ---
+44Results and Discussion
+4.3.4 Qualitative Analysis of UAT Feedback
+Beyond the statistical metrics, the qualitative feedback gathered during the User
+Acceptance Testing provided critical insights into the system’s operational impact.
+For the clinical staff (N=7), the quantitative results yielded a moderate overall
+satisfaction mean of 3.29 out of 5.00. While certain personnel, specifically nurses,
+noted that the system made “generating data easier,” the overall metrics for “ease
+compared to manual tasks” (Mean: 2.86) and “reduction of external tools” (Mean:
+2.71) indicate notable resistance to the digital transition. Qualitative feedback revealed
+that this friction, including an extreme outlier score of 1.00 from a physician across all
+questions, was not primarily due to the software’s UI, but rather real-world operational
+constraints. Rather than dismissing this physician’s score as an extreme statistical
+outlier, this feedback must be acknowledged as a highly valid security concern in
+the medical field. The physician explicitly noted a reluctance to use a personal
+mobile device for accessing highly sensitive Electronic Medical Records (EMRs)
+and emphasized the ongoing necessity of physical written records for medico-legal
+purposes. This highlights a critical finding: while the software utilizes military-
+grade pgcrypto encryption, it currently acts as a supplement to physical paperwork
+rather than a legal replacement. Full clinical adoption is heavily bottlenecked not
+by the software’s interface, but by the lack of dedicated, secure university-provided
+clinic hardware to support these medico-legal realities. In direct response to early
+feedback regarding monitoring inefficiencies, the researchers executed an “Application
+Retooling” phase, implementing an advanced real-time data filtering architecture
+that dynamically filters the patients list by year level and academic semester. One
+clinic physician also emphasized the absolute necessity of documentation security for
+medico-legal purposes, validating the architectural decision to integrate pgcrypto for
+encrypted clinical records.
+For the student evaluation, the overall satisfaction yielded an impressive mean of
+4.76. Students overwhelmingly praised the Patient Medical Dashboard and the Medical
+Certificate Issuance feature, noting that the ability to obtain a medical certificate
+without waiting in physical queues was a massive operational improvement. The most
+recurring constructive feedback from the student body was a request for aesthetic
+UI optimizations, specifically the addition of a “Dark Mode” toggle and enhanced
+responsiveness to ensure the application fits perfectly on narrower mobile screens.
+
+--- PAGE 63 ---
+4.4 Database Analysis and Data Quality Assessment45
+4.4 Database Analysis and Data Quality Assessment
+To validate the reliability of the system under real-world clinical operations, an ex-
+tensive empirical database analysis was executed targeting the production PostgreSQL
+16.8 server. This analysis evaluated data consistency, table normalization, and query
+latency across the system’s 39 normalized tables.
+4.4.1 Database Consistency and Normalization
+A comprehensive data quality audit demonstrated a robust relationship integrity
+across all user classes. The structural audit identified that the data schema safely
+decoupled the authentication credentials (authentication_user) from the clinical
+profiles (patients_patient), resolving over-normalization risks. While the dual-
+model mapping requires exactly 17 system users to map correctly to respective patient
+or staff profiles, the audit confirmed that the Foreign Key mapping successfully main-
+tained a 100% data consistency. Furthermore, stringent system constraints ensure that
+critical entities, including all medical and dental records, retain strict created_at and
+updated_at immutability, establishing a permanent audit trail required for healthcare
+compliance.
+4.4.2 Query Optimization and Latency Benchmarking
+Legacy systems typically experience severe degradation in query speeds (com-
+monly known as the N+1 query problem) when extracting complex relational data.
+To resolve this, the backend PatientViewSet queries were optimized by prefetching
+related medical, dental, and demographic records in a single database hit.
+Performance Metric
+Tested
+Target Acceptable
+Threshold
+Actual Measured
+Latency
+Optimization
+Status
+Patient Search Query
+(100+ Records)
+< 500.00 ms 123.16 ms — 127.81
+ms
+PASS(Highly Op-
+timized)
+Medical Certificate PDF
+Render
+< 1000.00 ms 122.93 ms — 124.53
+ms
+PASS(Highly Op-
+timized)
+Concurrent Requests
+(20 Users)
+0% Data Drop Rate 0.66 seconds execu-
+tion
+PASS(100% Suc-
+cess)
+Table 4.7 Database Query Optimization and Latency Benchmarking
+The empirical benchmark metrics proved highly successful. During the perfor-
+mance testing phase (PT-04), the optimized database architecture successfully handled
+search queries against 100+ patient records with an average retrieval latency ranging
+
+--- PAGE 64 ---
+46Results and Discussion
+strictly between 123.16ms and 127.81ms. This effectively addressed the primary
+operational inefficiency outlined in the system’s objectives, processing requests nearly
+four times faster than the maximum acceptable threshold of 500ms.
+4.5 Security, Cryptography, and Vulnerability Assess-
+ment
+A comprehensive cybersecurity audit was conducted to verify that the USC-PIS
+architecture adequately protected Personally Identifiable Information (PII) and Pro-
+tected Health Information (PHI) against unauthorized exposure and malicious injection
+attacks.
+Security Module
+Tested
+Audit Scenario Primary Threat Miti-
+gated
+Status
+Cryptography
+(pgcrypto)
+UT-01: Verify AES-256 bi-
+nary storage in system cata-
+logs
+Plaintext database expo-
+sure & Data breaches
+PASS
+File Validation In-
+tegrity
+UT-06: Attempt injection of
+malicious .exe and .js pay-
+loads
+Arbitrary code execution &
+Server hijacking
+PASS
+RBAC Middle-
+ware
+IT-03: Attempt unauthorized
+cross-role URL endpoint ac-
+cess
+Privilege escalation &
+Unauthorized viewing
+PASS
+SafeList Onboard-
+ing
+UT-05: Verify institutional do-
+main and role assignment
+Unauthorized account reg-
+istration
+PASS
+Table 4.8 Security and Vulnerability Assessment Results
+4.5.1 Cryptographic Benchmarking (pgcrypto)
+To comply with data privacy laws, sensitive plaintext inputs are intercepted by
+Django post_save signals and encrypted at the database level. Unit test UT-01 di-
+rectly audited the PostgreSQL system catalogs and confirmed that sensitive fields,
+specifically patient names and clinical diagnoses, were successfully converted into
+advanced symmetric AES-256 binary hashes ( bytea) upon rest. Crucially, perfor-
+mance benchmarking (PT-03) verified that executing thepgp_sym_encrypt function
+on clinical records introduced an entirely negligible computational overhead of less
+than 1.0ms, successfully enforcing military-grade security without compromising
+system responsiveness.
+
+--- PAGE 65 ---
+4.5 Security, Cryptography, and Vulnerability Assessment47
+4.5.2 Vulnerability Mitigation and File Security
+The system’s File Upload architecture was subjected to rigorous penetration testing
+(UT-06) to measure its resilience against malicious payload injections. The audit
+confirmed that the backend validation algorithms correctly verified MIME types and
+strictly rejected all executable formats. The system achieved a 100% rejection rate
+against high-risk scripts (including .EXE, .JS, and .PY files), neutralizing potential
+system compromises and guaranteeing secure storage of clinical documents.
+4.5.3 Role-Based Access Control (RBAC) Integrity
+The system’s Role-Based Access Control (RBAC) middleware was stress-tested
+during Integration Test IT-03. Using simulated cross-role interactions, the audit
+attempted privilege escalation (e.g., a student account attempting to access doctor-
+exclusive medical certificate endpoints). The system correctly intercepted all unautho-
+rized requests, returning strictly HTTP 403 (Forbidden) and HTTP 404 (Not Found)
+responses. Additionally, the SafeList onboarding protocol (UT-05) successfully demon-
+strated that authorized clinical emails could bypass standard student domain checks
+and securely receive automatic assignment to professional roles (e.g., DOCTOR or
+NURSE), proving the system’s robust capability to defend endpoints while streamlin-
+ing administrative deployment.
+
+--- PAGE 67 ---
+Chapter 5
+Conclusions and Recommendations
+5.1 Summary
+The development of the web-based University of San Carlos Patient Information
+System (USC-PIS) was undertaken to modernize the USC clinic’s legacy paper-based
+operations. The project aimed to establish a centralized, secure, and highly efficient
+digital platform for managing clinical records, issuing medical certificates, disseminat-
+ing health campaigns, and automating patient feedback.
+The system was engineered utilizing a modern three-tier architecture: a React
+18 frontend, a Django 5.0.2 backend, and a PostgreSQL database utilizing vendor-
+aware logic for dual-environment deployment. To ensure comprehensive system
+reliability, the project underwent a rigorous Software Quality Assurance (SQA) audit
+encompassing functional testing, non-functional performance benchmarking, and
+security validation. Following system stabilization, a pilot deployment was structured
+to target 70% of the students currently enrolled in CPE 1202L (Data Structures and
+Algorithms), along with selected clinical staff, to validate real-world operational
+readiness.
+5.2 Conclusions
+The implementation of the web-based University of San Carlos Patient Information
+System (USC-PIS) successfully modernized the legacy paper-based operations of
+the USC clinic. The system transitioned fragmented daily treatment records into a
+centralized, secure, and highly efficient digital ecosystem.
+The empirical data collected during performance benchmarking definitively proves
+that the architectural optimizations resolved prior administrative inefficiencies. The
+system’s advanced search query logic processes patient records with an average
+
+--- PAGE 68 ---
+50Conclusions and Recommendations
+latency of 127.81ms—operating nearly four times faster than the maximum acceptable
+threshold of 500ms. Furthermore, the custom dual-engine PDF module renders
+official Medical Certificates (USC Form ACA-HSD-04F) in 122.93ms, ensuring rapid
+administrative output. The high-availability architecture also proved highly resilient,
+successfully managing 20 concurrent requests in just 0.66 seconds with a 0% failure
+rate.
+From a usability standpoint, the system was overwhelmingly embraced by its
+end-users. The student demographic reported an exceptional overall satisfaction mean
+of 4.76 out of 5.00. Clinic staff confirmed that the transition to digital charting signifi-
+cantly improved the accuracy and reliability of stored clinical data, yielding a 3.29 out
+of 5.00 overall satisfaction. Ultimately, the USC-PIS is a fully matured, production-
+ready system that successfully digitalizes clinical workflows while maintaining strict
+data privacy, proving to be a massive operational improvement for the university clinic.
+5.3 Recommendations
+Based on the testing results, design constraints of the current deployment, and
+the constructive feedback gathered during the User Acceptance Testing (UAT), the
+following recommendations are proposed for future iterations of the USC-PIS:
+1. User Interface Enhancements:While the system was highly praised for its
+clean navigation, multiple student respondents requested the addition of a “Dark
+Mode” toggle and suggested further UI optimizations to ensure the interface is
+perfectly responsive on narrower mobile screens.
+2. Expansion of Clinical Scope (Inventory Management):As identified in the
+original project scope, complex inventory management and patient medication
+tracking were deferred due to time constraints. Future developers should inte-
+grate a robust medication inventory module to track clinic stock, monitor supply
+alerts, and automatically link dispensed medications directly to the patient’s
+unified timeline.
+3. Automated Appointment Scheduling:The current system strictly handles con-
+sultations via a manual walk-in workflow. Future iterations should implement
+an online appointment scheduling and queue management module, allowing stu-
+dents to book specific time slots with available clinic doctors, thereby reducing
+physical waiting times in the clinic lobby.
+4. Billing and Financial Management Integration:To transition the platform
+into a comprehensive enterprise Health Information System (HIS), future de-
+
+--- PAGE 69 ---
+5.3 Recommendations51
+ployments should integrate a billing module capable of handling comprehensive
+patient billing, payment tracking, and insurance processing for faculty and staff.
+5. Enterprise System Integration:The current system utilizes a custom, highly
+secure authentication flow to accommodate standard cloud hosting constraints.
+Future iterations should aim to integrate the official University Single Sign-On
+(SSO) infrastructure and advanced Multi-Factor Authentication (MFA) to further
+streamline the login process for students and faculty.
+6. University-Wide Deployment:Following the successful pilot deployment
+targeting the students enrolled in CPE 1202L, it is recommended that the system
+be gradually rolled out to all remaining departments and colleges within the
+university to maximize the impact of the health campaigns and centralized
+record-keeping.
+7. Provision of Dedicated Clinic Hardware and Security Training:As evi-
+denced by the critical qualitative UAT feedback regarding medico-legal docu-
+mentation, medical professionals have highly valid security concerns and are
+rightfully reluctant to access sensitive Electronic Medical Records (EMRs) using
+their personal mobile devices. To address these hardware realities and achieve
+full digital adoption, it is highly recommended that the university provides
+dedicated, secure workstations or tablet devices exclusively for clinic staff use.
+Furthermore, training programs must include comprehensive modules that trans-
+parently explain the system’s backendpgcrypto encryption measures to build
+digital trust among medical professionals.
+8. Mobile Application and Telemedicine Capabilities:As the system scales,
+transitioning the web platform into a Progressive Web App (PW A) with offline
+capabilities, push notifications, and telehealth features (such as remote video
+consultations) will significantly expand the university’s healthcare delivery
+footprint.
+9. Expansion of Dental Charting Logic:Version 1.0 of the system’s regex back-
+end currently restricts charting strictly to permanent adult teeth (FDI notation
+11-48) to prevent data entry errors. Future iterations must expand this logic to
+accept the 51-85 ranges to fully support pediatric and deciduous dental chart-
+ing, ensuring complete alignment with the official USC Dental Health Record
+requirements.
+
+--- PAGE 71 ---
+References
+[1] World Health Organization, “Monitoring the building blocks of health
+systems: A handbook of indicators and their measurement strategies,” World
+Health Organization, Geneva, Tech. Rep., 2010. [Online]. Available: https:
+//apps.who.int/iris/bitstream/handle/10665/258734/9789241564052-eng.pdf
+[2] D. A. Nagelet al., “Understanding student-run health initiatives in the context
+of community-based services: A concept analysis and proposed definitions,”
+Journal of Primary Care and Community Health, vol. 13, p. 215013192211262,
+2022.
+[3] M. Chowdhury, S. Peteru, A. Askandaryan, D. Banik, and J. Hiana, “Incomplete
+medical charts: Impacts and possible solutions,”European Psychiatry, vol. 65,
+no. Suppl 1, p. S747, 2022.
+[4] C. Donnelly, A. Janssen, S. Vinod, E. Stone, P. Harnett, and T. Shaw, “A sys-
+tematic review of electronic medical record driven quality measurement and
+feedback systems,”International Journal of Environmental Research and Public
+Health, vol. 20, no. 1, p. 200, 2022.
+[5] F. Wursteret al., “The implementation of an electronic medical record in a
+german hospital and the change in completeness of documentation: Longitudinal
+document analysis,”JMIR Medical Informatics, vol. 12, p. e47761, 2024.
+[6] M. Biya, M. Gezahagn, B. Birhanu, K. Yitbarek, N. Getachew, and W. Beyene,
+“Waiting time and its associated factors in patients presenting to outpatient de-
+partments at public hospitals of jimma zone, southwest ethiopia,”BMC Health
+Services Research, vol. 22, no. 1, 2022.
+[7] H. Byun, D. Kang, S.-I. Go, H. S. Kim, J. R. Hahm, and B.-S. Kim, “The impact
+of the covid-19 pandemic on outpatients of internal medicine and pediatrics,”
+Medicine, vol. 101, no. 8, p. e28884, 2022.
+[8] M. B. Deressa, T. B. Beressa, and A. Jemal, “Analysis of pharmaceuticals
+inventory management using abc-ven matrix analysis in selected health facilities
+of west shewa zone, oromia regional state, ethiopia,”Integrated Pharmacy
+Research and Practice, vol. 11, pp. 47–59, 2022.
+[9] M. Sohrabi, M. Zandieh, and B. Afshar-Nadjafi, “A simple empirical inventory
+model for managing the processed corneal tissue equitably in hospitals with
+demand differentiation,”Computational and Applied Mathematics, vol. 40, no. 8,
+p. 281, 2021.
+
+--- PAGE 72 ---
+54References
+[10] L. A. Baumann, J. Baker, and A. G. Elshaug, “The impact of electronic health
+record systems on clinical documentation times: A systematic review,”Health
+Policy, vol. 122, no. 8, pp. 827–836, 2018.
+[11] T. Huet al., “N-accesses: A blockchain-based access control framework for
+secure iot data management,”Sensors, vol. 23, no. 20, p. 8535, 2023.
+[12] S. J. Iribarren, T. O. Akande, K. J. Kamp, D. Barry, Y . G. Kader, and E. Suelzer,
+“Effectiveness of mobile apps to promote health and manage disease: Systematic
+review and meta-analysis of randomized controlled trials,”JMIR mHealth and
+uHealth, vol. 9, no. 1, p. e21563, 2021.
+[13] D. C. Ferreira, I. Vieira, M. I. Pedro, P. Caldas, and M. Varela, “Patient satis-
+faction with healthcare services and the techniques used for its assessment: a
+systematic literature review and a bibliometric analysis,”Healthcare, vol. 11,
+no. 5, p. 639, 2023.
+[14] O. Ali, W. Abdelbaki, A. Shrestha, E. Elbasi, M. A. A. Alryalat, and Y . K.
+Dwivedi, “A systematic literature review of artificial intelligence in the healthcare
+sector: Benefits, challenges, methodologies, and functionalities,”Journal of
+Innovation and Knowledge, vol. 8, no. 1, p. 100333, 2023.
+[15] C. Freeet al., “The effectiveness of mobile-health technology-based health
+behaviour change or disease management interventions for health care consumers:
+A systematic review,”PLoS Medicine, vol. 10, no. 1, p. e1001362, 2013.
+[16] T. Chinget al., “Opportunities and obstacles for deep learning in biology and
+medicine,”Journal of The Royal Society Interface, vol. 15, no. 141, p. 20170387,
+2018.
+
+--- PAGE 73 ---
+Appendix A
+Software Requirements Specification
+(SRS)
+A.1 Introduction
+A.1.1 Purpose & Scope
+The University of San Carlos (USC) Clinic mandates a transition from a frag-
+mented, paper-based operations model to a fully digital Health Information System
+(HIS). The USC-PIS is engineered to centralize and secure student health informa-
+tion by capturing comprehensive medical histories, treatment plans, medications, and
+dental records. The system scope encompasses the complete digital replacement of
+the Daily Treatment Records (DTR), consultation management, medical certificate
+issuance, health awareness campaigns, automated patient notifications, and rigorous
+feedback analytics.
+A.1.2 Design & Implementation Constraints
+The "Modernizing the USC Clinic’s Patient Information System" project is a web-
+based system developed under the timeframe and academic constraints of the CpE
+Design course sequence. As a student-led initiative, the following constraints and
+boundaries apply to the current deployment:
+• Hardware & Hosting Constraints:The system relies on Heroku’s basic tier
+hosting and PostgreSQL, deliberately excluding costly enterprise integrations
+like Single Sign-On (SSO).
+•Inventory Management:Medication stock tracking is not included.
+
+--- PAGE 74 ---
+56Software Requirements Specification (SRS)
+• Billing Integration:Advanced insurance processing and financial management
+are excluded.
+• Appointment Scheduling:Consultations are strictly handled via a manual
+walk-in workflow as per clinic request.
+• Patient Medication Tracking:This functionality is deferred to future iterations.
+To maintain a strict boundary on the current system deployment, the following features
+are deliberately excluded from the current thesis scope and deferred to future enterprise
+phases.
+A.1.3 Definitions
+• PII/PHI (Personally Identifiable Information / Protected Health Informa-
+tion):Sensitive patient data protected by the database architecture.
+• pgcrypto:A native PostgreSQL extension integrated into the system for apply-
+ing industry-standard, column-level symmetric encryption to sensitive data.
+• RBAC (Role-Based Access Control):A security paradigm implemented via
+Django REST Framework (DRF) permission classes to restrict access dynami-
+cally.
+• FDI Notation:The standard numerical tooth identification system (11-48)
+enforced via regex constraints within the Dental Records module.
+A.2 Overall Description
+A.2.1 System Perspective
+The USC-PIS is built upon a modern, three-tier web architecture. The backend is
+powered by Django 5.0.2 and Django REST Framework, while the presentation layer
+operates on React 18 using a Vite build system and Material-UI components. The data
+layer relies on a dual-database environment featuring PostgreSQL for production and
+SQLite for local development, enforcing vendor-aware logic to prevent compatibility
+errors during testing. External enterprise integrations include Heroku for hosting,
+Cloudinary for scalable media storage, and the Gmail API utilizing OAuth 2.0 to
+bypass "less secure app" restrictions for clinical communications.
+
+--- PAGE 75 ---
+A.2 Overall Description57
+A.2.2 User Classes & Characteristics
+The system strictly enforces user authorizations across hierarchical classes:
+Role Access Level & Capabilities
+Admin Possesses full system access, including global RBAC adjust-
+ments, system health monitoring, email system administration,
+and report generation.
+Doctor / Dentist Endowed with full administrative and clinical access, only the
+Doctor role is uniquely authorized to approve medical certificates.
+Both can prescribe treatments and access all reporting/feedback
+analytics.
+Nurse Supervisory and data-entry capacity; authorized to cater to pa-
+tients, record vital signs, input treatment plans, and draft medical
+certificates for doctor approval.
+Staff Manages clinic administration, patient intake, certificate issuance,
+report generation, and health campaign creation. All other clin-
+ical roles (Admin, Doctor, Dentist, and Nurse) possess the au-
+thorization to perform all tasks and access all functionalities
+available to this Staff role.
+Student / Fac-
+ulty (Patient)
+Restricted to their own data; permitted only to read personal
+medical/dental timelines, submit visit-linked feedback, and view
+public health campaigns.
+Table A.1 User Classes & Capabilities
+A.2.3 Hardware Interfaces
+• Client Devices:A standard desktop computer, laptop, or mobile device capable
+of rendering modern web applications.
+• Network:A stable broadband internet connection is required for real-time data
+exchange with the cloud servers.
+A.2.4 Software Interfaces
+• User Interface (UI):A web-based Graphical User Interface (GUI) built on
+React 18 and Material-UI, ensuring responsive, low-latency interactions across
+all devices.
+• Backend Framework:Django 5.0.2 acts as the core application layer, providing
+secure RESTful API endpoints.
+
+--- PAGE 76 ---
+58Software Requirements Specification (SRS)
+• Database Management:PostgreSQL handles relational data storage, utilizing
+thepgcryptoextension for data-at-rest encryption.
+• External APIs:The system interfaces with the Gmail API (via OAuth 2.0) for
+automated communication, bypassing strict security blocks, and Cloudinary for
+scalable Content Delivery Network (CDN) file storage.
+A.3 Functional Requirements
+• Identity Management (authentication):Secures access via the /api/auth/
+mount point. USC domain enforcement mandates that student registrations end
+in @usc.edu.ph. ASafeListregistration feature maps authorized clinical emails
+to roles, bypassing standard MFA logic to automatically assign professional
+access.
+• Clinical Records & Retooling (patients):Data entry uses a unified record
+component (MedicalRecord.jsx and Dental.jsx).Retooling Focus:An ad-
+vanced real-time filtering architecture processes queries via dynamic parameter
+filtering (year_level and academic_year). This logic calculates Semesters
+autonomously to filter the patients list accurately.
+• Health Awareness (health_info):Manages the lifecycle of clinical announce-
+ments across 13 defined categories (e.g., V ACCINATION). Visibility is purely
+governed by start_date and end_date parameters; manual status toggling is
+deprecated.
+• Administrative Workflows (medical_certificates):Digitalizes the USC Form
+ACA-HSD-04F workflow. Nurses draft the certificate, but Doctors hold exclu-
+sive authority (IsDoctorUser) to approve the final document.
+• Feedback & Notifications (feedback, notifications):Feedback is linked
+uniquely to clinical visits via backend constraints, restricting users to one sub-
+mission per visit. Creating a health record executes a signal that schedules a
+mandatory 24-hour follow-up alert.
+• Reports (reports):Supports background processing logic (via Celery/Redis)
+to dynamically synthesize clinic reports, exporting data natively to PDF, Excel,
+and CSV without blocking HTTP threads.
+
+--- PAGE 77 ---
+A.4 Data & Security Requirements59
+A.4 Data & Security Requirements
+• Encryption-at-Rest:Implements industry-level data encryption mapped to Post-
+greSQL’spgcrypto extension. Fields such as illness_enc and diagnosis_enc
+bypass plain-text memory and are converted strictly to BinaryField bytea
+hashes using backend signals upon database commits.
+• Access Control:Guarded globally by RBAC middleware using DRFPermissionClasses.
+Unauthenticated traffic is blocked by default. Files accessed under/api/files/patient-documents/
+are proxied strictly through authenticated backend streaming, blocking public
+CDN bypass attempts.
+A.4.1 System Accountability and Audit Logging
+To ensure data integrity, operational transparency, and adherence to healthcare
+compliance standards, the USC-PIS implements a comprehensive tracking and logging
+architecture across its core modules.
+• Database Audit Trails:The system enforces strict data accountability by em-
+bedding structural audit trails within the database schema. All critical entities,
+including patient profiles, medical records, and dental records, are automatically
+equipped with created_at and updated_at timestamp fields. This guaran-
+tees a precise, immutable history of when clinical data was first entered and
+subsequently modified.
+• System Activity and Notification Logging:To monitor administrative over-
+sight and system interactions, the USC-PIS maintains a persistent log of all
+dispatched email and in-app communications. Administrators have access to
+detailed "System Activity Logs" via the Email Administration dashboard, which
+provides timestamped records of backend email events and error diagnostics.
+Crucially, this creates an explicit audit trail that tracks delivery statuses and iden-
+tifies exactly which administrator triggered specific manual actions or system
+overrides.
+• API Log Access and Compliance:All user actions and email administration
+tasks are systematically logged to prevent unauthorized system manipulation
+and to ensure security. Furthermore, any manual email dispatches executed
+by the staff are explicitly documented for audit purposes. Authorized adminis-
+trators can programmatically review these communication audit trails via the
+/api/notifications/logs/endpoint.
+
+--- PAGE 78 ---
+60Software Requirements Specification (SRS)
+A.5 Non-Functional Requirements & Future Roadmap
+A.5.1 Performance & Security Benchmarks
+System performance benchmarking explicitly addressed and resolved prior ineffi-
+ciencies:
+Requirement
+Area
+Verified Benchmark Audit Test
+ID
+Search Latency Patient searches execute in127.81ms(Target:
+<500ms).
+PT-04
+PDF Genera-
+tion
+Medical Certificate PDFs render in122.93ms. PT-01
+Concurrency Processes 20 concurrent requests in0.66 seconds
+(0% failure).
+PT-02
+File Security 100% rejection rateagainst executable scripts
+(.EXE, .JS).
+UT-06
+Table A.2 System Benchmarks
+A.5.2 Data Resilience
+Backup and Recovery:The system is equipped with an automated data resilience
+module that allows authorized administrators to export the entire structured database,
+including patient identifiers, medical histories, and user accounts, into a single, highly
+compressed JSON file. This ensures business continuity and provides a rapid recovery
+point in the event of environment-level failures.
+A.5.3 Future Roadmap
+While current features solve immediate inefficiencies, the system’s scalable archi-
+tecture supports future enhancements:
+• Mobile Progressive Web App (PW A):Deploying a mobile application wrapper
+with offline capabilities and push notifications.
+• Telemedicine Platform:Expanding healthcare delivery to include video con-
+sultations and remote monitoring.
+• AI/ML Integration:Implementing machine learning models for predictive
+health analytics and diagnostic assistance.
+
+--- PAGE 79 ---
+Appendix B
+Software Design Document (SDD)
+B.1 System Architecture Design
+B.1.1 Three-Tier Architecture
+The USC Patient Information System (USC-PIS) is engineered upon a modern,
+highly scalable three-tier web architecture.
+• Presentation Layer (Frontend):Developed utilizing React 18 with a Vite build
+system and Material-UI components, providing a responsive, low-latency, and
+component-based Graphical User Interface (GUI) for clinic staff and patients.
+• Application Layer (Backend):Powered by Python and Django 5.0.2, integrated
+with the Django REST Framework (DRF) 3.14.0. This layer encapsulates
+the core clinical business logic, API routing, and Role-Based Access Control
+(RBAC) middleware.
+• Data Layer (Database):Operates on a dual-database paradigm utilizing Post-
+greSQL 16.8 for production deployment and SQLite for local development. The
+system enforces vendor-aware logic to guarantee compatibility across environ-
+ments.
+B.1.2 Enterprise Integrations
+To support complex clinical operations, the architecture incorporates three primary
+enterprise integrations:
+• Heroku:Serves as the primary cloud hosting platform, providing automated
+CI/CD pipelines, secure Dyno management, and managed PostgreSQL database
+hosting.
+
+--- PAGE 80 ---
+62Software Design Document (SDD)
+• Cloudinary:Operates as the system’s scalable Content Delivery Network
+(CDN). It securely handles the persistent storage and rapid delivery of media,
+including Health Campaign PubMats and generated clinical PDF reports.
+• Gmail API (OAuth 2.0):Replaces standard SMTP protocols to bypass "less
+secure app" restrictions. It utilizes OAuth 2.0 tokens to reliably dispatch high-
+priority clinical communications, including Multi-Factor Authentication (MFA)
+codes and automated feedback reminders.
+B.2 Data Design & Dictionary
+B.2.1 Database Normalization
+The database architecture is designed in alignment with Third Normal Form
+(3NF) principles to eliminate data redundancy and ensure relationship integrity. Pa-
+tient demographic data is logically decoupled from system authentication credentials
+(authentication_user), while all clinical visits and assessments are mapped se-
+curely via explicitly constrained Foreign Keys (FK) with cascading or null-setting
+safeguards.
+B.2.2 Data Dictionary
+Field Name Data Type Description
+id Integer Primary Key (PK). Unique identifier for
+the user.
+email String Unique Key (UK). Enforces @usc.edu.ph
+domain constraint.
+password String Securely hashed user password.
+role String RBAC identifier (ADMIN, DOCTOR,
+DENTIST, NURSE, STAFF, STUDENT).
+is_verified Boolean Flag indicating successful MFA OTP veri-
+fication.
+illness_enc BinaryField pgcrypto encrypted string of chronic ill-
+nesses.
+Table B.1 authentication_user (Core System User)
+
+--- PAGE 81 ---
+B.3 Interface & Security Design63
+Field Name Data Type Description
+id Integer Primary Key (PK).
+user_id Integer Foreign Key (FK) mapping to
+authentication_user.id.
+usc_id String 8-digit official University ID number.
+first_name_enc BinaryField pgcryptoencrypted first name payload.
+last_name_enc BinaryField pgcryptoencrypted last name payload.
+created_at Datetime Audit trail timestamp for record creation.
+Table B.2 patients_patient (Clinical Profile)
+B.3 Interface & Security Design
+B.3.1 API Map & RBAC Implementation
+Access to backend endpoints is restricted via DRFPermissionClasses to enforce
+Role-Based Access Control (RBAC).
+RESTful API Endpoint HTTP
+Methods
+DRF Permission
+Class
+Authorized Roles
+/api/auth/profile/me
+/
+GET,
+PATCH
+IsAuthenticated All Roles (Self-Data
+Only)
+/api/patients/ GET, POST IsStaffUser ADMIN, STAFF,
+DOCTOR, NURSE,
+DENTIST
+/api/patients/record
+s/
+POST,
+PATCH
+MedicalRecordPermissionDOCTOR, NURSE,
+DENTIST
+/api/certificates/
+{id}/assess/
+POST IsDoctorUser DOCTOR (Exclu-
+sive Approval)
+Table B.3 API Authorization Map
+B.3.2 Secure Proxy for Patient Documents
+To guarantee data isolation and prevent unauthorized file exposure, direct CDN
+URL access for clinical attachments is blocked. The system utilizes an Authenticated
+Download Proxy mapped at /api/files/patient-documents/{id}/download/.
+Upon request, the file stream is proxied directly through the Django backend, verifying
+the active user’s session and authorization credentials before successfully dispensing
+the .PDF or .JPG payload.
+
+--- PAGE 82 ---
+64Software Design Document (SDD)
+B.3.3 Audit Logging
+The USC-PIS reinforces compliance standards via an immutable tracking archi-
+tecture. Beyond standard created_at and updated_at database timestamps, the
+system implements custom middleware that automatically records the active User ID,
+the exact Timestamp, and the requested API Endpoint for every instance of clinical
+data access. This establishes a definitive audit trail to monitor user accountability and
+track system overrides by administrative staff.
+
+--- PAGE 83 ---
+Appendix C
+Comprehensive Training Plan
+(Deliverable D4): USC-PIS
+C.1 Program Overview
+Objectives:The primary objective is to equip all users with the digital competency
+required to operate the fully digital USC-PIS, reducing patient record retrieval time to
+well under 1 second (capitalizing on the 127.81ms search benchmark).
+Delivery Methods:Training will be executed via a hybrid delivery approach,
+using hands-on demonstration modules supplemented by the comprehensive User
+Manuals.
+C.2 System Adoption Strategy (Addressing Bottlenecks)
+Initial database audits revealed critical system underutilization (e.g., 3 medical
+records for 9 patients, 1 dental record, and 0 file uploads). To solve this adoption issue,
+training will incorporate:
+• Workflow Integration:Practical demonstrations on incorporating the software
+directly into the clinic’s daily operational workflows.
+• Incentives & Benefits:Showcasing how digital record-keeping eliminates
+redundant paperwork and provides instant clinical insights.
+
+--- PAGE 84 ---
+66Comprehensive Training Plan (Deliverable D4): USC-PIS
+C.3 Module 1: Clinical Operations (For Doctors &
+Nurses)
+• Patient Intake:Staff will learn to utilize theApplication Retooling Filter Bar
+to segment patient datasets in real-time byRole, Program, Year Level, and
+Registration Period. Instruction will explicitly cover the Academic Year and
+Semester logic (e.g., filtering 1st Semester from August 1 to December 31) to
+route targeted student groups.
+• Record Management & Security:Users will master theUnified Record
+Componentfor entering vitals and the mandatory "Concern / Reason for Visit"
+fields. A highly technical segment will focus on the pgcrypto encryption
+architecture, explaining how patient diagnoses and names are automatically
+hashed as secureBinaryFieldstrings via backend signals.
+C.4 Module 2: Specialized Clinical Workflows (For
+Dentists)
+• Dental Charting & Streamlined Entry:Dentists will be instructed on charting
+tooth conditions using theFDI notation (11-48)numerical range, strictly en-
+forced via regex. To accelerate high-volume clinic days, Dentists will master the
+"Consultation Only" mode, which makes full diagnoses optional, and utilize
+the explicit "Referral To" field.
+C.5 Module 3: Administrative Output (For Staff &
+Admins)
+• Certificate Issuance:Staff will learn the workflow for generating theACA-
+HSD-04F Medical Certificatedirectly from a health record. Training will
+emphasize that while Nurses may draft the certificate, the system mandates
+secure approval executed solely by theDoctorbefore the PDF is rendered.
+• Reporting:Staff will practice generatingVisit TrendsandTreatment Outcome
+Reportsusing the Celery-powered asynchronous reporting module, achieving
+data outputs in under 1 second without blocking the interface.
+
+--- PAGE 85 ---
+C.6 Module 4: Student Engagement (For Students & Faculty)67
+C.6 Module 4: Student Engagement (For Students &
+Faculty)
+• Personal Health Access & Feedback:Students will be trained on navigating
+their personalizedStudent Medical Record (SMR)via the/health-insights
+tab to view non-interactive timelines. They will also learn how to respond
+to automated post-visit emails by submitting evaluations and interacting with
+Health Campaigns.
+C.7 Assessment & Evaluation
+Training Success & Adoption Metrics:Rather than utilizing formal proficiency
+exams, the success of the training program and system adoption will be evaluated
+during the Pilot Deployment phase (targeting 70% of 1st-year CpE students and
+selected clinic staff). The evaluation will be based on two realistic pillars:
+• Direct User Feedback & Issue Reporting:Success will be measured by
+qualitative feedback gathered from the clinic staff and pilot students regarding
+the system’s intuitiveness, as well as tracking any reported bugs or workflow
+bottlenecks.
+• Real-World System Performance:Evaluating whether trained staff can execute
+operational tasks efficiently under real clinic loads, ensuring that benchmarks,
+such as the sub-500ms patient search latency and rapid PDF generation, are
+maintained during daily operations.
+
+--- PAGE 87 ---
+Appendix D
+USC-PIS User Manuals
+D.1 Manual 1: Clinical & Administrative Staff Guide
+Target Audience:Doctors, Nurses, Dentists, and Clinic Staff.
+D.1.1 1. Secure Onboarding
+1. Navigate to the registration portal and enter your pre-authorized clinic email
+address.
+2. The system automatically cross-references the email against the backendSafeEmail
+table.
+3. Upon validation, the system bypasses the 6-digit Multi-Factor Authentication
+(MFA) step and instantly assigns your professional clinical role.
+Technical Note: RBAC & Security:Staff authorizations are globally protected
+via Django REST Framework PermissionClasses. Access to patient databases is
+strictly gated to medical personnel, neutralizing unauthorized data exposure.
+D.1.2 2. Advanced Patient Discovery
+1. Navigate to thePatientsmodule and use the global search bar to query a patient’s
+Name, Email, or USC ID.
+2. Click theFiltersbutton to expand the Application Retooling Filter Bar.
+3. Apply theAcademic Yearfilter (e.g., 2025-2026),Semesterlogic (1st Sem:
+Aug-Dec, 2nd Sem: Jan-May), andYear Levelto isolate specific student groups.
+
+--- PAGE 88 ---
+70USC-PIS User Manuals
+Technical Note: Search Efficiency:Database query optimizations verify that patient
+search results among 100+ records are returned with a latency of127.81ms, nearly
+four times faster than the benchmark limit.
+D.1.3 3. The Unified Record Workflow
+• Medical Documentation:Navigate to theMedical Recordstab, input the
+mandatory "Concern / Reason for Visit", record vital signs, and click "Save".
+Technical Note:Upon saving, PostgreSQL’spgp_sym_encrypt function hashes
+sensitive patient data into a secure binary format invisibly in the background (<
+1.0ms overhead).
+• Dental Documentation:Navigate to theDental Recordstab and use theFDI
+11-48numerical system to input tooth conditions. For rapid checks, use the
+streamlined "Consultation/Referral" mode.
+D.1.4 4. Medical Certificate Management & Issuance
+1. Navigate toMedical Certificates -> Create New Certificate.
+2. Select the patient; the system will autonomously autofill their Name, Year Level,
+and Full Course Name.
+3. Select theUSC Clinic Template ACA-HSD-04Fand enter the "Purpose/Requirement".
+4. ADOCTORmust assess the draft, select Medical Fitness Status ("Fit"/"Not
+Fit"), and authorize approval. The dual-engine PDF system will instantly render
+the certificate for download.
+D.1.5 5. System Maintenance & Data Backups
+• Generating a Backup:To ensure the safety of clinical records, Administrative
+Staff can trigger a full system backup via the Database Monitor page.
+• Mechanism:The system captures all active records (Medical history, dental
+charts, and user profiles) and packages them into a portable JSON format.
+• Storage:It is recommended to download and store this compressed file in a
+secure university-approved location monthly to ensure a permanent offline copy
+of the clinic’s digital database.
+
+--- PAGE 89 ---
+D.2 Manual 2: Student & Faculty Portal Guide71
+D.1.6 6. Email Administration & Notification Templates
+The system features a massive automated communication engine requiring admin-
+istrative oversight.
+Management
+Tab
+Description & Functionality
+Routing & Sta-
+tus
+Monitor the 7 core diagnostics (Database, Email, Backups, Se-
+curity, Performance, Storage, Cache). Use theGlobal Master
+Switchto instantly disable all automated emails during emergen-
+cies.
+Email Tem-
+plates
+Manage content lifecycle. Edit subjects and bod-
+ies using dynamic placeholders (e.g., {{user_name}},
+{{appointment_date}}).
+Sent Notifica-
+tions
+View a real-time history of all communications and track status
+(SENT, READ, FAILED).
+Staff Access Instantly enable or disable In-App Notifications and Email Alerts
+on a per-staff member basis.
+Table D.1 Email Administration
+• Customizing Notification Templates:Access the Django Admin portal (/admin)
+and navigate to NotificationTemplates. Utilize placeholders to personalize
+the messages, and test the template logic via the API before deploying.
+D.1.7 7. Patient Health Insights & Enterprise Reporting
+• Health Insights ( /health-insights):Review unified medical and dental
+timelines. Document attachments listed within the unified timeline are rendered
+non-interactive to enforce strict data privacy.
+• Enterprise Reporting (/reports):Access available analytical templates (e.g.,
+Visit Trends, Feedback Analysis).
+Technical Note:Heavy data aggregations are processed asynchronously via Celery and
+Redis. PDF generation utilizes a Dual-Engine strategy (xhtml2pdf with a ReportLab
+fallback) and exports are programmatically capped at the first 200 items per section to
+maintain document stability. Excel/CSV exports offer unlimited deep data analysis.
+D.2 Manual 2: Student & Faculty Portal Guide
+Target Audience:Patients (Students and Faculty).
+
+--- PAGE 90 ---
+72USC-PIS User Manuals
+D.2.1 1. Identity & MFA
+1. Navigate to the registration portal and enter an official university email address.
+2. The system enforces strict domain validation; the email must end in@usc.edu.ph.
+3. Check the university inbox for the automated6-digit verification codedis-
+patched via the Gmail API.
+4. Input the code into the portal before the 24-hour expiration threshold to activate
+your account.
+D.2.2 2. The Student Medical Record (SMR)
+1. Log into the portal and navigate to thePatient Medical Historylink in the
+sidebar (/health-insights).
+2. The interface displays a Unified Timeline separated into Medical Records, Dental
+Records, and Health Insights.
+3. Click theHealth Insightstab to view personalized health analytics, monthly
+visit frequency patterns, and visual trend indicators.
+Technical Note: Data Privacy:The Student Medical Record dashboard is governed by
+strict access controls limiting visibility exclusively to the record owner and authorized
+medical staff. All clinical documents are proxied securely through an authenticated
+backend stream.
+D.2.3 3. Health Awareness
+1. Navigate to theCampaignstab (/campaigns) in the navigation sidebar.
+2. Browse active health awareness campaigns, which are categorically organized.
+3. Select a campaign to open theUniversal Document Viewer.
+4. Interact with high-quality image PubMats via zooming, or execute direct, secure
+downloads of attached health guidelines.
+
+--- PAGE 91 ---
+D.2 Manual 2: Student & Faculty Portal Guide73
+D.2.4 4. The Feedback Loop
+1. Exactly 24 hours following the conclusion of a Medical or Dental consultation,
+the system automatically dispatches a Feedback Request reminder to your
+university email.
+2. Open the email and click the embedded rating links, or log directly into the
+portal and navigate to theFeedbacktab.
+3. Select the specific clinical visit to evaluate.
+4. Input a 1-5 star "Overall Experience" rating, answer Yes/No to the "Staff Cour-
+tesy" metric, and provide qualitative comments.
+Technical Note: Feedback Constraints:To ensure data integrity, the system architec-
+ture implements a UniqueConstraint on the backend. This restricts users to exactly
+one feedback submission per clinical visit, preventing skewed satisfaction analytics.
+
+--- PAGE 93 ---
+Appendix E
+Technical Audit and Validation
+Summary
+E.1 Software Quality Assurance (SQA) Audit Sum-
+mary
+The system’s operational efficiency was rigorously evaluated under the quantitative
+parameters defined in the performance test suite (PT-01 to PT-04). The benchmarks
+confirm that the architectural optimizations successfully eliminated legacy latency
+issues. Specifically, search query optimizations yield a latency ranging strictly be-
+tween123.16ms and 127.81ms, nearly four times faster than the 500ms threshold.
+Furthermore, the dual-engine PDF module generates official Medical Certificates in
+122.93ms to 124.53ms, safely below the 1000ms limit.
+To guarantee reliability during peak registration, concurrency was audited via test
+PT-02. The architecture successfully handled20 simultaneous HTTP requests in
+0.66 secondswith a 0% data drop rate. Additionally, a cybersecurity audit (UT-06)
+confirmed a100% rejection rateagainst high-risk extensions (.EXE, .JS, and .PY),
+neutralizing potential system vulnerabilities.
+E.2 Requirement Traceability Matrix (RTM)
+The following matrix maps the core functional and security requirements derived
+from the SRS directly to their verified implementation and automated test outcomes.
+
+--- PAGE 94 ---
+76Technical Audit and Validation Summary
+Requirement
+Category
+Core Requirement De-
+scription
+Verified Implementation Audit
+Test ID
+Status
+Data Security Column-Level Database
+Encryption
+PostgreSQL pgcrypto
+binary storage
+UT-01 PASS
+Application Re-
+tooling
+Academic Year &
+Semester Filtering
+Dynamic parameter filter-
+ing via PatientViewSet
+IT-04 PASS
+Clinical Logic FDI Notation Enforce-
+ment (11-48)
+Strict regex validation
+within Dental records
+UT-04 PASS
+System Security Secure File Upload In-
+tegrity
+Interception and rejection
+of executable scripts
+UT-06 PASS
+Clinical Work-
+flows
+End-to-End Medical Cer-
+tification
+Issuance pipeline: Nurse
+draft to Doctor approval
+IT-01 PASS
+Table E.1 Requirement Traceability Matrix
+E.3 Preliminary User Acceptance Testing (UAT) Sum-
+mary
+E.3.1 Staff Evaluation
+Preliminary User Acceptance Testing (UAT) was conducted utilizing feedback
+from a clinical sample of Clinic Staff (N=7, comprised of Nurses, Doctors, and Den-
+tists). The quantitative and qualitative returns indicate strong efficiency improvements
+compared to the legacy manual operations. Staff explicitly noted that "generating
+data is easier" and that the workflow is "fast and easy". Early testing bottlenecks,
+such as the request to add a feature to filter the patients list by academic year, were
+immediately verified and resolved during the Application Retooling phase. One Doctor
+highlighted rigorous expectations for data privacy and the necessity of documentation
+security, fully validating the architectural decision to integrate PostgreSQL pgcrypto
+for encrypted clinical records.
+E.3.2 Student Evaluation (UAT Results)
+Preliminary User Acceptance Testing (UAT) was conducted with the student
+demographic to evaluate the system’s usability, accessibility, and feature relevance.
+Based on the survey responses, the system received overwhelmingly positive feedback,
+with the vast majority of students rating their overall satisfaction at 4 or 5 out of 5.
+• Usability & Accessibility:Students consistently highlighted the system’s clean
+user interface and smooth navigation, giving exceptionally high ratings for the
+ease of logging in and the ability to access their records anytime and anywhere.
+
+--- PAGE 95 ---
+E.3 Preliminary User Acceptance Testing (UAT) Summary77
+• Highest Rated Features:When asked which features were most useful, the
+student body overwhelmingly praised thePatient Medical Dashboard, the
+Medical Certificate Issuance, and the automatedBMI Calculationtools. Stu-
+dents noted that obtaining a medical certificate without waiting in physical
+queues was a massive operational improvement.
+• Constructive Feedback & Roadmap:While technical issues were minimal, the
+most recurring constructive feedback was a request for a"Dark Mode"toggle
+and better responsiveness to ensure the application fits perfectly on narrower
+mobile screens.
+
+--- PAGE 97 ---
+Appendix F
+Exhaustive Manual Software Testing
+Results
+This appendix provides the complete, exhaustive results of the manual system fea-
+ture validation conducted for the USC-PIS. These test cases ensure that all front-facing
+modules and role-specific dashboards function as intended under various scenarios.
+F.1 Authentication and Role-Based Access Control
+The following test cases validate the integrity of the system’s entry points, ensuring
+secure session management, strict domain enforcement, and proper role routing.
+
+--- PAGE 98 ---
+80Exhaustive Manual Software Testing Results
+F.1.1 Login and Authentication Validation
+Test ID Scenario Pre-cond. Input Provided Expected / Ac-
+tual Result
+Status
+AUTH-01 Student lo-
+gin Success
+Student ac-
+count exists
+Email: stu-
+dent@usc.edu.ph,
+Pass: Valid-
+Pass@123
+User redirected to
+Dashboard.
+PASS
+AUTH-02 Incorrect
+Password
+User ac-
+count exists
+Correct Email, In-
+correct Password
+Access Denied;
+Error: "Invalid
+password"
+PASS
+AUTH-03 Non-
+existent
+User
+Email not in
+DB
+Email: ran-
+dom@gmail.com
+Error: "No ac-
+count found with
+this email"
+PASS
+AUTH-04 Empty Lo-
+gin Fields
+On Login
+Page
+Email: [empty],
+Password:
+[empty]
+Error: Email ad-
+dress/Password is
+required
+PASS
+AUTH-05 Non-USC
+email
+Invalid
+email for-
+mat
+Email:
+test@gmail.com
+Error: "Invalid
+email format"
+PASS
+AUTH-06 Session Per-
+sistence
+Logged in
+user
+Close & Reopen
+Browser
+User remains
+authenticated via
+stored token.
+PASS
+AUTH-07 Unauthorized
+Access
+User logged
+out
+Enter
+/staff/dashboard
+in URL
+System detects no
+session; redirects
+to Login.
+PASS
+Table F.1 Manual Validation of Login and Authentication Mechanisms
+
+--- PAGE 99 ---
+F.1 Authentication and Role-Based Access Control81
+F.1.2 Registration Module Validation
+Test ID Scenario Pre-cond. Input Provided Expected / Ac-
+tual Result
+Status
+REG-01 Successful
+Registra-
+tion
+On Register
+Page
+Email:
+6090146@usc.edu.ph,
+Pass:
+P@ssw0rd2024
+Account created
+in PostgreSQL;
+redirect to Login.
+PASS
+REG-02 Duplicate
+Email
+Email in
+DB
+Existing Email:
+6090146@usc.edu.ph
+Error: "user with
+this email already
+exists."
+PASS
+REG-03 Invalid
+Email For-
+mat
+On Register
+Page
+Email: ron-
+vanz@gmail.com
+Error: "Only USC
+email addresses
+(@usc.edu.ph)
+are allowed"
+PASS
+REG-04 Password
+Mismatch
+On Register
+Page
+Pass: Pass-
+word@123,
+Confirm: Pass-
+word@456
+Error: "Pass-
+words do not
+match"
+PASS
+REG-05 Short Pass-
+word
+On Register
+Page
+Pass: 123 Error: "Password
+must be at least 8
+characters long"
+PASS
+REG-06 No Input
+Password
+On Register
+Page
+Pass: [empty] Error: "Password
+is required"
+PASS
+REG-07 Weak Pass-
+word
+On Register
+Page
+Pass:
+123456789abc
+Error: "Password
+must contain up-
+per, lower, num-
+ber, special"
+PASS
+Table F.2 Manual Validation of User Registration and Account Creation
+
+--- PAGE 100 ---
+82Exhaustive Manual Software Testing Results
+F.1.3 Role-Based Access Control (RBAC) Validation
+Test ID Scenario Pre-cond. Input Provided Expected / Actual
+Result
+Status
+RBAC-01 Student Login
+Success
+Account is stu-
+dent
+student@usc.edu.
+ph
+Redirected to Stu-
+dent Dashboard.
+PASS
+RBAC-02 Staff Login
+Success
+Account is
+staff
+nurse@usc.edu.ph Redirected to Staff
+Dashboard.
+PASS
+RBAC-03 Admin Login
+Success
+Account is ad-
+min
+system@usc.edu.p
+h
+Redirected to Admin
+Dashboard.
+PASS
+RBAC-04 Student to
+Staff URL
+Logged in Stu-
+dent
+Enter URL: /patie
+nts
+Access Denied PASS
+RBAC-05 Student to Ad-
+min URL
+Logged in Stu-
+dent
+Enter URL: /datab
+ase-monitor
+Access Denied PASS
+RBAC-06 Staff to Admin
+URL
+Logged in
+Staff
+Enter URL: / u s e
+r-management
+Access Denied PASS
+RBAC-07 Public to Dash-
+board
+Not Logged In Enter URL:/home Redirect to Login
+Page
+PASS
+Table F.3 Manual Validation of Role-Based Access Controls
+F.2 Clinic Features and Operations
+The following test cases validate the End-to-End processing of clinical data, span-
+ning search functionalities, medical/dental charting, medical certificate issuance, and
+health campaigns.
+
+--- PAGE 101 ---
+F.2 Clinic Features and Operations83
+F.2.1 Patient Search Functionality
+Test ID Scenario Input Provided Expected / Actual Result Status
+PSF-01 Search by
+USC ID
+Search input:
+21100727
+System displays patient
+Galen Sabequil accurately.
+PASS
+PSF-02 Search by
+First Name
+Search input:
+Galen
+System filters and displays
+matching records.
+PASS
+PSF-03 Search by
+Last Name
+Search input:
+Sabequil
+System filters and displays
+matching records.
+PASS
+PSF-04 Search by
+Email
+Search input: 21
+100727@usc.e
+du.ph
+System filters and displays
+matching records.
+PASS
+PSF-05 Student Fil-
+ter
+Filter Role: Stu-
+dent
+System only displays stu-
+dent patients.
+PASS
+PSF-06 Teacher Fil-
+ter
+Filter Role:
+Teacher
+System only displays
+teacher/faculty patients.
+PASS
+PSF-07 Program
+Filter
+Filter: BS CpE System only displays com-
+puter engineering patients.
+PASS
+PSF-08 Year Level
+Filter
+Filter: 1st Year System dynamically iso-
+lates only 1st-year stu-
+dents.
+PASS
+Table F.4 Manual Validation of Patient Search and Filtering Functionalities
+
+--- PAGE 102 ---
+84Exhaustive Manual Software Testing Results
+F.2.2 Medical Record Management
+Test ID Scenario Input Provided Expected / Actual Result Status
+MRM-01 Create Record Temp: 38.4°C, Con-
+cern: Fever
+New record is generated
+and stored accurately.
+PASS
+MRM-02 Edit Record Change Temp to
+38.8°C
+Record is updated accu-
+rately in the database.
+PASS
+MRM-03 Search (Pa-
+tient)
+Input: Galen Elijah Only records matching the
+patient are filtered.
+PASS
+MRM-04 Search (Con-
+cern)
+Input: Stomach Only records matching the
+concern are filtered.
+PASS
+MRM-05 Date Filter Input: 04/01 to 04/22 Only records within the
+date range appear.
+PASS
+MRM-06 Delete Record Select record to
+delete
+Record successfully re-
+moved from the database.
+PASS
+Table F.5 Manual Validation of Clinical Medical Record Management
+
+--- PAGE 103 ---
+F.2 Clinic Features and Operations85
+F.2.3 Dental Record Management
+Test ID Scenario Input Provided Expected / Actual Result Status
+DRM-01 Create Record Proc: Cleaning,
+Diag: Gingivitis
+New dental record gener-
+ated successfully.
+PASS
+DRM-02 Edit Record Change Oral Hy-
+giene to Fair
+Record updated accurately
+in the database.
+PASS
+DRM-03 Attach PDF Dental form PDF
+sample
+PDF file attached and
+downloadable via proxy.
+PASS
+DRM-04 Attach JPG Dental form JPG
+sample
+JPG file attached and view-
+able.
+PASS
+DRM-05 Search (Pa-
+tient)
+Input: Galen Elijah Records matching patient
+are isolated.
+PASS
+DRM-06 Search (Con-
+cern)
+Input: Gingivitis Records matching concern
+are filtered.
+PASS
+DRM-07 Date Filter Input: 04/01 to 04/23 Records within exact date
+range isolated.
+PASS
+DRM-08 Delete Record Select record to
+delete
+Record removed securely
+from medical history.
+PASS
+Table F.6 Manual Validation of Dental Record Entry and File Attachments
+
+--- PAGE 104 ---
+86Exhaustive Manual Software Testing Results
+F.2.4 Medical Certificate Issuance (ACA-HSD-04F)
+Test ID Scenario Input Provided Expected / Actual Result Status
+MCM-01 Create Certifi-
+cate
+Purpose: CPE Week New draft is created with
+"Pending" status.
+PASS
+MCM-02 Edit Certificate Change Purpose Record updated, status re-
+mains pending.
+PASS
+MCM-03 Approve (Doc-
+tor)
+Fitness: Fit, Ap-
+proval: Approved
+Certificate approved and
+unlocked for PDF render.
+PASS
+MCM-04 Reject (Doc-
+tor)
+Fitness: Not Fit, Ap-
+proval: Rejected
+Certificate marked as re-
+jected successfully.
+PASS
+MCM-05 Search (Pa-
+tient)
+Input: Galen Certificates with name
+"Galen" filtered.
+PASS
+MCM-09 Filter (All) Status: All Status All certificates (Pending,
+Approved, Rejected)
+shown.
+PASS
+MCM-10 Filter Ap-
+proved
+Status: Approved Only approved certificates
+are shown.
+PASS
+MCM-11 Filter Rejected Status: Rejected Only rejected certificates
+are shown.
+PASS
+MCM-12 Filter Pending Status: Pending Only pending drafts are
+shown.
+PASS
+Table F.7 Manual Validation of Medical Certificate Workflows (ACA-HSD-04F)
+
+--- PAGE 105 ---
+F.3 Analytics and Reporting Engine87
+F.2.5 Health Campaign Management
+Test ID Scenario Input Provided Expected / Actual Result Status
+HCM-01 Create Cam-
+paign
+Title: Scrub Up, Pri-
+ority: High
+New campaign broadcasts
+to active student feed.
+PASS
+HCM-02 Edit Campaign Change Priority to
+Medium
+Campaign updates dynami-
+cally across endpoints.
+PASS
+HCM-03 Notification Verify Feed / Notifi-
+cations
+Campaign is found and
+pushed to notifications.
+PASS
+HCM-04 Delete Cam-
+paign
+Select Record to
+Delete
+Record successfully re-
+moved from the library.
+PASS
+HIM-01 Create Info Title: Academic
+Burnout
+Health content successfully
+categorized and published.
+PASS
+HIM-02 Edit Info Change title Record updates accurately
+in the database.
+PASS
+HIM-03 Delete Info Select Record to
+Delete
+Record successfully re-
+moved from the library.
+PASS
+Table F.8 Manual Validation of Health Campaigns and Educational Content
+F.3 Analytics and Reporting Engine
+The background reporting engine was rigorously tested to ensure the system can
+aggregate massive datasets and export them into diverse formats.
+
+--- PAGE 106 ---
+88Exhaustive Manual Software Testing Results
+F.3.1 Reporting Engine Format Export Validation
+Report Category Tested Formats Successfully Gener-
+ated & Downloaded
+Execution Status
+Health Campaign Perfor-
+mance (HCP 01-05)
+PDF, Excel, CSV , JSON,
+HTML
+PASS (5/5)
+Dental Health Report (DHP
+01-05)
+PDF, Excel, CSV , JSON,
+HTML
+PASS (5/5)
+Patient Feedback Analysis
+(PFA 01-05)
+PDF, Excel, CSV , JSON,
+HTML
+PASS (5/5)
+Health Metrics Report (HMP
+01-05)
+PDF, Excel, CSV , JSON,
+HTML
+PASS (5/5)
+Medical Statistics Dashboard
+(MSD 01-05)
+PDF, Excel, CSV , JSON,
+HTML
+PASS (5/5)
+Patient Summary Report (PSR
+01-05)
+PDF, Excel, CSV , JSON,
+HTML
+PASS (5/5)
+Treatment Outcomes Report
+(TOR 01-05)
+PDF, Excel, CSV , JSON,
+HTML
+PASS (5/5)
+User Activity Report (UAR
+01-05)
+PDF, Excel, CSV , JSON,
+HTML
+PASS (5/5)
+Monthly Visit Trends (MVT
+01-05)
+PDF, Excel, CSV , JSON,
+HTML
+PASS (5/5)
+Table F.9 Manual Validation of Multi-Format Reporting Engine Exports
+Discussion for Reporting Validation:By validating 45 distinct export scenarios
+across nine diverse reporting categories, the testing confirms that the backend can
+successfully query the PostgreSQL database and render complex summaries without
+data loss. The flawless execution across all export types (PDF, Excel, CSV , JSON, and
+HTML) guarantees that the USC Clinic can maintain both digital and physical records
+for compliance, administrative review, and health trend analysis within the university
+community.
+
+--- PAGE 107 ---
+Appendix G
+Meeting Logs
+This appendix provides a detailed chronological record of the meetings and coun-
+seling sessions conducted during the development of the USC Patient Information
+System (USC-PIS).
+G.1 Initial Thesis Counseling and Proposal Phase (2024)
+MEETING AGENDA: USC-PIS Thesis Counseling (March 2, 2024)
+Meeting/Project Name:USC-PIS Thesis Counseling
+Time:8:10 PM – 8:30 PM
+Date of Meeting:March 2, 2024
+Location:USC Clinic (Downtown)
+Meeting Objective:Project Introduction and Initial Advising
+Name Department Position Role
+Engr. Elline Fabian Dept. of Computer En-
+gineering
+Faculty Main Adviser
+Engr. Kenneth Carl
+Labarosa
+Dept. of Computer En-
+gineering
+Faculty Asst. Adviser
+Ron Vanz Petiluna Dept. of Computer En-
+gineering
+Student Researcher
+Janren Renegado Dept. of Computer En-
+gineering
+Student Researcher
+Galen Elijah Sabequil Dept. of Computer En-
+gineering
+Student Researcher
+
+--- PAGE 108 ---
+90Meeting Logs
+MEETING AGENDA: USC-PIS Thesis Counseling (March 23, 2024)
+Meeting/Project Name:USC-PIS Thesis Counseling
+Time:9:00 PM – 10:00 PM
+Date of Meeting:March 23, 2024
+Location:USC Clinic (Downtown)
+Meeting Objective:Discussion of Manuscript Drafts and RRLs
+Name Department Position Role
+Engr. Elline Fabian Dept. of Computer En-
+gineering
+Faculty Main Adviser
+Engr. Kenneth Carl
+Labarosa
+Dept. of Computer En-
+gineering
+Faculty Asst. Adviser
+Ron Vanz Petiluna Dept. of Computer En-
+gineering
+Student Researcher
+Janren Renegado Dept. of Computer En-
+gineering
+Student Researcher
+Galen Elijah Sabequil Dept. of Computer En-
+gineering
+Student Researcher
+MEETING AGENDA: USC-PIS Thesis Counseling (April 3, 2024)
+Meeting/Project Name:USC-PIS Thesis Counseling
+Time:11:00 AM – 12:00 PM
+Date of Meeting:April 3, 2024
+Location:USC Clinic (Downtown)
+Meeting Objective:Review of Manuscript Drafts and Proposal Presentation Preparation
+Name Department Position Role
+Engr. Elline Fabian Dept. of Computer En-
+gineering
+Faculty Main Adviser
+Engr. Kenneth Carl
+Labarosa
+Dept. of Computer En-
+gineering
+Faculty Asst. Adviser
+Ron Vanz Petiluna Dept. of Computer En-
+gineering
+Student Researcher
+Janren Renegado Dept. of Computer En-
+gineering
+Student Researcher
+Galen Elijah Sabequil Dept. of Computer En-
+gineering
+Student Researcher
+
+--- PAGE 109 ---
+G.1 Initial Thesis Counseling and Proposal Phase (2024)91
+MEETING AGENDA: USC-PIS Thesis Counseling (April 24, 2024)
+Meeting/Project Name:USC-PIS Thesis Counseling
+Time:8:00 PM – 8:50 PM
+Date of Meeting:April 24, 2024
+Location:USC Clinic (Downtown)
+Meeting Objective:Official Proposal Presentation Review
+Name Department Position Role
+Engr. Elline Fabian Dept. of Computer En-
+gineering
+Faculty Main Adviser
+Engr. Kenneth Carl
+Labarosa
+Dept. of Computer En-
+gineering
+Faculty Asst. Adviser
+Ron Vanz Petiluna Dept. of Computer En-
+gineering
+Student Researcher
+Janren Renegado Dept. of Computer En-
+gineering
+Student Researcher
+Galen Elijah Sabequil Dept. of Computer En-
+gineering
+Student Researcher
+MEETING AGENDA: USC-PIS Thesis Counseling (April 27, 2024)
+Meeting/Project Name:USC-PIS Thesis Counseling
+Time:12:00 PM – 1:00 PM
+Date of Meeting:April 27, 2024
+Location:USC Clinic (Downtown)
+Meeting Objective:Representation and Post-Proposal Adjustments
+Name Department Position Role
+Engr. Elline Fabian Dept. of Computer En-
+gineering
+Faculty Main Adviser
+Engr. Kenneth Carl
+Labarosa
+Dept. of Computer En-
+gineering
+Faculty Asst. Adviser
+Ron Vanz Petiluna Dept. of Computer En-
+gineering
+Student Researcher
+Janren Renegado Dept. of Computer En-
+gineering
+Student Researcher
+Galen Elijah Sabequil Dept. of Computer En-
+gineering
+Student Researcher
+
+--- PAGE 110 ---
+92Meeting Logs
+G.2 System Development, Testing, and Deployment
+Phase (2026)
+MEETING AGENDA: USC Health Services Collaboration (January 26, 2026)
+Meeting/Project Name:USC Health Services Collaboration
+Time:10:00 AM – 11:30 AM
+Date of Meeting:January 26, 2026
+Location:USC Clinic (Downtown)
+Meeting Objective:Prototype Evaluation and Needs Assessment for Application Retooling
+Name Department Position Role
+Elena Plazl Pasuelo USC Health Services Coordinator Client
+Ron Vanz Petiluna Dept. of Computer En-
+gineering
+Student Researcher
+Janren Renegado Dept. of Computer En-
+gineering
+Student Researcher
+Galen Elijah Sabequil Dept. of Computer En-
+gineering
+Student Researcher
+MEETING AGENDA: USC Health Services Collaboration (February 11, 2026)
+Meeting/Project Name:USC Health Services Collaboration
+Time:1:30 PM – 2:30 PM
+Date of Meeting:February 11, 2026
+Location:USC Clinic (Downtown)
+Meeting Objective:Iterative System Refinement and Review of New Filtering Architecture
+Name Department Position Role
+Elena Plazl Pasuelo USC Health Services Coordinator Client
+Ron Vanz Petiluna Dept. of Computer En-
+gineering
+Student Researcher
+Janren Renegado Dept. of Computer En-
+gineering
+Student Researcher
+Galen Elijah Sabequil Dept. of Computer En-
+gineering
+Student Researcher
+
+--- PAGE 111 ---
+G.2 System Development, Testing, and Deployment Phase (2026)93
+MEETING AGENDA: USC Health Services Collaboration (March 10, 2026)
+Meeting/Project Name:USC Health Services Collaboration
+Time:10:30 AM – 11:30 AM
+Date of Meeting:March 10, 2026
+Location:USC Clinic (Downtown)
+Meeting Objective:Final System Presentation and UAT Coordination/Planning
+Name Department Position Role
+Elena Plazl Pasuelo USC Health Services Coordinator Client
+Ron Vanz Petiluna Dept. of Computer En-
+gineering
+Student Researcher
+Janren Renegado Dept. of Computer En-
+gineering
+Student Researcher
+Galen Elijah Sabequil Dept. of Computer En-
+gineering
+Student Researcher
+MEETING AGENDA: USC Health Services Collaboration (April 6, 2026)
+Meeting/Project Name:USC Health Services Collaboration
+Time:9:00 AM – 12:00 PM
+Date of Meeting:April 6, 2026
+Location:USC Clinic (Downtown)
+Meeting Objective:User Acceptance Testing (UAT) for Clinic Staff
+Name Department Position Role
+Elena Plazl Pasuelo USC Health Services Coordinator Client
+Clinic Staff USC Health Services Personnel Testers
+Ron Vanz Petiluna Dept. of Computer En-
+gineering
+Student Researcher
+Janren Renegado Dept. of Computer En-
+gineering
+Student Researcher
+Galen Elijah Sabequil Dept. of Computer En-
+gineering
+Student Researcher
+MEETING AGENDA: USC Health Services Collaboration (April 7, 2026)
+Meeting/Project Name:USC Health Services Collaboration
+Time:9:00 AM – 12:00 PM
+Date of Meeting:April 7, 2026
+
+--- PAGE 112 ---
+94Meeting Logs
+Location:USC Clinic (Talamban)
+Meeting Objective:User Acceptance Testing (UAT) for Clinic Staff
+Name Department Position Role
+Elena Plazl Pasuelo USC Health Services Coordinator Client
+Clinic Staff USC Health Services Personnel Testers
+Ron Vanz Petiluna Dept. of Computer En-
+gineering
+Student Researcher
+Janren Renegado Dept. of Computer En-
+gineering
+Student Researcher
+Galen Elijah Sabequil Dept. of Computer En-
+gineering
+Student Researcher
+MEETING AGENDA: USC Health Services Collaboration (April 15, 2026)
+Meeting/Project Name:USC Health Services Collaboration
+Time:1:00 PM – 2:00 PM
+Date of Meeting:April 15, 2026
+Location:USC Clinic (Downtown)
+Meeting Objective:Final Validation and Signing of the Certificate of Acceptance
+Name Department Position Role
+Elena Plazl Pasuelo USC Health Services Coordinator Client
+Ron Vanz Petiluna Dept. of Computer En-
+gineering
+Student Researcher
+Janren Renegado Dept. of Computer En-
+gineering
+Student Researcher
+Galen Elijah Sabequil Dept. of Computer En-
+gineering
+Student Researcher
+
+--- PAGE 113 ---
+Appendix H
+Updated Cost Estimates
+The original cost estimate was approximately 98,500 PHP. The revised budget
+below accounts for the extended two-year timeframe and integrates your specific
+cloud hosting infrastructure. The system utilizes Heroku’s basic tier for hosting and
+PostgreSQL, alongside Cloudinary for scalable media storage.
+H.1 Materials and Software Infrastructure
+Item Description Quantity / Dura-
+tion
+Cost per Unit Subtotal
+(PHP)
+Desktop PC (Development
+Workstations)
+2 units 40,000 PHP 80,000.00
+Open-Source Software Li-
+censes
+N/A 0.00 PHP (Free) 0.00
+Heroku Cloud Hosting 24 months ~$14.00 USD /
+month
+~19,000.00
+Cloudinary CDN (Media
+Storage)
+N/A 0.00 PHP (Free
+Tier)
+0.00
+Gmail API OAuth 2.0 Inte-
+gration
+N/A 0.00 PHP (Free
+Tier)
+0.00
+Table H.1: Materials and Software Infrastructure Cost Breakdown
+
+--- PAGE 114 ---
+96Updated Cost Estimates
+H.2 Logistics and Documentation
+Item Description Quantity / Dura-
+tion
+Cost per Unit Subtotal
+(PHP)
+Printing and Binding Multiple Revi-
+sions
+Variable 2,500.00
+Transportation (Gas &
+Fare)
+24 months Variable 5,000.00
+Table H.2: Logistics and Documentation Costs
+H.3 Incidental Costs & Contingency
+Item Description Details Subtotal
+(PHP)
+Miscellaneous Expenses Unforeseen minor expenses 3,000.00
+Contingency Fund ~20% of total base costs 21,900.00
+Table H.3: Incidental Costs and Contingency Fund
+Total Estimated Project Cost: ~131,400.00 PHP
+Note: The Heroku hosting costs are estimated based on standard Basic Dyno and
+Heroku Postgres pricing over the 24-month active development and deployment lifecy-
+cle.
+
+--- PAGE 115 ---
+Appendix I
+Project Schedule and Sprint Checklist
+This appendix details the extended Agile development lifecycle of the USC Patient
+Information System (USC-PIS). Due to the sensitive nature of Electronic Medical
+Records (EMRs), the project timeline was deliberately extended across two academic
+years to ensure rigorous security hardening, complex database cryptography, and
+iterative application retooling based on direct clinical feedback.
+I.1 Project Development Schedule
+The following table outlines the macro-level development phases of the system
+from its initial conceptualization to its final production deployment.
+I.2 Agile Sprint Checklist
+The development of the USC-PIS was executed utilizing the Agile Scrum method-
+ology. The following checklist breaks down the technical user stories and tasks
+completed across the project’s specialized development sprints.
+Table I.2: Agile Sprint Checklist
+Sprint (Focus Area) Task / User Story Status
+Sprint 1: Architec-
+ture & Design
+Draft ERD, design normalized database schema,
+and finalize Material-UI frontend mockups for
+patient and staff dashboards.
+Completed
+
+--- PAGE 116 ---
+98Updated Cost Estimates
+Sprint (Focus Area) Task / User Story Status
+Sprint 2: Authenti-
+cation & RBAC
+Implement SafeList onboarding protocol, en-
+force @usc.edu.ph domain constraints, and es-
+tablish global DRF PermissionClasses for
+role routing.
+Completed
+Sprint 3: Security
+& Cryptography
+Integrate PostgreSQL pgcrypto extension. In-
+tercept plaintext inputs via Django post_save
+signals to hash Protected Health Information
+(PHI).
+Completed
+Sprint 4: Clinical
+Core Modules
+Develop Unified Record Interface for Medical
+and Dental charting. Implement FDI notation
+regex validation for dental charts.
+Completed
+Sprint 5: Adminis-
+trative Workflows
+Engineer the Medical Certificate (ACA-HSD-
+04F) issuance pipeline. Program the backend
+xhtml2pdf / ReportLab fallback rendering en-
+gine.
+Completed
+Sprint 6: Applica-
+tion Retooling
+Halt standard deployment to engineer advanced
+real-time data filtering by Academic Year and
+Semester, as requested by clinic staff.
+Completed
+Sprint 7: Async Re-
+porting Engine
+Implement background processing logic via Cel-
+ery and Redis to synthesize clinic reports (PDF,
+CSV , Excel) without HTTP thread blocking.
+Completed
+Sprint 8: Final UAT
+& Deployment
+Conduct manual feature validation, execute em-
+pirical latency benchmarking, perform cyberse-
+curity audits, and hand over the live Heroku sys-
+tem.
+Completed
+I.3 Project Timeline (Gantt Chart)
+The following Gantt chart illustrates the comprehensive project timeline and task
+dependencies across the two-year development and implementation lifecycle of the
+USC-PIS.
+
+--- PAGE 117 ---
+I.3 Project Timeline (Gantt Chart)99
+Fig. I.1: USC-PIS Project Gantt Chart (2024–2026)
+
+--- PAGE 118 ---
+100Updated Cost Estimates
+Development
+Phase
+Key Activities and Milestones Timeframe
+Phase 1: Plan-
+ning and System
+Design
+Needs assessment with the USC Clinic, formula-
+tion of the Software Requirements Specification
+(SRS), ERD design, and formal proposal presen-
+tation.
+March 2024 –
+April 2024
+Phase 2: Core
+Development &
+Security Harden-
+ing
+Architecture setup, implementation of vendor-
+aware dual-database environments, strict RBAC
+middleware integration, and rigorous bench-
+marking of PostgreSQL pgcrypto column-level
+encryption.
+June 2024 – Octo-
+ber 2025
+Phase 3: Appli-
+cation Retooling
+& Refinement
+Iterative system refinement based on early staff
+prototypes. Development of the advanced real-
+time Academic Year filtering architecture and
+the dual-engine PDF module for medical certifi-
+cates.
+November 2025 –
+February 2026
+Phase 4: UAT
+and Final De-
+ployment
+Automated system load testing, User Accep-
+tance Testing (UAT) at the USC clinics, final
+data collection, and live production deployment
+to Heroku.
+March 2026 –
+May 2026
+Table I.1: Project Development Schedule (2024–2026)
+
+--- PAGE 119 ---
+Appendix J
+Medical and Dental Forms
+This appendix contains the standard medical certificate forms and the unified dental
+and medical forms utilized by the USC Clinic, which have been digitalized by the
+USC-PIS.
+
+--- PAGE 120 ---
+ 
+DOCUMENTED INFO EFFECTIVE 
+10 JUL 2017 
+please ensure that you are using the latest version  
+refer to section 4.0 of level 2 documentation 
+USC QMS for Student Support and Services 
+ 
+ 
+      
+ 
+ 
+         Date: _________________ 
+To Whom It May Concern: 
+ 
+ This is to certify that Miss /Mrs./Mr. ____________________________________________of 
+ 
+_____________________________ had undergone a complete physical examination and was      
+         Course & Year 
+       found to be physically fit / unfit on the date of examination. 
+ 
+This is issued upon his/her request as part of his/her requirement for: 
+ 
+ 
+ 
+ 
+                   _________________________ 
+         School Physician 
+ 
+ 
+    
+      
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+         Date: _________________ 
+To Whom It May Concern: 
+ 
+ This is to certify that Miss /Mrs./Mr. ____________________________________________of 
+ 
+_____________________________ had undergone a complete physical examination and was      
+         Course & Year 
+       found to be physically fit / unfit on the date of examination. 
+ 
+ 
+This is issued upon his/her request as part of his/her requirement for: 
+ 
+ 
+ 
+ 
+                   _________________________ 
+         School Physician 
+ 
+ACA-HSD-04F 
+ACA-HSD-04F 
+DOCUMENTED INFO EFFECTIVE 
+10 JUL 2017 
+please ensure that you are using the 
+latest version 
+refer to section 4.0 of level 2 documentation 
+USC QMS for Student Support and Services 
+102Medical and Dental Forms
+
+--- PAGE 121 ---
+103
+
+--- PAGE 122 ---
+104Medical and Dental Forms
+
+--- PAGE 123 ---
+105
+
+--- PAGE 124 ---
+106Medical and Dental Forms
+
+--- PAGE 125 ---
+Appendix K
+System Feedback Forms
+This appendix presents the feedback forms used to evaluate the USC Patient
+Information System (USC-PIS) from the perspectives of both the clinical staff and the
+student body.
+K.1 Clinic Staff Feedback Form
+
+--- PAGE 126 ---
+Clinic  Staff  Feedback  on  Patient  
+Information/Record
+ 
+System
+ 
+ 
+7  Responses  
+  
+       
+108System Feedback Forms
+
+--- PAGE 127 ---
+System  Efficiency  &  Accuracy    
+ 
+  
+K.1 Clinic Staff Feedback Form109
+
+--- PAGE 128 ---
+ 
+ 
+110System Feedback Forms
+
+--- PAGE 129 ---
+  
+K.1 Clinic Staff Feedback Form111
+
+--- PAGE 130 ---
+Reporting  &  Administrative  Functions   
+ 
+ 
+112System Feedback Forms
+
+--- PAGE 131 ---
+ 
+ 
+K.1 Clinic Staff Feedback Form113
+
+--- PAGE 132 ---
+ 
+114System Feedback Forms
+
+--- PAGE 133 ---
+Usability  &  Security
+ 
+ 
+K.1 Clinic Staff Feedback Form115
+
+--- PAGE 134 ---
+ 
+116System Feedback Forms
+
+--- PAGE 135 ---
+Workflow  &  Integration
+ 
+ 
+K.1 Clinic Staff Feedback Form117
+
+--- PAGE 136 ---
+ 
+118System Feedback Forms
+
+--- PAGE 137 ---
+ 
+K.1 Clinic Staff Feedback Form119
+
+--- PAGE 138 ---
+Suggestions  &  Improvements
+120System Feedback Forms
+
+--- PAGE 139 ---
+  
+K.1 Clinic Staff Feedback Form121
+
+--- PAGE 140 ---
+122System Feedback Forms
+K.2 Student Feedback Form
+
+--- PAGE 141 ---
+Student  Feedback  on  Patient  
+Information/Record
+ 
+System  
+70  responses   
+ 
+K.2 Student Feedback Form123
+
+--- PAGE 142 ---
+Accessibility  &  Usability
+ 
+ 
+124System Feedback Forms
+
+--- PAGE 143 ---
+ 
+ 
+K.2 Student Feedback Form125
+
+--- PAGE 144 ---
+ 
+ 
+126System Feedback Forms
+
+--- PAGE 145 ---
+Features  &  Satisfaction
+  
+ 
+K.2 Student Feedback Form127
+
+--- PAGE 146 ---
+ 
+128System Feedback Forms
+
+--- PAGE 147 ---
+ 
+ 
+K.2 Student Feedback Form129
+
+--- PAGE 148 ---
+Suggestions  &  Improvements
+130System Feedback Forms
+
+--- PAGE 149 ---
+  
+K.2 Student Feedback Form131
+
+--- PAGE 151 ---
+Appendix L
+User Interface Screens
+This appendix provides a comprehensive visual catalog of the Graphical User
+Interface (GUI) designed for the USC Patient Information System (USC-PIS). While
+the core representative dashboards were discussed in Section 3.5, the following screen
+captures offer a complete visual walkthrough of the web application’s role-based
+interfaces. These include the personalized student medical portals, the clinical staff
+management modules, and the advanced administrative configurations. The interface
+was engineered utilizing React 18 and Material-UI (MUI) components, ensuring
+progressive disclosure, responsive design across mobile and desktop environments,
+and a highly intuitive user experience for both the university student body and the
+USC Clinic staff.
+L.1 Landing and Authentication
+Fig. L.1 USC-PIS Landing Page
+
+--- PAGE 152 ---
+134User Interface Screens
+Fig. L.2 User Registration Interface
+Fig. L.3 Email Verification Interface
+
+--- PAGE 153 ---
+L.2 Dashboard Interfaces135
+L.2 Dashboard Interfaces
+Fig. L.4 Student Dashboard Home
+Fig. L.5 Administrator Dashboard Home
+
+--- PAGE 154 ---
+136User Interface Screens
+L.3 Profile and User Setup
+Fig. L.6 User Profile Management
+Fig. L.7 Initial Profile Setup for Students
+
+--- PAGE 155 ---
+L.4 Health Records and Insights137
+L.4 Health Records and Insights
+Fig. L.8 Student Personal Health Records Portal
+Fig. L.9 Student Health Insights and Longitudinal History
+
+--- PAGE 156 ---
+138User Interface Screens
+Fig. L.10 Administrative View of Patient Health Insights
+Fig. L.11 Comprehensive Medical Records Management (Admin)
+
+--- PAGE 157 ---
+L.4 Health Records and Insights139
+Fig. L.12 Clinical View of Individual Patient Dashboard
+
+--- PAGE 158 ---
+140User Interface Screens
+L.5 Clinical Modules
+Fig. L.13 Medical Certificate Issuance Management
+Fig. L.14 Student Medical Certificate Portal
+
+--- PAGE 159 ---
+L.5 Clinical Modules141
+Fig. L.15 Dental Consultation Management
+Fig. L.16 Student Dental Record Portal
+
+--- PAGE 160 ---
+142User Interface Screens
+Fig. L.17 Health Information and Triage Management
+Fig. L.18 Student Health Information Portal
+
+--- PAGE 161 ---
+L.6 Communication and Health Campaigns143
+L.6 Communication and Health Campaigns
+Fig. L.19 Public Health Campaigns Portal (Student)
+Fig. L.20 Health Campaign Orchestration (Admin)
+
+--- PAGE 162 ---
+144User Interface Screens
+Fig. L.21 Student Notification Center
+Fig. L.22 System-wide Notification Management (Admin)
+
+--- PAGE 163 ---
+L.7 System Feedback145
+L.7 System Feedback
+Fig. L.23 Patient Feedback Submission Interface
+Fig. L.24 Feedback Analytics and Management
+
+--- PAGE 164 ---
+146User Interface Screens
+L.8 Administrative and System Configuration
+Fig. L.25 System User Role and Access Management
+Fig. L.26 Centralized Patient Registry
+
+--- PAGE 165 ---
+L.8 Administrative and System Configuration147
+Fig. L.27 Automated Email and SMTP Configuration
+Fig. L.28 Clinical Reports and SQA Analytics Dashboard
+
+--- PAGE 166 ---
+148User Interface Screens
+Fig. L.29 System Database Maintenance and Backup Interface
+
+--- PAGE 167 ---
+Appendix M
+USC PIS Data Gathering Presentation
+This appendix documents the presentation materials used during the initial data
+gathering and requirements analysis phase with the USC Clinic.
+
+--- PAGE 168 ---
+MODERNIZING THEUSC CLINIC'S PATIENTINFORMATIONSYSTEM
+BS Computer Engineering, University of San Carlos
+Group L:
+Ron Vanz Petiluna
+Janren Renegado
+Galen Elijah Sabequil 
+150USC PIS Data Gathering Presentation
+
+--- PAGE 169 ---
+Current system is
+paper-based
+Traditional S ystem s
+Students cannot
+personally check their
+health records
+Inaccessible
+Records
+Manual retrieval of
+documents
+Tim e-Consum ing
+151
+
+--- PAGE 170 ---
+PATIENT
+INFORMATION
+SYSTEM
+Cloud-based platform designed
+to modernize the University
+of San Carlos Clinic’s health
+record management.
+152USC PIS Data Gathering Presentation
+
+--- PAGE 171 ---
+Basic Patient
+Information
+Patient M edical
+Dashboard
+History of Clinic
+Consultations
+Health Insights and
+History
+Issued certificates for
+school events
+M edical Certificates
+Your Medical Records.
+Example: X rays,
+Medications
+Health Records
+Your Basic Dental
+Records
+Dental Records 
+KEY FEATURES
+153
+
+--- PAGE 172 ---
+usc-pis-5f030223f7a8.herokuapp.com
+https://tinyurl.com/usc-pis
+154USC PIS Data Gathering Presentation
+
+--- PAGE 173 ---
+DEMO
+155
+
+--- PAGE 174 ---
+Contact Details
+Ron Vanz Petiluna
+6090146@usc.edu.ph
+Janren Renegado
+21102884@usc.edu.ph
+Galen Elijah Sabequil
+21100727@usc.edu.ph
+THANK YOU
+156USC PIS Data Gathering Presentation
+
+--- PAGE 175 ---
+https://tinyurl.com/uscpis-survey
+157
+
+--- PAGE 176 ---
+C o n t a c t  D e t a i l s
+R o n  V a n z  P e t i l u n a
+6 0 9 0 1 4 6 @ u s c . e d u . p h
+J a n r e n  R e n e g a d o
+2 1 1 0 2 8 8 4 @ u s c . e d u . p h
+G a l e n  E l i j a h  S a b e q u i l
+2 1 1 0 0 7 2 7 @ u s c . e d u . p h
+158USC PIS Data Gathering Presentation
+
+--- PAGE 177 ---
+Appendix N
+Original Project Deliverables and
+Features List
+This appendix outlines the original deliverables and feature scope defined during
+the initial proposal phase of the USC Patient Information System (USC-PIS). It serves
+as a baseline to demonstrate the successful execution of the core requirements and the
+deliberate deferment of specific enterprise features to future iterations.
+N.1 Original Project Deliverables
+The following table details the primary deliverables established during the project
+planning phase. Note that "Deliverable D6" (Application Retooling) was successfully
+executed during the UAT phase to introduce the advanced Academic Year filtering
+architecture requested by clinic staff.
+Deliverable Number Details Original Target Date
+D1 Research Manuscript June 8, 2024
+D2 Project Software Components September 16, 2024
+D3 Technical Documentation for the app’s core
+functionalities
+September 23, 2024
+D4 Functional Prototype of Application September 30, 2024
+D5 Application Testing at USC Clinic October 7, 2024
+D6 Application Retooling October 21, 2024
+Table N.1 Original Project Deliverables
+
+--- PAGE 178 ---
+160Original Project Deliverables and Features List
+N.2 Original System Features Scope
+The following matrix categorizes the originally proposed system features, indi-
+cating which were successfully implemented for project checking and which were
+deliberately deferred to future development cycles to maintain system stability.
+Table N.2 System Features Scope and Implementation Status
+Feature Project
+Checking (Im-
+plemented)
+Future
+Iterations
+(Deferred)
+Comprehensive Health Records Yes
+Comprehensive Dental Records Yes
+Health Information Dissemination Yes
+Patient Feedback Collection Yes
+User Authentication through Django Yes
+Role-Based Access Control (RBAC) Yes
+Web-Based Platform Yes
+Secure Data Storage Yes
+Scalability and Flexibility Yes
+Data-Driven Reporting Yes
+Health Campaign Pages Yes
+Automated Notifications Yes
+Medical Certificate Optimization Yes
+Upload Files Yes
+Advanced Security Measures Yes
+Appointment Scheduling Yes
+Medication Tracking Yes
+Inventory Management Yes
+
+--- PAGE 179 ---
+Appendix O
+Memorandum of Agreement (MOA)
+This appendix contains the official Memorandum of Agreement (MOA) established
+between the researchers and the University of San Carlos Health Services.
+
+--- PAGE 180 ---
+Memorandumof Agreement for CollaborativeProject
+Project Title: ModernizingtheUSC-DCClinic'sPatient InformationSystem: ADesignandImplementationProject
+Date: July22, 2024
+ThisMemorandumof Agreement outlinesthecollaborationbetweentheUniversityof SanCarlos- DowntownCampus(USC-DC) School ClinicandCPE3207LGroupL(Petiluna,Renegado, Sabequil) regardingthedesignandimplementationof amodernizedPatientInformationSystem(PIS).
+1. Purpose
+Thepurposeof thiscollaborationistodevelopandimplement anewPatient InformationSystem(PIS) for theUSCClinic. ThenewPISwill aimtostreamlineclinicoperations, improvepatientcare, enhancedataaccuracy, andprovidevaluableinsightsintoclinicperformance.
+2. Project Scope
+Thescopeof thisproject includesthefollowingphases:
+● ContinuousNeedsAssessment● SystemDesign● Development andTesting● ImplementationandTraining● Evaluation
+3. RolesandResponsibilities
+● USCSchool Clinic:○ Provideaccesstorelevant informationandresources.○ Collaborateinthedesignprocessandprovidefeedback.○ Facilitatestaff participationintrainingsessions.○ Evaluatetheeffectivenessof theimplementedPIS.● CPE3207LGroupL(Petiluna, Renegado, Sabequil):○ Conduct theneedsassessment.○ Design, develop, andtest thePISsoftware.○ DeploythePISandprovidetrainingtoclinicstaff.○ Addressanytechnical issuesor concerns.
+4. Timeline
+Theproject isexpectedtobecompletedwithinAY2024-2025. Adetailedtimelinewill bedevelopedcollaboratively.
+162Memorandum of Agreement (MOA)
+
+--- PAGE 181 ---
+5. Agreement
+This Memorandum of Understanding signifies a mutual agreement between the parties to
+collaborate on the design and implementation of a modernized Patient Information System for
+the USC Clinic. It does not constitute a legal contract and is not legally binding.
+Signature
+● USC School Clinic:
+○ Name: Elena Plazl Pasuelo
+○ Title: USC Health Services Coordinator
+○ Signature: ____________________
+○ Date: ____________________
+● CPE 3207L Group L (Petiluna, Renegado, Sabequil):
+○ Name: Ron Vanz Petiluna
+○ Signature: ____________________
+○ Date: July 22, 2024
+○ Name: Janren Renegado
+○ Signature: ____________________
+○ Date: July 22, 2024
+○ Name: Galen Elijah Sabequil
+○ Signature: ____________________
+○ Date: July 22, 2024
+July 22, 2024
+163
+
+--- PAGE 183 ---
+Appendix P
+Certificate of Completion
+This appendix provides the official Certificate of Completion and Acceptance
+signed by the USC Health Services, confirming the successful deployment and han-
+dover of the USC-PIS.
+
+--- PAGE 184 ---
+166Certificate of Completion
+
+--- PAGE 185 ---
+167
+
