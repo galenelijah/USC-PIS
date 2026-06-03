@@ -22,7 +22,8 @@
 - Verified that all 8 report workshops surface HTML and JSON buttons.
 - Confirmed that Report Archive correctly renders Light Blue (HTML) and Amber (JSON) chips.
 - Validated that `mapped_charts` logic correctly populates charts for granular tables (e.g., Course, Role, Diagnosis).
-- Confirmed that Excel/CSV formats preserve strict data parity with their visual (PDF) counterparts.
+- Confirmed that Excel/CSV formats preserve strict mathematical parity with their visual (PDF) counterparts by enforcing a single-source-of-truth via `ReportDataService`.
 - Verified that horizontal text overlap in PDF exports has been resolved via A4 Landscape formatting.
 - Confirmed that dynamic multi-line label wrapping correctly formats long string names in all charts.
 - Validated that UI data tables (Patients, Health Records, Certificates) accurately trigger horizontal scrolling on small screens.
+- Verified that the "Unspecified" data anomaly and the auto-skipping labels issue in the Course Classification chart are fully resolved.

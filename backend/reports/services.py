@@ -1646,8 +1646,12 @@ class ReportDataService:
                 for item in fitness_counts
             ]
 
-            # 2. Purpose/Template Distribution
-            purpose_distribution = list(certs.values(name=F('template__name')).annotate(count=Count('id')).order_by('-count'))
+            # 2. Purpose Distribution (using 'diagnosis' field which represents Purpose/Requirement)
+            raw_purposes = certs.values('diagnosis').annotate(count=Count('id')).order_by('-count')
+            purpose_distribution = []
+            for item in raw_purposes:
+                name = item['diagnosis'].strip() if item['diagnosis'] else 'Unspecified Purpose'
+                purpose_distribution.append({'name': name, 'count': item['count']})
 
             # 3. Issuance Status Distribution
             issuance_counts = certs.values('issuance_status').annotate(count=Count('id'))
