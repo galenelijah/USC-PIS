@@ -39,7 +39,7 @@ def test_health_campaign_functionality():
     print(f"📢 Found {campaigns.count()} health campaigns")
     
     # Check status distribution
-    for status in ['DRAFT', 'SCHEDULED', 'ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED']:
+    for status in ['POSTED', 'COMPLETED', 'ARCHIVED']:
         count = campaigns.filter(status=status).count()
         print(f"   - {status.capitalize()}: {count}")
     
@@ -83,8 +83,8 @@ def test_health_campaign_functionality():
     
     if campaigns.exists():
         print("✅ Health campaigns exist in system")
-        active_count = campaigns.filter(status='ACTIVE').count()
-        print(f"   - Active campaigns: {active_count}")
+        active_count = campaigns.filter(status='POSTED').count()
+        print(f"   - Posted campaigns: {active_count}")
         
         # Check engagement metrics
         total_views = sum(c.view_count for c in campaigns)
@@ -166,8 +166,8 @@ def test_health_campaign_functionality():
     if not resources.exists():
         print("• Upload campaign resources (documents, images, videos)")
     
-    if campaigns.filter(status='ACTIVE').count() == 0:
-        print("• Activate campaigns to engage users")
+    if campaigns.filter(status='POSTED').count() == 0:
+        print("• Post campaigns to engage users")
     
     if campaign_notifications.count() == 0:
         print("• Test notification system with campaign status changes")

@@ -228,8 +228,9 @@ class HealthCampaign(models.Model):
     status = models.CharField(
         max_length=15, 
         choices=[
-            ('ACTIVE', 'Active'),
-            ('POSTED', 'Posted')
+            ('POSTED', 'Posted'),
+            ('ARCHIVED', 'Archived'),
+            ('COMPLETED', 'Completed')
         ],
         default='POSTED'
     )
@@ -274,8 +275,8 @@ class HealthCampaign(models.Model):
     call_to_action = models.CharField(max_length=300, blank=True, help_text="What action should people take?")
     
     # Scheduling
-    start_date = models.DateTimeField()
-    end_date = models.DateTimeField()
+    start_date = models.DateTimeField(null=True, blank=True)
+    end_date = models.DateTimeField(null=True, blank=True)
     featured_until = models.DateTimeField(null=True, blank=True, help_text="Feature on homepage until this date")
     
     # Engagement
@@ -310,10 +311,25 @@ class HealthCampaign(models.Model):
         """Check if campaign is currently active"""
         from django.utils import timezone
         now = timezone.now()
-        return (
-            self.status == 'ACTIVE' and 
-            self.start_date <= now <= self.end_date
-        )
+        
+        # If not posted, it's not active
+        if self.status != 'POSTED':
+            return False
+            
+        # If dates are set, check if we are within range
+        if self.start_date and self.end_date:
+            return self.start_date <= now <= self.end_date
+            
+        # If only start date is set
+        if self.start_date:
+            return self.start_date <= now
+            
+        # If only end date is set
+        if self.end_date:
+            return now <= self.end_date
+            
+        # If no dates, it's always active (if posted)
+        return True
     
     @property
     def is_featured(self):
@@ -473,8 +489,8 @@ def health_campaign_notification(sender, instance, created, **kwargs):
                 except Exception as e:
                     logger.warning(f"Failed to create admin review notification: {e}")
 
-        # 2. Notify users when a campaign is ACTIVE (Heavy loop - offload to Celery)
-        if instance.status == 'ACTIVE':
+        # 2. Notify users when a campaign is POSTED (Heavy loop - offload to Celery)
+        if instance.status == 'POSTED':
             # Trigger background task for mass notification
             transaction.on_commit(lambda: send_campaign_notifications_task.delay(instance.id))
             logger.info(f"Triggered background notification task for campaign {instance.id}")

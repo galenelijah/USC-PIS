@@ -32,14 +32,14 @@ try:
         print(f"   - {template.name} ({template.campaign_type})")
     
     # Test 2: Check for active campaigns
-    print("\n2. Checking Active Campaigns...")
-    active_campaigns = HealthCampaign.objects.filter(status='ACTIVE')
-    print(f"   ✅ Found {active_campaigns.count()} active campaigns")
+    print("\n2. Checking Posted Campaigns...")
+    active_campaigns = HealthCampaign.objects.filter(status='POSTED')
+    print(f"   ✅ Found {active_campaigns.count()} posted campaigns")
     
     for campaign in active_campaigns:
-        status = "✅ ACTIVE" if campaign.start_date <= timezone.now() <= campaign.end_date else "⚠️ NOT IN DATE RANGE"
+        status = "✅ ACTIVE" if campaign.is_active else "⚠️ NOT ACTIVE (Scheduled or Ended)"
         print(f"   - {campaign.title} ({campaign.campaign_type}) {status}")
-        print(f"     Duration: {campaign.start_date} to {campaign.end_date}")
+        print(f"     Duration: {campaign.start_date or 'Always'} to {campaign.end_date or 'Always'}")
     
     # Test 3: Check student users
     print("\n3. Checking Student Users...")
@@ -53,15 +53,11 @@ try:
     print("\n4. Simulating API Behavior for Students...")
     
     # This simulates what the backend API does for students
-    student_visible_campaigns = HealthCampaign.objects.filter(status='ACTIVE')
-    now = timezone.now()
-    current_campaigns = student_visible_campaigns.filter(
-        start_date__lte=now,
-        end_date__gte=now
-    )
+    student_visible_campaigns = HealthCampaign.objects.filter(status='POSTED')
+    current_campaigns = [c for c in student_visible_campaigns if c.is_active]
     
-    print(f"   ✅ Students can see {student_visible_campaigns.count()} active campaigns")
-    print(f"   ✅ {current_campaigns.count()} campaigns are currently running")
+    print(f"   ✅ Students can see {student_visible_campaigns.count()} posted campaigns")
+    print(f"   ✅ {len(current_campaigns)} campaigns are currently active")
     
     # Test 5: Check campaign content quality
     print("\n5. Checking Campaign Content Quality...")
@@ -88,9 +84,9 @@ try:
     
     print("\n📊 Summary:")
     print(f"   - Campaign Templates: {templates.count()}")
-    print(f"   - Active Campaigns: {active_campaigns.count()}")
+    print(f"   - Posted Campaigns: {active_campaigns.count()}")
     print(f"   - Student Users: {students.count()}")
-    print(f"   - Currently Running: {current_campaigns.count()}")
+    print(f"   - Currently Active: {len(current_campaigns)}")
 
 except Exception as e:
     print(f"❌ Error during testing: {e}")

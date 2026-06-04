@@ -27,33 +27,14 @@ class Command(BaseCommand):
         if dry_run:
             self.stdout.write(self.style.WARNING('DRY RUN MODE - No changes will be made'))
         
-        # Process campaigns that should be activated
-        scheduled_campaigns = HealthCampaign.objects.filter(
-            status='SCHEDULED',
-            start_date__lte=now
-        )
-        
-        activated_count = 0
-        for campaign in scheduled_campaigns:
-            if not dry_run:
-                with transaction.atomic():
-                    campaign.status = 'ACTIVE'
-                    campaign.save()
-                    # Notifications are now handled by the post_save signal in models.py
-                    
-            activated_count += 1
-            self.stdout.write(
-                self.style.SUCCESS(f'{"Would activate" if dry_run else "Activated"} campaign: {campaign.title}')
-            )
-        
         # Process campaigns that should be completed
-        active_campaigns = HealthCampaign.objects.filter(
-            status='ACTIVE',
+        posted_campaigns = HealthCampaign.objects.filter(
+            status='POSTED',
             end_date__lte=now
         )
         
         completed_count = 0
-        for campaign in active_campaigns:
+        for campaign in posted_campaigns:
             if not dry_run:
                 with transaction.atomic():
                     campaign.status = 'COMPLETED'
@@ -86,7 +67,6 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(
                 f'Campaign scheduler completed: '
-                f'{activated_count} activated, '
                 f'{completed_count} completed, '
                 f'{unfeatured_count} unfeatured'
             )

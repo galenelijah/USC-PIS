@@ -154,8 +154,9 @@ const CampaignsPage = () => {
 
   // Campaign status options
   const STATUS_CHOICES = [
-    { value: 'ACTIVE', label: 'Active', color: 'success' },
-    { value: 'POSTED', label: 'Posted', color: 'default' }
+    { value: 'POSTED', label: 'Posted', color: 'success' },
+    { value: 'COMPLETED', label: 'Completed', color: 'info' },
+    { value: 'ARCHIVED', label: 'Archived', color: 'default' }
   ];
 
   useEffect(() => {
@@ -311,7 +312,7 @@ const CampaignsPage = () => {
   const handleCreateCampaign = async () => {
     try {
       // Validate required fields
-      const required = ['title', 'description', 'content', 'start_date', 'end_date', 'campaign_type'];
+      const required = ['title', 'description', 'content', 'campaign_type'];
       const newErrors = {};
       required.forEach((k) => { if (!campaignForm[k]) newErrors[k] = 'This field is required'; });
       // Additional client-side date check
@@ -570,11 +571,20 @@ const CampaignsPage = () => {
   };
 
   const isActive = (campaign) => {
-    if (!campaign?.start_date || !campaign?.end_date) return false;
+    if (!campaign) return false;
+    if (campaign.status !== 'POSTED') return false;
+    
+    // If no dates, it's always active (if POSTED)
+    if (!campaign.start_date && !campaign.end_date) return true;
+    
     const now = new Date();
-    const startDate = new Date(campaign.start_date);
-    const endDate = new Date(campaign.end_date);
-    return now >= startDate && now <= endDate;
+    const startDate = campaign.start_date ? new Date(campaign.start_date) : null;
+    const endDate = campaign.end_date ? new Date(campaign.end_date) : null;
+    
+    if (startDate && endDate) return now >= startDate && now <= endDate;
+    if (startDate) return now >= startDate;
+    if (endDate) return now <= endDate;
+    return true;
   };
 
   const handleDownload = (url, filename = 'pubmat_material') => {
@@ -1107,7 +1117,7 @@ const CampaignsPage = () => {
         </DialogTitle>
         <DialogContent dividers>
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
-            <Chip label={`Quality Score: ${(() => { let s=0; const t=(campaignForm.title||'').trim().length; const d=(campaignForm.description||'').trim().length; const c=(campaignForm.content||'').trim().length; if(t>=8)s+=20; if(d>=20)s+=25; if(c>=80)s+=35; if(campaignForm.campaign_type)s+=10; if(campaignForm.start_date && campaignForm.end_date){const sd=new Date(campaignForm.start_date); const ed=new Date(campaignForm.end_date); if(ed>sd)s+=10;} return s; })()} / 100`} color={(() => { const s = (()=>{ let s=0; const t=(campaignForm.title||'').trim().length; const d=(campaignForm.description||'').trim().length; const c=(campaignForm.content||'').trim().length; if(t>=8)s+=20; if(d>=20)s+=25; if(c>=80)s+=35; if(campaignForm.campaign_type)s+=10; if(campaignForm.start_date && campaignForm.end_date){const sd=new Date(campaignForm.start_date); const ed=new Date(campaignForm.end_date); if(ed>sd)s+=10;} return s; })(); return s>=80?'success': s>=60?'warning':'default'; })()} />
+            <Chip label={`Quality Score: ${(() => { let s=0; const t=(campaignForm.title||'').trim().length; const d=(campaignForm.description||'').trim().length; const c=(campaignForm.content||'').trim().length; if(t>=8)s+=20; if(d>=20)s+=30; if(c>=80)s+=40; if(campaignForm.campaign_type)s+=10; return s; })()} / 100`} color={(() => { const s = (()=>{ let s=0; const t=(campaignForm.title||'').trim().length; const d=(campaignForm.description||'').trim().length; const c=(campaignForm.content||'').trim().length; if(t>=8)s+=20; if(d>=20)s+=30; if(c>=80)s+=40; if(campaignForm.campaign_type)s+=10; return s; })(); return s>=80?'success': s>=60?'warning':'default'; })()} />
           </Box>
           <Grid container spacing={3}>
             {/* Basic Information */}
@@ -1193,18 +1203,18 @@ const CampaignsPage = () => {
                     </MenuItem>
                   ))}
                 </Select>
-                <FormHelperText>Active campaigns trigger notifications</FormHelperText>
+                <FormHelperText>Posted campaigns are visible to students and trigger notifications</FormHelperText>
               </FormControl>
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>Start Date *<InfoTooltip title="Required: Must be before End Date *" /></Box>}
+                label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>Start Date (Optional)<InfoTooltip title="Optional: Set for events; leave empty for permanent info" /></Box>}
                 type="date"
                 value={campaignForm.start_date}
                 onChange={(e) => { setCampaignForm({...campaignForm, start_date: e.target.value}); setFieldErrors(prev => ({ ...prev, start_date: undefined })); }}
                 InputLabelProps={{ shrink: true }}
-                required
+                required={false}
                 error={!!fieldErrors.start_date}
                 helperText={fieldErrors.start_date}
               />
@@ -1212,12 +1222,12 @@ const CampaignsPage = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>End Date *<InfoTooltip title="Required: Must be after Start Date *" /></Box>}
+                label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>End Date (Optional)<InfoTooltip title="Optional: Must be after Start Date if provided" /></Box>}
                 type="date"
                 value={campaignForm.end_date}
                 onChange={(e) => { setCampaignForm({...campaignForm, end_date: e.target.value}); setFieldErrors(prev => ({ ...prev, end_date: undefined })); }}
                 InputLabelProps={{ shrink: true }}
-                required
+                required={false}
                 error={!!fieldErrors.end_date}
                 helperText={fieldErrors.end_date}
               />
@@ -1544,18 +1554,18 @@ const CampaignsPage = () => {
                     </MenuItem>
                   ))}
                 </Select>
-                <FormHelperText>Active campaigns trigger notifications</FormHelperText>
+                <FormHelperText>Posted campaigns are visible to students and trigger notifications</FormHelperText>
               </FormControl>
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Start Date *"
+                label="Start Date (Optional)"
                 type="date"
                 value={campaignForm.start_date}
                 onChange={(e) => { setCampaignForm({...campaignForm, start_date: e.target.value}); setFieldErrors(prev => ({ ...prev, start_date: undefined })); }}
                 InputLabelProps={{ shrink: true }}
-                required
+                required={false}
                 error={!!fieldErrors.start_date}
                 helperText={fieldErrors.start_date}
               />
@@ -1563,12 +1573,12 @@ const CampaignsPage = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="End Date *"
+                label="End Date (Optional)"
                 type="date"
                 value={campaignForm.end_date}
                 onChange={(e) => { setCampaignForm({...campaignForm, end_date: e.target.value}); setFieldErrors(prev => ({ ...prev, end_date: undefined })); }}
                 InputLabelProps={{ shrink: true }}
-                required
+                required={false}
                 error={!!fieldErrors.end_date}
                 helperText={fieldErrors.end_date}
               />

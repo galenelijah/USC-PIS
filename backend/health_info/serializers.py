@@ -299,7 +299,7 @@ class HealthCampaignCreateUpdateSerializer(serializers.ModelSerializer):
         logger.info(f"Validating campaign data: {list(data.keys())}")
         
         # Validate required fields
-        required_fields = ['title', 'description', 'campaign_type', 'content', 'start_date', 'end_date']
+        required_fields = ['title', 'description', 'campaign_type', 'content']
         for field in required_fields:
             if not data.get(field):
                 logger.error(f"Required field missing: {field}")
@@ -339,6 +339,8 @@ class HealthCampaignCreateUpdateSerializer(serializers.ModelSerializer):
         try:
             # Helper to parse flexible ISO strings (accept date-only)
             def _parse_dt(value):
+                if not value:
+                    return None
                 if isinstance(value, str):
                     s = value.strip()
                     try:
@@ -378,10 +380,8 @@ class HealthCampaignCreateUpdateSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError({"featured_until": "Featured until date cannot be after campaign end date"})
 
             # Persist normalized datetimes back into data for save()
-            if start_date:
-                data['start_date'] = start_date
-            if end_date:
-                data['end_date'] = end_date
+            data['start_date'] = start_date
+            data['end_date'] = end_date
             if featured_until:
                 data['featured_until'] = featured_until
 

@@ -15,8 +15,8 @@ def send_campaign_notifications_task(campaign_id):
     """
     try:
         campaign = HealthCampaign.objects.get(id=campaign_id)
-        if campaign.status != 'ACTIVE':
-            logger.info(f"Campaign {campaign_id} is no longer ACTIVE. Skipping notifications.")
+        if campaign.status != 'POSTED':
+            logger.info(f"Campaign {campaign_id} is no longer POSTED. Skipping notifications.")
             return False
 
         User = get_user_model()

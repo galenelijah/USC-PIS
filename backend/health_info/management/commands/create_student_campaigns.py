@@ -260,7 +260,7 @@ class Command(BaseCommand):
                     start_date=campaign_data['start_date'],
                     end_date=campaign_data['end_date'],
                     featured_until=campaign_data.get('featured_until'),
-                    status='ACTIVE',
+                    status='POSTED',
                     template=campaign_data['template'],
                     created_by=admin_user
                 )

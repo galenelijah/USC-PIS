@@ -181,28 +181,13 @@ const UniversalCampaigns = () => {
     const a = (campaignForm.call_to_action || '').trim();
     const tags = (campaignForm.tags || '').trim();
 
-    if (t.length >= 8) score += 15; // clear title
-    if (d.length >= 30) score += 15; // informative description
-    if (c.length >= 200) score += 30; else if (c.length >= 80) score += 20; // solid content
+    if (t.length >= 8) score += 20; // clear title
+    if (d.length >= 30) score += 20; // informative description
+    if (c.length >= 200) score += 40; else if (c.length >= 80) score += 25; // solid content
     if (s.length >= 20) score += 5; // helpful summary
     if (o.length >= 20) score += 5; // objectives outlined
     if (a.length >= 10) score += 5; // actionable CTA
-
-    // Date quality
-    if (campaignForm.start_date && campaignForm.end_date) {
-      const sd = new Date(campaignForm.start_date);
-      const ed = new Date(campaignForm.end_date);
-      if (ed > sd) score += 10;
-    }
-
     if (tags) score += 5; // discoverability
-
-    // Media enhancements (up to 15)
-    let media = 0;
-    if (campaignForm.bannerFile) media += 5;
-    if (campaignForm.thumbnailFile) media += 5;
-    if (campaignForm.pubmatFile) media += 5;
-    score += Math.min(media, 15);
 
     return Math.max(0, Math.min(100, score));
   };
@@ -316,7 +301,7 @@ const UniversalCampaigns = () => {
   const handleCampaignCreate = async () => {
     try {
       // Basic required field check to match backend validation
-      const required = ['title', 'description', 'content', 'start_date', 'end_date', 'campaign_type'];
+      const required = ['title', 'description', 'content', 'campaign_type'];
       const newErrors = {};
       required.forEach((k) => { if (!campaignForm[k]) newErrors[k] = 'This field is required'; });
       // Quality checks (recommended minimums)
@@ -442,9 +427,15 @@ const UniversalCampaigns = () => {
 
   const isActiveCampaign = (campaign) => {
     const now = new Date();
-    const startDate = new Date(campaign.start_date);
-    const endDate = new Date(campaign.end_date);
-    return now >= startDate && now <= endDate;
+    if (!campaign.start_date && !campaign.end_date) return true;
+    
+    const startDate = campaign.start_date ? new Date(campaign.start_date) : null;
+    const endDate = campaign.end_date ? new Date(campaign.end_date) : null;
+    
+    if (startDate && endDate) return now >= startDate && now <= endDate;
+    if (startDate) return now >= startDate;
+    if (endDate) return now <= endDate;
+    return true;
   };
 
   if (loading) {
@@ -1112,14 +1103,14 @@ const UniversalCampaigns = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>Start Date<InfoTooltip title="Required: Must be before End Date" /></Box>}
+                  label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>Start Date (Optional)<InfoTooltip title="Optional: Set for events; leave empty for permanent info" /></Box>}
                   type="date"
                   value={campaignForm.start_date}
                   onChange={(e) => { setCampaignForm({ ...campaignForm, start_date: e.target.value }); setFieldErrors(prev => ({ ...prev, start_date: undefined })); }}
                   InputLabelProps={{
                     shrink: true,
                   }}
-                  required
+                  required={false}
                   error={!!fieldErrors.start_date}
                   helperText={fieldErrors.start_date}
                 />
@@ -1128,14 +1119,14 @@ const UniversalCampaigns = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>End Date<InfoTooltip title="Required: Must be after Start Date" /></Box>}
+                  label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>End Date (Optional)<InfoTooltip title="Optional: Must be after Start Date if provided" /></Box>}
                   type="date"
                   value={campaignForm.end_date}
                   onChange={(e) => { setCampaignForm({ ...campaignForm, end_date: e.target.value }); setFieldErrors(prev => ({ ...prev, end_date: undefined })); }}
                   InputLabelProps={{
                     shrink: true,
                   }}
-                  required
+                  required={false}
                   error={!!fieldErrors.end_date}
                   helperText={fieldErrors.end_date}
                 />
@@ -1345,9 +1336,7 @@ const UniversalCampaigns = () => {
               !campaignForm.title || 
               !campaignForm.description || 
               !campaignForm.content || 
-              !campaignForm.objectives || 
-              !campaignForm.start_date || 
-              !campaignForm.end_date
+              !campaignForm.campaign_type
             }
           >
             Create Campaign

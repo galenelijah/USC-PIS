@@ -146,17 +146,19 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
         if featured == 'true':
             now = timezone.now()
             queryset = queryset.filter(
+                Q(status='POSTED'),
                 Q(featured_until__gte=now) | Q(featured_until__isnull=True),
-                start_date__lte=now,
-                end_date__gte=now
+                Q(start_date__lte=now) | Q(start_date__isnull=True),
+                Q(end_date__gte=now) | Q(end_date__isnull=True)
             )
         
         active = self.request.query_params.get('active', None)
         if active == 'true':
             now = timezone.now()
             queryset = queryset.filter(
-                start_date__lte=now,
-                end_date__gte=now
+                Q(status='POSTED'),
+                Q(start_date__lte=now) | Q(start_date__isnull=True),
+                Q(end_date__gte=now) | Q(end_date__isnull=True)
             )
         
         return queryset
