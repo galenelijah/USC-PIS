@@ -67,6 +67,8 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
   const [openModal, setOpenModal] = useState(false);
   const [selectedCampaigns, setSelectedCampaigns] = useState([]); 
   const [minViewsFilter, setMinViewsFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
   const [modalDateRange, setModalDateRange] = useState('all'); 
   const [modalStartDate, setModalStartDate] = useState('');
   const [modalEndDate, setModalEndDate] = useState('');
@@ -86,6 +88,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
   const tableColumns = [
     { id: 'title', label: 'Campaign Title', align: 'left' },
     { id: 'campaign_type', label: 'Category', align: 'left' },
+    { id: 'status', label: 'Status', align: 'left' },
     { id: 'view_count', label: 'Total Views', align: 'right' },
     { id: 'created_by_name', label: 'Created By', align: 'left' },
     { id: 'created_at', label: 'Date Created', align: 'left' },
@@ -121,6 +124,8 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
           date_end: modalDateRange === 'custom' ? modalEndDate : undefined,
           campaign_titles: selectedCampaigns.length > 0 ? selectedCampaigns.join(',') : undefined,
           min_views: minViewsFilter || undefined,
+          status: statusFilter || undefined,
+          campaign_type: typeFilter || undefined,
           search: searchQuery || undefined
         } : {
           date_range: dateRange,
@@ -148,7 +153,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
       }
     };
     fetchCampaignData();
-  }, [openModal, dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedCampaigns, minViewsFilter, searchQuery]);
+  }, [openModal, dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedCampaigns, minViewsFilter, statusFilter, typeFilter, searchQuery]);
 
   const sortDataList = (list) => {
     return list.sort((a, b) => {
@@ -189,6 +194,8 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
         filters: {
           campaign_titles: selectedCampaigns,
           min_views: minViewsFilter || undefined,
+          status: statusFilter || undefined,
+          campaign_type: typeFilter || undefined,
           search: searchQuery
         }
       };
@@ -370,6 +377,46 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
 
           {/* FILTERS ROW 2 (Extra Filters) */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid item xs={12} sm={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Status</InputLabel>
+                <Select 
+                  value={statusFilter} 
+                  label="Status" 
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <MenuItem value="">All Statuses</MenuItem>
+                  <MenuItem value="POSTED">Posted</MenuItem>
+                  <MenuItem value="COMPLETED">Completed</MenuItem>
+                  <MenuItem value="ARCHIVED">Archived</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Campaign Type</InputLabel>
+                <Select 
+                  value={typeFilter} 
+                  label="Campaign Type" 
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                >
+                  <MenuItem value="">All Types</MenuItem>
+                  <MenuItem value="GENERAL">General Health</MenuItem>
+                  <MenuItem value="VACCINATION">Vaccination</MenuItem>
+                  <MenuItem value="MENTAL_HEALTH">Mental Health</MenuItem>
+                  <MenuItem value="NUTRITION">Nutrition & Wellness</MenuItem>
+                  <MenuItem value="DENTAL_HEALTH">Dental Health</MenuItem>
+                  <MenuItem value="HYGIENE">Hygiene</MenuItem>
+                  <MenuItem value="EXERCISE">Exercise</MenuItem>
+                  <MenuItem value="SAFETY">Safety</MenuItem>
+                  <MenuItem value="PREVENTION">Prevention</MenuItem>
+                  <MenuItem value="AWARENESS">Awareness</MenuItem>
+                  <MenuItem value="EMERGENCY">Emergency</MenuItem>
+                  <MenuItem value="SEASONAL">Seasonal</MenuItem>
+                  <MenuItem value="CUSTOM">Custom</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
             {modalDateRange === 'custom' && (
               <>
                 <Grid item xs={12} sm={3}>
@@ -436,6 +483,15 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
                     <TableCell sx={{ fontWeight: 600 }}>{row.title}</TableCell>
                     <TableCell>
                       <Chip label={row.campaign_type || 'General'} size="small" variant="outlined" sx={{ fontSize: '0.65rem', height: 20 }} />
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={row.status || 'Posted'} 
+                        size="small" 
+                        color={row.status === 'Posted' ? 'success' : row.status === 'Archived' ? 'default' : 'primary'}
+                        variant="outlined" 
+                        sx={{ fontSize: '0.65rem', height: 20 }} 
+                      />
                     </TableCell>
                     <TableCell align="right">
                       <Typography variant="body2" sx={{ fontWeight: 700, color: '#ea580c' }}>
