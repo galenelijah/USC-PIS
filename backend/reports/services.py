@@ -1516,8 +1516,9 @@ class ReportDataService:
             college = "Other"
             
             if user:
-                if user.role == 'FACULTY':
-                    college = "Faculty"
+                # Group all non-students together to prevent course-level leakage for staff/faculty
+                if user.role != 'STUDENT':
+                    college = "Faculty & Staff"
                 elif user.course:
                     course_id = str(user.course)
                     if course_id in ACADEMIC_DIRECTORY_MAP:
@@ -1542,8 +1543,9 @@ class ReportDataService:
             course = None
             
             if user:
-                if user.role == 'FACULTY':
-                    course = "Faculty"
+                # Faculty and staff don't have courses in this context
+                if user.role != 'STUDENT':
+                    course = "Faculty & Staff"
                 elif user.course:
                     course_id = str(user.course)
                     course = PROGRAMS_CHOICES.get(course_id, f"Program {course_id}")
@@ -1555,7 +1557,7 @@ class ReportDataService:
 
     @staticmethod
     def _get_role_distribution(patients):
-        """Helper to aggregate patients by simplified role (Student vs Faculty)"""
+        """Helper to aggregate patients by simplified role (Student vs Faculty/Staff)"""
         roles = {'STUDENT': 0, 'FACULTY': 0}
         for obj in patients:
             # Handle both Patient and User objects
@@ -1564,9 +1566,14 @@ class ReportDataService:
                 role = user.role
                 if role == 'STUDENT':
                     roles['STUDENT'] += 1
-                elif role == 'FACULTY':
+                else:
+                    # Group all non-student roles together (ADMIN, DOCTOR, STAFF, etc.)
                     roles['FACULTY'] += 1
-        return [{'name': k.title(), 'role': k, 'count': v} for k, v in roles.items()]
+        
+        return [
+            {'name': 'Student', 'role': 'STUDENT', 'count': roles['STUDENT']},
+            {'name': 'Faculty & Staff', 'role': 'FACULTY', 'count': roles['FACULTY']}
+        ]
     @staticmethod
     def get_certification_analytics(date_start=None, date_end=None, filters=None):
         """Get medical certificate analytics for health clearance process insights"""
@@ -2825,13 +2832,19 @@ class ReportGenerationService:
                     'x': { 
                         'beginAtZero': True,
                         'grid': { 'display': True, 'drawBorder': False, 'color': 'rgba(0,0,0,0.05)' },
-                        'ticks': { 'font': { 'size': 9 } }
+                        'ticks': { 
+                            'font': { 'size': 9 },
+                            'autoSkip': False,
+                            'maxRotation': 45 if not is_horizontal else 0,
+                            'minRotation': 0
+                        }
                     },
                     'y': { 
                         'beginAtZero': True,
                         'grid': { 'display': not is_horizontal, 'drawBorder': False, 'color': 'rgba(0,0,0,0.05)' },
                         'ticks': { 
                             'font': { 'size': 9 },
+                            'autoSkip': False,
                             'mirror': False,
                             'padding': 12 if is_horizontal else 0
                         }
