@@ -2463,8 +2463,13 @@ class ReportGenerationService:
                 </p>
             </div>
 
-            <div class="section">
+            <div class="{{% if mapped_charts.fitness_distribution %}}visual-section{{% else %}}section{{% endif %}}">
                 <div class="section-title">Fitness Distribution Analysis</div>
+                {{% if mapped_charts.fitness_distribution %}}
+                <div class="chart-container" style="display: block; width: 95%; max-width: 800px; margin: 15px auto;">
+                    <img src="{{{{ mapped_charts.fitness_distribution }}}}" width="100%" />
+                </div>
+                {{% endif %}}
                 <table class="data-table">
                     <thead>
                         <tr><th>Fitness Determination</th><th>Volume</th></tr>
@@ -2481,8 +2486,13 @@ class ReportGenerationService:
             </div>
 
             {{% if purpose_distribution %}}
-            <div class="section">
+            <div class="{{% if mapped_charts.purpose_distribution %}}visual-section{{% else %}}section{{% endif %}}">
                 <div class="section-title">Certificate Purpose Distribution</div>
+                {{% if mapped_charts.purpose_distribution %}}
+                <div class="chart-container" style="display: block; width: 95%; max-width: 800px; margin: 15px auto;">
+                    <img src="{{{{ mapped_charts.purpose_distribution }}}}" width="100%" />
+                </div>
+                {{% endif %}}
                 <table class="data-table">
                     <thead>
                         <tr><th>Template / Purpose</th><th>Volume</th></tr>
@@ -2562,8 +2572,13 @@ class ReportGenerationService:
             </div>
 
             {{% elif hourly_traffic_density %}}
-            <div class="section">
+            <div class="{{% if mapped_charts.hourly_traffic_density %}}visual-section{{% else %}}section{{% endif %}}">
                 <div class="section-title">Hourly Traffic Density & Workload Classification</div>
+                {{% if mapped_charts.hourly_traffic_density %}}
+                <div class="chart-container" style="display: block; width: 95%; max-width: 800px; margin: 15px auto;">
+                    <img src="{{{{ mapped_charts.hourly_traffic_density }}}}" width="100%" />
+                </div>
+                {{% endif %}}
                 <table class="data-table">
                     <thead>
                         <tr>
@@ -2831,7 +2846,8 @@ class ReportGenerationService:
                     },
                     'legend': { 
                         'display': True, 
-                        'position': 'bottom',
+                        'position': 'right' if actual_type in ['pie', 'doughnut'] else 'bottom',
+                        'align': 'center',
                         'labels': { 'usePointStyle': True, 'padding': 15, 'font': { 'size': 10 } }
                     },
                     'datalabels': {
@@ -2846,7 +2862,7 @@ class ReportGenerationService:
                 'layout': { 
                     'padding': { 
                         'left': 45 if is_horizontal else 35, 
-                        'right': 45, 
+                        'right': 180 if actual_type in ['pie', 'doughnut'] else 45, 
                         'top': 10, 
                         'bottom': 10 
                     } 
