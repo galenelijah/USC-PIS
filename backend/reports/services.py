@@ -2317,66 +2317,76 @@ class ReportGenerationService:
                     text-transform: uppercase;
                 }}
 
-                .chart-container {{ text-align: center; margin: 15px auto; padding: 10px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #fafafa; display: block; width: 95%; max-width: 800px; }}
+                .chart-container {{ 
+                   text-align: center; 
+                   margin: 20px auto; 
+                   padding: 15px 15px 15px 25px; 
+                   border: 1px solid #e2e8f0; 
+                   border-radius: 12px; 
+                   background-color: #fafafa; 
+                   display: block; 
+                   width: 95%; 
+                   max-width: 820px; 
+                }}
 
                 .data-table {{ width: 100%; border-collapse: collapse; margin-top: 5px; table-layout: fixed; }}
                 .data-table th {{ background-color: #003366; color: #ffffff; padding: 6px; text-align: left; font-size: 8pt; text-transform: uppercase; }}
                 .data-table td {{ padding: 6px; border-bottom: 1px solid #e2e8f0; font-size: 8pt; color: #334155; word-wrap: break-word; }}
                 .data-table tr:nth-child(even) {{ background-color: #f8fafc; }}
-                
+
                 .metric-table {{ width: 100%; margin-bottom: 20px; border-spacing: 10px; border-collapse: separate; }}
                 .metric-box {{ background: #ffffff; border: 2px solid #f1f5f9; padding: 20px 10px; text-align: center; border-radius: 10px; width: 25%; }}
                 .metric-val {{ font-size: 18pt; font-weight: bold; color: #003366; display: block; }}
                 .metric-lbl {{ font-size: 7.5pt; color: #64748b; text-transform: uppercase; font-weight: 700; margin-top: 8px; display: block; letter-spacing: 0.5px; }}
-                
+
                 .density-badge {{
-                    background-color: #f1f5f9; border: 1px solid #cbd5e1; color: #475569; padding: 3px 8px; border-radius: 6px; font-weight: bold; font-size: 7.5pt; text-transform: uppercase;
+                   background-color: #f1f5f9; border: 1px solid #cbd5e1; color: #475569; padding: 3px 8px; border-radius: 6px; font-weight: bold; font-size: 7.5pt; text-transform: uppercase;
                 }}
 
                 .footer-sign {{ margin-top: 50px; text-align: right; font-size: 10pt; }}
                 .signature-line {{ border-top: 1.5px solid #0f172a; width: 240px; display: inline-block; margin-top: 45px; }}
-                
+
                 .usc-footer {{
-                    margin-top: 40px; border-top: 2px solid #e2e8f0; padding-top: 15px; text-align: center; font-size: 8.5pt; color: #94a3b8;
+                   margin-top: 40px; border-top: 2px solid #e2e8f0; padding-top: 15px; text-align: center; font-size: 8.5pt; color: #94a3b8;
                 }}
-            </style>
-        </head>
-        <body>
-            <div class="usc-header">
+                </style>
+                </head>
+                <body>
+                <div class="usc-header">
                 <p class="usc-logo-text">University of San Carlos</p>
                 <p class="usc-sub-text">Health Services Department - Patient Information System</p>
-            </div>
-            
-            <div class="report-title">{{{{ title }}}}</div>
-
-            <div class="section" style="margin-top: -15px; margin-bottom: 20px;">
-                <div style="font-size: 9pt; color: #475569; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                    <strong>Institutional Reporting Context</strong><br/>
-                    <span style="color: #64748b;">Reporting Period:</span> {{{{ date_range_start|format_date:"%b %d, %Y" }}}} to {{{{ date_range_end|format_date:"%b %d, %Y" }}}}<br/>
-                    <span style="color: #64748b;">Applied Parameters:</span> {{{{ applied_filters|join:", " }}}}
                 </div>
-            </div>
 
-            {{% if visual_charts or charts_base64 %}}
-            <div class="visual-section">
+                <div class="report-title">{{{{ title }}}}</div>
+
+                <div class="section" style="margin-top: -15px; margin-bottom: 20px;">
+                <div style="font-size: 9pt; color: #475569; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                   <strong>Institutional Reporting Context</strong><br/>
+                   <span style="color: #64748b;">Reporting Period:</span> {{{{ date_range_start|format_date:"%b %d, %Y" }}}} to {{{{ date_range_end|format_date:"%b %d, %Y" }}}}<br/>
+                   <span style="color: #64748b;">Applied Parameters:</span> {{{{ applied_filters|join:", " }}}}
+                </div>
+                </div>
+
+                {{% if visual_charts or charts_base64 %}}
+                <div class="visual-section">
                 <div class="section-title">Comparative Analysis & Visual Intelligence</div>
                 <div style="text-align: center;">
-                    {{% for chart_url in visual_charts %}}
-                    <div class="chart-container" style="display: block; width: 95%; max-width: 800px; margin: 15px auto;">
-                        <img src="{{{{ chart_url }}}}" width="100%" />
-                    </div>
-                    {{% endfor %}}
-                    {{% for chart_b64 in charts_base64 %}}
-                    <div class="chart-container" style="display: block; width: 95%; max-width: 800px; margin: 15px auto;">
-                        <img src="{{{{ chart_b64 }}}}" width="100%" />
-                    </div>
-                    {{% endfor %}}
+                   {{% for chart_url in visual_charts %}}
+                   <div class="chart-container">
+                       <img src="{{{{ chart_url }}}}" width="750" height="400" style="display: block; margin: 0 auto;" />
+                   </div>
+                   {{% endfor %}}
+                   {{% for chart_b64 in charts_base64 %}}
+                   <div class="chart-container">
+                       <img src="{{{{ chart_b64 }}}}" width="750" height="400" style="display: block; margin: 0 auto;" />
+                   </div>
+                   {{% endfor %}}
                 </div>
                 <p style="font-size: 8pt; color: #64748b; font-style: italic; text-align: center; margin-top: 10px;">
-                    * Data visualizations generated based on institutional parameters and historical trends.
+                   * Data visualizations generated based on institutional parameters and historical trends.
                 </p>
-            </div>
-            {{% endif %}}
+                </div>
+                {{% endif %}}
 
             {{% if report_focus == 'CLINICAL OPERATIONAL DENSITY' %}}
             <div class="section">
@@ -2709,9 +2719,14 @@ class ReportGenerationService:
         </html>"""
 
     def _generate_chart_url_complex(self, chart_type, labels, datasets, title="Analysis"):
-        """Generate a QuickChart.io URL for embedding complex multi-series charts in reports"""
+        """Generate a QuickChart.io URL for embedding complex multi-series charts in reports (v3 Standard)"""
         import json
         import urllib.parse
+        
+        # Detect if we should use horizontal layout for specific bar charts
+        # If chart_type starts with 'horizontal', we force it
+        is_horizontal = str(chart_type).lower().startswith('horizontal')
+        actual_type = 'bar' if is_horizontal else chart_type
         
         # Limit labels for readability - increased for workshop support
         raw_labels = labels[:60]
@@ -2720,7 +2735,7 @@ class ReportGenerationService:
             if not isinstance(label, str):
                 wrapped_labels.append(label)
                 continue
-            words = label.split(' ')
+            words = str(label).split(' ')
             lines = []
             curr_line = ""
             for word in words:
@@ -2751,8 +2766,8 @@ class ReportGenerationService:
             ]
 
             # For pie/doughnut/single-series bar charts, we need an array of colors for each slice/bar
-            if (chart_type in ['pie', 'doughnut'] and len(datasets) == 1) or \
-               (chart_type == 'bar' and len(datasets) == 1):
+            if (actual_type in ['pie', 'doughnut'] and len(datasets) == 1) or \
+               (actual_type == 'bar' and len(datasets) == 1):
                 bg_colors = [palette[j % len(palette)] for j in range(len(ds_data))]
                 border_colors = [c.replace('0.8', '1') for c in bg_colors]
             else:
@@ -2767,35 +2782,68 @@ class ReportGenerationService:
                 'fill': ds.get('fill', False),
                 'borderDash': ds.get('borderDash', [])
             })
+
         chart_config = {
-            'type': chart_type,
+            'type': actual_type,
             'data': {
                 'labels': labels,
                 'datasets': processed_datasets
             },
             'options': {
-                'title': { 'display': True, 'text': title, 'fontSize': 16, 'fontColor': '#1e293b' },
-                'legend': { 'display': True, 'position': 'bottom' },
-                'layout': { 'padding': 35 },
+                'indexAxis': 'y' if is_horizontal else 'x',
                 'plugins': {
+                    'title': { 
+                        'display': True, 
+                        'text': title, 
+                        'font': { 'size': 16, 'weight': 'bold' }, 
+                        'color': '#1e293b',
+                        'padding': { 'bottom': 20 }
+                    },
+                    'legend': { 
+                        'display': True, 
+                        'position': 'bottom',
+                        'labels': { 'usePointStyle': True, 'padding': 15, 'font': { 'size': 10 } }
+                    },
                     'datalabels': {
                         'anchor': 'end',
-                        'align': 'start',
-                        'offset': 10,
+                        'align': 'right' if is_horizontal else 'start',
+                        'offset': 8 if is_horizontal else 10,
                         'display': 'auto',
-                        'font': { 'weight': 'bold' }
+                        'font': { 'weight': 'bold', 'size': 10 },
+                        'color': '#475569'
                     }
                 },
+                'layout': { 
+                    'padding': { 
+                        'left': 45 if is_horizontal else 35, 
+                        'right': 45, 
+                        'top': 10, 
+                        'bottom': 10 
+                    } 
+                },
                 'scales': {
-                    'yAxes': [{'ticks': {'beginAtZero': True}}],
-                    'xAxes': [{'ticks': {'autoSkip': False, 'maxRotation': 45, 'minRotation': 45}}]
-                } if chart_type not in ['pie', 'doughnut'] else {}
+                    'x': { 
+                        'beginAtZero': True,
+                        'grid': { 'display': True, 'drawBorder': False, 'color': 'rgba(0,0,0,0.05)' },
+                        'ticks': { 'font': { 'size': 9 } }
+                    },
+                    'y': { 
+                        'beginAtZero': True,
+                        'grid': { 'display': not is_horizontal, 'drawBorder': False, 'color': 'rgba(0,0,0,0.05)' },
+                        'ticks': { 
+                            'font': { 'size': 9 },
+                            'mirror': False,
+                            'padding': 12 if is_horizontal else 0
+                        }
+                    }
+                } if actual_type not in ['pie', 'doughnut'] else {}
             }
         }
         
         config_str = json.dumps(chart_config)
         encoded_config = urllib.parse.quote(config_str)
-        return f"https://quickchart.io/chart?c={encoded_config}&w=600&h=350"
+        # Force v3 for latest rendering logic and horizontal support
+        return f"https://quickchart.io/chart?c={encoded_config}&w=750&h=400&v=3"
 
     def collect_report_data(self, report_type, title, date_start=None, date_end=None, filters=None, **kwargs):
         """Standardized data collection for any report type with complex Workshop visualizations"""
@@ -3001,13 +3049,13 @@ class ReportGenerationService:
                         "Longitudinal Interaction Timeline")
                     
                     if data.get('top_diagnoses'):
-                        mapped_charts['top_diagnoses'] = self._generate_chart_url_complex('bar',
+                        mapped_charts['top_diagnoses'] = self._generate_chart_url_complex('horizontalBar',
                             [d.get('name', 'N/A')[:20] for d in data['top_diagnoses'][:8]],
                             [{'label': 'Cases', 'data': [d.get('count', 0) for d in data['top_diagnoses'][:8]]}],
                             "Top Clinical Diagnoses")
                     
                     if data.get('top_treatments'):
-                        mapped_charts['top_treatments'] = self._generate_chart_url_complex('bar',
+                        mapped_charts['top_treatments'] = self._generate_chart_url_complex('horizontalBar',
                             [d.get('name', 'N/A')[:20] for d in data['top_treatments'][:8]],
                             [{'label': 'Treatments', 'data': [d.get('count', 0) for d in data['top_treatments'][:8]]}],
                             "Top Clinical Treatments")
@@ -3020,7 +3068,7 @@ class ReportGenerationService:
 
                 elif rtype in ['CAMPAIGN_PERFORMANCE', 'HEALTH_CAMPAIGN'] and data.get('campaign_performance'):
                     perf = data['campaign_performance']
-                    mapped_charts['campaign_performance'] = self._generate_chart_url_complex('bar', 
+                    mapped_charts['campaign_performance'] = self._generate_chart_url_complex('horizontalBar', 
                         [c.get('title', 'N/A')[:20] for c in perf[:8]], 
                         [
                             {'label': 'Total Views', 'data': [c.get('views', c.get('view_count', 0)) for c in perf[:8]], 'backgroundColor': '#ea580c'}
@@ -3034,7 +3082,7 @@ class ReportGenerationService:
                             "Campaign Category Distribution")
                     
                     if data.get('asset_effectiveness'):
-                        mapped_charts['asset_effectiveness'] = self._generate_chart_url_complex('bar',
+                        mapped_charts['asset_effectiveness'] = self._generate_chart_url_complex('horizontalBar',
                             [d.get('asset_type', 'N/A') for d in data['asset_effectiveness']],
                             [{'label': 'Avg Views', 'data': [d.get('avg_views', 0) for d in data['asset_effectiveness']]}],
                             "Asset Effectiveness Analysis")
@@ -3052,7 +3100,7 @@ class ReportGenerationService:
                     
                     if data.get('service_metrics'):
                         metrics = data['service_metrics']
-                        mapped_charts['service_metrics'] = self._generate_chart_url_complex('bar',
+                        mapped_charts['service_metrics'] = self._generate_chart_url_complex('horizontalBar',
                             ['Would Recommend', 'Provider Courtesy'],
                             [
                                 {'label': 'Yes', 'data': [metrics.get('recommend_yes', 0), metrics.get('courteous_yes', 0)], 'backgroundColor': '#10b981'},
@@ -3068,7 +3116,7 @@ class ReportGenerationService:
 
                 elif rtype in ['MEDICAL_STATISTICS', 'MEDICAL_STATS'] and data.get('top_diagnoses'):
                     diag = data['top_diagnoses']
-                    mapped_charts['top_diagnoses'] = self._generate_chart_url_complex('bar', 
+                    mapped_charts['top_diagnoses'] = self._generate_chart_url_complex('horizontalBar', 
                         [d.get('name', 'N/A')[:25] for d in diag[:10]], 
                         [{'label': 'Frequency', 'data': [d.get('case_count', d.get('count', 0)) for d in diag[:10]]}],
                         "Top Clinical Diagnoses (Medical)")
@@ -3087,7 +3135,7 @@ class ReportGenerationService:
 
                 elif rtype in ['DENTAL_STATISTICS', 'DENTAL_STATS'] and data.get('common_procedures'):
                     proc = data['common_procedures']
-                    mapped_charts['common_procedures'] = self._generate_chart_url_complex('bar', 
+                    mapped_charts['common_procedures'] = self._generate_chart_url_complex('horizontalBar', 
                         [p.get('name', 'N/A')[:25] for p in proc[:10]], 
                         [{'label': 'Frequency', 'data': [p.get('count', 0) for p in proc[:10]]}],
                         "Top Procedural Metrics (Dental)")
@@ -3107,7 +3155,7 @@ class ReportGenerationService:
                 elif rtype in ['TREATMENT_OUTCOMES', 'TREATMENT_OUTCOME']:
                     if data.get('top_diagnoses'):
                         diag = data['top_diagnoses']
-                        mapped_charts['top_diagnoses'] = self._generate_chart_url_complex('bar', 
+                        mapped_charts['top_diagnoses'] = self._generate_chart_url_complex('horizontalBar', 
                             [d.get('name', 'N/A')[:25] for d in diag[:10]], 
                             [{'label': 'Diagnosis Frequency', 'data': [d.get('count', 0) for d in diag[:10]]}],
                             "Clinical Diagnosis Breakdown")
@@ -3118,7 +3166,7 @@ class ReportGenerationService:
                             [{'label': 'Treatment Share', 'data': [t.get('count', 0) for t in treatments[:6]]}],
                             "Treatment Outcomes Distribution")
                     if data.get('recovery_rates'):
-                        mapped_charts['recovery_rates'] = self._generate_chart_url_complex('bar',
+                        mapped_charts['recovery_rates'] = self._generate_chart_url_complex('horizontalBar',
                             [r.get('condition', 'N/A')[:20] for r in data['recovery_rates'][:6]],
                             [{'label': 'Rate', 'data': [r.get('rate', 0) for r in data['recovery_rates'][:6]]}],
                             "Condition Recovery Efficiency")
@@ -3165,7 +3213,7 @@ class ReportGenerationService:
 
                     if data.get('service_metrics'):
                         metrics = data['service_metrics']
-                        mapped_charts['service_metrics'] = self._generate_chart_url_complex('bar',
+                        mapped_charts['service_metrics'] = self._generate_chart_url_complex('horizontalBar',
                             ['Would Recommend', 'Provider Courtesy'],
                             [
                                 {'label': 'Yes', 'data': [metrics.get('recommend_yes', 0), metrics.get('courteous_yes', 0)], 'backgroundColor': '#10b981'},
@@ -3202,7 +3250,7 @@ class ReportGenerationService:
                             "Fitness Determination Distribution")
                     if data.get('purpose_distribution'):
                         dist = data['purpose_distribution']
-                        mapped_charts['purpose_distribution'] = self._generate_chart_url_complex('bar',
+                        mapped_charts['purpose_distribution'] = self._generate_chart_url_complex('horizontalBar',
                             [d.get('name', 'N/A')[:20] for d in dist[:8]],
                             [{'label': 'Certificates Issued', 'data': [d.get('count', 0) for d in dist[:8]]}],
                             "Top Certificate Purposes")

@@ -38,11 +38,18 @@ The USC-PIS Reports System provides comprehensive analytics, operational intelli
 - Programmatically generated charts integrated directly into the PDF with clinical vitals monitoring.
 
 ### 6. Health Campaign Analytics
-- Analysis of reach, engagement, and effectiveness across 13 campaign types.
+- Analysis of reach and effectiveness across 13 campaign types. 
+- *Note: Priority and Engagement metrics have been deprecated in favor of View Count and Performance tiers.*
 
 ### 7. Unified Health History (Patient-Centric)
 - **Engine**: `USCUnifiedHistoryReport`.
 - **Landscape Timeline**: Consolidated view of visits, certificates, and documents.
+
+## Export Engine Hardening (v5.2)
+- **Automatic Column Pruning**: The universal export engine now automatically strips deprecated and technical columns from all formats. 
+    - Removed: `priority`, `engagement_count`, `id`, `usc_id`, `meta`, `timestamp`, `charts_base64`.
+- **Sanitized Output**: Ensures that institutional reports remain clean and focused on clinical/operational value rather than internal database IDs.
+- **Format Synchronization**: Changes applied globally to PDF, HTML, JSON, Excel, and CSV to ensure cross-format data parity.
 
 ## Web Interface Usage
 
@@ -70,6 +77,6 @@ The USC-PIS Reports System provides comprehensive analytics, operational intelli
 
 ---
 
-**Last Updated**: May 30, 2026  
-**Status**: Absolute Access Resilience & Final Branding Verified  
-**Version**: 5.1 (High-Fidelity Workshop Standard)
+**Last Updated**: June 4, 2026  
+**Status**: Absolute Access Resilience & Global Column Hardening Verified  
+**Version**: 5.2 (Clean Export Standard)

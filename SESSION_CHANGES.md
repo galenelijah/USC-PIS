@@ -1,5 +1,48 @@
 ---
 
+# Session Changes (2026-06-04)
+
+This session focused on structural simplification of the campaign system, global data hardening in reports, and enhancing the download accountability framework.
+
+## Key Accomplishments
+- **Campaign System Simplification**:
+  - **Unified Lifecycle**: Removed the redundant **"Active"** status. All campaigns are now primarily **"Posted"**, which serves as the trigger for student visibility and mass notifications.
+  - **Permanent Campaign Support**: Made `start_date` and `end_date` optional. Campaigns without dates are now treated as "Always On" resources, while date-bound campaigns automatically transition to "Completed" when expired.
+  - **Privacy Hardening**: Implemented role-based exclusion for **"Archived"** campaigns, ensuring they are strictly hidden from students, faculty, and public users while remaining accessible to clinical staff for records.
+- **Global Report Hardening (v5.2)**:
+  - **Universal Column Pruning**: Removed the **"Priority"** and **"Engagement Count"** columns from all report types and export templates (PDF, HTML, JSON, Excel, CSV).
+  - **Export Engine Sanitization**: Updated the backend export service to automatically strip technical and deprecated fields (`id`, `usc_id`, `meta`, `priority`) from all downloadable data sheets.
+  - **Database Sync**: Force-updated all 12 institutional report templates in the database to reflect the new hardened schema.
+- **Download Accountability Framework**:
+  - **Real-Time Alerts**: Implemented a new **"DOWNLOAD"** notification type. 
+  - **Comprehensive Coverage**: Users now receive in-app notifications whenever they download a generated report, a patient document (Lab Results/X-Rays), or an issued medical certificate.
+  - **Audit Trail**: All download events are now tracked within the user's notification feed, providing a clear history of data retrieval actions.
+- **Frontend Refinements**:
+  - Updated the **Quality Score** engine to remove penalties for date-less permanent campaigns.
+  - Cleaned up campaign creation and edit dialogs to reflect optional fields and simplified status choices.
+  - Hardened the `isActive` logic across the React SPA to support the new unified lifecycle.
+
+## Modified Files
+- `backend/health_info/models.py` & `serializers.py`: Refactored campaign schema and validation.
+- `backend/health_info/views.py`: Implemented strict ARCHIVED status filtering and unified lifecycle logic.
+- `backend/reports/services.py`: Overhauled universal export engines and report metadata.
+- `backend/notifications/models.py`: Added the new DOWNLOAD notification event.
+- `backend/reports/views.py`, `file_uploads/views.py`, `medical_certificates/views.py`: Integrated download notification triggers.
+- `frontend/src/components/CampaignsPage.jsx` & `StudentCampaigns.jsx`: Aligned UI with optional dates and simplified statuses.
+
+## Rationale
+- **Administrative Efficiency**: Removing redundant campaign states and mandatory date requirements reduces the time required for clinic staff to post permanent health resources.
+- **Institutional Clarity**: Phasing out "Priority" columns from reports ensures that external-facing documents are focused exclusively on clinical data and operational metrics.
+- **Security & Compliance**: The new download notification system provides an extra layer of visibility for sensitive file access, supporting institutional data protection standards.
+
+## Verify Quickly
+- **Campaigns**: Create a campaign without dates and verify it appears as "Posted" in the student gallery.
+- **Archive Test**: Archive a campaign and verify it disappears from a student's view but remains visible to an admin.
+- **Report Columns**: Export any report to Excel and verify that "Priority" and "Engagement Count" are no longer present in the spreadsheet.
+- **Download Alerts**: Download a medical certificate and verify an alert appears in your notification center.
+
+---
+
 # Session Changes (2026-06-03)
 
 This session focused on hardening the USC-PIS reporting and analytics system, ensuring institutional-grade data accuracy, professional export layouts, and seamless multi-format interoperability.

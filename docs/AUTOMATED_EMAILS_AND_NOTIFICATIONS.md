@@ -24,10 +24,15 @@ This document describes every automatic email/notification in USC‑PIS, what tr
   - Templates: `certificate_created`, `certificate_approved`, `certificate_rejected`, `certificate_pending`
   - Recipient: Patient (for status updates) and **DOCTOR/ADMIN** (for pending approvals)
 - Health Campaigns
-  - Trigger: New campaign created or status changed to ACTIVE (Django signal)
+  - Trigger: New campaign created or status changed to POSTED (Django signal)
   - Code: `health_info.models.health_campaign_notification`
   - Template: `HEALTH_CAMPAIGN`
-  - Recipient: **ADMIN/STAFF** (for review of new campaigns) and Patients (when activated)
+  - Recipient: **ADMIN/STAFF** (for review of new campaigns) and Patients (when posted)
+- File Downloads
+  - Trigger: User downloads a Report, Patient Document, or Medical Certificate
+  - Code: Triggered in `reports/views.py`, `file_uploads/views.py`, and `medical_certificates/views.py`
+  - Notification Type: `DOWNLOAD` (In-App only)
+  - Recipient: The user performing the download (for confirmation/audit)
 - Feedback Requests (Medical)
   - Trigger: MedicalRecord created (Django signal)
   - Code: `patients/signals.schedule_feedback_email_medical`
