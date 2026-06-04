@@ -2420,6 +2420,36 @@ class ReportGenerationService:
                 </table>
             </div>
 
+            <div class="section">
+                <div class="section-title">Hourly Traffic Density & Workload Classification</div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th width="40%">Operational Hour Block</th>
+                            <th width="30%">Patient Interactions</th>
+                            <th width="30%">Intensity Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{% for entry in hourly_traffic_density %}}
+                        <tr>
+                            <td style="vertical-align: top;"><strong>{{{{ entry.hour }}}}:00 - {{{{ entry.hour }}}}:59</strong></td>
+                            <td style="vertical-align: top;">{{{{ entry.count }}}} interactions</td>
+                            <td style="vertical-align: top;">
+                                {{% if entry.count >= 10 %}}
+                                    <span class="density-badge" style="background-color: #fee2e2; color: #991b1b;">PEAK INTENSITY</span>
+                                {{% elif entry.count >= 5 %}}
+                                    <span class="density-badge" style="background-color: #fff7ed; color: #9a3412;">HEAVY FLOW</span>
+                                {{% else %}}
+                                    <span class="density-badge" style="background-color: #f0fdf4; color: #166534;">STABLE OPERATIONS</span>
+                                {{% endif %}}
+                            </td>
+                        </tr>
+                        {{% endfor %}}
+                    </tbody>
+                </table>
+            </div>
+
             {{% elif report_type == "MEDICAL_CERTIFICATE" %}}
             <div class="section">
                 <div class="section-title">Certification Issuance Summary</div>
