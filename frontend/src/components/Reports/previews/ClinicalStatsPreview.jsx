@@ -64,10 +64,14 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
 
   // Domain Specific Filters (Clinical Dimensions)
   const [selectedDiagnoses, setSelectedDiagnoses] = useState([]);
-  const [campusFilter, setCampusFilter] = useState('all');
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [yearLevelFilter, setYearLevelFilter] = useState('all');
+  const [selectedCampuses, setSelectedCampuses] = useState([]);
+  const [selectedRoles, setSelectedRoles] = useState([]);
+  const [selectedYearLevels, setSelectedYearLevels] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const campusOptions = ['Talamban', 'Downtown'];
+  const roleOptions = ['STUDENT', 'FACULTY'];
+  const yearLevelOptions = ['1', '2', '3', '4', '5', '6'];
 
   const chartRef = React.useRef(null);
 
@@ -97,9 +101,9 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
 
       if (isModal) {
         if (selectedDiagnoses.length > 0) params.diagnosis = selectedDiagnoses.join(',');
-        if (campusFilter !== 'all') params.campus = campusFilter;
-        if (roleFilter !== 'all') params.role = roleFilter;
-        if (yearLevelFilter !== 'all') params.year_level = yearLevelFilter;
+        if (selectedCampuses.length > 0) params.campus = selectedCampuses.join(',');
+        if (selectedRoles.length > 0) params.role = selectedRoles.join(',');
+        if (selectedYearLevels.length > 0) params.year_level = selectedYearLevels.join(',');
         if (searchQuery) params.search = searchQuery;
       }
 
@@ -111,11 +115,11 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedDiagnoses, campusFilter, roleFilter, yearLevelFilter, searchQuery]);
+  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedDiagnoses, selectedCampuses, selectedRoles, selectedYearLevels, searchQuery]);
 
   useEffect(() => {
     fetchAnalytics(openModal);
-  }, [openModal, fetchAnalytics]);
+  }, [openModal, fetchAnalytics, selectedCampuses, selectedRoles, selectedYearLevels]);
 
   const handleGenerateReport = async (format = 'PDF') => {
     try {
@@ -123,20 +127,21 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
       setError(null);
       
       const payload = {
-        title: `Clinical Diagnostic Density Report - ${new Date().toLocaleDateString()}`,
+        title: `Clinical Diagnostic Workshop - ${new Date().toLocaleDateString()}`,
         export_format: format,
         date_range: modalDateRange,
         date_range_start: modalDateRange === 'custom' ? modalStartDate : undefined,
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
           diagnosis: selectedDiagnoses,
-          campus: campusFilter !== 'all' ? [campusFilter] : undefined,
-          role: roleFilter !== 'all' ? roleFilter : undefined,
-          year_level: yearLevelFilter !== 'all' ? yearLevelFilter : undefined,
+          campus: selectedCampuses,
+          role: selectedRoles,
+          year_level: selectedYearLevels,
           search: searchQuery || undefined,
           charts_base64: chartRef.current ? [chartRef.current.toBase64Image()] : []
         }
       };
+
 
       // ID 4 is the Clinical Diagnostic Report template
       const response = await reportService.generateReport(4, payload).catch(async (err) => {
@@ -318,7 +323,6 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
             <Grid item xs={12} sm={5}>
               <Autocomplete
                 multiple
-                limitTags={2}
                 size="small"
                 options={diagnosisOptions}
                 value={selectedDiagnoses}
@@ -333,14 +337,20 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
               />
             </Grid>
             <Grid item xs={12} sm={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Campus Location</InputLabel>
-                <Select value={campusFilter} label="Campus Location" onChange={(e) => setCampusFilter(e.target.value)}>
-                  <MenuItem value="all">Unified Medical Records</MenuItem>
-                  <MenuItem value="Talamban">Talamban Health Clinic</MenuItem>
-                  <MenuItem value="Downtown">Downtown Health Clinic</MenuItem>
-                </Select>
-              </FormControl>
+              <Autocomplete
+                multiple
+                size="small"
+                options={campusOptions}
+                value={selectedCampuses}
+                onChange={(e, v) => setSelectedCampuses(v)}
+                renderTags={(tagValue, getTagProps) =>
+                  tagValue.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return <Chip key={key} label={option} size="small" color="primary" {...tagProps} />;
+                  })
+                }
+                renderInput={(params) => <TextField {...params} label="Campus Location" variant="outlined" />}
+              />
             </Grid>
             <Grid item xs={12} sm={4}>
               <FormControl fullWidth size="small">
@@ -358,34 +368,44 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
 
           {/* FILTERS ROW 2 (Clinical & Demographics) */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Patient Role</InputLabel>
-                <Select value={roleFilter} label="Patient Role" onChange={(e) => setRoleFilter(e.target.value)}>
-                  <MenuItem value="all">All Roles</MenuItem>
-                  <MenuItem value="STUDENT">Student</MenuItem>
-                  <MenuItem value="FACULTY">Faculty</MenuItem>
-                </Select>
-              </FormControl>
+            <Grid item xs={12} sm={4}>
+              <Autocomplete
+                multiple
+                size="small"
+                options={roleOptions}
+                value={selectedRoles}
+                onChange={(e, v) => setSelectedRoles(v)}
+                renderTags={(tagValue, getTagProps) =>
+                  tagValue.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return <Chip key={key} label={option} size="small" sx={{ bgcolor: '#ede9fe', color: '#5b21b6' }} {...tagProps} />;
+                  })
+                }
+                renderInput={(params) => <TextField {...params} label="Patient Role" variant="outlined" />}
+              />
             </Grid>
-            <Grid item xs={12} sm={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Year Level</InputLabel>
-                <Select value={yearLevelFilter} label="Year Level" onChange={(e) => setYearLevelFilter(e.target.value)}>
-                  <MenuItem value="all">All Years</MenuItem>
-                  {['1', '2', '3', '4', '5'].map(y => (
-                    <MenuItem key={y} value={y}>{y}{y === '1' ? 'st' : y === '2' ? 'nd' : y === '3' ? 'rd' : 'th'} Year</MenuItem>
-                  ))}
-                  <MenuItem value="6">Batch X</MenuItem>
-                </Select>
-              </FormControl>
+            <Grid item xs={12} sm={4}>
+              <Autocomplete
+                multiple
+                size="small"
+                options={yearLevelOptions}
+                value={selectedYearLevels}
+                onChange={(e, v) => setSelectedYearLevels(v)}
+                renderTags={(tagValue, getTagProps) =>
+                  tagValue.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return <Chip key={key} label={`${option}${option === '1' ? 'st' : option === '2' ? 'nd' : option === '3' ? 'rd' : 'th'} Year`} size="small" variant="outlined" {...tagProps} />;
+                  })
+                }
+                renderInput={(params) => <TextField {...params} label="Year Level" variant="outlined" />}
+              />
             </Grid>
             {modalDateRange === 'custom' && (
               <>
-                <Grid item xs={12} sm={3}>
+                <Grid item xs={12} sm={2}>
                   <TextField fullWidth type="date" label="Start" size="small" value={modalStartDate} onChange={(e) => setModalStartDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ max: modalEndDate || getTodayString() }} />
                 </Grid>
-                <Grid item xs={12} sm={3}>
+                <Grid item xs={12} sm={2}>
                   <TextField fullWidth type="date" label="End" size="small" value={modalEndDate} onChange={(e) => setModalEndDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ min: modalStartDate, max: getTodayString() }} />
                 </Grid>
               </>

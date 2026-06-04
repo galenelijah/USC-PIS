@@ -1112,11 +1112,19 @@ class ReportDataService:
 
             campaign_type = filters.get('campaign_type') or filters.get('category')
             if campaign_type:
-                queryset = queryset.filter(campaign_type=campaign_type)
+                if isinstance(campaign_type, str): 
+                    type_list = [t.strip() for t in campaign_type.split(',')]
+                    queryset = queryset.filter(campaign_type__in=type_list)
+                else:
+                    queryset = queryset.filter(campaign_type=campaign_type)
 
             status = filters.get('status')
             if status:
-                queryset = queryset.filter(status=status)
+                if isinstance(status, str):
+                    status_list = [s.strip() for s in status.split(',')]
+                    queryset = queryset.filter(status__in=status_list)
+                else:
+                    queryset = queryset.filter(status=status)
 
             min_views = filters.get('min_views')
             if min_views:
@@ -1634,14 +1642,31 @@ class ReportDataService:
 
             # Domain specific filters
             if filters.get('fitness_status'):
-                certs = certs.filter(fitness_status=filters['fitness_status'])
+                fs = filters['fitness_status']
+                if isinstance(fs, str):
+                    fs_list = [s.strip() for s in fs.split(',')]
+                    certs = certs.filter(fitness_status__in=fs_list)
+                else:
+                    certs = certs.filter(fitness_status=fs)
+
             if filters.get('issuance_status'):
-                certs = certs.filter(issuance_status=filters['issuance_status'])
+                iss = filters['issuance_status']
+                if isinstance(iss, str):
+                    iss_list = [s.strip() for s in iss.split(',')]
+                    certs = certs.filter(issuance_status__in=iss_list)
+                else:
+                    certs = certs.filter(issuance_status=iss)
+
             if filters.get('template'):
                 certs = certs.filter(template__name=filters['template'])
+
             if filters.get('doctor'):
-                doctor_name = filters['doctor']
-                certs = certs.filter(issuing_doctor__last_name=doctor_name)
+                doctor_names = filters['doctor']
+                if isinstance(doctor_names, str):
+                    doc_list = [d.strip() for d in doctor_names.split(',')]
+                    certs = certs.filter(issuing_doctor__last_name__in=doc_list)
+                else:
+                    certs = certs.filter(issuing_doctor__last_name=doctor_names)
 
             # 1. Fitness Distribution
             fitness_counts = certs.values('fitness_status').annotate(count=Count('id'))
@@ -1725,13 +1750,31 @@ class ReportDataService:
 
             # Domain specific filters
             if filters.get('fitness_status'):
-                queryset = queryset.filter(fitness_status=filters['fitness_status'])
+                fs = filters['fitness_status']
+                if isinstance(fs, str):
+                    fs_list = [s.strip() for s in fs.split(',')]
+                    queryset = queryset.filter(fitness_status__in=fs_list)
+                else:
+                    queryset = queryset.filter(fitness_status=fs)
+
             if filters.get('issuance_status'):
-                queryset = queryset.filter(issuance_status=filters['issuance_status'])
+                iss = filters['issuance_status']
+                if isinstance(iss, str):
+                    iss_list = [s.strip() for s in iss.split(',')]
+                    queryset = queryset.filter(issuance_status__in=iss_list)
+                else:
+                    queryset = queryset.filter(issuance_status=iss)
+
             if filters.get('template'):
                 queryset = queryset.filter(template__name=filters['template'])
+
             if filters.get('doctor'):
-                queryset = queryset.filter(issuing_doctor__last_name=filters['doctor'])
+                doctor_names = filters['doctor']
+                if isinstance(doctor_names, str):
+                    doc_list = [d.strip() for d in doctor_names.split(',')]
+                    queryset = queryset.filter(issuing_doctor__last_name__in=doc_list)
+                else:
+                    queryset = queryset.filter(issuing_doctor__last_name=doctor_names)
 
             if filters.get('search'):
                 from django.db.models import Q
@@ -1863,11 +1906,15 @@ class ReportDataService:
                 # Standardized service/visit type filtering
                 s_type = filters.get('service_type') or filters.get('visit_type')
                 if s_type:
-                    s_type = s_type.upper()
-                    if s_type == 'MEDICAL':
+                    s_types = [s.strip().upper() for s in s_type.split(',')]
+                    if 'MEDICAL' in s_types and 'DENTAL' not in s_types:
                         dental_records = dental_records.none()
-                    elif s_type == 'DENTAL':
+                    elif 'DENTAL' in s_types and 'MEDICAL' not in s_types:
                         medical_records = medical_records.none()
+                    elif not any(s in ['MEDICAL', 'DENTAL'] for s in s_types):
+                        # Handle cases where neither MEDICAL nor DENTAL is selected
+                        medical_records = medical_records.none()
+                        dental_records = dental_records.none()
 
                 if filters.get('search'):
                     medical_records = medical_records.filter(diagnosis__icontains=filters['search'])

@@ -66,12 +66,19 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
   // Modal Internal Independent Filtering Controls
   const [openModal, setOpenModal] = useState(false);
   const [selectedCampaigns, setSelectedCampaigns] = useState([]); 
+  const [selectedStatuses, setSelectedStatuses] = useState([]);
+  const [selectedTypes, setSelectedTypes] = useState([]);
   const [minViewsFilter, setMinViewsFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
   const [modalDateRange, setModalDateRange] = useState('all'); 
   const [modalStartDate, setModalStartDate] = useState('');
   const [modalEndDate, setModalEndDate] = useState('');
+
+  const statusOptions = ['POSTED', 'COMPLETED', 'ARCHIVED'];
+  const campaignTypeOptions = [
+    'GENERAL', 'VACCINATION', 'MENTAL_HEALTH', 'NUTRITION', 
+    'DENTAL_HEALTH', 'HYGIENE', 'EXERCISE', 'SAFETY', 
+    'PREVENTION', 'AWARENESS', 'EMERGENCY', 'SEASONAL', 'CUSTOM'
+  ];
 
   const [sortField, setSortField] = useState('created_at');
   const [sortDirection, setSortDirection] = useState('desc');
@@ -124,8 +131,8 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
           date_end: modalDateRange === 'custom' ? modalEndDate : undefined,
           campaign_titles: selectedCampaigns.length > 0 ? selectedCampaigns.join(',') : undefined,
           min_views: minViewsFilter || undefined,
-          status: statusFilter || undefined,
-          campaign_type: typeFilter || undefined,
+          status: selectedStatuses.length > 0 ? selectedStatuses.join(',') : undefined,
+          campaign_type: selectedTypes.length > 0 ? selectedTypes.join(',') : undefined,
           search: searchQuery || undefined
         } : {
           date_range: dateRange,
@@ -153,7 +160,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
       }
     };
     fetchCampaignData();
-  }, [openModal, dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedCampaigns, minViewsFilter, statusFilter, typeFilter, searchQuery]);
+  }, [openModal, dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedCampaigns, minViewsFilter, selectedStatuses, selectedTypes, searchQuery]);
 
   const sortDataList = (list) => {
     return list.sort((a, b) => {
@@ -377,45 +384,37 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
 
           {/* FILTERS ROW 2 (Extra Filters) */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Status</InputLabel>
-                <Select 
-                  value={statusFilter} 
-                  label="Status" 
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                  <MenuItem value="">All Statuses</MenuItem>
-                  <MenuItem value="POSTED">Posted</MenuItem>
-                  <MenuItem value="COMPLETED">Completed</MenuItem>
-                  <MenuItem value="ARCHIVED">Archived</MenuItem>
-                </Select>
-              </FormControl>
+            <Grid item xs={12} sm={4}>
+              <Autocomplete
+                multiple
+                size="small"
+                options={statusOptions}
+                value={selectedStatuses}
+                onChange={(e, v) => setSelectedStatuses(v)}
+                renderTags={(tagValue, getTagProps) =>
+                  tagValue.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return <Chip key={key} label={option} size="small" sx={{ bgcolor: '#e0f2fe', color: '#0369a1' }} {...tagProps} />;
+                  })
+                }
+                renderInput={(params) => <TextField {...params} label="Filter Status" variant="outlined" />}
+              />
             </Grid>
-            <Grid item xs={12} sm={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Campaign Type</InputLabel>
-                <Select 
-                  value={typeFilter} 
-                  label="Campaign Type" 
-                  onChange={(e) => setTypeFilter(e.target.value)}
-                >
-                  <MenuItem value="">All Types</MenuItem>
-                  <MenuItem value="GENERAL">General Health</MenuItem>
-                  <MenuItem value="VACCINATION">Vaccination</MenuItem>
-                  <MenuItem value="MENTAL_HEALTH">Mental Health</MenuItem>
-                  <MenuItem value="NUTRITION">Nutrition & Wellness</MenuItem>
-                  <MenuItem value="DENTAL_HEALTH">Dental Health</MenuItem>
-                  <MenuItem value="HYGIENE">Hygiene</MenuItem>
-                  <MenuItem value="EXERCISE">Exercise</MenuItem>
-                  <MenuItem value="SAFETY">Safety</MenuItem>
-                  <MenuItem value="PREVENTION">Prevention</MenuItem>
-                  <MenuItem value="AWARENESS">Awareness</MenuItem>
-                  <MenuItem value="EMERGENCY">Emergency</MenuItem>
-                  <MenuItem value="SEASONAL">Seasonal</MenuItem>
-                  <MenuItem value="CUSTOM">Custom</MenuItem>
-                </Select>
-              </FormControl>
+            <Grid item xs={12} sm={4}>
+              <Autocomplete
+                multiple
+                size="small"
+                options={campaignTypeOptions}
+                value={selectedTypes}
+                onChange={(e, v) => setSelectedTypes(v)}
+                renderTags={(tagValue, getTagProps) =>
+                  tagValue.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return <Chip key={key} label={option} size="small" sx={{ bgcolor: '#f0fdf4', color: '#166534' }} {...tagProps} />;
+                  })
+                }
+                renderInput={(params) => <TextField {...params} label="Filter Campaign Type" variant="outlined" />}
+              />
             </Grid>
             {modalDateRange === 'custom' && (
               <>

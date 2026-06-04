@@ -59,10 +59,11 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
   // Domain Specific Filters (Trends Dimensions)
   const [viewType, setViewType] = useState('line'); // 'line' vs 'area'
   const [selectedCampuses, setSelectedCampuses] = useState([]);
-  const [streamFilter, setStreamFilter] = useState('all'); // 'all', 'medical', 'dental'
+  const [selectedStreams, setSelectedStreams] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   const campusOptions = ['Talamban Campus (TC)', 'Downtown Campus (DC)'];
+  const streamOptions = ['MEDICAL', 'DENTAL'];
 
   const [sortField, setSortField] = useState('month');
   const [sortDirection, setSortDirection] = useState('desc');
@@ -90,7 +91,7 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
 
       if (isModal) {
         if (selectedCampuses.length > 0) params.campus = selectedCampuses.join(',');
-        if (streamFilter !== 'all') params.service_type = streamFilter;
+        if (selectedStreams.length > 0) params.service_type = selectedStreams.join(',');
       }
 
       const response = await reportService.getDashboardAnalytics(params);
@@ -120,7 +121,7 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
           campus: selectedCampuses.length > 0 ? selectedCampuses : undefined,
-          service_type: streamFilter !== 'all' ? streamFilter : undefined
+          service_type: selectedStreams.length > 0 ? selectedStreams : undefined
         }
       };
 
@@ -147,7 +148,7 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
   const chartData = {
     labels: data?.visits?.monthly?.map(m => m.month) || [],
     datasets: [
-      ...(streamFilter === 'all' ? [{
+      ...(selectedStreams.length === 0 || selectedStreams.length === 2 ? [{
         label: 'Aggregate Trends',
         data: data?.visits?.monthly?.map(m => m.total_visits) || [],
         borderColor: '#1e293b',
@@ -159,7 +160,7 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
         tension: 0.4,
         fill: viewType === 'area',
       }] : []),
-      ...(streamFilter === 'all' || streamFilter === 'medical' ? [{
+      ...(selectedStreams.length === 0 || selectedStreams.includes('MEDICAL') ? [{
         label: 'Medical Consultations',
         data: data?.visits?.monthly?.map(m => m.medical_visits) || [],
         borderColor: '#2563eb',
@@ -173,7 +174,7 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
         tension: 0.4,
         fill: viewType === 'area',
       }] : []),
-      ...(streamFilter === 'all' || streamFilter === 'dental' ? [{
+      ...(selectedStreams.length === 0 || selectedStreams.includes('DENTAL') ? [{
         label: 'Dental Procedures',
         data: data?.visits?.monthly?.map(m => m.dental_visits) || [],
         borderColor: '#7c3aed',
@@ -334,15 +335,21 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
                 renderInput={(params) => <TextField {...params} label="Campus Location" variant="outlined" />}
               />
             </Grid>
-            <Grid item xs={12} sm={2}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Clinical Stream</InputLabel>
-                <Select value={streamFilter} label="Clinical Stream" onChange={(e) => setStreamFilter(e.target.value)}>
-                  <MenuItem value="all">Medical + Dental</MenuItem>
-                  <MenuItem value="medical">Medical Only</MenuItem>
-                  <MenuItem value="dental">Dental Only</MenuItem>
-                </Select>
-              </FormControl>
+            <Grid item xs={12} sm={3}>
+              <Autocomplete
+                multiple
+                size="small"
+                options={streamOptions}
+                value={selectedStreams}
+                onChange={(e, v) => setSelectedStreams(v)}
+                renderTags={(tagValue, getTagProps) =>
+                  tagValue.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return <Chip key={key} label={option} size="small" color="primary" {...tagProps} />;
+                  })
+                }
+                renderInput={(params) => <TextField {...params} label="Clinical Stream" variant="outlined" />}
+              />
             </Grid>
             <Grid item xs={12} sm={3}>
               <FormControl fullWidth size="small">

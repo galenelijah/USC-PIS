@@ -66,11 +66,13 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
   // Domain Specific Filters (Dental Dimensions)
   const [selectedProcedures, setSelectedProcedures] = useState([]);
   const [selectedCampuses, setSelectedCampuses] = useState([]);
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [yearLevelFilter, setYearLevelFilter] = useState('all');
+  const [selectedRoles, setSelectedRoles] = useState([]);
+  const [selectedYearLevels, setSelectedYearLevels] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   const campusOptions = ['Talamban Campus (TC)', 'Downtown Campus (DC)'];
+  const roleOptions = ['STUDENT', 'FACULTY'];
+  const yearLevelOptions = ['1', '2', '3', '4', '5', '6'];
 
   const chartRef = React.useRef(null);
 
@@ -101,8 +103,8 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
       if (isModal) {
         if (selectedProcedures.length > 0) params.procedure = selectedProcedures.join(',');
         if (selectedCampuses.length > 0) params.campus = selectedCampuses.join(',');
-        if (roleFilter !== 'all') params.role = roleFilter;
-        if (yearLevelFilter !== 'all') params.year_level = yearLevelFilter;
+        if (selectedRoles.length > 0) params.role = selectedRoles.join(',');
+        if (selectedYearLevels.length > 0) params.year_level = selectedYearLevels.join(',');
         if (searchQuery) params.search = searchQuery;
       }
 
@@ -114,11 +116,11 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedProcedures, selectedCampuses, roleFilter, yearLevelFilter, searchQuery]);
+  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedProcedures, selectedCampuses, selectedRoles, selectedYearLevels, searchQuery]);
 
   useEffect(() => {
     fetchAnalytics(openModal);
-  }, [openModal, fetchAnalytics]);
+  }, [openModal, fetchAnalytics, selectedRoles, selectedYearLevels]);
 
   const handleGenerateReport = async (format = 'PDF') => {
     try {
@@ -134,8 +136,8 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
         filters: {
           procedure: selectedProcedures,
           campus: selectedCampuses.length > 0 ? selectedCampuses : undefined,
-          role: roleFilter !== 'all' ? roleFilter : undefined,
-          year_level: yearLevelFilter !== 'all' ? yearLevelFilter : undefined,
+          role: selectedRoles.length > 0 ? selectedRoles : undefined,
+          year_level: selectedYearLevels.length > 0 ? selectedYearLevels : undefined,
           search: searchQuery || undefined,
           charts_base64: chartRef.current ? [chartRef.current.toBase64Image()] : []
         }
@@ -364,30 +366,37 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
 
           {/* FILTERS ROW 2 (Clinical & Demographics) */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Patient Role</InputLabel>
-                <Select value={roleFilter} label="Patient Role" onChange={(e) => setRoleFilter(e.target.value)}>
-                  <MenuItem value="all">All Roles</MenuItem>
-                  <MenuItem value="STUDENT">Student</MenuItem>
-                  <MenuItem value="FACULTY">Faculty</MenuItem>
-                </Select>
-              </FormControl>
+            <Grid item xs={12} sm={4}>
+              <Autocomplete
+                multiple
+                size="small"
+                options={roleOptions}
+                value={selectedRoles}
+                onChange={(e, v) => setSelectedRoles(v)}
+                renderTags={(tagValue, getTagProps) =>
+                  tagValue.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return <Chip key={key} label={option} size="small" sx={{ bgcolor: '#ede9fe', color: '#5b21b6' }} {...tagProps} />;
+                  })
+                }
+                renderInput={(params) => <TextField {...params} label="Patient Role" variant="outlined" />}
+              />
             </Grid>
-            <Grid item xs={12} sm={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Year Level</InputLabel>
-                <Select value={yearLevelFilter} label="Year Level" onChange={(e) => setYearLevelFilter(e.target.value)}>
-                  <MenuItem value="all">All Years</MenuItem>
-                  {['1', '2', '3', '4', '5'].map(y => (
-                    <MenuItem key={y} value={y}>{y}{y === '1' ? 'st' : y === '2' ? 'nd' : y === '3' ? 'rd' : 'th'} Year</MenuItem>
-                  ))}
-                  <MenuItem value="6">Batch X</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              {/* Optional: Add search bar here if desired, or padding */}
+            <Grid item xs={12} sm={4}>
+              <Autocomplete
+                multiple
+                size="small"
+                options={yearLevelOptions}
+                value={selectedYearLevels}
+                onChange={(e, v) => setSelectedYearLevels(v)}
+                renderTags={(tagValue, getTagProps) =>
+                  tagValue.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return <Chip key={key} label={`${option}${option === '1' ? 'st' : option === '2' ? 'nd' : option === '3' ? 'rd' : 'th'} Year`} size="small" variant="outlined" {...tagProps} />;
+                  })
+                }
+                renderInput={(params) => <TextField {...params} label="Year Level" variant="outlined" />}
+              />
             </Grid>
           </Grid>
 

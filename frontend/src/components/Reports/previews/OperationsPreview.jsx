@@ -59,11 +59,13 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
 
   // Domain Specific Filters (Operations Dimensions)
   const [selectedCampuses, setSelectedCampuses] = useState([]);
-  const [serviceType, setServiceType] = useState('all'); // 'all', 'medical', 'dental'
-  const [workloadClass, setWorkloadClass] = useState('all'); // 'all', 'peak', 'moderate', 'low'
+  const [selectedServices, setSelectedServices] = useState([]);
+  const [selectedWorkloads, setSelectedWorkloads] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   const campusOptions = ['Talamban Campus (TC)', 'Downtown Campus (DC)'];
+  const serviceOptions = ['MEDICAL', 'DENTAL'];
+  const workloadOptions = ['peak', 'heavy', 'moderate', 'light'];
 
   const [sortField, setSortField] = useState('hour');
   const [sortDirection, setSortDirection] = useState('asc');
@@ -94,8 +96,8 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
 
       if (isModal) {
         if (selectedCampuses.length > 0) params.campus = selectedCampuses.join(',');
-        if (serviceType !== 'all') params.service_type = serviceType;
-        if (workloadClass !== 'all') params.workload_class = workloadClass;
+        if (selectedServices.length > 0) params.service_type = selectedServices.join(',');
+        if (selectedWorkloads.length > 0) params.workload_class = selectedWorkloads.join(',');
       }
 
       const response = await reportService.getDashboardAnalytics(params);
@@ -106,11 +108,11 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedCampuses, serviceType, workloadClass]);
+  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedCampuses, selectedServices, selectedWorkloads]);
 
   useEffect(() => {
     fetchAnalytics(openModal);
-  }, [openModal, fetchAnalytics]);
+  }, [openModal, fetchAnalytics, selectedServices, selectedWorkloads]);
 
   const handleGenerateReport = async (format = 'PDF') => {
     try {
@@ -125,8 +127,8 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
           campus: selectedCampuses.length > 0 ? selectedCampuses : undefined,
-          service_type: serviceType !== 'all' ? serviceType : undefined,
-          workload_class: workloadClass !== 'all' ? workloadClass : undefined,
+          service_type: selectedServices.length > 0 ? selectedServices : undefined,
+          workload_class: selectedWorkloads.length > 0 ? selectedWorkloads : undefined,
           include_peak_hours: true,
           include_demographics: true
         }
@@ -343,29 +345,39 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
                 renderInput={(params) => <TextField {...params} label="Campus Location" variant="outlined" />}
               />
             </Grid>
-            <Grid item xs={12} sm={2}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Service Stream</InputLabel>
-                <Select value={serviceType} label="Service Stream" onChange={(e) => setServiceType(e.target.value)}>
-                  <MenuItem value="all">Unified Clinic</MenuItem>
-                  <MenuItem value="medical">Medical</MenuItem>
-                  <MenuItem value="dental">Dental</MenuItem>
-                </Select>
-              </FormControl>
+            <Grid item xs={12} sm={3}>
+              <Autocomplete
+                multiple
+                size="small"
+                options={serviceOptions}
+                value={selectedServices}
+                onChange={(e, v) => setSelectedServices(v)}
+                renderTags={(tagValue, getTagProps) =>
+                  tagValue.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return <Chip key={key} label={option} size="small" color="primary" {...tagProps} />;
+                  })
+                }
+                renderInput={(params) => <TextField {...params} label="Service Stream" variant="outlined" />}
+              />
             </Grid>
             <Grid item xs={12} sm={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Workload Intensity</InputLabel>
-                <Select value={workloadClass} label="Workload Intensity" onChange={(e) => setWorkloadClass(e.target.value)}>
-                  <MenuItem value="all">All Traffic Levels</MenuItem>
-                  <MenuItem value="peak">Peak Intensity (10+)</MenuItem>
-                  <MenuItem value="heavy">Heavy Intensity (5-9)</MenuItem>
-                  <MenuItem value="moderate">Moderate Intensity (2-4)</MenuItem>
-                  <MenuItem value="light">Light (0-1)</MenuItem>
-                </Select>
-              </FormControl>
+              <Autocomplete
+                multiple
+                size="small"
+                options={workloadOptions}
+                value={selectedWorkloads}
+                onChange={(e, v) => setSelectedWorkloads(v)}
+                renderTags={(tagValue, getTagProps) =>
+                  tagValue.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return <Chip key={key} label={option} size="small" sx={{ bgcolor: '#fff7ed', color: '#9a3412' }} {...tagProps} />;
+                  })
+                }
+                renderInput={(params) => <TextField {...params} label="Workload Intensity" variant="outlined" />}
+              />
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={3}>
               <FormControl fullWidth size="small">
                 <InputLabel>Reporting Scope</InputLabel>
                 <Select value={modalDateRange} label="Reporting Scope" onChange={(e) => setModalDateRange(e.target.value)}>

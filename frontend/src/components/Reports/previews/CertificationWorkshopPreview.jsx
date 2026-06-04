@@ -65,15 +65,19 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
   const [modalEndDate, setModalEndDate] = useState('');
 
   // Domain Specific Filters
-  const [fitnessFilter, setFitnessFilter] = useState('all');
-  const [issuanceFilter, setIssuanceFilter] = useState('all');
+  const [selectedFitness, setSelectedFitness] = useState([]);
+  const [selectedIssuance, setSelectedIssuance] = useState([]);
   const [doctorFilter, setDoctorFilter] = useState('all');
   const [selectedCampuses, setSelectedCampuses] = useState([]);
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [yearLevelFilter, setYearLevelFilter] = useState('all');
+  const [selectedRoles, setSelectedRoles] = useState([]);
+  const [selectedYearLevels, setSelectedYearLevels] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const fitnessOptions = ['fit', 'unfit', 'pending'];
+  const issuanceOptions = ['pending', 'issued', 'rejected'];
   const campusOptions = ['Talamban Campus (TC)', 'Downtown Campus (DC)'];
+  const roleOptions = ['STUDENT', 'FACULTY'];
+  const yearLevelOptions = ['1', '2', '3', '4', '5', '6'];
 
   const chartRef = React.useRef(null);
 
@@ -98,12 +102,12 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
       };
 
       if (isModal) {
-        if (fitnessFilter !== 'all') params.fitness_status = fitnessFilter;
-        if (issuanceFilter !== 'all') params.issuance_status = issuanceFilter;
+        if (selectedFitness.length > 0) params.fitness_status = selectedFitness.join(',');
+        if (selectedIssuance.length > 0) params.issuance_status = selectedIssuance.join(',');
         if (doctorFilter !== 'all') params.doctor = doctorFilter;
         if (selectedCampuses.length > 0) params.campus = selectedCampuses.join(',');
-        if (roleFilter !== 'all') params.role = roleFilter;
-        if (yearLevelFilter !== 'all') params.year_level = yearLevelFilter;
+        if (selectedRoles.length > 0) params.role = selectedRoles.join(',');
+        if (selectedYearLevels.length > 0) params.year_level = selectedYearLevels.join(',');
         if (searchQuery) params.search = searchQuery;
       }
 
@@ -115,11 +119,11 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [modalDateRange, dateRange, modalStartDate, customStart, modalEndDate, customEnd, fitnessFilter, issuanceFilter, doctorFilter, selectedCampuses, roleFilter, yearLevelFilter, searchQuery]);
+  }, [modalDateRange, dateRange, modalStartDate, customStart, modalEndDate, customEnd, selectedFitness, selectedIssuance, doctorFilter, selectedCampuses, selectedRoles, selectedYearLevels, searchQuery]);
 
   useEffect(() => {
     fetchAnalytics(openModal);
-  }, [openModal, fetchAnalytics]);
+  }, [openModal, fetchAnalytics, selectedFitness, selectedIssuance, selectedRoles, selectedYearLevels]);
 
   const handleGenerateReport = async (format = 'PDF') => {
     try {
@@ -133,12 +137,12 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
         date_range_start: modalDateRange === 'custom' ? modalStartDate : undefined,
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
-          fitness_status: fitnessFilter !== 'all' ? fitnessFilter : undefined,
-          issuance_status: issuanceFilter !== 'all' ? issuanceFilter : undefined,
+          fitness_status: selectedFitness.length > 0 ? selectedFitness : undefined,
+          issuance_status: selectedIssuance.length > 0 ? selectedIssuance : undefined,
           doctor: doctorFilter !== 'all' ? doctorFilter : undefined,
           campus: selectedCampuses.length > 0 ? selectedCampuses : undefined,
-          role: roleFilter !== 'all' ? roleFilter : undefined,
-          year_level: yearLevelFilter !== 'all' ? yearLevelFilter : undefined,
+          role: selectedRoles.length > 0 ? selectedRoles : undefined,
+          year_level: selectedYearLevels.length > 0 ? selectedYearLevels : undefined,
           search: searchQuery || undefined,
           charts_base64: chartRef.current ? [chartRef.current.toBase64Image()] : []
         }
@@ -273,25 +277,36 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
           {/* FILTERS ROW 1 */}
           <Grid container spacing={2} sx={{ mb: 2 }}>
             <Grid item xs={12} sm={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Fitness Status</InputLabel>
-                <Select value={fitnessFilter} label="Fitness Status" onChange={(e) => setFitnessFilter(e.target.value)}>
-                  <MenuItem value="all">All Fitness Types</MenuItem>
-                  <MenuItem value="physically_fit">Physically Fit</MenuItem>
-                  <MenuItem value="physically_unfit">Physically Unfit</MenuItem>
-                </Select>
-              </FormControl>
+              <Autocomplete
+                multiple
+                size="small"
+                options={fitnessOptions}
+                value={selectedFitness}
+                onChange={(e, v) => setSelectedFitness(v)}
+                renderTags={(tagValue, getTagProps) =>
+                  tagValue.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return <Chip key={key} label={option.toUpperCase()} size="small" color="primary" {...tagProps} />;
+                  })
+                }
+                renderInput={(params) => <TextField {...params} label="Fitness Status" variant="outlined" />}
+              />
             </Grid>
             <Grid item xs={12} sm={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Issuance Status</InputLabel>
-                <Select value={issuanceFilter} label="Issuance Status" onChange={(e) => setIssuanceFilter(e.target.value)}>
-                  <MenuItem value="all">All Statuses</MenuItem>
-                  <MenuItem value="issued">Issued</MenuItem>
-                  <MenuItem value="pending">Pending</MenuItem>
-                  <MenuItem value="rejected">Rejected</MenuItem>
-                </Select>
-              </FormControl>
+              <Autocomplete
+                multiple
+                size="small"
+                options={issuanceOptions}
+                value={selectedIssuance}
+                onChange={(e, v) => setSelectedIssuance(v)}
+                renderTags={(tagValue, getTagProps) =>
+                  tagValue.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return <Chip key={key} label={option.toUpperCase()} size="small" color="secondary" {...tagProps} />;
+                  })
+                }
+                renderInput={(params) => <TextField {...params} label="Issuance Status" variant="outlined" />}
+              />
             </Grid>
             <Grid item xs={12} sm={3}>
               <FormControl fullWidth size="small">
@@ -330,33 +345,43 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
                 renderTags={(tagValue, getTagProps) =>
                   tagValue.map((option, index) => {
                     const { key, ...tagProps } = getTagProps({ index });
-                    return <Chip key={key} label={option.split(' (')[1]?.replace(')', '') || option} size="small" color="primary" {...tagProps} />;
+                    return <Chip key={key} label={option.split(' (')[1]?.replace(')', '') || option} size="small" color="info" {...tagProps} />;
                   })
                 }
                 renderInput={(params) => <TextField {...params} label="Campus Location" variant="outlined" />}
               />
             </Grid>
             <Grid item xs={12} sm={4}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Patient Role</InputLabel>
-                <Select value={roleFilter} label="Patient Role" onChange={(e) => setRoleFilter(e.target.value)}>
-                  <MenuItem value="all">All Roles</MenuItem>
-                  <MenuItem value="STUDENT">Student</MenuItem>
-                  <MenuItem value="FACULTY">Faculty</MenuItem>
-                </Select>
-              </FormControl>
+              <Autocomplete
+                multiple
+                size="small"
+                options={roleOptions}
+                value={selectedRoles}
+                onChange={(e, v) => setSelectedRoles(v)}
+                renderTags={(tagValue, getTagProps) =>
+                  tagValue.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return <Chip key={key} label={option} size="small" sx={{ bgcolor: '#f0f9ff', color: '#0369a1' }} {...tagProps} />;
+                  })
+                }
+                renderInput={(params) => <TextField {...params} label="Patient Role" variant="outlined" />}
+              />
             </Grid>
             <Grid item xs={12} sm={4}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Year Level</InputLabel>
-                <Select value={yearLevelFilter} label="Year Level" onChange={(e) => setYearLevelFilter(e.target.value)}>
-                  <MenuItem value="all">All Years</MenuItem>
-                  {['1', '2', '3', '4', '5'].map(y => (
-                    <MenuItem key={y} value={y}>{y}{y === '1' ? 'st' : y === '2' ? 'nd' : y === '3' ? 'rd' : 'th'} Year</MenuItem>
-                  ))}
-                  <MenuItem value="6">Batch X</MenuItem>
-                </Select>
-              </FormControl>
+              <Autocomplete
+                multiple
+                size="small"
+                options={yearLevelOptions}
+                value={selectedYearLevels}
+                onChange={(e, v) => setSelectedYearLevels(v)}
+                renderTags={(tagValue, getTagProps) =>
+                  tagValue.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return <Chip key={key} label={`${option}${option === '1' ? 'st' : option === '2' ? 'nd' : option === '3' ? 'rd' : 'th'} Year`} size="small" variant="outlined" {...tagProps} />;
+                  })
+                }
+                renderInput={(params) => <TextField {...params} label="Year Level" variant="outlined" />}
+              />
             </Grid>
             {modalDateRange === 'custom' && (
               <>

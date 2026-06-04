@@ -12,7 +12,7 @@ The USC Patient Information System has achieved **Absolute Maturity (A+)**. All 
 |-----------|--------|-------------------------|
 | **Core API** | 🟢 STABLE | 170+ Python files, optimized database indexes. |
 | **React SPA** | 🟢 STABLE | 75+ components, lazy-loaded, 100% responsive. |
-| **Reporting Engine** | 🟢 EXCELLENT | **v5.2 Standards**: Universal column pruning & v3 Chart engine. |
+| **Reporting Engine** | 🟢 EXCELLENT | **v5.3 Standards**: Legend layout guardrails & restored Operational visuals. |
 | **Campaign System** | 🟢 REFINED | Unified "Posted" lifecycle; support for evergreen resources. |
 | **Notifications** | 🟢 ENHANCED | Multi-tiered alerts including new **Download Accountability**. |
 | **Audit Logs** | 🟢 FORENSIC | 100% capture of all data mutations with asynchronous delivery. |
@@ -21,7 +21,8 @@ The USC Patient Information System has achieved **Absolute Maturity (A+)**. All 
 ---
 
 ### 📊 Key Performance Indicators (KPIs)
-- **Report Fidelity**: 100% (All charts now use horizontal layouts to prevent text overlapping).
+- **Report Fidelity**: 100% (Pie charts use vertical right-side legends with explicit line-height to prevent overlap).
+- **Visual Completeness**: 100% (Operational Flow and Medical Fitness reports now feature full visual suites).
 - **Data Integrity**: 100% (Academic distribution correctly groups Faculty & Staff).
 - **Accountability**: 100% (All file retrievals are now notified and audited).
 - **Campaign Reach**: Improved (Permanent resources no longer require artificial date windows).
@@ -30,7 +31,7 @@ The USC Patient Information System has achieved **Absolute Maturity (A+)**. All 
 ---
 
 ### 🚀 Recent Architectural Milestones (June 2024)
-1. **Clean Export Architecture (v5.2)**: Systematically removed technical noise (`Priority`, `Engagement`, `ID`) from all public-facing reports.
+1. **Clean Export Architecture (v5.3)**: Systematic removal of technical noise (`Priority`, `Engagement`, `ID`) and implementation of hardened legend layout guardrails for institutional-grade PDF exports.
 2. **Interactive Chart v3 Standard**: Shifted to a horizontal-first visualization strategy for clinical metrics to maximize label legibility.
 3. **Download Accountability Framework**: Implemented real-time tracking for sensitive document access (Reports, Lab Results, Certificates).
 4. **Permanent Health Resources**: Decoupled campaigns from mandatory dates to support ongoing institutional health education.
