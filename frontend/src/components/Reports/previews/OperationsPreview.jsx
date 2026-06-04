@@ -96,7 +96,6 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
         if (selectedCampuses.length > 0) params.campus = selectedCampuses.join(',');
         if (serviceType !== 'all') params.service_type = serviceType;
         if (workloadClass !== 'all') params.workload_class = workloadClass;
-        if (searchQuery) params.search = searchQuery;
       }
 
       const response = await reportService.getDashboardAnalytics(params);
@@ -107,7 +106,7 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedCampuses, serviceType, workloadClass, searchQuery]);
+  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedCampuses, serviceType, workloadClass]);
 
   useEffect(() => {
     fetchAnalytics(openModal);
@@ -128,7 +127,6 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
           campus: selectedCampuses.length > 0 ? selectedCampuses : undefined,
           service_type: serviceType !== 'all' ? serviceType : undefined,
           workload_class: workloadClass !== 'all' ? workloadClass : undefined,
-          search: searchQuery || undefined,
           include_peak_hours: true,
           include_demographics: true,
           charts_base64: [
@@ -393,18 +391,6 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
                 </Grid>
               </>
             )}
-            <Grid item xs={12} sm={3}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Search Hour (e.g., 08)"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  InputProps={{
-                    startAdornment: <InputAdornment position="start"><ClockIcon fontSize="small" /></InputAdornment>
-                  }}
-                />
-            </Grid>
           </Grid>
 
           {/* VISUALIZATION GRID */}
@@ -438,7 +424,19 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
           <Divider sx={{ mb: 3 }} />
 
           {/* OPERATIONAL LOGS TABLE */}
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Hourly Operational Audit Trail</Typography>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Hourly Operational Audit Trail</Typography>
+            <TextField
+              size="small"
+              placeholder="Search Hour (e.g., 08)"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: <InputAdornment position="start"><ClockIcon fontSize="small" /></InputAdornment>
+              }}
+              sx={{ width: 250 }}
+            />
+          </Box>
           <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 400, borderRadius: '8px', overflowX: 'auto' }}>
             <Table stickyHeader size="small" sx={{ minWidth: 850 }}>
               <TableHead>

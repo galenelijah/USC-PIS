@@ -572,19 +572,7 @@ const CampaignsPage = () => {
 
   const isActive = (campaign) => {
     if (!campaign) return false;
-    if (campaign.status !== 'POSTED') return false;
-    
-    // If no dates, it's always active (if POSTED)
-    if (!campaign.start_date && !campaign.end_date) return true;
-    
-    const now = new Date();
-    const startDate = campaign.start_date ? new Date(campaign.start_date) : null;
-    const endDate = campaign.end_date ? new Date(campaign.end_date) : null;
-    
-    if (startDate && endDate) return now >= startDate && now <= endDate;
-    if (startDate) return now >= startDate;
-    if (endDate) return now <= endDate;
-    return true;
+    return campaign.status === 'POSTED';
   };
 
   const handleDownload = (url, filename = 'pubmat_material') => {
