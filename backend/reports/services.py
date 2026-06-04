@@ -787,10 +787,10 @@ class ReportDataService:
 
             total_cases = queryset.count()
             
-            if total_cases == 0: 
+            if total_cases == 0:
                 return {
-                    'total_cases': 0, 'top_diagnoses': [], 
-                    'treatment_distribution': [], 'priority_breakdown': []
+                    'total_cases': 0, 'top_diagnoses': [],
+                    'treatment_distribution': []
                 }
             
             # Top Diagnoses
@@ -1158,9 +1158,7 @@ class ReportDataService:
                     'id': c.id,
                     'title': c.title, 
                     'view_count': c.view_count,
-                    'engagement_count': getattr(c, 'engagement_count', 0),
                     'campaign_type': c.get_campaign_type_display(),
-                    'priority': c.get_priority_display(),
                     'created_by_name': c.created_by.get_full_name() if c.created_by else 'System',
                     'created_at': c.created_at.strftime('%Y-%m-%d'),
                     'updated_at': c.updated_at.strftime('%Y-%m-%d'),
@@ -2195,7 +2193,7 @@ class ReportExportService:
 
                 # 2. Summary Metrics (Align with PDF Executive Summary)
                 summary_items = []; list_keys = []
-                skip_keys = ['report_title', 'date_range_start', 'date_range_end', 'generated_at', 'system_name', 'report_date', 'report_type', 'visual_charts', 'charts_base64', 'visual_analytics']
+                skip_keys = ['report_title', 'date_range_start', 'date_range_end', 'generated_at', 'system_name', 'report_date', 'report_type', 'visual_charts', 'charts_base64', 'visual_analytics', 'priority', 'engagement_count']
                 
                 for k, v in report_data.items():
                     if k in skip_keys: continue
@@ -2215,6 +2213,12 @@ class ReportExportService:
                     data_list = report_data[key]
                     if data_list and isinstance(data_list[0], dict):
                         df = pd.DataFrame(data_list)
+                        # Remove internal IDs and technical/deprecated fields
+                        drop_cols = ['id', 'usc_id', 'charts_base64', 'meta', 'timestamp', 'priority', 'engagement_count']
+                        for col in drop_cols:
+                            if col in df.columns:
+                                df.drop(columns=[col], inplace=True)
+                        
                         df.columns = [str(c).replace('_', ' ').title() for c in df.columns]
                         for col in df.select_dtypes(include=['datetime64[ns, UTC]', 'datetimetz']).columns: 
                             df[col] = df[col].dt.tz_localize(None)
@@ -2234,7 +2238,7 @@ class ReportExportService:
             writer.writerow([f"Filters: {', '.join(report_data.get('applied_filters', ['None']))}"])
             writer.writerow([])
             list_keys = []; writer.writerow(["SUMMARY OVERVIEW"])
-            skip_keys = ['report_title', 'date_range_start', 'date_range_end', 'generated_at', 'system_name', 'report_date', 'report_type', 'visual_charts', 'charts_base64', 'visual_analytics']
+            skip_keys = ['report_title', 'date_range_start', 'date_range_end', 'generated_at', 'system_name', 'report_date', 'report_type', 'visual_charts', 'charts_base64', 'visual_analytics', 'priority', 'engagement_count']
             
             for k, v in report_data.items():
                 if k in skip_keys: continue
@@ -2246,8 +2250,12 @@ class ReportExportService:
                 writer.writerow([]); writer.writerow([str(key).upper()])
                 data_list = report_data[key]; 
                 if data_list and isinstance(data_list[0], dict):
-                    headers = list(data_list[0].keys()); writer.writerow(headers)
-                    for item in data_list: writer.writerow([item.get(h, '') for h in headers])
+                    # Filter headers to remove technical and deprecated fields
+                    skip_fields = ['id', 'usc_id', 'charts_base64', 'meta', 'timestamp', 'priority', 'engagement_count']
+                    headers = [h for h in data_list[0].keys() if h not in skip_fields]
+                    writer.writerow([str(h).replace('_', ' ').upper() for h in headers])
+                    for item in data_list:
+                        writer.writerow([item.get(h, '') for h in headers])
             return output.getvalue().encode('utf-8')
         except Exception as e:
             logger.error(f"CSV export failed: {e}")
@@ -2589,7 +2597,7 @@ class ReportGenerationService:
                                 <thead>
                                     <tr>
                                         {{% for key in first_item.keys %}}
-                                            {{% if key != "id" and key != "timestamp" and key != "charts_base64" and key != "meta" and key != "usc_id" %}}
+                                            {{% if key != "id" and key != "timestamp" and key != "charts_base64" and key != "meta" and key != "usc_id" and key != "priority" and key != "engagement_count" %}}
                                                 {{% if key|lower == "comments" or key|lower == "improvement" or key|lower == "suggestions" %}}
                                                     <th width="30%">{{{{ key|title_clean }}}}</th>
                                                 {{% elif key|lower == "summary" or key|lower == "notes" or key|lower == "findings" or key|lower == "formatted_summary" %}}
@@ -2598,11 +2606,11 @@ class ReportGenerationService:
                                                     <th width="22%">{{{{ key|title_clean }}}}</th>
                                                 {{% elif key|lower == "recommend" or key|lower == "courteous" %}}
                                                     <th width="10%">{{{{ key|title_clean }}}}</th>
-                                                {{% elif key|lower == "status" or key|lower == "rating" or key|lower == "performance" or key|lower == "priority" %}}
+                                                {{% elif key|lower == "status" or key|lower == "rating" or key|lower == "performance" %}}
                                                     <th width="8%">{{{{ key|title_clean }}}}</th>
                                                 {{% elif key|lower == "date" or key|lower == "created_at" or key|lower == "updated_at" or key|lower == "visit_date" or key|lower == "period" or key|lower == "timestamp" %}}
                                                     <th width="12%">{{{{ key|title_clean }}}}</th>
-                                                {{% elif key|lower == "total_visits" or key|lower == "view_count" or key|lower == "count" or key|lower == "engagement_count" or key|lower == "enrollment" or key|lower == "percentage" %}}
+                                                {{% elif key|lower == "total_visits" or key|lower == "view_count" or key|lower == "count" or key|lower == "enrollment" or key|lower == "percentage" %}}
                                                     <th width="9%">{{{{ key|title_clean }}}}</th>
                                                 {{% else %}}
                                                     <th>{{{{ key|title_clean }}}}</th>
@@ -2615,7 +2623,7 @@ class ReportGenerationService:
                                     {{% for item in v %}}
                                         <tr>
                                             {{% for key in first_item.keys %}}
-                                                {{% if key != "id" and key != "timestamp" and key != "charts_base64" and key != "meta" and key != "usc_id" %}}
+                                                {{% if key != "id" and key != "timestamp" and key != "charts_base64" and key != "meta" and key != "usc_id" and key != "priority" and key != "engagement_count" %}}
                                                 <td style="vertical-align: top; padding: 6px;">
                                                     <div style="word-wrap: break-word; white-space: normal; line-height: 1.2;">
                                                         {{{{ item|get_item:key|default:"N/A" }}}}
@@ -3292,10 +3300,9 @@ class ReportSchemaService:
                     {'id': 'title', 'label': 'Campaign Title', 'default': True},
                     {'id': 'views', 'label': 'Total Views', 'default': True},
                     {'id': 'type', 'label': 'Type', 'default': True},
-                    {'id': 'priority', 'label': 'Priority', 'default': True},
                     {'id': 'performance', 'label': 'Performance', 'default': False}
                 ],
-                'groupable_by': ['type', 'priority']
+                'groupable_by': ['type']
             },
             'PATIENT_SUMMARY': {
                 'filters': [

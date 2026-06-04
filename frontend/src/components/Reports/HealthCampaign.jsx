@@ -156,7 +156,6 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
       let valueB = b[sortField];
 
       if (sortField === 'view_count') { valueA = a.views || a.view_count || 0; valueB = b.views || b.view_count || 0; }
-      if (sortField === 'engagement_count') { valueA = a.engagement || a.engagement_count || 0; valueB = b.engagement || b.engagement_count || 0; }
       
       if (valueA === null || valueA === undefined) valueA = '';
       if (valueB === null || valueB === undefined) valueB = '';
