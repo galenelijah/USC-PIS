@@ -1031,6 +1031,7 @@ class ReportDataService:
                     'rating': f.rating,
                     'comments': f.comments,
                     'suggestions': f.improvement,
+                    'improvement': f.improvement, # Backward compatibility
                     'recommend': 'Yes' if str(f.recommend).lower() in ['yes', 'true', '1'] else 'No',
                     'courteous': 'Yes' if str(f.courteous).lower() in ['yes', 'true', '1'] else 'No',
                     'created_at': f.created_at.strftime('%Y-%m-%d')
@@ -1889,13 +1890,17 @@ class ReportDataService:
             return {
                 'demographics': {
                     'college_participation': college_participation,
+                    'colleges': college_participation, # Backward compatibility
                     'course_distribution': course_distribution,
+                    'courses': course_distribution, # Backward compatibility
                     'role_distribution': role_distribution,
+                    'roles': role_distribution, # Backward compatibility
                     'year_level_distribution': year_level_distribution,
                     'total_active': total_active_count
                 },
                 'visits': {
                     'longitudinal_trends': trends.get('longitudinal_trends', []),
+                    'monthly': trends.get('longitudinal_trends', []), # Backward compatibility
                     'service_segmentation': {'medical': medical_count, 'dental': dental_count},
                     'total': trends.get('total_visits', 0),
                     'granularity': trends.get('granularity')
@@ -1907,12 +1912,15 @@ class ReportDataService:
                 'certifications': certifications,
                 'satisfaction': {
                     'rating_distribution': feedback.get('rating_distribution', []),
+                    'distribution': feedback.get('rating_distribution', []), # Backward compatibility
                     'average': feedback.get('avg_rating', 0),
                     'service_metrics': feedback.get('service_metrics', {}),
+                    'metrics': feedback.get('service_metrics', {}), # Backward compatibility
                     'raw_comments': feedback.get('raw_feedback', [])
                 },
                 'operations': {
-                    'hourly_traffic_density': peak_hours
+                    'hourly_traffic_density': peak_hours,
+                    'peak_hours': peak_hours # Backward compatibility
                 },
                 'campaign_performance': campaigns.get('campaign_performance', []),
                 'period': {
