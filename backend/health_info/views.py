@@ -138,8 +138,13 @@ class HealthCampaignViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         
-        # Show all campaigns to all authenticated users
-        # No role-based filtering - everyone can see all campaigns
+        # Hide ARCHIVED campaigns from patients and public
+        # Only Staff/Admin/Clinical roles can see archived for management
+        user = self.request.user
+        is_staff = user.is_authenticated and user.role in ['ADMIN', 'STAFF', 'DOCTOR', 'NURSE', 'DENTIST']
+        
+        if not is_staff:
+            queryset = queryset.exclude(status='ARCHIVED')
         
         # Additional filters
         featured = self.request.query_params.get('featured', None)
