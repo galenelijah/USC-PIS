@@ -1770,7 +1770,7 @@ class ReportDataService:
                 'avg_turnaround_hours': analytics.get('avg_turnaround_hours', 0),
                 'fitness_distribution': analytics.get('fitness_distribution', []),
                 'purpose_distribution': analytics.get('purpose_distribution', []),
-                'issuance_status_distribution': analytics.get('issuance_status_distribution', []),
+                'issuance_status_breakdown': analytics.get('issuance_status_distribution', []),
                 'doctor_workload': analytics.get('doctor_workload', []),
                 'certificates_log': results
             }
@@ -2413,8 +2413,13 @@ class ReportGenerationService:
                 </table>
             </div>
 
-            <div class="section">
+            <div class="{{% if mapped_charts.hourly_traffic_density %}}visual-section{{% else %}}section{{% endif %}}">
                 <div class="section-title">Hourly Traffic Density & Workload Classification</div>
+                {{% if mapped_charts.hourly_traffic_density %}}
+                <div class="chart-container" style="display: block; width: 95%; max-width: 800px; margin: 15px auto;">
+                    <img src="{{{{ mapped_charts.hourly_traffic_density }}}}" width="100%" />
+                </div>
+                {{% endif %}}
                 <table class="data-table">
                     <thead>
                         <tr>
@@ -2442,6 +2447,74 @@ class ReportGenerationService:
                     </tbody>
                 </table>
             </div>
+
+            {{% if service_segmentation %}}
+            <div class="{{% if mapped_charts.service_segmentation %}}visual-section{{% else %}}section{{% endif %}}">
+                <div class="section-title">Institutional Service Distribution</div>
+                {{% if mapped_charts.service_segmentation %}}
+                <div class="chart-container" style="display: block; width: 95%; max-width: 800px; margin: 15px auto;">
+                    <img src="{{{{ mapped_charts.service_segmentation }}}}" width="100%" />
+                </div>
+                {{% endif %}}
+                <table class="data-table">
+                    <thead>
+                        <tr><th width="60%">Service Department</th><th width="40%">Interaction Volume</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Medical Services</td><td>{{{{ service_segmentation.medical }}}} visits</td></tr>
+                        <tr><td>Dental Services</td><td>{{{{ service_segmentation.dental }}}} visits</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            {{% endif %}}
+
+            {{% if role_distribution %}}
+            <div class="{{% if mapped_charts.role_distribution %}}visual-section{{% else %}}section{{% endif %}}">
+                <div class="section-title">Operational Role Distribution</div>
+                {{% if mapped_charts.role_distribution %}}
+                <div class="chart-container" style="display: block; width: 95%; max-width: 800px; margin: 15px auto;">
+                    <img src="{{{{ mapped_charts.role_distribution }}}}" width="100%" />
+                </div>
+                {{% endif %}}
+                <table class="data-table">
+                    <thead>
+                        <tr><th width="60%">User Role</th><th width="40%">Patient Count</th></tr>
+                    </thead>
+                    <tbody>
+                        {{% for item in role_distribution %}}
+                        <tr>
+                            <td>{{{{ item.name }}}}</td>
+                            <td>{{{{ item.count }}}} patients</td>
+                        </tr>
+                        {{% endfor %}}
+                    </tbody>
+                </table>
+            </div>
+            {{% endif %}}
+
+            {{% if rating_distribution %}}
+            <div class="{{% if mapped_charts.rating_distribution %}}visual-section{{% else %}}section{{% endif %}}">
+                <div class="section-title">Institutional Satisfaction Index</div>
+                {{% if mapped_charts.rating_distribution %}}
+                <div class="chart-container" style="display: block; width: 95%; max-width: 800px; margin: 15px auto;">
+                    <img src="{{{{ mapped_charts.rating_distribution }}}}" width="100%" />
+                </div>
+                {{% endif %}}
+                <table class="data-table">
+                    <thead>
+                        <tr><th width="60%">Satisfaction Category</th><th width="40%">Response Count</th></tr>
+                    </thead>
+                    <tbody>
+                        {{% for item in rating_distribution %}}
+                        <tr>
+                            <td>{{{{ item.category }}}} Stars</td>
+                            <td>{{{{ item.count }}}} responses</td>
+                        </tr>
+                        {{% endfor %}}
+                    </tbody>
+                </table>
+            </div>
+            {{% endif %}}
 
             {{% elif report_type == "MEDICAL_CERTIFICATE" %}}
             <div class="section">
@@ -2510,8 +2583,13 @@ class ReportGenerationService:
             {{% endif %}}
 
             {{% if issuance_status_breakdown %}}
-            <div class="section">
+            <div class="{{% if mapped_charts.issuance_status_breakdown %}}visual-section{{% else %}}section{{% endif %}}">
                 <div class="section-title">Issuance Status Breakdown</div>
+                {{% if mapped_charts.issuance_status_breakdown %}}
+                <div class="chart-container" style="display: block; width: 95%; max-width: 800px; margin: 15px auto;">
+                    <img src="{{{{ mapped_charts.issuance_status_breakdown }}}}" width="100%" />
+                </div>
+                {{% endif %}}
                 <table class="data-table">
                     <thead>
                         <tr><th>Status</th><th>Volume</th></tr>
@@ -2848,7 +2926,11 @@ class ReportGenerationService:
                         'display': True, 
                         'position': 'right' if actual_type in ['pie', 'doughnut'] else 'bottom',
                         'align': 'center',
-                        'labels': { 'usePointStyle': True, 'padding': 15, 'font': { 'size': 10 } }
+                        'labels': { 
+                            'usePointStyle': True, 
+                            'padding': 30, 
+                            'font': { 'size': 10, 'lineHeight': 1.5 } 
+                        }
                     },
                     'datalabels': {
                         'anchor': 'end',
@@ -3321,6 +3403,16 @@ class ReportGenerationService:
                             [d.get('name', 'N/A')[:20] for d in dist[:8]],
                             [{'label': 'Certificates Issued', 'data': [d.get('count', 0) for d in dist[:8]]}],
                             "Top Certificate Purposes")
+                    if data.get('issuance_status_breakdown'):
+                        dist = data['issuance_status_breakdown']
+                        mapped_charts['issuance_status_breakdown'] = self._generate_chart_url_complex('pie',
+                            [d.get('status', 'N/A') for d in dist],
+                            [{
+                                'label': 'Approval Status', 
+                                'data': [d.get('count', 0) for d in dist],
+                                'backgroundColor': ['#ef4444' if 'reject' in d.get('status', '').lower() else '#f59e0b' if 'pending' in d.get('status', '').lower() else '#10b981' for d in dist]
+                            }],
+                            "Certificate Approval Status")
                     if data.get('monthly_trends'):
                         mapped_charts['monthly_trends'] = self._generate_chart_url_complex('line',
                             [m.get('month', 'N/A') for m in data['monthly_trends']],
