@@ -1491,17 +1491,11 @@ class ReportDataService:
                     'avg_age': round(proc_avg_age, 2)
                 })
 
-            # Preventive care calculation (Cleaning, Prophylaxis, Fluoride, Sealant)
-            preventive_types = ['CLEANING', 'PROPHYLAXIS', 'FLUORIDE', 'SEALANT']
-            preventive_count = records.filter(procedure_performed__in=preventive_types).count()
-            preventive_rate = (preventive_count / total_records) * 100 if total_records > 0 else 0
-
             # Apply customization (field selection and grouping)
             common_procedures = ReportDataService._apply_customization(common_procedures, filters or {})
 
             return {
                 'total_dental_visits': total_records,
-                'preventive_care_rate': f"{round(preventive_rate, 2)}%",
                 'common_procedures': common_procedures,
                 'gender_distribution': [{'name': k, 'count': v} for k, v in g_dist.items() if v > 0],
                 'role_distribution': [{'name': k.title(), 'count': v} for k, v in r_dist.items() if v > 0]
@@ -2627,7 +2621,7 @@ class ReportGenerationService:
             </div>
 
             {{% for k, v in report_data.items %}}
-                {{% if v|is_list and v|has_data and k not in "visual_charts,charts_base64,visual_analytics,system_log,administrative_audit_trail,hourly_traffic_density" %}}
+                {{% if v|is_list and v|has_data and k not in "visual_charts,charts_base64,visual_analytics,system_log,administrative_audit_trail,hourly_traffic_density,monthly" %}}
                 <div class="{{% if mapped_charts|get_item:k %}}visual-section{{% else %}}section{{% endif %}}">
                     <div class="section-title">{{{{ k|title_clean }}}} Data Analysis</div>
                     

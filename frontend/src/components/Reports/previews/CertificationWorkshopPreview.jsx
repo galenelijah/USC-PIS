@@ -289,6 +289,7 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
                   <MenuItem value="all">All Statuses</MenuItem>
                   <MenuItem value="issued">Issued</MenuItem>
                   <MenuItem value="pending">Pending</MenuItem>
+                  <MenuItem value="rejected">Rejected</MenuItem>
                 </Select>
               </FormControl>
             </Grid>

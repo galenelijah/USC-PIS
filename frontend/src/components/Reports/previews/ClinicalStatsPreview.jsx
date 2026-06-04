@@ -318,6 +318,7 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
             <Grid item xs={12} sm={5}>
               <Autocomplete
                 multiple
+                limitTags={2}
                 size="small"
                 options={diagnosisOptions}
                 value={selectedDiagnoses}
