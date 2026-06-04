@@ -275,11 +275,11 @@ const doctorMedicalCertificateFields = {
   fitness_status: yup
     .string()
     .required('Medical fitness status is required')
-    .oneOf(['physically_fit', 'physically_unfit'], 'Please select a valid fitness status'),
+    .oneOf(['FIT', 'UNFIT'], 'Please select a valid fitness status'),
   fitness_reason: yup
     .string()
     .when('fitness_status', {
-      is: 'physically_unfit',
+      is: 'UNFIT',
       then: (schema) => schema.required('Reason is required for "Physically Unfit" status'),
       otherwise: (schema) => schema.notRequired()
     }),

@@ -645,7 +645,7 @@ def _test_certificate_email(email, dry_run, notification_type='created'):
                 self.diagnosis = "Mock diagnosis for testing"
                 self.recommendations = "Mock recommendations"
                 self.valid_from = timezone.now().date()
-                self.fitness_status = 'physically_fit'
+                self.fitness_status = 'FIT'
             def get_fitness_status_display(self):
                 return "Physically Fit"
         

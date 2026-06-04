@@ -74,7 +74,7 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
   const [searchQuery, setSearchQuery] = useState('');
   const [masterDoctors, setMasterDoctors] = useState([]);
 
-  const fitnessOptions = ['fit', 'unfit', 'pending'];
+  const fitnessOptions = ['FIT', 'UNFIT'];
   const issuanceOptions = ['pending', 'issued', 'rejected'];
   const campusOptions = ['Talamban Campus (TC)', 'Downtown Campus (DC)'];
   const roleOptions = ['STUDENT', 'FACULTY'];
@@ -91,7 +91,7 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
   };
 
   const getFitnessLabel = (val) => {
-    const map = { 'fit': 'Physically Fit', 'unfit': 'Unfit / Follow-up', 'pending': 'Pending Results' };
+    const map = { 'FIT': 'Physically Fit', 'UNFIT': 'Physically Unfit' };
     return map[val] || val;
   };
 
@@ -222,15 +222,20 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
   const generateBarData = () => {
     if (!data?.certifications?.purpose_distribution) return { labels: [], datasets: [] };
     
-    const dist = data.certifications.purpose_distribution.slice(0, 10);
+    // Sort by count and take top 10
+    const dist = [...data.certifications.purpose_distribution]
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
     return {
-      labels: dist.map(d => wrapText(d.name, 20)),
+      labels: dist.map(d => wrapText(d.name, 35)), // Increased wrap limit for horizontal
       datasets: [
         {
-          label: 'Certificates',
+          label: 'Total Certificates Issued',
           data: dist.map(d => d.count),
           backgroundColor: '#3b82f6',
-          borderRadius: 4
+          borderRadius: 6,
+          barThickness: 24,
         }
       ]
     };
@@ -460,9 +465,41 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                   <StatsIcon sx={{ color: '#3b82f6' }} fontSize="small" /> Top Certificate Purposes
                 </Typography>
-                <Box sx={{ height: 250 }}>
+                <Box sx={{ height: 400 }}>
                   {data?.certifications?.purpose_distribution?.length > 0 ? (
-                    <Bar ref={chartRef} data={generateBarData()} options={{ maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } } }} />
+                    <Bar 
+                      ref={chartRef} 
+                      data={generateBarData()} 
+                      options={{ 
+                        maintainAspectRatio: false, 
+                        indexAxis: 'y', 
+                        plugins: { 
+                          legend: { display: false },
+                          tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                            titleColor: '#1e293b',
+                            bodyColor: '#1e293b',
+                            borderColor: '#e2e8f0',
+                            borderWidth: 1,
+                            padding: 12,
+                            boxPadding: 6
+                          }
+                        },
+                        scales: {
+                          x: { beginAtZero: true, grid: { display: false }, ticks: { precision: 0 } },
+                          y: { 
+                            grid: { color: '#f1f5f9' }, 
+                            ticks: { 
+                              font: { size: 10, weight: '500' },
+                              padding: 10
+                            } 
+                          }
+                        },
+                        layout: {
+                          padding: { left: 20, right: 40, top: 0, bottom: 0 }
+                        }
+                      }} 
+                    />
                   ) : <Typography variant="body2" color="text.secondary" sx={{ mt: 10, textAlign: 'center' }}>No purpose data found</Typography>}
                 </Box>
               </Box>

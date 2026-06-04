@@ -20,8 +20,8 @@ class CertificateTemplate(models.Model):
 
 class MedicalCertificate(models.Model):
     FITNESS_STATUS_CHOICES = [
-        ('physically_fit', 'Physically Fit'),
-        ('physically_unfit', 'Physically Unfit'),
+        ('FIT', 'Physically Fit'),
+        ('UNFIT', 'Physically Unfit'),
     ]
     
     ISSUANCE_STATUS_CHOICES = [

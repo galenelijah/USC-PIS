@@ -52,7 +52,7 @@ class USCPISAdvancedIntegrationTests(TestCase):
         # Doctor assesses fitness
         url_assess = reverse('medicalcertificate-assess-fitness', args=[cert.id])
         response = self.client.post(url_assess, data={
-            "fitness_status": "physically_fit",
+            "fitness_status": "FIT",
             "fitness_reason": "Recovering well"
         }, content_type='application/json', follow=True)
         self.assertEqual(response.status_code, 200)
@@ -91,7 +91,7 @@ class USCPISAdvancedIntegrationTests(TestCase):
             valid_from="2026-04-25", valid_until="2026-04-28", created_by=self.doctor
         )
         url_my_assess = reverse('medicalcertificate-assess-fitness', args=[my_cert.id])
-        response = self.client.post(url_my_assess, data={"fitness_status": "physically_fit"}, content_type='application/json', follow=True)
+        response = self.client.post(url_my_assess, data={"fitness_status": "FIT"}, content_type='application/json', follow=True)
         # Student is not a DOCTOR, so they get 403
         self.assertEqual(response.status_code, 403)
         
@@ -103,7 +103,7 @@ class USCPISAdvancedIntegrationTests(TestCase):
             valid_from="2026-04-25", valid_until="2026-04-28", created_by=self.doctor
         )
         url_other_assess = reverse('medicalcertificate-assess-fitness', args=[other_cert.id])
-        response = self.client.post(url_other_assess, data={"fitness_status": "physically_fit"}, content_type='application/json', follow=True)
+        response = self.client.post(url_other_assess, data={"fitness_status": "FIT"}, content_type='application/json', follow=True)
         # Student is blocked by IsStaffOrMedicalPersonnel permission class for POST requests
         self.assertEqual(response.status_code, 403)
         

@@ -55,7 +55,7 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
     if (userRole === 'DOCTOR') {
       return {
         ...baseValues,
-        fitness_status: 'physically_fit',
+        fitness_status: 'FIT',
         fitness_reason: '',
       };
     }
@@ -87,7 +87,7 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
         valid_from: certificate.valid_from ? dayjs(certificate.valid_from) : null,
         valid_until: certificate.valid_until ? dayjs(certificate.valid_until) : null,
         additional_notes: certificate.additional_notes || '',
-        fitness_status: certificate.fitness_status || 'physically_fit',
+        fitness_status: certificate.fitness_status || 'FIT',
         fitness_reason: certificate.fitness_reason || '',
       });
     }
@@ -343,10 +343,10 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
                       <Select
                         {...field}
                         label="Medical Fitness Status"
-                        value={field.value || 'physically_fit'}
+                        value={field.value || 'FIT'}
                       >
-                        <MenuItem value="physically_fit">Physically Fit</MenuItem>
-                        <MenuItem value="physically_unfit">Physically Unfit</MenuItem>
+                        <MenuItem value="FIT">Physically Fit</MenuItem>
+                        <MenuItem value="UNFIT">Physically Unfit</MenuItem>
                       </Select>
                     </FormControl>
                   )}
@@ -354,7 +354,7 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
               </Grid>
             )}
 
-            {userRole === 'DOCTOR' && fitnessStatus === 'physically_unfit' && (
+            {userRole === 'DOCTOR' && fitnessStatus === 'UNFIT' && (
               <Grid item xs={12}>
                 <Controller
                   name="fitness_reason"

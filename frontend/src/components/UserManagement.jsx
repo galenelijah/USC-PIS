@@ -61,9 +61,7 @@ import {
   AddCircle,
   RemoveCircle,
   CheckCircle,
-  Cancel,
-  PendingActions,
-  HowToReg
+  Cancel
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../features/authentication/authSlice';
@@ -154,9 +152,9 @@ const UserManagement = () => {
       return;
     }
     
-    if (activeTab === 0 || activeTab === 1) {
+    if (activeTab === 0) {
       fetchUsers();
-    } else if (activeTab === 2) {
+    } else if (activeTab === 1) {
       fetchSafeEmails();
     }
   }, [page, rowsPerPage, search, roleFilter, currentUser, activeTab]);
@@ -245,8 +243,6 @@ const UserManagement = () => {
     });
   };
 
-  const roleRequests = users.filter(u => u.requested_role);
-
   if (currentUser?.role !== 'ADMIN') {
     return (
       <Box sx={{ p: 3 }}>
@@ -265,7 +261,7 @@ const UserManagement = () => {
           <Typography variant="h4" fontWeight="bold" gutterBottom>
             User & Role Management
           </Typography>
-          <InfoTooltip title="Approve role requests, manage safe list, and control user access." />
+          <InfoTooltip title="Manage pre-authorized email safe list and control individual user roles and access." />
         </Box>
         <Typography variant="body1" color="text.secondary">
           Centralized administrative control for the USC-PIS identity system
@@ -276,18 +272,6 @@ const UserManagement = () => {
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={activeTab} onChange={(e, v) => setActiveTab(v)}>
           <Tab icon={<PersonAdd sx={{ fontSize: '1.2rem' }} />} iconPosition="start" label="All Users" />
-          <Tab 
-            icon={<PendingActions sx={{ fontSize: '1.2rem' }} />} 
-            iconPosition="start" 
-            label={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                Role Requests
-                {roleCounts.PENDING_REQUESTS > 0 && (
-                  <Chip label={roleCounts.PENDING_REQUESTS} size="small" color="error" sx={{ height: 20 }} />
-                )}
-              </Box>
-            } 
-          />
           <Tab icon={<Security sx={{ fontSize: '1.2rem' }} />} iconPosition="start" label="Safe List (Pre-Auth)" />
         </Tabs>
       </Box>
@@ -452,12 +436,6 @@ const UserManagement = () => {
                               color={roleConfig.color}
                               size="small"
                             />
-                            {user.requested_role && (
-                              <Typography variant="caption" color="error.main" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <PendingActions sx={{ fontSize: 12 }} />
-                                Requested: {user.requested_role}
-                              </Typography>
-                            )}
                           </Stack>
                         </TableCell>
                         
@@ -547,87 +525,6 @@ const UserManagement = () => {
       )}
 
       {activeTab === 1 && (
-        /* Role Requests Tab */
-        <Paper sx={{ p: 0 }}>
-          <Box sx={{ p: 3, borderBottom: 1, borderColor: 'divider' }}>
-            <Typography variant="h6" fontWeight="bold">Pending Role Requests</Typography>
-            <Typography variant="body2" color="text.secondary">
-              Users who have requested professional role upgrades.
-            </Typography>
-          </Box>
-          
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
-          ) : roleRequests.length === 0 ? (
-            <Box sx={{ p: 8, textAlign: 'center' }}>
-              <CheckCircle sx={{ fontSize: 64, color: 'success.light', mb: 2, opacity: 0.5 }} />
-              <Typography color="text.secondary">No pending role requests. Everything is up to date!</Typography>
-            </Box>
-          ) : (
-            <List sx={{ width: '100%', bgcolor: 'background.paper' }}>
-              {roleRequests.map((user, index) => {
-                const reqRoleConfig = getRoleConfig(user.requested_role);
-                const currentRoleConfig = getRoleConfig(user.role);
-                
-                return (
-                  <React.Fragment key={user.id}>
-                    <ListItem alignItems="flex-start" sx={{ py: 2 }}>
-                      <Box sx={{ display: 'flex', width: '100%', alignItems: 'center', gap: 3 }}>
-                        <Avatar sx={{ width: 56, height: 56, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main' }}>
-                          {user.first_name?.charAt(0) || user.email.charAt(0).toUpperCase()}
-                        </Avatar>
-                        
-                        <Box sx={{ flexGrow: 1 }}>
-                          <Typography variant="subtitle1" fontWeight="bold">
-                            {user.first_name} {user.last_name}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">{user.email}</Typography>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-                            <Chip label={user.role} size="small" variant="outlined" />
-                            <Typography variant="body2">requested upgrade to</Typography>
-                            <Chip 
-                              icon={<reqRoleConfig.icon sx={{ fontSize: '1rem !important' }} />}
-                              label={user.requested_role} 
-                              color={reqRoleConfig.color}
-                              size="small" 
-                            />
-                          </Box>
-                        </Box>
-
-                        <Stack direction="row" spacing={1}>
-                          <Button 
-                            variant="contained" 
-                            color="success" 
-                            startIcon={<HowToReg />}
-                            onClick={() => setRoleDialog({ 
-                              open: true, 
-                              user, 
-                              newRole: user.requested_role || 'STAFF' 
-                            })}
-                          >
-                            Approve & Assign Role
-                          </Button>
-                          <Button 
-                            variant="outlined" 
-                            color="error"
-                            startIcon={<Cancel />}
-                            onClick={() => handleRoleUpdate(user, user.role)} // Re-assigning current role clears the request
-                          >
-                            Deny
-                          </Button>
-                        </Stack>
-                      </Box>
-                    </ListItem>
-                    {index < roleRequests.length - 1 && <Divider variant="inset" component="li" />}
-                  </React.Fragment>
-                );
-              })}
-            </List>
-          )}
-        </Paper>
-      )}
-
-      {activeTab === 2 && (
         /* Safe List / Pre-Auth Tab */
         <Grid container spacing={3}>
           <Grid item xs={12} md={4}>
@@ -744,15 +641,10 @@ const UserManagement = () => {
 
       {/* Role Update Dialog */}
       <Dialog open={roleDialog.open} onClose={() => setRoleDialog({ open: false, user: null, newRole: '' })}>
-        <DialogTitle>
-          {roleDialog.user?.requested_role ? 'Approve & Assign Role' : 'Administrative Role Override'}
-        </DialogTitle>
+        <DialogTitle>Administrative Role Override</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 2 }}>
-            {roleDialog.user?.requested_role 
-              ? `Approving professional request for: `
-              : `Overriding role for: `}
-            <strong>{roleDialog.user?.email}</strong>
+            Overriding role for: <strong>{roleDialog.user?.email}</strong>
           </Typography>
           <FormControl fullWidth sx={{ mt: 2 }}>
             <InputLabel>Select Final Role</InputLabel>

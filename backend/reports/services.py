@@ -2332,7 +2332,23 @@ class ReportExportService:
     @staticmethod
     def export_to_json(report_data, title="Report"):
         try:
-            return json.dumps({'title': title, 'generated_at': timezone.now().isoformat(), 'data': report_data}, default=str).encode('utf-8')
+            # Universal Pruning for JSON format (Panel Recommendation: Clean Export)
+            def prune_data(obj):
+                skip_fields = {'id', 'usc_id', 'priority', 'engagement_count', 'meta', 'charts_base64', 'timestamp'}
+                if isinstance(obj, dict):
+                    return {k: prune_data(v) for k, v in obj.items() if k not in skip_fields}
+                elif isinstance(obj, list):
+                    return [prune_data(i) for i in obj]
+                return obj
+
+            clean_data = prune_data(report_data)
+
+            # Pretty-print JSON for human readability
+            return json.dumps(
+                {'title': title, 'generated_at': timezone.now().isoformat(), 'data': clean_data}, 
+                default=str,
+                indent=4
+            ).encode('utf-8')
         except Exception as e:
             logger.error(f"JSON export failed: {e}")
             return None
@@ -2909,7 +2925,7 @@ class ReportGenerationService:
             lines = []
             curr_line = ""
             for word in words:
-                if len(curr_line + word) > 20:
+                if len(curr_line + word) > 35:
                     if curr_line: lines.append(curr_line.strip())
                     curr_line = word + " "
                 else:

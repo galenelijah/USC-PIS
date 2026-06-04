@@ -163,8 +163,8 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
             'additional_notes': certificate.additional_notes,
             'fitness_status': certificate.get_fitness_status_display(),
             'fitness_reason': certificate.fitness_reason,
-            'is_fit': certificate.fitness_status == 'physically_fit',
-            'is_not_fit': certificate.fitness_status == 'physically_unfit',
+            'is_fit': certificate.fitness_status == 'FIT',
+            'is_not_fit': certificate.fitness_status == 'UNFIT',
             'doctor_name': f"{certificate.issuing_doctor.get_full_name()}" if certificate.issuing_doctor else 'Clinic Physician',
             'doctor_title': getattr(certificate.issuing_doctor, 'title', 'University Physician') if certificate.issuing_doctor else 'University Physician',
             'doctor_license': getattr(certificate.issuing_doctor, 'license_number', 'N/A') if certificate.issuing_doctor else 'N/A',
@@ -310,9 +310,9 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
         fitness_status = request.data.get('fitness_status')
         fitness_reason = request.data.get('fitness_reason', '')
         
-        if not fitness_status or fitness_status not in ['physically_fit', 'physically_unfit']:
+        if not fitness_status or fitness_status not in ['FIT', 'UNFIT']:
             return Response(
-                {'detail': 'Valid fitness_status (physically_fit/physically_unfit) is required.'},
+                {'detail': 'Valid fitness_status (FIT/UNFIT) is required.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         

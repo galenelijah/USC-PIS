@@ -217,7 +217,7 @@ class MedicalCertificateViewSetTest(TestCase):
             'valid_from': date.today().isoformat(),
             'valid_until': (date.today() + timedelta(days=3)).isoformat(),
             'additional_notes': 'Follow up if symptoms persist',
-            'fitness_status': 'physically_fit'
+            'fitness_status': 'FIT'
         }
         
         response = self.client.post('/api/medical-certificates/certificates/', data)

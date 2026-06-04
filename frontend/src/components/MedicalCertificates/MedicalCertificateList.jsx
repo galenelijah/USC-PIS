@@ -40,8 +40,8 @@ const issuanceStatusColors = {
 };
 
 const fitnessStatusColors = {
-  physically_fit: 'success',
-  physically_unfit: 'error',
+  FIT: 'success',
+  UNFIT: 'error',
 };
 
 // Mobile Certificate Card Component
