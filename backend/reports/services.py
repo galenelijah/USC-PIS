@@ -1888,15 +1888,15 @@ class ReportDataService:
 
             return {
                 'demographics': {
-                    'colleges': college_participation,
-                    'courses': course_distribution,
-                    'roles': role_distribution,
-                    'year_levels': year_level_distribution,
+                    'college_participation': college_participation,
+                    'course_distribution': course_distribution,
+                    'role_distribution': role_distribution,
+                    'year_level_distribution': year_level_distribution,
                     'total_active': total_active_count
                 },
                 'visits': {
-                    'monthly': trends.get('monthly', []),
-                    'types': {'medical': medical_count, 'dental': dental_count},
+                    'longitudinal_trends': trends.get('longitudinal_trends', []),
+                    'service_segmentation': {'medical': medical_count, 'dental': dental_count},
                     'total': trends.get('total_visits', 0),
                     'granularity': trends.get('granularity')
                 },
@@ -1906,13 +1906,13 @@ class ReportDataService:
                 },
                 'certifications': certifications,
                 'satisfaction': {
-                    'distribution': feedback.get('rating_distribution', []),
+                    'rating_distribution': feedback.get('rating_distribution', []),
                     'average': feedback.get('avg_rating', 0),
-                    'metrics': feedback.get('service_metrics', {}),
+                    'service_metrics': feedback.get('service_metrics', {}),
                     'raw_comments': feedback.get('raw_feedback', [])
                 },
                 'operations': {
-                    'peak_hours': peak_hours
+                    'hourly_traffic_density': peak_hours
                 },
                 'campaign_performance': campaigns.get('campaign_performance', []),
                 'period': {
@@ -2628,9 +2628,16 @@ class ReportGenerationService:
                         {{% endwith %}}
                     </table>
                 </div>
-                {{% elif v|is_dict and v|has_data and k not in "patient,demographics,visits,clinical,feedback,service_segmentation,clinical_service_intensity,population_demographics,mapped_charts" %}}
-                <div class="section">
+                {{% elif v|is_dict and v|has_data and k not in "patient,demographics,visits,clinical,feedback,clinical_service_intensity,population_demographics,mapped_charts" %}}
+                <div class="{{% if mapped_charts|get_item:k %}}visual-section{{% else %}}section{{% endif %}}">
                     <div class="section-title">{{{{ k|title_clean }}}} Detailed Metrics Analysis</div>
+                    
+                    {{% if mapped_charts|get_item:k %}}
+                    <div class="chart-container" style="display: block; width: 95%; max-width: 800px; margin: 15px auto;">
+                        <img src="{{{{ mapped_charts|get_item:k }}}}" width="100%" />
+                    </div>
+                    {{% endif %}}
+
                     <table class="data-table" width="100%">
                         <thead>
                             <tr><th width="40%">Institutional Dimension / Metric</th><th width="60%">Clinical Value</th></tr>
@@ -2847,15 +2854,18 @@ class ReportGenerationService:
                         'total_clinic_interactions': analytics.get('visits', {}).get('total', 0),
                         'peak_operational_hour': f"{max_hour['hour']}:00 - {max_hour['hour']}:59",
                         'peak_interaction_count': max_hour['count'],
-                        'medical_service_volume': analytics.get('visits', {}).get('types', {}).get('medical', 0),
-                        'dental_service_volume': analytics.get('visits', {}).get('types', {}).get('dental', 0),
+                        'medical_service_volume': analytics.get('visits', {}).get('service_segmentation', {}).get('medical', 0),
+                        'dental_service_volume': analytics.get('visits', {}).get('service_segmentation', {}).get('dental', 0),
                         'institutional_patient_reach': analytics.get('demographics', {}).get('total_active', 0),
                         'hourly_traffic_density': peak_hours,
-                        'service_segmentation': analytics.get('visits', {}).get('types', {}),
-                        'clinical_service_intensity': analytics.get('clinical', {}),
-                        'population_demographics': analytics.get('demographics', {}),
                         'administrative_audit_trail': []
                     }
+                    
+                    # Flatten Sub-Analytics for Visual Mapping
+                    data.update(analytics.get('visits', {}))
+                    data.update(analytics.get('clinical', {}))
+                    data.update(analytics.get('demographics', {}))
+                    data.update(analytics.get('satisfaction', {}))
                     
                     # Enhanced Audit Trail Collection with filtering
                     audit_qs = AuditLog.objects.filter(timestamp__range=(date_start, date_end)).exclude(
@@ -3115,6 +3125,37 @@ class ReportGenerationService:
                             ['Medical', 'Dental'],
                             [{'label': 'Service Share', 'data': [breakdown.get('medical', 0), breakdown.get('dental', 0)]}],
                             "Institutional Service Distribution")
+                    
+                    # Demographic Visuals (Enabled by flattening)
+                    if data.get('role_distribution'):
+                        mapped_charts['role_distribution'] = self._generate_chart_url_complex('doughnut',
+                            [d.get('name', 'N/A') for d in data['role_distribution']],
+                            [{'label': 'Roles', 'data': [d.get('count', 0) for d in data['role_distribution']]}],
+                            "Operational Role Distribution")
+
+                    if data.get('year_level_distribution'):
+                        yl_data = data['year_level_distribution']
+                        mapped_charts['year_level_distribution'] = self._generate_chart_url_complex('bar',
+                            [(f"Year {d.get('year_level')}" if str(d.get('year_level')) not in ['N/A', 'None', ''] else 'Year Unspecified') for d in yl_data],
+                            [{'label': 'Students', 'data': [d.get('count', 0) for d in yl_data], 'backgroundColor': '#6366f1'}],
+                            "Operational Student Distribution")
+
+                    # Satisfaction Visuals (Enabled by flattening)
+                    if data.get('rating_distribution'):
+                        mapped_charts['rating_distribution'] = self._generate_chart_url_complex('doughnut', 
+                            [f"{d.get('category', 'N/A')} Stars" for d in data['rating_distribution']], 
+                            [{'label': 'Satisfaction', 'data': [d.get('count', 0) for d in data['rating_distribution']]}],
+                            "Institutional Satisfaction Index")
+
+                    if data.get('service_metrics'):
+                        metrics = data['service_metrics']
+                        mapped_charts['service_metrics'] = self._generate_chart_url_complex('bar',
+                            ['Would Recommend', 'Provider Courtesy'],
+                            [
+                                {'label': 'Yes', 'data': [metrics.get('recommend_yes', 0), metrics.get('courteous_yes', 0)], 'backgroundColor': '#10b981'},
+                                {'label': 'No', 'data': [metrics.get('recommend_no', 0), metrics.get('courteous_no', 0)], 'backgroundColor': '#ef4444'}
+                            ],
+                            "Service Sentiment Breakdown")
 
                 elif rtype == 'COMPREHENSIVE_ANALYTICS' or rtype == 'COMPREHENSIVE':
                     # Multi-dimensional analytics for comprehensive reports

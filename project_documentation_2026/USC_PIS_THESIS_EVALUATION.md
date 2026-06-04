@@ -24,7 +24,7 @@ The USC-PIS digitalizes and optimizes critical clinic operations through special
 
 *   **Unified Clinical Charting:** Centralized interfaces for Medical and Dental record management. The Dental module includes strict **regex validation** for **FDI notation (11-48)** to ensure clinical accuracy.
 *   **Medical Certificate Pipeline:** Digitalizes the **USC Form ACA-HSD-04F** issuance. The workflow is role-gated, allowing Nurses to draft documents while restricting final approval and PDF unlocking exclusively to users with the **DOCTOR** role.
-*   **Asynchronous Reporting Engine:** A Celery-powered module that synthesizes massive clinical datasets into five export formats: **PDF, Excel (.xlsx), CSV, JSON, and HTML**.
+*   **Asynchronous Reporting Engine (v3.0):** A Celery-powered module that synthesizes massive clinical datasets into five export formats: **PDF, Excel (.xlsx), CSV, JSON, and HTML**. The engine implements **visual stabilization protocols** (A4 Landscape, global word-wrapping) and a **triple-tier verification** layer to ensure 100% mathematical parity between visual and raw data exports. It includes a dedicated **Analytical Reference** section for diagnostic transparency.
 *   **Automated Feedback Loops:** Generates visit-linked satisfaction surveys with automated **24-hour follow-up notifications** to ensure high student engagement.
 *   **Application Retooling:** An advanced filtering architecture that allows clinical staff to dynamically segment the patient registry by **Academic Year, Semester, and Program** in real-time.
 

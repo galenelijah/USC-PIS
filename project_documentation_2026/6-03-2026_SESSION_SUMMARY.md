@@ -45,5 +45,27 @@ Expand report export capabilities and enhance the visual density and professiona
 - **PDF Page Management:** Implemented a new `visual-section` CSS rule that forces a page break before any section containing a chart. This ensures that visualizations and their corresponding data tables are never awkwardly split across pages.
 - **CI Pipeline Stabilization:** Resolved a `SyntaxError` in the report generation service caused by unescaped CSS braces in a Python f-string, restoring pipeline integrity for deployment.
 
+## Part 2: Reporting Engine Hardening & Visual Refinement (v3.1)
+
+### 1. Data Key & Alignment Synchronicity
+- **Clinical Capacity Sync:** Resolved a critical data key mismatch where the "Visit Trends" workshop was missing line data. Aligned backend keys (`month`, `timestamp`) with frontend expectations, restoring historical volume rendering.
+- **Sentiment Mapping Accuracy:** Fixed a case-sensitivity bug in the Service Satisfaction & Sentiment Workshop. Frontend chips now accurately map "Yes" and "No" regardless of backend capitalization, and backend metrics use `iexact` for 100% mathematical accuracy.
+- **Year Level Distribution Refining:** Corrected the academic distribution logic to exclude non-student roles (Doctors, Staff) from the "Year Level" tally, ensuring institutional reports accurately reflect the student body demographics.
+
+### 2. PDF Engine Visual Stabilization
+- **Universal Cell Wrapping:** Implemented a global text-wrapping architecture using ReportLab `Paragraph` flowables and CSS `word-wrap: break-word`. This completely eliminates vertical overlapping and character-by-character string splitting in clinical comments.
+- **Vertical Alignment Standard:** Enforced `vertical-align: top` across all 11 report categories to maintain a professional grid layout in high-density tables.
+- **"N/A" Fallback Layer:** Injected a global sanitization pass in `ReportDataService` that replaces null or empty fields with a standardized **"N/A"** across all 5 export formats.
+
+### 3. Diagnostic Leak Suppression & Professionalism
+- **Visual Component Masking:** Implemented an `is_chart_url` filter that suppresses raw QuickChart engine query strings in data tables, replacing them with a clean `[Visual Component]` placeholder in production exports.
+- **Metadata Standardization:** Explicitly added the **"PHT"** timezone affix to all automated generation stamps in PDF footers, Excel metadata sheets, and CSV headers to meet institutional compliance requirements.
+- **Analytical Reference Restoration:** Added a dedicated "Mapped Charts & Analytical Reference" section to the end of all reports, providing raw URL strings for diagnostic transparency without impacting the layout of clinical data sections.
+
+### 4. Chart Legibility & UX
+- **Generous Canvas Padding:** Increased chart layout padding to **35px** and added the `datalabels` plugin to the backend engine to ensure dataset numbers and category labels are never truncated or clustered.
+- **Chronological Sorting:** Enforced ISO-formatted timestamps in all timeline-based data payloads to ensure the "Interaction Utilization Log" and "Visit Trends" tables are always perfectly ordered.
+
 ## Impact
-The reporting system is now significantly more versatile and professional. The high-density visual layout ensures that clinical staff can quickly interpret granular data trends without manually cross-referencing tables. The addition of HTML and JSON formats makes the system highly interoperable with external data analysis workflows.
+The reporting system has been elevated to an institutional grade. By resolving the subtle "data-leaks" (raw URLs) and "layout-drifts" (empty cell shifts), the system now produces professional, stable, and high-fidelity documentation suitable for clinical audits and administrative presentations.
+
