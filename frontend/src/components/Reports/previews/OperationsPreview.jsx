@@ -254,8 +254,10 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
       );
     }
 
-    if (workloadClass !== 'all') {
-        filtered = filtered.filter(item => getWorkloadLabel(item.count).label.toLowerCase() === workloadClass.toLowerCase());
+    if (selectedWorkloads.length > 0) {
+        filtered = filtered.filter(item => 
+          selectedWorkloads.some(w => getWorkloadLabel(item.count).label.toLowerCase() === w.toLowerCase())
+        );
     }
 
     return [...filtered].sort((a, b) => {

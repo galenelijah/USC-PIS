@@ -32,7 +32,8 @@ import {
     Alert,
     Snackbar,
     CircularProgress,
-    Paper
+    Paper,
+    TablePagination
 } from '@mui/material';
 import {
     Notifications as NotificationsIcon,
@@ -90,6 +91,11 @@ const Notifications = () => {
     const [typeFilter, setTypeFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [currentUser, setCurrentUser] = useState(null);
+
+    // Pagination state
+    const [page, setPage] = useState(0);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [totalCount, setTotalCount] = useState(0);
     
     // Ref to track component mount status
     const isMountedRef = useRef(true);
@@ -124,18 +130,21 @@ const Notifications = () => {
         []
     );
 
-    // Load data with dependency on filters
+    // Load data with dependency on filters and current tab
     useEffect(() => {
         if (isMountedRef.current) {
-            loadNotifications();
+            setPage(0); // Reset to first page on filter change
+            loadNotifications(0, rowsPerPage);
         }
-    }, [searchTerm, typeFilter, statusFilter]);
+    }, [currentTab, searchTerm, typeFilter, statusFilter]);
 
     useEffect(() => {
         if (isMountedRef.current) {
             loadUnreadNotifications();
             loadStats();
         }
+        
+        // ... (rest of useEffect remains same)
 
         // Polling mechanism
         const pollInterval = 30000; // 30 seconds
@@ -168,22 +177,52 @@ const Notifications = () => {
         };
     }, []);
 
-    const loadNotifications = async () => {
+    const loadNotifications = async (p = page, ps = rowsPerPage) => {
         try {
             setLoading(true);
             setError(''); // Clear previous errors
-            const response = await notificationService.getNotifications({
+            
+            const params = {
                 search: searchTerm,
                 notification_type: typeFilter,
-                status: statusFilter
-            });
-            setNotifications(response.data.results || response.data);
+                page: p + 1, // API uses 1-based indexing
+                page_size: ps
+            };
+
+            // If on Unread tab, force status filter to SENT (maps to SENT/DELIVERED in backend)
+            if (currentTab === 1) {
+                params.status = 'SENT';
+            } else if (statusFilter) {
+                params.status = statusFilter;
+            }
+
+            const response = await notificationService.getNotifications(params);
+            
+            if (response.data.results) {
+                setNotifications(response.data.results);
+                setTotalCount(response.data.count);
+            } else {
+                setNotifications(response.data);
+                setTotalCount(response.data.length);
+            }
         } catch (err) {
             console.error('Error loading notifications:', err);
             setError('Failed to load notifications. Please try again.');
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleChangePage = (event, newPage) => {
+        setPage(newPage);
+        loadNotifications(newPage, rowsPerPage);
+    };
+
+    const handleChangeRowsPerPage = (event) => {
+        const newRowsPerPage = parseInt(event.target.value, 10);
+        setRowsPerPage(newRowsPerPage);
+        setPage(0);
+        loadNotifications(0, newRowsPerPage);
     };
 
     const loadUnreadNotifications = async () => {
@@ -363,30 +402,7 @@ const Notifications = () => {
         }
     };
 
-    const filteredNotifications = notifications.filter(notification => {
-        try {
-            const matchesSearch = notification.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                notification.message?.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesType = !typeFilter || notification.notification_type === typeFilter;
-            
-            // Fix: Handle both SENT and DELIVERED as 'Delivered' for filtering
-            let matchesStatus = !statusFilter;
-            if (statusFilter) {
-                if (statusFilter === 'SENT') {
-                    matchesStatus = ['SENT', 'DELIVERED'].includes(notification.status);
-                } else {
-                    matchesStatus = notification.status === statusFilter;
-                }
-            }
-            
-            return matchesSearch && matchesType && matchesStatus;
-        } catch (error) {
-            console.error('Filter error:', error);
-            return false;
-        }
-    });
-
-    const filteredUnreadNotifications = filteredNotifications.filter(n => !n.is_read);
+    const currentNotifications = notifications;
 
     // Notification types for filters
     const notificationTypes = [
@@ -552,7 +568,7 @@ const Notifications = () => {
                                     <Box display="flex" justifyContent="center" p={3}>
                                         <CircularProgress />
                                     </Box>
-                                ) : filteredNotifications.length === 0 ? (
+                                ) : currentNotifications.length === 0 ? (
                                     <Box textAlign="center" p={3}>
                                         <NotificationsIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
                                         <Typography variant="h6" color="textSecondary">
@@ -566,7 +582,7 @@ const Notifications = () => {
                                     </Box>
                                 ) : (
                                     <List>
-                                        {filteredNotifications.map((notification, index) => (
+                                        {currentNotifications.map((notification, index) => (
                                             <React.Fragment key={notification.id}>
                                                 <ListItemButton
                                                     onClick={() => handleViewDetails(notification)}
@@ -618,7 +634,7 @@ const Notifications = () => {
                                                         }
                                                     />
                                                 </ListItemButton>
-                                                {index < filteredNotifications.length - 1 && <Divider />}
+                                                {index < currentNotifications.length - 1 && <Divider />}
                                             </React.Fragment>
                                         ))}
                                     </List>
@@ -626,7 +642,11 @@ const Notifications = () => {
                             </TabPanel>
 
                             <TabPanel value={currentTab} index={1}>
-                                {filteredUnreadNotifications.length === 0 ? (
+                                {loading ? (
+                                    <Box display="flex" justifyContent="center" p={3}>
+                                        <CircularProgress />
+                                    </Box>
+                                ) : currentNotifications.length === 0 ? (
                                     <Box textAlign="center" p={3}>
                                         <CheckCircle sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
                                         <Typography variant="h6" color="textSecondary">
@@ -640,7 +660,7 @@ const Notifications = () => {
                                     </Box>
                                 ) : (
                                     <List>
-                                        {filteredUnreadNotifications.map((notification, index) => (
+                                        {currentNotifications.map((notification, index) => (
                                             <React.Fragment key={notification.id}>
                                                 <ListItemButton onClick={() => handleViewDetails(notification)}>
                                                     <ListItemIcon>
@@ -652,6 +672,12 @@ const Notifications = () => {
                                                                 <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
                                                                     {notification.title}
                                                                 </Typography>
+                                                                <Chip
+                                                                    size="small"
+                                                                    label={notification.status_display}
+                                                                    color={getStatusColor(notification.status)}
+                                                                    variant="outlined"
+                                                                />
                                                             </Box>
                                                         }
                                                         secondary={
@@ -677,12 +703,23 @@ const Notifications = () => {
                                                         }
                                                     />
                                                 </ListItemButton>
-                                                {index < filteredUnreadNotifications.length - 1 && <Divider />}
+                                                {index < currentNotifications.length - 1 && <Divider />}
                                             </React.Fragment>
                                         ))}
                                     </List>
                                 )}
                             </TabPanel>
+
+                            <Divider />
+                            <TablePagination
+                                component="div"
+                                count={totalCount}
+                                page={page}
+                                onPageChange={handleChangePage}
+                                rowsPerPage={rowsPerPage}
+                                onRowsPerPageChange={handleChangeRowsPerPage}
+                                rowsPerPageOptions={[5, 10, 25, 50]}
+                            />
                         </CardContent>
                     </Card>
                 </Grid>

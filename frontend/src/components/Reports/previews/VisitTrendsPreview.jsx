@@ -102,7 +102,7 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedCampuses, streamFilter]);
+  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedCampuses, selectedStreams]);
 
   useEffect(() => {
     fetchAnalytics(openModal);

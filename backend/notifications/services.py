@@ -290,8 +290,34 @@ class NotificationService:
         metadata: Optional[Dict] = None,
         created_by: Optional[User] = None
     ) -> Notification:
-        """Create a new notification"""
+        """Create a new notification with duplicate prevention"""
         
+        # 1. Duplicate Prevention Logic
+        # Prevent identical notifications within a 5-minute window
+        cooldown_period = timezone.now() - timedelta(minutes=5)
+        
+        duplicate_query = Notification.objects.filter(
+            recipient=recipient,
+            notification_type=notification_type,
+            created_at__gte=cooldown_period
+        )
+
+        # If metadata is provided, use it for precise duplicate detection
+        if metadata:
+            # Check if any notification in cooldown has matching metadata
+            # We convert to string for comparison as JSONField lookups can be tricky across DB vendors
+            meta_str = json.dumps(metadata, sort_keys=True)
+            for existing in duplicate_query:
+                if json.dumps(existing.metadata, sort_keys=True) == meta_str:
+                    logger.info(f"Skipping duplicate notification for {recipient.email} (Metadata Match)")
+                    return existing
+        else:
+            # Fallback to Title/Message matching
+            if duplicate_query.filter(title=title, message=message).exists():
+                logger.info(f"Skipping duplicate notification for {recipient.email} (Content Match)")
+                return duplicate_query.filter(title=title, message=message).first()
+
+        # 2. Normal Creation Path
         notification = Notification.objects.create(
             recipient=recipient,
             patient=patient,

@@ -201,8 +201,8 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
         filters: {
           campaign_titles: selectedCampaigns,
           min_views: minViewsFilter || undefined,
-          status: statusFilter || undefined,
-          campaign_type: typeFilter || undefined,
+          status: selectedStatuses.length > 0 ? selectedStatuses : undefined,
+          campaign_type: selectedTypes.length > 0 ? selectedTypes : undefined,
           search: searchQuery
         }
       };
