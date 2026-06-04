@@ -1006,19 +1006,11 @@ const CampaignsPage = () => {
                         textTransform: 'none',
                         fontWeight: 'bold',
                         py: 1.5,
-                        background: active ? 
-                          'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)' :
-                          'linear-gradient(45deg, #757575 30%, #9e9e9e 90%)',
-                        boxShadow: active ? 
-                          '0 4px 12px rgba(25, 118, 210, 0.3)' :
-                          '0 4px 12px rgba(0, 0, 0, 0.2)',
+                        background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                        boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
                         '&:hover': {
-                          background: active ?
-                            'linear-gradient(45deg, #1565c0 30%, #1976d2 90%)' :
-                            'linear-gradient(45deg, #616161 30%, #757575 90%)',
-                          boxShadow: active ?
-                            '0 6px 20px rgba(25, 118, 210, 0.4)' :
-                            '0 6px 20px rgba(0, 0, 0, 0.3)',
+                          background: 'linear-gradient(45deg, #1565c0 30%, #1976d2 90%)',
+                          boxShadow: '0 6px 20px rgba(25, 118, 210, 0.4)',
                           transform: 'translateY(-1px)'
                         }
                       }}

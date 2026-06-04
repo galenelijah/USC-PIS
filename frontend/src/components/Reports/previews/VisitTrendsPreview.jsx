@@ -91,7 +91,6 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
       if (isModal) {
         if (selectedCampuses.length > 0) params.campus = selectedCampuses.join(',');
         if (streamFilter !== 'all') params.service_type = streamFilter;
-        if (searchQuery) params.search = searchQuery;
       }
 
       const response = await reportService.getDashboardAnalytics(params);
@@ -102,7 +101,7 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedCampuses, streamFilter, searchQuery]);
+  }, [dateRange, customStart, customEnd, modalDateRange, modalStartDate, modalEndDate, selectedCampuses, streamFilter]);
 
   useEffect(() => {
     fetchAnalytics(openModal);
@@ -121,9 +120,7 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
         date_range_end: modalDateRange === 'custom' ? modalEndDate : undefined,
         filters: {
           campus: selectedCampuses.length > 0 ? selectedCampuses : undefined,
-          service_type: streamFilter !== 'all' ? streamFilter : undefined,
-          search: searchQuery || undefined,
-          charts_base64: chartRef.current ? [chartRef.current.toBase64Image()] : []
+          service_type: streamFilter !== 'all' ? streamFilter : undefined
         }
       };
 
@@ -381,18 +378,6 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
                 </ToggleButton>
               </ToggleButtonGroup>
             </Grid>
-            <Grid item xs={12} sm={modalDateRange === 'custom' ? 2 : 4}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Search month..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  InputProps={{
-                    startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>
-                  }}
-                />
-            </Grid>
           </Grid>
 
           {/* VISUALIZATION GRID */}
@@ -413,7 +398,19 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
           <Divider sx={{ mb: 3 }} />
 
           {/* TREND DATA TABLE */}
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Interaction Utilization Log</Typography>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Interaction Utilization Log</Typography>
+            <TextField
+              size="small"
+              placeholder="Search month..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>
+              }}
+              sx={{ width: 250 }}
+            />
+          </Box>
           <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 400, borderRadius: '8px', overflowX: 'auto' }}>
             <Table stickyHeader size="small" sx={{ minWidth: 850 }}>
               <TableHead>

@@ -2394,27 +2394,6 @@ class ReportGenerationService:
                 </div>
                 </div>
 
-                {{% if visual_charts or charts_base64 %}}
-                <div class="visual-section">
-                <div class="section-title">Comparative Analysis & Visual Intelligence</div>
-                <div style="text-align: center;">
-                   {{% for chart_url in visual_charts %}}
-                   <div class="chart-container">
-                       <img src="{{{{ chart_url }}}}" width="750" height="400" style="display: block; margin: 0 auto;" />
-                   </div>
-                   {{% endfor %}}
-                   {{% for chart_b64 in charts_base64 %}}
-                   <div class="chart-container">
-                       <img src="{{{{ chart_b64 }}}}" width="750" height="400" style="display: block; margin: 0 auto;" />
-                   </div>
-                   {{% endfor %}}
-                </div>
-                <p style="font-size: 8pt; color: #64748b; font-style: italic; text-align: center; margin-top: 10px;">
-                   * Data visualizations generated based on institutional parameters and historical trends.
-                </p>
-                </div>
-                {{% endif %}}
-
             {{% if report_focus == 'CLINICAL OPERATIONAL DENSITY' %}}
             <div class="section">
                 <div class="section-title">Clinical Interaction Intelligence</div>

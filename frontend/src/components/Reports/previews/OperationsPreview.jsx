@@ -128,11 +128,7 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
           service_type: serviceType !== 'all' ? serviceType : undefined,
           workload_class: workloadClass !== 'all' ? workloadClass : undefined,
           include_peak_hours: true,
-          include_demographics: true,
-          charts_base64: [
-            chartRef.current ? chartRef.current.toBase64Image() : null,
-            forecastChartRef.current ? forecastChartRef.current.toBase64Image() : null
-          ].filter(Boolean)
+          include_demographics: true
         }
       };
 

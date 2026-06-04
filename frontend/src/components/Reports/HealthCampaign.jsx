@@ -258,7 +258,7 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
     },
     scales: {
       x: { beginAtZero: true, grid: { color: '#f8fafc' }, ticks: { font: { size: 10 } } },
-      y: { grid: { display: false }, ticks: { font: { size: 11, weight: '500' } } }
+      y: { grid: { display: false }, ticks: { autoSkip: false, font: { size: 11, weight: '500' } } }
     }
   };
 
