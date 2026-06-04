@@ -16,6 +16,7 @@ class NotificationTemplate(models.Model):
         ('VACCINATION_REMINDER', 'Vaccination Reminder'),
         ('DENTAL_REMINDER', 'Dental Checkup Reminder'),
         ('MEDICAL_CERTIFICATE', 'Medical Certificate'),
+        ('DOWNLOAD', 'File Download'),
         ('CUSTOM', 'Custom Notification'),
     ]
     
@@ -51,6 +52,7 @@ class Notification(models.Model):
         ('VACCINATION_REMINDER', 'Vaccination Reminder'),
         ('DENTAL_REMINDER', 'Dental Checkup Reminder'),
         ('MEDICAL_CERTIFICATE', 'Medical Certificate'),
+        ('DOWNLOAD', 'File Download'),
         ('CUSTOM', 'Custom Notification'),
         ('SYSTEM_ALERT', 'System Alert'),
     ]

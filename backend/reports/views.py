@@ -25,6 +25,7 @@ from .serializers import (
 from .services import ReportGenerationService
 from .dispatcher import ReportDispatcher
 from patients.models import Patient, MedicalRecord, DentalRecord
+from notifications.services import NotificationService
 import logging
 
 logger = logging.getLogger(__name__)
@@ -361,6 +362,20 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
                 if report.file_size:
                     file_response['Content-Length'] = str(report.file_size)
                 file_response['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Length'
+                
+                # Create in-app notification for the download
+                try:
+                    NotificationService.create_notification(
+                        recipient=request.user,
+                        notification_type='DOWNLOAD',
+                        title='Report Downloaded',
+                        message=f'You have successfully downloaded the report: {report.title}',
+                        priority='LOW',
+                        delivery_method='IN_APP'
+                    )
+                except Exception as ne:
+                    logger.error(f"Failed to create download notification: {ne}")
+
                 logger.info(f"Streamed report {report.id} via storage backend")
                 return file_response
             except Exception as e:

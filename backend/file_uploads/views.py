@@ -12,6 +12,7 @@ import mimetypes
 from .models import UploadedFile, PatientDocument
 from .serializers import UploadedFileSerializer, PatientDocumentSerializer
 from .validators import FileSecurityValidator, FileIntegrityChecker, FilenameValidator
+from notifications.services import NotificationService
 import logging
 
 logger = logging.getLogger(__name__)
@@ -173,6 +174,21 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
 
             proxy_response['Content-Disposition'] = f'attachment; filename="{filename}"'
             proxy_response['Access-Control-Expose-Headers'] = 'Content-Disposition'
+
+            # Create in-app notification for the download
+            try:
+                NotificationService.create_notification(
+                    recipient=request.user,
+                    notification_type='DOWNLOAD',
+                    title='Document Downloaded',
+                    message=f'You have successfully downloaded the document: {filename}',
+                    priority='LOW',
+                    delivery_method='IN_APP',
+                    patient=document.patient
+                )
+            except Exception as ne:
+                logger.error(f"Failed to create download notification: {ne}")
+
             return proxy_response
             
         except Exception as e:

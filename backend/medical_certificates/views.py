@@ -17,6 +17,7 @@ from datetime import date
 from rest_framework.permissions import IsAuthenticated
 from authentication.tasks import log_activity_task
 from authentication.middleware import get_current_ip, get_current_user_agent
+from notifications.services import NotificationService
 
 
 def get_certificate_status(certificate):
@@ -338,6 +339,23 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
         if not pdf.err:
             response = HttpResponse(result.getvalue(), content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="medical_certificate_{certificate.id}.pdf"'
+            
+            # Create in-app notification for the download
+            try:
+                NotificationService.create_notification(
+                    recipient=request.user,
+                    notification_type='DOWNLOAD',
+                    title='Medical Certificate Downloaded',
+                    message=f'You have successfully downloaded the medical certificate for {certificate.patient.get_full_name()}',
+                    priority='LOW',
+                    delivery_method='IN_APP',
+                    patient=certificate.patient
+                )
+            except Exception as ne:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to create download notification: {ne}")
+
             return response
         else:
             return HttpResponse('Error generating PDF', status=500)
