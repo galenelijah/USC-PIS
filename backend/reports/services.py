@@ -1086,10 +1086,20 @@ class ReportDataService:
             # Apply filters
             campaign_ids = filters.get('campaign_ids') or filters.get('campaign_id')
             if campaign_ids:
+                if isinstance(campaign_ids, str):
+                    campaign_ids = [c.strip() for c in campaign_ids.split(',') if c.strip()]
+                
                 if isinstance(campaign_ids, list):
-                    queryset = queryset.filter(id__in=campaign_ids)
+                    # Convert to integers to prevent DB mismatch
+                    clean_ids = []
+                    for cid in campaign_ids:
+                        try: clean_ids.append(int(cid))
+                        except (ValueError, TypeError): pass
+                    if clean_ids:
+                        queryset = queryset.filter(id__in=clean_ids)
                 else:
-                    queryset = queryset.filter(id=campaign_ids)
+                    try: queryset = queryset.filter(id=int(campaign_ids))
+                    except (ValueError, TypeError): pass
 
             campaign_titles = filters.get('campaign_titles')
             if campaign_titles:
@@ -1103,6 +1113,10 @@ class ReportDataService:
             campaign_type = filters.get('campaign_type') or filters.get('category')
             if campaign_type:
                 queryset = queryset.filter(campaign_type=campaign_type)
+
+            status = filters.get('status')
+            if status:
+                queryset = queryset.filter(status=status)
 
             min_views = filters.get('min_views')
             if min_views:
@@ -1134,6 +1148,10 @@ class ReportDataService:
             # 1. Category Distribution
             type_counts = queryset.values('campaign_type').annotate(count=Count('id'))
             type_distribution = [{'type': item['campaign_type'], 'count': item['count']} for item in type_counts]
+            
+            # 2. Status Distribution
+            status_counts = queryset.values('status').annotate(count=Count('id'))
+            status_distribution = [{'status': item['status'], 'count': item['count']} for item in status_counts]
 
             total_campaigns = queryset.count()
             
@@ -1159,6 +1177,7 @@ class ReportDataService:
                     'title': c.title, 
                     'view_count': c.view_count,
                     'campaign_type': c.get_campaign_type_display(),
+                    'status': c.get_status_display(),
                     'created_by_name': c.created_by.get_full_name() if c.created_by else 'System',
                     'created_at': c.created_at.strftime('%Y-%m-%d'),
                     'updated_at': c.updated_at.strftime('%Y-%m-%d'),
@@ -1208,7 +1227,8 @@ class ReportDataService:
                 'avg_views_per_campaign': round(avg_views, 2), 
                 'campaign_performance': perf,
                 'asset_effectiveness': asset_effectiveness,
-                'category_distribution': type_distribution
+                'category_distribution': type_distribution,
+                'status_distribution': status_distribution
             }
         except Exception as e: 
             logger.error(f"Error in get_campaign_performance_data: {str(e)}")
@@ -2885,8 +2905,15 @@ class ReportGenerationService:
         
         config_str = json.dumps(chart_config)
         encoded_config = urllib.parse.quote(config_str)
+        
+        # Calculate dynamic height based on labels to prevent auto-skipping
+        # Standard height 450, add 25px per bar if more than 10 labels
+        base_h = 450
+        calc_h = base_h + (max(0, len(labels) - 10) * 20) if is_horizontal else base_h
+        final_h = min(calc_h, 1200) # Cap at 1200px
+        
         # Force v3 for latest rendering logic and horizontal support
-        return f"https://quickchart.io/chart?c={encoded_config}&w=750&h=400&v=3"
+        return f"https://quickchart.io/chart?c={encoded_config}&w=800&h={final_h}&v=3"
 
     def collect_report_data(self, report_type, title, date_start=None, date_end=None, filters=None, **kwargs):
         """Standardized data collection for any report type with complex Workshop visualizations"""
@@ -3111,10 +3138,12 @@ class ReportGenerationService:
 
                 elif rtype in ['CAMPAIGN_PERFORMANCE', 'HEALTH_CAMPAIGN'] and data.get('campaign_performance'):
                     perf = data['campaign_performance']
+                    # If specific campaigns are being compared, show more than the default 8
+                    limit = 25 if filters.get('campaign_ids') or filters.get('campaign_id') else 8
                     mapped_charts['campaign_performance'] = self._generate_chart_url_complex('horizontalBar', 
-                        [c.get('title', 'N/A')[:20] for c in perf[:8]], 
+                        [c.get('title', 'N/A')[:20] for c in perf[:limit]], 
                         [
-                            {'label': 'Total Views', 'data': [c.get('views', c.get('view_count', 0)) for c in perf[:8]], 'backgroundColor': '#ea580c'}
+                            {'label': 'Total Views', 'data': [c.get('views', c.get('view_count', 0)) for c in perf[:limit]], 'backgroundColor': '#ea580c'}
                         ],
                         "Individual Campaign Reach")
                     
@@ -3129,6 +3158,12 @@ class ReportGenerationService:
                             [d.get('asset_type', 'N/A') for d in data['asset_effectiveness']],
                             [{'label': 'Avg Views', 'data': [d.get('avg_views', 0) for d in data['asset_effectiveness']]}],
                             "Asset Effectiveness Analysis")
+
+                    if data.get('status_distribution'):
+                        mapped_charts['status_distribution'] = self._generate_chart_url_complex('pie',
+                            [d.get('status', 'N/A') for d in data['status_distribution']],
+                            [{'label': 'Status Share', 'data': [d.get('count', 0) for d in data['status_distribution']]}],
+                            "Campaign Status Breakdown")
 
                 elif rtype in ['FEEDBACK_ANALYSIS', 'PATIENT_FEEDBACK'] and data.get('rating_distribution'):
                     dist = data['rating_distribution']
@@ -3380,17 +3415,32 @@ class ReportSchemaService:
             'CAMPAIGN_PERFORMANCE': {
                 'filters': [
                     {'id': 'campaign_ids', 'label': 'Specific Campaigns', 'type': 'api_multiselect', 'endpoint': '/api/health-info/campaigns/'},
-                    {'id': 'category', 'label': 'Campaign Category', 'type': 'select', 'options': [
-                        {'label': 'Awareness', 'value': 'AWARENESS'},
-                        {'label': 'Screening', 'value': 'SCREENING'},
+                    {'id': 'category', 'label': 'Campaign Type', 'type': 'select', 'options': [
+                        {'label': 'General Health', 'value': 'GENERAL'},
                         {'label': 'Vaccination', 'value': 'VACCINATION'},
-                        {'label': 'Workshop', 'value': 'WORKSHOP'}
+                        {'label': 'Mental Health', 'value': 'MENTAL_HEALTH'},
+                        {'label': 'Nutrition', 'value': 'NUTRITION'},
+                        {'label': 'Dental Health', 'value': 'DENTAL_HEALTH'},
+                        {'label': 'Hygiene', 'value': 'HYGIENE'},
+                        {'label': 'Exercise', 'value': 'EXERCISE'},
+                        {'label': 'Safety', 'value': 'SAFETY'},
+                        {'label': 'Prevention', 'value': 'PREVENTION'},
+                        {'label': 'Awareness', 'value': 'AWARENESS'},
+                        {'label': 'Emergency', 'value': 'EMERGENCY'},
+                        {'label': 'Seasonal', 'value': 'SEASONAL'},
+                        {'label': 'Custom', 'value': 'CUSTOM'}
+                    ]},
+                    {'id': 'status', 'label': 'Campaign Status', 'type': 'select', 'options': [
+                        {'label': 'Posted', 'value': 'POSTED'},
+                        {'label': 'Completed', 'value': 'COMPLETED'},
+                        {'label': 'Archived', 'value': 'ARCHIVED'}
                     ]}
                 ],
                 'fields': [
                     {'id': 'title', 'label': 'Campaign Title', 'default': True},
                     {'id': 'views', 'label': 'Total Views', 'default': True},
                     {'id': 'type', 'label': 'Type', 'default': True},
+                    {'id': 'status', 'label': 'Status', 'default': True},
                     {'id': 'performance', 'label': 'Performance', 'default': False}
                 ],
                 'groupable_by': ['type']
