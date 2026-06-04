@@ -233,13 +233,17 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
 
   const getSortedTableData = () => {
     if (!data?.visits?.monthly) return [];
-    
+
     let filtered = data.visits.monthly;
     if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(item => 
-        (item.month || '').toLowerCase().includes(query)
-      );
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(item => {
+        if (!item.month) return false;
+        const monthStr = String(item.month).toLowerCase();
+
+        // Match exact strings or parts (e.g. "2026", "May", "May 2026", "26")
+        return monthStr.includes(query);
+      });
     }
 
     return [...filtered].sort((a, b) => {
@@ -402,7 +406,7 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Interaction Utilization Log</Typography>
             <TextField
               size="small"
-              placeholder="Search month..."
+              placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               InputProps={{
