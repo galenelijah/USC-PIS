@@ -67,17 +67,37 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
   // Domain Specific Filters
   const [selectedFitness, setSelectedFitness] = useState([]);
   const [selectedIssuance, setSelectedIssuance] = useState([]);
-  const [doctorFilter, setDoctorFilter] = useState('all');
+  const [selectedDoctors, setSelectedDoctors] = useState([]);
   const [selectedCampuses, setSelectedCampuses] = useState([]);
   const [selectedRoles, setSelectedRoles] = useState([]);
   const [selectedYearLevels, setSelectedYearLevels] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [masterDoctors, setMasterDoctors] = useState([]);
 
   const fitnessOptions = ['fit', 'unfit', 'pending'];
   const issuanceOptions = ['pending', 'issued', 'rejected'];
   const campusOptions = ['Talamban Campus (TC)', 'Downtown Campus (DC)'];
   const roleOptions = ['STUDENT', 'FACULTY'];
   const yearLevelOptions = ['1', '2', '3', '4', '5', '6'];
+
+  const getYearLevelLabel = (val) => {
+    if (val === '6') return 'Batch X (Post-Grad)';
+    const suffix = val === '1' ? 'st' : val === '2' ? 'nd' : val === '3' ? 'rd' : 'th';
+    return `${val}${suffix} Year`;
+  };
+
+  const getRoleLabel = (val) => {
+    return val === 'STUDENT' ? 'Student' : 'Faculty & Staff';
+  };
+
+  const getFitnessLabel = (val) => {
+    const map = { 'fit': 'Physically Fit', 'unfit': 'Unfit / Follow-up', 'pending': 'Pending Results' };
+    return map[val] || val;
+  };
+
+  const getIssuanceLabel = (val) => {
+    return val.charAt(0).toUpperCase() + val.slice(1);
+  };
 
   const chartRef = React.useRef(null);
 
@@ -88,6 +108,23 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
     const day = String(today.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
+
+  // Fetch Master list of doctors for the filter options (unfiltered by current selection)
+  useEffect(() => {
+    const fetchMasterDoctors = async () => {
+      try {
+        const response = await reportService.getDashboardAnalytics({ 
+          date_range: 'all',
+          report_type: 'MEDICAL_CERTIFICATE' 
+        });
+        const doctors = Array.from(new Set((response?.data?.certifications?.doctor_workload || []).map(d => d.name).filter(Boolean))).sort();
+        setMasterDoctors(doctors);
+      } catch (err) {
+        console.error("Failed to fetch master doctors:", err);
+      }
+    };
+    fetchMasterDoctors();
+  }, []);
 
   const fetchAnalytics = useCallback(async (isModal = false) => {
     try {
@@ -104,7 +141,7 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
       if (isModal) {
         if (selectedFitness.length > 0) params.fitness_status = selectedFitness.join(',');
         if (selectedIssuance.length > 0) params.issuance_status = selectedIssuance.join(',');
-        if (doctorFilter !== 'all') params.doctor = doctorFilter;
+        if (selectedDoctors.length > 0) params.doctor = selectedDoctors.join(',');
         if (selectedCampuses.length > 0) params.campus = selectedCampuses.join(',');
         if (selectedRoles.length > 0) params.role = selectedRoles.join(',');
         if (selectedYearLevels.length > 0) params.year_level = selectedYearLevels.join(',');
@@ -119,11 +156,11 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
     } finally {
       if (!isModal) setLoading(false);
     }
-  }, [modalDateRange, dateRange, modalStartDate, customStart, modalEndDate, customEnd, selectedFitness, selectedIssuance, doctorFilter, selectedCampuses, selectedRoles, selectedYearLevels, searchQuery]);
+  }, [modalDateRange, dateRange, modalStartDate, customStart, modalEndDate, customEnd, selectedFitness, selectedIssuance, selectedDoctors, selectedCampuses, selectedRoles, selectedYearLevels, searchQuery]);
 
   useEffect(() => {
     fetchAnalytics(openModal);
-  }, [openModal, fetchAnalytics, selectedFitness, selectedIssuance, selectedRoles, selectedYearLevels]);
+  }, [openModal, fetchAnalytics, selectedFitness, selectedIssuance, selectedDoctors, selectedRoles, selectedYearLevels]);
 
   const handleGenerateReport = async (format = 'PDF') => {
     try {
@@ -139,7 +176,7 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
         filters: {
           fitness_status: selectedFitness.length > 0 ? selectedFitness : undefined,
           issuance_status: selectedIssuance.length > 0 ? selectedIssuance : undefined,
-          doctor: doctorFilter !== 'all' ? doctorFilter : undefined,
+          doctor: selectedDoctors.length > 0 ? selectedDoctors : undefined,
           campus: selectedCampuses.length > 0 ? selectedCampuses : undefined,
           role: selectedRoles.length > 0 ? selectedRoles : undefined,
           year_level: selectedYearLevels.length > 0 ? selectedYearLevels : undefined,
@@ -282,11 +319,12 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
                 size="small"
                 options={fitnessOptions}
                 value={selectedFitness}
+                getOptionLabel={(option) => getFitnessLabel(option)}
                 onChange={(e, v) => setSelectedFitness(v)}
                 renderTags={(tagValue, getTagProps) =>
                   tagValue.map((option, index) => {
                     const { key, ...tagProps } = getTagProps({ index });
-                    return <Chip key={key} label={option.toUpperCase()} size="small" color="primary" {...tagProps} />;
+                    return <Chip key={key} label={getFitnessLabel(option)} size="small" color="primary" {...tagProps} />;
                   })
                 }
                 renderInput={(params) => <TextField {...params} label="Fitness Status" variant="outlined" />}
@@ -298,26 +336,33 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
                 size="small"
                 options={issuanceOptions}
                 value={selectedIssuance}
+                getOptionLabel={(option) => getIssuanceLabel(option)}
                 onChange={(e, v) => setSelectedIssuance(v)}
                 renderTags={(tagValue, getTagProps) =>
                   tagValue.map((option, index) => {
                     const { key, ...tagProps } = getTagProps({ index });
-                    return <Chip key={key} label={option.toUpperCase()} size="small" color="secondary" {...tagProps} />;
+                    return <Chip key={key} label={getIssuanceLabel(option)} size="small" color="secondary" {...tagProps} />;
                   })
                 }
                 renderInput={(params) => <TextField {...params} label="Issuance Status" variant="outlined" />}
               />
             </Grid>
             <Grid item xs={12} sm={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Issuing Doctor</InputLabel>
-                <Select value={doctorFilter} label="Issuing Doctor" onChange={(e) => setDoctorFilter(e.target.value)}>
-                  <MenuItem value="all">All Doctors</MenuItem>
-                  {(data?.certifications?.doctor_workload || []).map(d => (
-                    <MenuItem key={d.name} value={d.name}>Dr. {d.name}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <Autocomplete
+                multiple
+                size="small"
+                options={masterDoctors}
+                value={selectedDoctors}
+                getOptionLabel={(option) => `Dr. ${option}`}
+                onChange={(e, v) => setSelectedDoctors(v)}
+                renderTags={(tagValue, getTagProps) =>
+                  tagValue.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return <Chip key={key} label={`Dr. ${option}`} size="small" color="primary" variant="outlined" {...tagProps} />;
+                  })
+                }
+                renderInput={(params) => <TextField {...params} label="Issuing Doctor" variant="outlined" />}
+              />
             </Grid>
             <Grid item xs={12} sm={3}>
               <FormControl fullWidth size="small">
@@ -357,11 +402,12 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
                 size="small"
                 options={roleOptions}
                 value={selectedRoles}
+                getOptionLabel={(option) => getRoleLabel(option)}
                 onChange={(e, v) => setSelectedRoles(v)}
                 renderTags={(tagValue, getTagProps) =>
                   tagValue.map((option, index) => {
                     const { key, ...tagProps } = getTagProps({ index });
-                    return <Chip key={key} label={option} size="small" sx={{ bgcolor: '#f0f9ff', color: '#0369a1' }} {...tagProps} />;
+                    return <Chip key={key} label={getRoleLabel(option)} size="small" sx={{ bgcolor: '#f0f9ff', color: '#0369a1' }} {...tagProps} />;
                   })
                 }
                 renderInput={(params) => <TextField {...params} label="Patient Role" variant="outlined" />}
@@ -373,11 +419,12 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
                 size="small"
                 options={yearLevelOptions}
                 value={selectedYearLevels}
+                getOptionLabel={(option) => getYearLevelLabel(option)}
                 onChange={(e, v) => setSelectedYearLevels(v)}
                 renderTags={(tagValue, getTagProps) =>
                   tagValue.map((option, index) => {
                     const { key, ...tagProps } = getTagProps({ index });
-                    return <Chip key={key} label={`${option}${option === '1' ? 'st' : option === '2' ? 'nd' : option === '3' ? 'rd' : 'th'} Year`} size="small" variant="outlined" {...tagProps} />;
+                    return <Chip key={key} label={getYearLevelLabel(option)} size="small" variant="outlined" {...tagProps} />;
                   })
                 }
                 renderInput={(params) => <TextField {...params} label="Year Level" variant="outlined" />}

@@ -65,6 +65,10 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
   const campusOptions = ['Talamban Campus (TC)', 'Downtown Campus (DC)'];
   const streamOptions = ['MEDICAL', 'DENTAL'];
 
+  const getStreamLabel = (val) => {
+    return val === 'MEDICAL' ? 'Medical Consultations' : 'Dental Procedures';
+  };
+
   const [sortField, setSortField] = useState('month');
   const [sortDirection, setSortDirection] = useState('desc');
 
@@ -341,11 +345,12 @@ const VisitTrendsPreview = ({ dateRange, customStart, customEnd }) => {
                 size="small"
                 options={streamOptions}
                 value={selectedStreams}
+                getOptionLabel={(option) => getStreamLabel(option)}
                 onChange={(e, v) => setSelectedStreams(v)}
                 renderTags={(tagValue, getTagProps) =>
                   tagValue.map((option, index) => {
                     const { key, ...tagProps } = getTagProps({ index });
-                    return <Chip key={key} label={option} size="small" color="primary" {...tagProps} />;
+                    return <Chip key={key} label={getStreamLabel(option)} size="small" color="primary" {...tagProps} />;
                   })
                 }
                 renderInput={(params) => <TextField {...params} label="Clinical Stream" variant="outlined" />}

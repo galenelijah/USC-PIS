@@ -68,10 +68,21 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
   const [selectedRoles, setSelectedRoles] = useState([]);
   const [selectedYearLevels, setSelectedYearLevels] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [masterDiagnoses, setMasterDiagnoses] = useState([]);
 
   const campusOptions = ['Talamban', 'Downtown'];
   const roleOptions = ['STUDENT', 'FACULTY'];
   const yearLevelOptions = ['1', '2', '3', '4', '5', '6'];
+
+  const getYearLevelLabel = (val) => {
+    if (val === '6') return 'Batch X (Post-Grad)';
+    const suffix = val === '1' ? 'st' : val === '2' ? 'nd' : val === '3' ? 'rd' : 'th';
+    return `${val}${suffix} Year`;
+  };
+
+  const getRoleLabel = (val) => {
+    return val === 'STUDENT' ? 'Student' : 'Faculty & Staff';
+  };
 
   const chartRef = React.useRef(null);
 
@@ -85,6 +96,23 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
     const day = String(today.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
+
+  // Fetch Master list of diagnoses for the filter options (unfiltered by current selection)
+  useEffect(() => {
+    const fetchMasterDiagnoses = async () => {
+      try {
+        const response = await reportService.getDashboardAnalytics({ 
+          date_range: 'all',
+          report_type: 'CLINICAL_STATISTICS' 
+        });
+        const diagnoses = Array.from(new Set((response?.data?.clinical?.top_diagnoses || []).map(d => d.name).filter(Boolean))).sort();
+        setMasterDiagnoses(diagnoses);
+      } catch (err) {
+        console.error("Failed to fetch master diagnoses:", err);
+      }
+    };
+    fetchMasterDiagnoses();
+  }, []);
 
   const fetchAnalytics = useCallback(async (isModal = false) => {
     try {
@@ -236,8 +264,6 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
     });
   };
 
-  const diagnosisOptions = Array.from(new Set((data?.clinical?.top_diagnoses || []).map(d => d.name))).sort();
-
   return (
     <Box sx={{ width: '100%', marginBottom: '20px' }}>
       
@@ -324,7 +350,7 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
               <Autocomplete
                 multiple
                 size="small"
-                options={diagnosisOptions}
+                options={masterDiagnoses}
                 value={selectedDiagnoses}
                 onChange={(e, v) => setSelectedDiagnoses(v)}
                 renderTags={(tagValue, getTagProps) =>
@@ -374,11 +400,12 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
                 size="small"
                 options={roleOptions}
                 value={selectedRoles}
+                getOptionLabel={(option) => getRoleLabel(option)}
                 onChange={(e, v) => setSelectedRoles(v)}
                 renderTags={(tagValue, getTagProps) =>
                   tagValue.map((option, index) => {
                     const { key, ...tagProps } = getTagProps({ index });
-                    return <Chip key={key} label={option} size="small" sx={{ bgcolor: '#ede9fe', color: '#5b21b6' }} {...tagProps} />;
+                    return <Chip key={key} label={getRoleLabel(option)} size="small" sx={{ bgcolor: '#ede9fe', color: '#5b21b6' }} {...tagProps} />;
                   })
                 }
                 renderInput={(params) => <TextField {...params} label="Patient Role" variant="outlined" />}
@@ -390,11 +417,12 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
                 size="small"
                 options={yearLevelOptions}
                 value={selectedYearLevels}
+                getOptionLabel={(option) => getYearLevelLabel(option)}
                 onChange={(e, v) => setSelectedYearLevels(v)}
                 renderTags={(tagValue, getTagProps) =>
                   tagValue.map((option, index) => {
                     const { key, ...tagProps } = getTagProps({ index });
-                    return <Chip key={key} label={`${option}${option === '1' ? 'st' : option === '2' ? 'nd' : option === '3' ? 'rd' : 'th'} Year`} size="small" variant="outlined" {...tagProps} />;
+                    return <Chip key={key} label={getYearLevelLabel(option)} size="small" variant="outlined" {...tagProps} />;
                   })
                 }
                 renderInput={(params) => <TextField {...params} label="Year Level" variant="outlined" />}

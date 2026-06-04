@@ -80,6 +80,29 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
     'PREVENTION', 'AWARENESS', 'EMERGENCY', 'SEASONAL', 'CUSTOM'
   ];
 
+  const getStatusLabel = (val) => {
+    return val.charAt(0).toUpperCase() + val.slice(1).toLowerCase();
+  };
+
+  const getTypeLabel = (val) => {
+    const map = {
+      'GENERAL': 'General Health',
+      'VACCINATION': 'Vaccination',
+      'MENTAL_HEALTH': 'Mental Health',
+      'NUTRITION': 'Nutrition & Wellness',
+      'DENTAL_HEALTH': 'Dental Health',
+      'HYGIENE': 'Hygiene',
+      'EXERCISE': 'Exercise',
+      'SAFETY': 'Safety',
+      'PREVENTION': 'Prevention',
+      'AWARENESS': 'Awareness',
+      'EMERGENCY': 'Emergency',
+      'SEASONAL': 'Seasonal',
+      'CUSTOM': 'Custom'
+    };
+    return map[val] || val;
+  };
+
   const [sortField, setSortField] = useState('created_at');
   const [sortDirection, setSortDirection] = useState('desc');
   const [searchQuery, setSearchQuery] = useState('');
@@ -390,11 +413,12 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
                 size="small"
                 options={statusOptions}
                 value={selectedStatuses}
+                getOptionLabel={(option) => getStatusLabel(option)}
                 onChange={(e, v) => setSelectedStatuses(v)}
                 renderTags={(tagValue, getTagProps) =>
                   tagValue.map((option, index) => {
                     const { key, ...tagProps } = getTagProps({ index });
-                    return <Chip key={key} label={option} size="small" sx={{ bgcolor: '#e0f2fe', color: '#0369a1' }} {...tagProps} />;
+                    return <Chip key={key} label={getStatusLabel(option)} size="small" sx={{ bgcolor: '#e0f2fe', color: '#0369a1' }} {...tagProps} />;
                   })
                 }
                 renderInput={(params) => <TextField {...params} label="Filter Status" variant="outlined" />}
@@ -406,11 +430,12 @@ const HealthCampaignPreview = ({ dateRange, customStart, customEnd }) => {
                 size="small"
                 options={campaignTypeOptions}
                 value={selectedTypes}
+                getOptionLabel={(option) => getTypeLabel(option)}
                 onChange={(e, v) => setSelectedTypes(v)}
                 renderTags={(tagValue, getTagProps) =>
                   tagValue.map((option, index) => {
                     const { key, ...tagProps } = getTagProps({ index });
-                    return <Chip key={key} label={option} size="small" sx={{ bgcolor: '#f0fdf4', color: '#166534' }} {...tagProps} />;
+                    return <Chip key={key} label={getTypeLabel(option)} size="small" sx={{ bgcolor: '#f0fdf4', color: '#166534' }} {...tagProps} />;
                   })
                 }
                 renderInput={(params) => <TextField {...params} label="Filter Campaign Type" variant="outlined" />}

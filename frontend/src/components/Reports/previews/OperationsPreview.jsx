@@ -67,6 +67,20 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
   const serviceOptions = ['MEDICAL', 'DENTAL'];
   const workloadOptions = ['peak', 'heavy', 'moderate', 'light'];
 
+  const getServiceLabel = (val) => {
+    return val === 'MEDICAL' ? 'Medical Clinic' : 'Dental Clinic';
+  };
+
+  const getWorkloadClassLabel = (val) => {
+    const map = {
+      'peak': 'Peak Intensity (10+)',
+      'heavy': 'Heavy Intensity (5-9)',
+      'moderate': 'Moderate Intensity (2-4)',
+      'light': 'Light (0-1)'
+    };
+    return map[val] || val;
+  };
+
   const [sortField, setSortField] = useState('hour');
   const [sortDirection, setSortDirection] = useState('asc');
   
@@ -353,11 +367,12 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
                 size="small"
                 options={serviceOptions}
                 value={selectedServices}
+                getOptionLabel={(option) => getServiceLabel(option)}
                 onChange={(e, v) => setSelectedServices(v)}
                 renderTags={(tagValue, getTagProps) =>
                   tagValue.map((option, index) => {
                     const { key, ...tagProps } = getTagProps({ index });
-                    return <Chip key={key} label={option} size="small" color="primary" {...tagProps} />;
+                    return <Chip key={key} label={getServiceLabel(option)} size="small" color="primary" {...tagProps} />;
                   })
                 }
                 renderInput={(params) => <TextField {...params} label="Service Stream" variant="outlined" />}
@@ -369,11 +384,12 @@ const OperationsPreview = ({ dateRange, customStart, customEnd }) => {
                 size="small"
                 options={workloadOptions}
                 value={selectedWorkloads}
+                getOptionLabel={(option) => getWorkloadClassLabel(option)}
                 onChange={(e, v) => setSelectedWorkloads(v)}
                 renderTags={(tagValue, getTagProps) =>
                   tagValue.map((option, index) => {
                     const { key, ...tagProps } = getTagProps({ index });
-                    return <Chip key={key} label={option} size="small" sx={{ bgcolor: '#fff7ed', color: '#9a3412' }} {...tagProps} />;
+                    return <Chip key={key} label={getWorkloadClassLabel(option)} size="small" sx={{ bgcolor: '#fff7ed', color: '#9a3412' }} {...tagProps} />;
                   })
                 }
                 renderInput={(params) => <TextField {...params} label="Workload Intensity" variant="outlined" />}
