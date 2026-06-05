@@ -21,6 +21,12 @@ Finalize enterprise-grade session security, clinical notification automation, an
 ### 4. Notification Standardization
 - **Medical Certificate Duplication Fix**: Removed a redundant "New Certificate Pending Review" in-app notification being manually created in the `EmailService` for Doctors. The core signal logic in `notifications/signals.py` already manages the central "Certificate Pending Issuance" alert, meaning Doctors now receive one unified notification instead of two.
 
+### 5. UI and Health Insights Integration
+- **Health Insights Overhaul**: Merged external teammate UI code into `MedicalHistoryPage.jsx`. Upgraded the "Health Insights" tab with standard analytical intervals (7 Days, 30 Days, 6 Months, Full Academic History), custom date ranges, and visually distinct analytics cards utilizing progress bars for top condition distribution and baseline tracking.
+- **Academic Profile Integration**: Added a dedicated card to display the selected patient's full Academic History (Program, Term, Year Level, Enrollment Status) inside the insights view.
+- **Dashboard UI Polish**: Removed individual "preview/arrow" buttons from the compact grid and standard list views within the "Recent Patients" card on the Dashboard to declutter the UI. The overarching "View All" action remains.
+- **Export Control Standardization**: Removed the `Print` and `Export` buttons strictly from the "Health Insights" tab to centralize official data exports through the primary Reporting System and the `Unified History` module.
+
 ## Next Steps
 - Verify the newly applied RBAC settings in the live production environment.
 - Review the `OperationsPreview.jsx` to ensure Clinic Operational Flow includes the 00:00-24:00 time slots as requested earlier.

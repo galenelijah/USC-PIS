@@ -80,10 +80,12 @@ import { dentalRecordService } from '../services/api';
 import { useSelector } from 'react-redux';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
 dayjs.extend(relativeTime);
 dayjs.extend(isBetween);
+dayjs.extend(customParseFormat);
 
 // Tab panel component
 function TabPanel(props) {
@@ -159,7 +161,7 @@ const MedicalHistoryPage = () => {
   // Health Insights Filter States
     const [insightsRecordType, setInsightsRecordType] = useState('ALL');
   const [insightsStartDate, setInsightsStartDate] = useState(null);
-  const [insightsDateFilter, setInsightsDateFilter] = useState('30days');
+  const [insightsDateFilter, setInsightsDateFilter] = useState('Full Academic History');
   const academicHistory = selectedPatient?.academic_history || [];
   const [insightsEndDate, setInsightsEndDate] = useState(null);
   
@@ -215,7 +217,7 @@ const MedicalHistoryPage = () => {
 
   useEffect(() => {
     filterInsightsRecords();
-  }, [records, selectedPatient, insightsStartDate, insightsEndDate, insightsRecordType]);
+  }, [records, selectedPatient, insightsStartDate, insightsEndDate, insightsRecordType, insightsDateFilter]);
 
   const fetchRecords = async () => {
     setLoading(true);
@@ -1050,7 +1052,7 @@ const MedicalHistoryPage = () => {
             <Grid item xs={12} md={8}>
               <Autocomplete
                 options={patients}
-                getOptionLabel={(option) => `${option.first_name} ${option.last_name}${option.id_number ? ` (${option.id_number})` : ''}`}
+                getOptionLabel={(option) => `${option.first_name} ${option.last_name}${option.id_number ? ` - ${option.id_number}` : (option.usc_id ? ` - ${option.usc_id}` : '')}`}
                 value={selectedPatient}
                 onChange={(event, newValue) => setSelectedPatient(newValue)}
                 renderInput={(params) => (
@@ -1257,7 +1259,7 @@ const MedicalHistoryPage = () => {
 
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                      {record.vital_signs && Object.values(record.vital_signs).some(v => v) && (
+                      {record.vital_signs && Object.entries(record.vital_signs).some(([key, val]) => !['has_alerts', 'alerts', 'bmi'].includes(key) && val) && (
                         <Chip 
                           icon={<VitalIcon />} 
                           label={record.vital_signs.has_alerts ? "Vitals (Alerts Found)" : "Vitals Recorded"} 
@@ -1384,7 +1386,7 @@ const MedicalHistoryPage = () => {
                           )}
                         </>
                       )}
-                      {record.vital_signs && Object.values(record.vital_signs).some(v => v) && (
+                      {record.vital_signs && Object.entries(record.vital_signs).some(([key, val]) => !['has_alerts', 'alerts', 'bmi'].includes(key) && val) && (
                         <Grid item xs={12} md={6}>
                           <Typography variant="body2" fontWeight="medium" gutterBottom>
                             Vital Signs:
@@ -1532,7 +1534,7 @@ const MedicalHistoryPage = () => {
               </Typography>
               <Autocomplete
                 options={patients}
-                getOptionLabel={(option) => `${option.first_name} ${option.last_name}${option.id_number ? ` (${option.id_number})` : ''}`}
+                getOptionLabel={(option) => `${option.first_name} ${option.last_name}${option.id_number ? ` - ${option.id_number}` : (option.usc_id ? ` - ${option.usc_id}` : '')}`}
                 value={selectedPatient}
                 onChange={(event, newValue) => setSelectedPatient(newValue)}
                 renderInput={(params) => (
