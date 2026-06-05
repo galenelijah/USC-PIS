@@ -1702,8 +1702,20 @@ export const reportService = {
   },
 
   // Generate report from template
-  generateReport: (templateId, data, params = {}) => {
-    return api.post(`/reports/templates/${templateId}/generate/`, data, { params });
+  generateReport: async (templateId, data, params = {}) => {
+    try {
+      const response = await api.post(`/reports/templates/${templateId}/generate/`, data, { params });
+      // Notify the Report Archive to refresh
+      eventBus.dispatch('REPORT_GENERATED', response.data);
+      // Show toast notification
+      eventBus.dispatch('app_notification', {
+        message: 'Report generation started. It will appear in the archive below when ready.',
+        severity: 'info'
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
   },
 
   // Preview report data

@@ -61,6 +61,14 @@ const ReportArchive = () => {
   useEffect(() => {
     fetchReports();
     
+    // Listen for global report generation events to refresh the archive smoother
+    const handleReportGenerated = () => {
+      console.log("Global event: Report generated. Refreshing archive...");
+      fetchReports(true);
+    };
+
+    eventBus.on('REPORT_GENERATED', handleReportGenerated);
+
     // Determine polling frequency: 5s if active work, 30s otherwise
     const hasPending = reports.some(r => r.status === 'PENDING' || r.status === 'GENERATING');
     const intervalTime = hasPending ? 5000 : 30000;
@@ -69,7 +77,10 @@ const ReportArchive = () => {
       fetchReports(true);
     }, intervalTime);
     
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      eventBus.remove('REPORT_GENERATED', handleReportGenerated);
+    };
   }, [fetchReports, reports.length, reports.some(r => r.status === 'PENDING' || r.status === 'GENERATING')]);
 
   const handleDownload = async (report) => {
