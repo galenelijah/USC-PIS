@@ -1,5 +1,43 @@
 ---
 
+# Session Changes (2026-06-06)
+
+This session focused on deepening clinical visibility in the UI, resolving systemic timezone discrepancies in reporting, and refining the medical certification workflow for institutional rollout.
+
+## Key Accomplishments
+- **Clinical UI Enhancements (Health Insights)**:
+  - **Medical Card Expansion Fix**: Resolved a data mapping bug where the `concern` field from the backend was not correctly aliased to `chief_complaint`, which previously caused expanded medical cards to appear empty.
+  - **Enriched Assessment Details**: Overhauled the expansion view for both **Medical** and **Dental** cards. Cards now feature a professional "Assessment Details" section that exposes previously hidden clinical data.
+  - **Clinical Findings visibility**: Expanded views now include physical examination findings (General, HEENT, Heart, Lungs, etc.) for medical records, and Oral Hygiene, Gum Condition, and Soft Tissue findings for dental records.
+  - **Vitals & Plans**: Added **Height** and **Weight** to the medical vitals list and integrated **Future Treatment Plans**, **Home Care Instructions**, and **Follow-up Dates** into the dental expansion.
+- **Reporting System Integrity (Timezone Synchronization)**:
+  - **Resolved 1-Day Date Discrepancy**: Fixed a systemic issue where date ranges selected in the frontend shifted by -1 day in the exports (e.g., 06/03 becoming 06/02) due to UTC interpretion on the server.
+  - **Timezone-Aware Normalization**: Standardized all report date processing to use the **Asia/Manila** (PHT) timezone. Dates are now normalized to local midnight before processing, ensuring "today" in the Philippines is "today" in the database.
+  - **Local-Aware Export Formatting**: Implemented `timezone.localtime()` across all PDF templates, Excel metadata, and CSV headers. Exported documents now accurately reflect the selected reporting period and generation time in institutional PHT.
+  - **Excel/Pandas Localizing**: Patched the Excel export engine to correctly convert UTC timestamps to the institutional timezone before stripping timezone info for spreadsheet compatibility, preventing day-shifting in detailed data sheets.
+- **Medical Certification Streamlining**:
+  - **Filter Refinement**: Removed the **"Draft"** status from the issuance status filter dropdown on the Medical Certificates page. This simplifies the high-volume certification workflow while maintaining "Draft" record visibility under the "All Status" view for clinicians.
+
+## Modified Files
+- `frontend/src/components/MedicalHistoryPage.jsx`: Overhauled expansion logic, fixed field mapping, and added rich assessment sections.
+- `frontend/src/components/MedicalCertificates/MedicalCertificateList.jsx`: Streamlined status filtering by removing the "Draft" option.
+- `backend/reports/services.py`: Implemented timezone-aware date normalization, standardized metadata collection, and localized Excel/CSV exports.
+- `backend/reports/templatetags/report_tags.py`: Enhanced `format_date` filter with `timezone.localtime` awareness.
+- `backend/reports/views.py`: Localized generation timestamps and default date range parameters for manual/bookmark runs.
+
+## Rationale
+- **Clinical Depth**: Clinicians and patients need access to the full assessment (not just a summary) when reviewing health history. Exposing physical exam and dental findings makes the "Unified Health History" truly comprehensive.
+- **Data Accountability**: A 1-day shift in reports is a critical failure in medical auditing. Ensuring timezone synchronization between the PHT-based clinic and UTC-based servers is vital for legal and institutional compliance.
+- **Workflow Efficiency**: Removing "Draft" from the primary filter focuses the clinician's attention on certificates that require action (Pending/Rejected) or have been finalized (Issued).
+
+## Verify Quickly
+- **Health Insights**: Expand a medical record and verify you see "Physical Examination Findings" and "Height/Weight" vitals.
+- **Health Insights**: Expand a dental record and verify you see "Oral Hygiene" and "Future Treatment Plan" sections.
+- **Report Dates**: Export a report for a specific day (e.g., June 3 to June 5) and verify the "Reporting Period" in the PDF/Excel says exactly "Jun 03, 2026 to Jun 05, 2026".
+- **Certification Filter**: Go to the Medical Certificates page and verify "Draft" is no longer an option in the "Issuance Status" filter.
+
+---
+
 # Session Changes (2026-06-05)
 
 This session focused on hardening clinical automation, ensuring demographic reporting accuracy, and refining the institutional export engine for the final production rollout.
