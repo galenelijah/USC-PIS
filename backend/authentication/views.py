@@ -71,13 +71,19 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         """
-        Exclude notification-related noise from the audit trail to focus on 
-        human-driven clinical and administrative actions.
+        Exclude noise and specific models per institutional cleanup request.
+        Move exclusion logic here to ensure pagination counts are accurate.
         """
+        excluded_models = [
+            'Patient', 'Consultation', 'Feedback', 'ReportTemplate',
+            'NotificationLog', 'NotificationCampaign', 'NotificationTemplate',
+            'NotificationPreference', 'Notification'
+        ]
+        
         return AuditLog.objects.exclude(
-            target_model__icontains='Notification'
+            target_model__in=excluded_models
         ).exclude(
-            target_model__in=['NotificationLog', 'NotificationCampaign', 'NotificationTemplate']
+            target_model__icontains='Notification'
         ).select_related('actor')
 
 def get_client_ip(request):

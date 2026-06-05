@@ -36,6 +36,7 @@ import {
   Description,
   Dns,
   VpnKey,
+  Campaign as CampaignIcon,
   FileDownload as DownloadIcon
 } from '@mui/icons-material';
 import { auditService, reportService } from '../services/api';
@@ -192,23 +193,14 @@ const SystemAuditWorkshop = () => {
         return { icon: <VpnKey />, color: '#1a237e', label: 'Authentication' };
     }
 
-    // Explicitly hide notification-related models from the audit trail
-    if (model && (model.includes('Notification') || model === 'NotificationLog')) {
-        return null;
-    }
-
     switch (model) {
-      case 'User': return { icon: <AccountCircle />, color: '#1976d2', label: 'Accounts' };
-      case 'Patient': return { icon: <Person />, color: '#2e7d32', label: 'Patients' };
+      case 'User': return { icon: <AccountCircle />, color: '#1976d2', label: 'Authentication' };
       case 'MedicalRecord': return { icon: <LocalHospital />, color: '#d32f2f', label: 'Medical Records' };
       case 'DentalRecord': return { icon: <MedicalServices />, color: '#7b1fa2', label: 'Dental Records' };
-      case 'Consultation': return { icon: <HistoryIcon />, color: '#0288d1', label: 'Visit Logs' };
-      case 'PatientDocument': return { icon: <Description />, color: '#455a64', label: 'Lab Results' };
+      case 'PatientDocument': return { icon: <Description />, color: '#455a64', label: 'Uploads' };
       case 'MedicalCertificate': return { icon: <Description />, color: '#ed6c02', label: 'Certificates' };
       case 'GeneratedReport': return { icon: <DownloadIcon />, color: '#4527a0', label: 'Reports' };
       case 'HealthCampaign': return { icon: <CampaignIcon />, color: '#c2185b', label: 'Campaigns' };
-      case 'Feedback': return { icon: <AssessmentIcon />, color: '#00796b', label: 'Feedback' };
-      case 'ReportTemplate': return { icon: <ArticleIcon />, color: '#5d4037', label: 'Report Config' };
       default: return { icon: <Dns />, color: '#757575', label: model };
     }
   };
@@ -219,10 +211,10 @@ const SystemAuditWorkshop = () => {
     const moduleConfig = getModuleConfig(log.target_model, action);
     
     // Fallback if module is hidden or unknown
-    const moduleLabel = moduleConfig ? moduleConfig.label : (log.target_model || 'record');
+    const moduleLabel = (moduleConfig && moduleConfig.label) ? moduleConfig.label : (log.target_model || 'record');
     
     let description = log.changes_summary?.description || `record #${log.target_object_id}`;
-    if (description.includes('Object') || description.includes('at 0x')) {
+    if (description && (String(description).includes('Object') || String(description).includes('at 0x'))) {
         description = `ID: ${log.target_object_id}`;
     }
 
@@ -244,7 +236,7 @@ const SystemAuditWorkshop = () => {
         case 'DELETE': 
             return `${actor} removed ${moduleLabel.toLowerCase()} (${description}) from the system.`;
         default: 
-            return `${actor} performed ${action.toLowerCase()} on ${moduleLabel.toLowerCase()}.`;
+            return `${actor} performed ${action.toLowerCase()} on ${moduleLabel.toLowerCase()} (${description}).`;
     }
   };
 
@@ -404,17 +396,13 @@ const SystemAuditWorkshop = () => {
                 label="Module"
               >
                 <MenuItem value="">All Modules</MenuItem>
-                <MenuItem value="User">User Accounts</MenuItem>
-                <MenuItem value="Patient">Patient Profiles</MenuItem>
+                <MenuItem value="User">Authentication</MenuItem>
                 <MenuItem value="MedicalRecord">Medical Records</MenuItem>
                 <MenuItem value="DentalRecord">Dental Records</MenuItem>
-                <MenuItem value="Consultation">Visit Logs / Consultations</MenuItem>
-                <MenuItem value="PatientDocument">Lab Results / Uploads</MenuItem>
+                <MenuItem value="PatientDocument">Uploads</MenuItem>
                 <MenuItem value="MedicalCertificate">Certificates</MenuItem>
                 <MenuItem value="GeneratedReport">System Reports</MenuItem>
                 <MenuItem value="HealthCampaign">Health Campaigns</MenuItem>
-                <MenuItem value="Feedback">Patient Feedback</MenuItem>
-                <MenuItem value="ReportTemplate">Report Definitions</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -460,7 +448,7 @@ const SystemAuditWorkshop = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              logs.filter(log => getModuleConfig(log.target_model, log.action_type) !== null).map((log) => {
+              logs.map((log) => {
                 const module = getModuleConfig(log.target_model, log.action_type);
                 return (
                   <TableRow key={log.id} hover>
