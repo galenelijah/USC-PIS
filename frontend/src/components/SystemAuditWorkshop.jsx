@@ -98,11 +98,16 @@ const SystemAuditWorkshop = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, search, actionFilter, modelFilter, actorRoleFilter]);
+  }, [page, rowsPerPage, search, actionFilter, modelFilter, actorRoleFilter, dateRange, startDate, endDate]);
 
   useEffect(() => {
     fetchLogs();
   }, [fetchLogs]);
+
+  // Handle date range changes specifically to reset page
+  useEffect(() => {
+    setPage(0);
+  }, [dateRange, startDate, endDate]);
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -197,8 +202,13 @@ const SystemAuditWorkshop = () => {
       case 'Patient': return { icon: <Person />, color: '#2e7d32', label: 'Patients' };
       case 'MedicalRecord': return { icon: <LocalHospital />, color: '#d32f2f', label: 'Medical Records' };
       case 'DentalRecord': return { icon: <MedicalServices />, color: '#7b1fa2', label: 'Dental Records' };
+      case 'Consultation': return { icon: <HistoryIcon />, color: '#0288d1', label: 'Visit Logs' };
+      case 'PatientDocument': return { icon: <Description />, color: '#455a64', label: 'Lab Results' };
       case 'MedicalCertificate': return { icon: <Description />, color: '#ed6c02', label: 'Certificates' };
       case 'GeneratedReport': return { icon: <DownloadIcon />, color: '#4527a0', label: 'Reports' };
+      case 'HealthCampaign': return { icon: <CampaignIcon />, color: '#c2185b', label: 'Campaigns' };
+      case 'Feedback': return { icon: <AssessmentIcon />, color: '#00796b', label: 'Feedback' };
+      case 'ReportTemplate': return { icon: <ArticleIcon />, color: '#5d4037', label: 'Report Config' };
       default: return { icon: <Dns />, color: '#757575', label: model };
     }
   };
@@ -380,10 +390,12 @@ const SystemAuditWorkshop = () => {
                 <MenuItem value="DELETE">Delete</MenuItem>
                 <MenuItem value="LOGIN">Security: Login</MenuItem>
                 <MenuItem value="LOGOUT">Security: Logout</MenuItem>
+                <MenuItem value="GENERATE">System: Generate</MenuItem>
+                <MenuItem value="EXPORT">System: Export/Download</MenuItem>
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} md={5}>
             <FormControl fullWidth size="small">
               <InputLabel>Module</InputLabel>
               <Select
@@ -396,23 +408,15 @@ const SystemAuditWorkshop = () => {
                 <MenuItem value="Patient">Patient Profiles</MenuItem>
                 <MenuItem value="MedicalRecord">Medical Records</MenuItem>
                 <MenuItem value="DentalRecord">Dental Records</MenuItem>
+                <MenuItem value="Consultation">Visit Logs / Consultations</MenuItem>
+                <MenuItem value="PatientDocument">Lab Results / Uploads</MenuItem>
                 <MenuItem value="MedicalCertificate">Certificates</MenuItem>
                 <MenuItem value="GeneratedReport">System Reports</MenuItem>
+                <MenuItem value="HealthCampaign">Health Campaigns</MenuItem>
+                <MenuItem value="Feedback">Patient Feedback</MenuItem>
+                <MenuItem value="ReportTemplate">Report Definitions</MenuItem>
               </Select>
             </FormControl>
-          </Grid>
-          <Grid item xs={12} md={2}>
-            <Button 
-                fullWidth 
-                variant="contained" 
-                startIcon={<FilterList />}
-                onClick={() => {
-                  setPage(0);
-                  fetchLogs();
-                }}
-            >
-                Filter
-            </Button>
           </Grid>
         </Grid>
       </Paper>
