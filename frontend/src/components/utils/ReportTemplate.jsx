@@ -289,11 +289,12 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
       )}
 
       {/* Main Data Table */}
-      <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, borderLeft: '4px solid #c0392b', pl: 1 }}>
-        {reportType === 'FEEDBACK' ? 'PATIENT FEEDBACK LOGS' : 'VISIT LOGS & CLINICAL FINDINGS'}
-      </Typography>
-      
-      <TableContainer component={Box} sx={{ border: '1px solid #ddd' }}>
+      <Box sx={{ mt: 4, pageBreakBefore: 'always' }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, borderLeft: '4px solid #c0392b', pl: 1 }}>
+          {reportType === 'FEEDBACK' ? 'PATIENT FEEDBACK LOGS' : 'VISIT LOGS & CLINICAL FINDINGS'}
+        </Typography>
+        
+        <TableContainer component={Box} sx={{ border: '1px solid #ddd' }}>
         <Table size="small" sx={{ '& td, & th': { p: 0.5, fontSize: '8pt', lineHeight: 1.2 } }}>
           <TableHead sx={{ bgcolor: '#f2f2f2' }}>
             <TableRow>
@@ -467,6 +468,7 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
           Showing top 10 records for summary view. Refer to digital logs for exhaustive history.
         </Typography>
       )}
+      </Box>
 
       {/* Signature & Validation */}
       <Box sx={{ mt: 'auto', pt: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>

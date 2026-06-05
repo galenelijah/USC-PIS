@@ -2415,6 +2415,7 @@ class ReportGenerationService:
 
                 .section {{ margin-bottom: 20px; }}
                 .visual-section {{ page-break-before: always; margin-bottom: 20px; }}
+                .visual-section .data-table {{ page-break-before: always; }}
                 .section-title {{
                     background-color: #f1f5f9;
                     color: #0f172a;

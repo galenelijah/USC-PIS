@@ -76,7 +76,7 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
   const yearLevelOptions = ['1', '2', '3', '4', '5', '6'];
 
   const getYearLevelLabel = (val) => {
-    if (val === '6') return 'Batch X (Post-Grad)';
+    if (val === '6') return 'Batch X';
     const suffix = val === '1' ? 'st' : val === '2' ? 'nd' : val === '3' ? 'rd' : 'th';
     return `${val}${suffix} Year`;
   };
