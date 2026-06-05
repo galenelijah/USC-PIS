@@ -204,11 +204,11 @@ class ReportDataService:
                     
                     # Format dates for JSON/PDF consistency
                     for r in medical_records: 
-                        if r.get('visit_date'): r['visit_date'] = r['visit_date'].strftime('%Y-%m-%d')
+                        if r.get('visit_date'): r['visit_date'] = timezone.localtime(r['visit_date']).strftime('%Y-%m-%d')
                     for r in dental_records: 
-                        if r.get('visit_date'): r['visit_date'] = r['visit_date'].strftime('%Y-%m-%d')
+                        if r.get('visit_date'): r['visit_date'] = timezone.localtime(r['visit_date']).strftime('%Y-%m-%d')
                     for r in consultations: 
-                        if r.get('date_time'): r['date_time'] = r['date_time'].strftime('%Y-%m-%d %H:%M')
+                        if r.get('date_time'): r['date_time'] = timezone.localtime(r['date_time']).strftime('%Y-%m-%d %H:%M')
                     
                     # Apply customization (field selection and grouping)
                     medical_records = ReportDataService._apply_customization(medical_records, filters)
@@ -861,8 +861,9 @@ class ReportDataService:
             system_log = []
             # Increase limit for reports to 500 entries (exhaustive enough for a single period audit)
             for entry in audit_qs.select_related('actor').order_by('-timestamp')[:500]:
+                local_ts = timezone.localtime(entry.timestamp)
                 system_log.append({
-                    'timestamp': entry.timestamp.strftime('%Y-%m-%d %H:%M'),
+                    'timestamp': local_ts.strftime('%Y-%m-%d %H:%M'),
                     'user': entry.actor_email or (entry.actor.get_full_name() if entry.actor else 'Unknown'),
                     'role': entry.actor_role or (entry.actor.role if entry.actor else 'N/A'),
                     'action': entry.get_action_type_display(),
@@ -1058,7 +1059,7 @@ class ReportDataService:
                     'suggestions': f.improvement,
                     'recommend': 'Yes' if str(f.recommend).lower() in ['yes', 'true', '1'] else 'No',
                     'courteous': 'Yes' if str(f.courteous).lower() in ['yes', 'true', '1'] else 'No',
-                    'created_at': f.created_at.strftime('%Y-%m-%d'),
+                    'created_at': timezone.localtime(f.created_at).strftime('%Y-%m-%d'),
                     'type': f_type
                 })
 
@@ -1212,8 +1213,8 @@ class ReportDataService:
                     'campaign_type': c.get_campaign_type_display(),
                     'status': c.get_status_display(),
                     'created_by_name': c.created_by.get_full_name() if c.created_by else 'System',
-                    'created_at': c.created_at.strftime('%Y-%m-%d'),
-                    'updated_at': c.updated_at.strftime('%Y-%m-%d'),
+                    'created_at': timezone.localtime(c.created_at).strftime('%Y-%m-%d'),
+                    'updated_at': timezone.localtime(c.updated_at).strftime('%Y-%m-%d'),
                     'performance': 'High' if c.view_count > 100 else ('Medium' if c.view_count > 50 else 'Low')
                 })
                 
@@ -1820,7 +1821,7 @@ class ReportDataService:
                     'fitness': c.get_fitness_status_display(),
                     'status': c.get_issuance_status_display(),
                     'doctor': f"Dr. {c.issuing_doctor.last_name}" if c.issuing_doctor else "N/A",
-                    'date': c.created_at.strftime('%Y-%m-%d')
+                    'date': timezone.localtime(c.created_at).strftime('%Y-%m-%d')
                 })
             
             # Apply customization and sanitization
