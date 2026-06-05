@@ -1,17 +1,17 @@
-# USC-PIS Reports System Guide (v5.1)
+# USC-PIS Reports System Guide (v6.0)
 
 ## Overview
 
-The USC-PIS Reports System provides comprehensive analytics, operational intelligence, and institutional accountability for healthcare management. The system generates high-fidelity exports in multiple formats (PDF, Excel, CSV, JSON, HTML) with deep visualization integration and absolute access resilience.
+The USC-PIS Reports System provides comprehensive analytics, operational intelligence, and institutional accountability for healthcare management. The system generates high-fidelity exports in multiple formats (PDF, Excel, CSV, JSON, HTML) with deep visualization integration, real-time synchronization, and professional layout management.
 
-## System Architecture (Updated May 30, 2026)
+## System Architecture (Updated June 5, 2026)
 
 ### Components
 - **Report Templates**: Dynamic HTML/Django templates stored in the database.
 - **Background Processing**: Powered by **Celery and Redis** for asynchronous generation.
 - **Export Engine**: 
     - **PDF**: Primary high-fidelity `xhtml2pdf` engine with modernized **Institutional Branding**, quadruple-brace variable escaping, and base64 chart injection.
-    - **Excel**: Multi-sheet workbooks using `Pandas` and `XlsxWriter`.
+    - **Excel**: Multi-sheet workbooks using `Pandas` and `XlsxWriter` (standardized to `.xlsx`).
     - **HTML/CSV/JSON**: Native Django and Python exports.
 - **Visual Analytics**: The backend uses the **QuickChart API** for server-side charts AND a **Workshop-to-PDF Capture** system that transmits browser-rendered Chart.js canvases as high-resolution base64 images for 100% fidelity.
 - **Access Resilience**: Implemented a **Silent Re-generation Fallback**. If a report file is missing from storage during download, the system automatically identifies the report type and re-renders the document on-the-fly using the original generator's context.
@@ -21,15 +21,15 @@ The USC-PIS Reports System provides comprehensive analytics, operational intelli
 ### 1. Institutional Accountability & Audit Log (Finalized)
 - **Engine**: Forensic `USER_ACTIVITY` trail.
 - **Accountability**: Translates technical model mutations into human-readable summaries.
-- **Security**: Includes actor identity, IP address tracking, and role-based auditing.
+- **Security**: Includes actor identity, IP address tracking, and role-based auditing. MFA/Verification logs are suppressed for noise reduction.
 
 ### 2. Clinical Operational Density Analysis (v2.0)
 - **Fidelity**: Captures the **Hourly Traffic Density (Bar)** and **Workload Forecast (Line)** visualizations directly from the Workshop UI.
 - **Intelligence**: Automatically classifies hourly slots into intensity tiers (Peak, Heavy, Stable).
-- **Time Sync**: Standardized 24-hour interval logging (00:00-23:59).
+- **Time Sync**: Standardized 24-hour interval logging (00:00-24:00).
 
-### 3. Patient Population & Demographics
-- Analysis of student vs. faculty/staff distribution with granular academic mapping.
+### 3. Patient Population & Demographics (Hardened)
+- **Accuracy**: Analysis of student vs. faculty/staff distribution with strict `is_active=True` and distinct user counts to prevent test profile inflation.
 
 ### 4. Visit Trends & Capacity Analysis
 - Dynamic granularity (Daily/Weekly/Monthly) with combined "Medical + Dental" aggregate trends.
@@ -45,11 +45,11 @@ The USC-PIS Reports System provides comprehensive analytics, operational intelli
 - **Engine**: `USCUnifiedHistoryReport`.
 - **Landscape Timeline**: Consolidated view of visits, certificates, and documents.
 
-## Export Engine Hardening (v5.2)
-- **Automatic Column Pruning**: The universal export engine now automatically strips deprecated and technical columns from all formats. 
-    - Removed: `priority`, `engagement_count`, `id`, `usc_id`, `meta`, `timestamp`, `charts_base64`.
-- **Sanitized Output**: Ensures that institutional reports remain clean and focused on clinical/operational value rather than internal database IDs.
-- **Format Synchronization**: Changes applied globally to PDF, HTML, JSON, Excel, and CSV to ensure cross-format data parity.
+## Export Engine Hardening (v6.0)
+- **Real-Time Synchronization**: A global event bus mechanism automatically refreshes the Report Archive whenever an export is triggered from any workshop, accompanied by institutional toast notifications.
+- **PDF Layout Integrity**: Enforced mandatory page breaks for all data tables that follow a chart or visual, ensuring charts and their underlying logs are never fragmented across pages.
+- **Automatic Column Pruning**: The universal export engine automatically strips technical columns (`priority`, `engagement_count`, `id`, `usc_id`, `meta`, `timestamp`) from all formats.
+- **Label Standardization**: Centralized mapping ensures "Batch X" and other extended academic levels are displayed consistently without redundant qualifiers.
 
 ## Web Interface Usage
 
@@ -59,15 +59,16 @@ The USC-PIS Reports System provides comprehensive analytics, operational intelli
 3. **Capture & Export**: Click "Export" within any workshop to trigger a high-fidelity generation that includes your current filter and chart state.
 
 ### Report Archive
-- Monitors generation status (**Queued** -> **Generating** -> **Ready**).
+- **Smooth Refresh**: Monitors generation status in real-time (**Queued** -> **Generating** -> **Ready**) without manual refreshing.
+- **Notifications**: Users receive instant feedback via "Report Generation Started" and "Report Ready" pop-ups.
 - Provides 30-day retention for all generated institutional documents.
 
 ## Technical Implementation
 
 ### PDF High-Fidelity & Safety
 1.  **Quadruple-Brace System**: Manages Django template complexity in Python f-strings, ensuring correct rendering of `{{ variable }}` in the final HTML.
-2.  **Resilient Footers**: Uses a safe-default pattern `user.get_full_name|default:user|default:"Admin"` to prevent template engine crashes if user context is missing during fallback re-generation.
-3.  **Pre-rendered Visuals**: Transmits browser-rendered charts as base64 images to prevent network timeouts during PDF creation.
+2.  **Layout Control**: Uses `.visual-section .data-table { page-break-before: always; }` to maintain professional document flow.
+3.  **Resilient Footers**: Uses a safe-default pattern `user.get_full_name|default:user|default:"Admin"` to prevent template engine crashes if user context is missing.
 
 ### API Endpoints
 - `POST /api/reports/templates/{id}/generate/` - Generate with chart injection
@@ -77,6 +78,6 @@ The USC-PIS Reports System provides comprehensive analytics, operational intelli
 
 ---
 
-**Last Updated**: June 4, 2026  
-**Status**: Absolute Access Resilience & Global Column Hardening Verified  
-**Version**: 5.2 (Clean Export Standard)
+**Last Updated**: June 5, 2026  
+**Status**: Institutional Sync & Layout Integrity Hardened  
+**Version**: 6.0 (High-Fidelity Standard)

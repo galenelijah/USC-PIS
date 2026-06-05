@@ -37,7 +37,18 @@ Finalize enterprise-grade session security, clinical notification automation, an
 - **Source-Aware UI**: Added a new "Source" column to the Sentiment Workshop's Qualitative Feedback Audit table, utilizing color-coded chips (Medical, Dental, General) to identify the origin of each response.
 - **Granular Filtering**: Added "GENERAL" as a filterable option in the Service Stream dropdown, allowing administrators to isolate non-visit feedback for analysis.
 
+### 8. Demographic Report Hardening & Accuracy
+- **Population Accuracy**: Corrected the Demographic Report inflation (117 -> 86) by enforcing strict backend filters: `is_active=True`, roles limited to `STUDENT` and `FACULTY`, and applying `distinct=True` to user aggregations.
+- **Institutional Profile Logic**: Refactored `calculate_profile_completion` to support Faculty members. Faculty now reach 100% completion based on "Department" instead of student-specific academic fields (Course, Year, ID).
+- **Dashboard Cleanup**: Removed the "Complete My Profile" button for finalized profiles and updated missing info prompts to include "Department" requirements for staff.
+
+### 9. Institutional Export Engine (v6.0)
+- **Real-Time Synchronization**: Implemented a global event bus (`REPORT_GENERATED`) to automatically refresh the Report Archive when an export is triggered, eliminating manual refresh clicks.
+- **Progress Notifications**: Added multi-tier toast notifications for the report generation lifecycle (Start Info and Completion Success).
+- **PDF Layout Integrity**: Enforced mandatory page breaks for all data tables that follow a chart or visual, ensuring professional institutional formatting.
+- **Terminology Standardization**: Removed the redundant "(Post-Grad)" suffix from the "Batch X" year level across all clinical and operational reports.
+
 ## Next Steps
-- Verify the newly applied RBAC settings in the live production environment.
-- Review the `OperationsPreview.jsx` to ensure Clinic Operational Flow includes the 00:00-24:00 time slots as requested earlier.
-- Proceed with final system deployment and thesis defense preparations.
+- Verify the newly applied RBAC settings and demographic counts in the live production environment.
+- Finalize the `OperationsPreview.jsx` time slot expansion (00:00-24:00).
+- Proceed with final system verification for the thesis defense.

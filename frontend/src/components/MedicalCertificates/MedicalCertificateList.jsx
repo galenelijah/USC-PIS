@@ -236,7 +236,6 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole, refreshTri
           sx={{ minWidth: 150 }}
         >
           <MenuItem value="all">All Status</MenuItem>
-          <MenuItem value="draft">Draft</MenuItem>
           <MenuItem value="pending">Pending</MenuItem>
           <MenuItem value="issued">Issued</MenuItem>
           <MenuItem value="rejected">Rejected</MenuItem>

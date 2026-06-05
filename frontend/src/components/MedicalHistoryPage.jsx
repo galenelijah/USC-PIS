@@ -258,6 +258,7 @@ const MedicalHistoryPage = () => {
           ...r,
           record_type: 'MEDICAL',
           composite_id: `MEDICAL-${r.id}`,
+          chief_complaint: r.concern || r.chief_complaint,
           attachments: []
         };
         medMap[r.id] = record;
@@ -1353,34 +1354,224 @@ const MedicalHistoryPage = () => {
                         <>
                           <Grid item xs={12}>
                             <Typography variant="body2" fontWeight="medium" gutterBottom>
-                              🦷 Dental Details
+                              🦷 Dental Assessment Details
                             </Typography>
                           </Grid>
-                          {record.procedure_performed && (
-                            <Grid item xs={12} md={6}>
-                              <Typography variant="body2" color="text.secondary">
-                                Procedure: <strong>{record.procedure_performed}</strong>
+                          
+                          {/* Core Clinical Findings */}
+                          <Grid item xs={12}>
+                            <Typography variant="caption" color="primary" fontWeight="bold" sx={{ display: 'block', mb: 1, textTransform: 'uppercase' }}>
+                              Clinical Findings & Assessment
+                            </Typography>
+                            <Grid container spacing={2}>
+                              {record.procedure_performed && (
+                                <Grid item xs={12} sm={6} md={4}>
+                                  <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600 }}>
+                                    Procedure:
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {record.procedure_performed}
+                                  </Typography>
+                                </Grid>
+                              )}
+                              {record.affected_teeth_display && (
+                                <Grid item xs={12} sm={6} md={4}>
+                                  <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600 }}>
+                                    Affected Teeth:
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {record.affected_teeth_display}
+                                  </Typography>
+                                </Grid>
+                              )}
+                              {record.oral_hygiene_status && (
+                                <Grid item xs={12} sm={6} md={4}>
+                                  <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600 }}>
+                                    Oral Hygiene:
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {record.oral_hygiene_status}
+                                  </Typography>
+                                </Grid>
+                              )}
+                              {record.gum_condition && (
+                                <Grid item xs={12} sm={6} md={4}>
+                                  <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600 }}>
+                                    Gum Condition:
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {record.gum_condition}
+                                  </Typography>
+                                </Grid>
+                              )}
+                              {record.occlusion && (
+                                <Grid item xs={12} sm={6} md={4}>
+                                  <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600 }}>
+                                    Occlusion/Bite:
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {record.occlusion}
+                                  </Typography>
+                                </Grid>
+                              )}
+                              {record.tmd_assessment && (
+                                <Grid item xs={12} sm={6} md={4}>
+                                  <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600 }}>
+                                    TMJ Assessment:
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {record.tmd_assessment}
+                                  </Typography>
+                                </Grid>
+                              )}
+                              {(record.pain_level !== undefined && record.pain_level !== null) && (
+                                <Grid item xs={12} sm={6} md={4}>
+                                  <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600 }}>
+                                    Pain Level:
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {record.pain_level} / 10
+                                  </Typography>
+                                </Grid>
+                              )}
+                            </Grid>
+                          </Grid>
+
+                          {/* Soft Tissue Examination */}
+                          {record.soft_tissue_exam && (
+                            <Grid item xs={12}>
+                              <Typography variant="caption" color="primary" fontWeight="bold" sx={{ display: 'block', mt: 1, mb: 0.5, textTransform: 'uppercase' }}>
+                                Soft Tissue Examination
+                              </Typography>
+                              <Typography variant="body2">
+                                {record.soft_tissue_exam}
                               </Typography>
                             </Grid>
                           )}
-                          {record.affected_teeth_display && (
-                            <Grid item xs={12} md={6}>
-                              <Typography variant="body2" color="text.secondary">
-                                Affected Teeth: <strong>{record.affected_teeth_display}</strong>
-                              </Typography>
+
+                          {/* Treatment Plan & Instructions */}
+                          <Grid item xs={12}>
+                            <Typography variant="caption" color="primary" fontWeight="bold" sx={{ display: 'block', mt: 1, mb: 1, textTransform: 'uppercase' }}>
+                              Plan & Recommendations
+                            </Typography>
+                            <Grid container spacing={2}>
+                              {record.treatment_plan && (
+                                <Grid item xs={12}>
+                                  <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600 }}>
+                                    Future Treatment Plan:
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {record.treatment_plan}
+                                  </Typography>
+                                </Grid>
+                              )}
+                              {record.home_care_instructions && (
+                                <Grid item xs={12}>
+                                  <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600 }}>
+                                    Home Care Instructions:
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {record.home_care_instructions}
+                                  </Typography>
+                                </Grid>
+                              )}
+                              {record.next_appointment_recommended && (
+                                <Grid item xs={12} sm={6}>
+                                  <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600 }}>
+                                    Follow-up Date:
+                                  </Typography>
+                                  <Typography variant="body2" fontWeight="medium">
+                                    {dayjs(record.next_appointment_recommended).format('MMMM DD, YYYY')}
+                                  </Typography>
+                                </Grid>
+                              )}
+                              {record.referral_to && (
+                                <Grid item xs={12} sm={6}>
+                                  <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600 }}>
+                                    Referral:
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {record.referral_to}
+                                  </Typography>
+                                </Grid>
+                              )}
+                            </Grid>
+                          </Grid>
+
+                          {/* Administrative/Technical Details */}
+                          {(record.materials_used || record.anesthesia_type || (record.cost !== undefined && record.cost !== null)) && (
+                            <Grid item xs={12}>
+                              <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
+                              <Grid container spacing={2}>
+                                {record.materials_used && (
+                                  <Grid item xs={12} md={6}>
+                                    <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600 }}>
+                                      Materials Used:
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
+                                      {record.materials_used}
+                                    </Typography>
+                                  </Grid>
+                                )}
+                                {record.anesthesia_type && (
+                                  <Grid item xs={12} md={3}>
+                                    <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600 }}>
+                                      Anesthesia:
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
+                                      {record.anesthesia_type}
+                                    </Typography>
+                                  </Grid>
+                                )}
+                                {(record.cost !== undefined && record.cost !== null) && (
+                                  <Grid item xs={12} md={3}>
+                                    <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600 }}>
+                                      Cost:
+                                    </Typography>
+                                    <Typography variant="body2" fontWeight="bold">
+                                      ₱{record.cost}
+                                    </Typography>
+                                  </Grid>
+                                )}
+                              </Grid>
                             </Grid>
                           )}
-                          {(record.pain_level !== undefined && record.pain_level !== null) && (
-                            <Grid item xs={12} md={6}>
-                              <Typography variant="body2" color="text.secondary">
-                                Pain Level: <strong>{record.pain_level}</strong>
+                        </>
+                      )}
+
+                      {record.record_type === 'MEDICAL' && (
+                        <>
+                          <Grid item xs={12}>
+                            <Typography variant="body2" fontWeight="medium" gutterBottom>
+                              🩺 Medical Assessment Details
+                            </Typography>
+                          </Grid>
+                          {record.physical_examination && Object.values(record.physical_examination).some(val => val) ? (
+                            <Grid item xs={12}>
+                              <Typography variant="caption" color="primary" fontWeight="bold" sx={{ display: 'block', mb: 1, textTransform: 'uppercase' }}>
+                                Physical Examination Findings
                               </Typography>
+                              <Grid container spacing={2}>
+                                {Object.entries(record.physical_examination).map(([key, val]) => {
+                                  if (!val) return null;
+                                  const label = key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                                  return (
+                                    <Grid item xs={12} sm={6} md={4} key={key}>
+                                      <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600 }}>
+                                        {label}:
+                                      </Typography>
+                                      <Typography variant="body2">
+                                        {val}
+                                      </Typography>
+                                    </Grid>
+                                  );
+                                })}
+                              </Grid>
                             </Grid>
-                          )}
-                          {(record.cost !== undefined && record.cost !== null) && (
-                            <Grid item xs={12} md={6}>
-                              <Typography variant="body2" color="text.secondary">
-                                Cost: <strong>{record.cost}</strong>
+                          ) : (
+                            <Grid item xs={12}>
+                              <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                                No specific physical examination findings documented for this visit.
                               </Typography>
                             </Grid>
                           )}
@@ -1438,6 +1629,22 @@ const MedicalHistoryPage = () => {
                                 <ListItemText 
                                   primary="Respiratory Rate" 
                                   secondary={`${record.vital_signs.respiratory_rate} breaths/min`} 
+                                />
+                              </ListItem>
+                            )}
+                            {record.vital_signs.height && (
+                              <ListItem>
+                                <ListItemText 
+                                  primary="Height" 
+                                  secondary={`${record.vital_signs.height} cm`} 
+                                />
+                              </ListItem>
+                            )}
+                            {record.vital_signs.weight && (
+                              <ListItem>
+                                <ListItemText 
+                                  primary="Weight" 
+                                  secondary={`${record.vital_signs.weight} kg`} 
                                 />
                               </ListItem>
                             )}

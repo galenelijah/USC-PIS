@@ -548,14 +548,14 @@ class ReportDataService:
             date_end = date_end or now
             
             # Ensure awareness and normalize to full day coverage
-            current_tz = timezone.get_current_timezone()
+            current_tz = timezone.get_default_timezone()
             if hasattr(date_start, 'tzinfo') and date_start.tzinfo is None:
-                date_start = timezone.make_aware(date_start)
+                date_start = timezone.make_aware(date_start, current_tz)
             elif hasattr(date_start, 'astimezone'):
                 date_start = date_start.astimezone(current_tz)
 
             if hasattr(date_end, 'tzinfo') and date_end.tzinfo is None:
-                date_end = timezone.make_aware(date_end)
+                date_end = timezone.make_aware(date_end, current_tz)
             elif hasattr(date_end, 'astimezone'):
                 date_end = date_end.astimezone(current_tz)
 
@@ -1878,14 +1878,14 @@ class ReportDataService:
             date_end = date_end or timezone.now()
 
             # Ensure awareness and normalize to full day coverage
-            current_tz = timezone.get_current_timezone()
+            current_tz = timezone.get_default_timezone()
             if hasattr(date_start, 'tzinfo') and date_start.tzinfo is None:
-                date_start = timezone.make_aware(date_start)
+                date_start = timezone.make_aware(date_start, current_tz)
             elif hasattr(date_start, 'astimezone'):
                 date_start = date_start.astimezone(current_tz)
 
             if hasattr(date_end, 'tzinfo') and date_end.tzinfo is None:
-                date_end = timezone.make_aware(date_end)
+                date_end = timezone.make_aware(date_end, current_tz)
             elif hasattr(date_end, 'astimezone'):
                 date_end = date_end.astimezone(current_tz)
 
@@ -2176,11 +2176,12 @@ class ReportExportService:
     @staticmethod
     def export_to_html(report_data, template_content, title="Report", extra_context=None):
         try:
+            now = timezone.localtime(timezone.now())
             context = {
-                'title': title, 'generated_at': timezone.now(), 'report_data': report_data,
-                'report_date': timezone.now().strftime('%B %d, %Y'),
-                'date_range_start': report_data.get('date_range_start', timezone.now() - timedelta(days=365)) if isinstance(report_data, dict) else timezone.now() - timedelta(days=365),
-                'date_range_end': report_data.get('date_range_end', timezone.now()) if isinstance(report_data, dict) else timezone.now()
+                'title': title, 'generated_at': now, 'report_data': report_data,
+                'report_date': now.strftime('%B %d, %Y'),
+                'date_range_start': report_data.get('date_range_start', now - timedelta(days=365)) if isinstance(report_data, dict) else now - timedelta(days=365),
+                'date_range_end': report_data.get('date_range_end', now) if isinstance(report_data, dict) else now
             }
             if extra_context: context.update(extra_context)
             if isinstance(report_data, dict): context.update(report_data)
@@ -2199,11 +2200,12 @@ class ReportExportService:
             if template_content:
                 try:
                     from xhtml2pdf import pisa
+                    now = timezone.localtime(timezone.now())
                     context = {
-                        'title': title, 'generated_at': timezone.now(), 'report_data': report_data,
-                        'report_date': timezone.now().strftime('%B %d, %Y'),
-                        'date_range_start': report_data.get('date_range_start', timezone.now() - timedelta(days=365)) if isinstance(report_data, dict) else timezone.now() - timedelta(days=365),
-                        'date_range_end': report_data.get('date_range_end', timezone.now()) if isinstance(report_data, dict) else timezone.now(),
+                        'title': title, 'generated_at': now, 'report_data': report_data,
+                        'report_date': now.strftime('%B %d, %Y'),
+                        'date_range_start': report_data.get('date_range_start', now - timedelta(days=365)) if isinstance(report_data, dict) else now - timedelta(days=365),
+                        'date_range_end': report_data.get('date_range_end', now) if isinstance(report_data, dict) else now,
                         'user': user
                     }
                     if isinstance(report_data, dict): context.update(report_data)
@@ -2267,18 +2269,34 @@ class ReportExportService:
             return None
 
     @staticmethod
+    def _format_date_helper(val):
+        """Internal helper to safely format dates for exports (Excel/CSV)"""
+        if not val or val == 'N/A': return "N/A"
+        try:
+            from django.utils import timezone
+            import datetime
+            if isinstance(val, (datetime.datetime, datetime.date)):
+                if isinstance(val, datetime.datetime) and timezone.is_aware(val):
+                    val = timezone.localtime(val)
+                return val.strftime('%Y-%m-%d')
+            return str(val)
+        except Exception:
+            return str(val)
+
+    @staticmethod
     def export_to_excel(report_data, title="Report"):
         if not report_data: return None
         try:
             buffer = BytesIO()
             with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
                 # 1. Report Info Sheet (Align with PDF Header)
+                now_local = timezone.localtime(timezone.now())
                 info_data = [
                     ['Report Title', title.upper()],
                     ['University', 'University of San Carlos Clinic'],
-                    ['Generated At', timezone.now().strftime('%Y-%m-%d %H:%M:%S') + ' PHT'],
-                    ['Date Range Start', str(report_data.get('date_range_start', 'N/A'))],
-                    ['Date Range End', str(report_data.get('date_range_end', 'N/A'))],
+                    ['Generated At', now_local.strftime('%Y-%m-%d %H:%M:%S') + ' PHT'],
+                    ['Date Range Start', ReportExportService._format_date_helper(report_data.get('date_range_start'))],
+                    ['Date Range End', ReportExportService._format_date_helper(report_data.get('date_range_end'))],
                     ['Applied Filters', ", ".join(report_data.get('applied_filters', ["None"]))],
                     ['System', 'USC Patient Information System']
                 ]
@@ -2302,6 +2320,7 @@ class ReportExportService:
                     pd.DataFrame(summary_items).to_excel(writer, sheet_name='Executive Summary', index=False)
                 
                 # 3. Detailed Sheets (Align with PDF Tables)
+                current_tz = timezone.get_default_timezone()
                 for key in list_keys:
                     data_list = report_data[key]
                     if data_list and isinstance(data_list[0], dict):
@@ -2313,8 +2332,12 @@ class ReportExportService:
                                 df.drop(columns=[col], inplace=True)
                         
                         df.columns = [str(c).replace('_', ' ').title() for c in df.columns]
+                        # Correctly localize to institutional timezone before stripping TZ for Excel
                         for col in df.select_dtypes(include=['datetime64[ns, UTC]', 'datetimetz']).columns: 
-                            df[col] = df[col].dt.tz_localize(None)
+                            try:
+                                df[col] = df[col].dt.tz_convert(current_tz).dt.tz_localize(None)
+                            except Exception:
+                                df[col] = df[col].dt.tz_localize(None)
                         df.to_excel(writer, sheet_name=str(key).replace('_', ' ').title()[:31], index=False)
             return buffer.getvalue()
         except Exception as e:
@@ -2326,8 +2349,10 @@ class ReportExportService:
         if not report_data: return None
         try:
             output = StringIO(); writer = csv.writer(output)
+            now_local = timezone.localtime(timezone.now())
             writer.writerow([f"REPORT: {title.upper()}"])
-            writer.writerow([f"Generated: {timezone.now().strftime('%Y-%m-%d %H:%M')} PHT"])
+            writer.writerow([f"Generated: {now_local.strftime('%Y-%m-%d %H:%M')} PHT"])
+            writer.writerow([f"Period: {ReportExportService._format_date_helper(report_data.get('date_range_start'))} to {ReportExportService._format_date_helper(report_data.get('date_range_end'))}"])
             writer.writerow([f"Filters: {', '.join(report_data.get('applied_filters', ['None']))}"])
             writer.writerow([])
             list_keys = []; writer.writerow(["SUMMARY OVERVIEW"])
@@ -3128,20 +3153,21 @@ class ReportGenerationService:
                 filters = {}
         filters = filters or {}
         
-        # Standardize dates
+        # Standardize dates with institutional timezone awareness
+        now_local = timezone.localtime(timezone.now())
         date_start = date_start or kwargs.get('date_range_start')
-        date_end = date_end or kwargs.get('date_range_end') or timezone.now()
+        date_end = date_end or kwargs.get('date_range_end') or now_local
 
         # Apply institutional floor and ensure range for "Full Academic History"
         if filters.get('date_range') == 'all':
             from datetime import datetime
             # Always start from 2024 rollout
-            date_start = timezone.make_aware(datetime(2024, 1, 1, 0, 0, 0))
+            date_start = timezone.make_aware(datetime(2024, 1, 1, 0, 0, 0), timezone.get_default_timezone())
             # No hard ceiling for 'all', use provide date_end (which defaults to now)
             logger.info("Applying academic history floor (2024) to report export")
         
         # Final fallback for missing start date
-        date_start = date_start or (timezone.now() - timedelta(days=365))
+        date_start = date_start or (now_local - timedelta(days=365))
 
         try:
             if rtype == 'PATIENT_SUMMARY': 
@@ -3571,8 +3597,8 @@ class ReportGenerationService:
                 'report_title': report_title,
                 'date_range_start': data.get('date_range_start', date_start),
                 'date_range_end': data.get('date_range_end', date_end),
-                'generated_at': data.get('generated_at', timezone.now()),
-                'report_date': timezone.now().strftime('%B %d, %Y'),
+                'generated_at': data.get('generated_at', now_local),
+                'report_date': now_local.strftime('%B %d, %Y'),
                 'system_name': "USC Patient Information System",
                 'report_type': rtype,
                 'visual_charts': charts,

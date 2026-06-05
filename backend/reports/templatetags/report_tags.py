@@ -37,17 +37,25 @@ def get_item(dictionary, key):
 
 @register.filter(name='format_date')
 def format_date(value, format_string="%b %d, %Y"):
-    """Format a date string or object"""
+    """Format a date string or object using local timezone"""
     if not value:
         return "N/A"
     try:
+        from django.utils import timezone
+        import datetime
+        
+        # If it's a string, parse it first
         if isinstance(value, str):
-            # Try to parse ISO format or YYYY-MM-DD
             from django.utils.dateparse import parse_date, parse_datetime
             dt = parse_datetime(value) or parse_date(value)
             if not dt:
                 return value
-            return dt.strftime(format_string)
+            value = dt
+
+        # Ensure we are using localtime for aware datetimes
+        if isinstance(value, datetime.datetime) and timezone.is_aware(value):
+            value = timezone.localtime(value)
+            
         return value.strftime(format_string)
     except Exception:
         return str(value)

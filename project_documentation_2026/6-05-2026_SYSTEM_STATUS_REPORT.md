@@ -19,6 +19,11 @@
 | **Historical Data Visibility** | **FIXED** | Fixed missing April data in Insights tracking by updating React hook dependencies and setting "Full Academic History" as the default analysis window. |
 | **Clinical Logic Accuracy** | **FIXED** | Refined the "Vitals Recorded" chip logic to prevent false positives from metadata/BMI. Added USC ID numbers to the global patient selection search for faster clinical lookups. |
 | **Sentiment Workshop Source** | **RESOLVED** | Added a "Source" column and "GENERAL" filter to the Sentiment Workshop, allowing administrators to track and filter feedback that is not tied to a specific clinical visit. |
+| **Demographic Count Inflation** | **FIXED** | Corrected Population report count (117 -> 86) by enforcing active status, role-based exclusion, and distinct counts in the backend. |
+| **Faculty Profile Logic** | **FIXED** | Enabled 100% completion for Faculty by making student-academic fields optional and requiring "Department" as the primary institutional identifier. |
+| **Report Export Sync (v6.0)**| **RESOLVED** | Implemented global event bus and toast notifications to automatically refresh the Report Archive upon export generation. |
+| **PDF Layout Integrity** | **RESOLVED** | Enforced page breaks for tables that follow visuals/charts to ensure professional institutional formatting and avoid data fragmentation. |
+| **Year Level Cleanup** | **RESOLVED** | Removed "(Post-Grad)" suffix from all "Batch X" labels across report previews and global mappers for institutional standardization. |
 
 ## 3. Pending Objectives
 1. **Clinic Operational Flow Visualization**: Need to ensure the time slots on the Operations Preview and Density Workshop span the entire 24-hour cycle (00:00 - 24:00) as requested.

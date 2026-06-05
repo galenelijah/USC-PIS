@@ -635,15 +635,16 @@ class ReportScheduleViewSet(viewsets.ModelViewSet):
         schedule = self.get_object()
         
         # Create report record
+        now_local = timezone.localtime(timezone.now())
         report = GeneratedReport.objects.create(
             template=schedule.template,
             generated_by=request.user,
             title=f"{schedule.name} - Manual Run",
-            date_range_start=timezone.now() - timedelta(days=30),
-            date_range_end=timezone.now(),
+            date_range_start=now_local - timedelta(days=30),
+            date_range_end=now_local,
             filters=schedule.filters,
             export_format=schedule.export_format,
-            expires_at=timezone.now() + timedelta(days=30)
+            expires_at=now_local + timedelta(days=30)
         )
         
         success, msg = ReportDispatcher.dispatch(report.id)
@@ -682,15 +683,16 @@ class ReportBookmarkViewSet(viewsets.ModelViewSet):
         bookmark.increment_use_count()
         
         # Generate report with bookmark settings
+        now_local = timezone.localtime(timezone.now())
         report = GeneratedReport.objects.create(
             template=bookmark.template,
             generated_by=request.user,
-            title=f"{bookmark.name} - {timezone.now().strftime('%Y-%m-%d')}",
-            date_range_start=timezone.now() - timedelta(days=30),
-            date_range_end=timezone.now(),
+            title=f"{bookmark.name} - {now_local.strftime('%Y-%m-%d')}",
+            date_range_start=now_local - timedelta(days=30),
+            date_range_end=now_local,
             filters=bookmark.saved_filters,
             export_format=bookmark.preferred_format,
-            expires_at=timezone.now() + timedelta(days=30)
+            expires_at=now_local + timedelta(days=30)
         )
         
         success, msg = ReportDispatcher.dispatch(report.id)
