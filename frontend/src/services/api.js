@@ -90,7 +90,7 @@ api.interceptors.response.use(
       if (url.includes('/patients/medical-records/')) message = 'Medical Record Committed Successfully';
       else if (url.includes('/patients/dental-records/')) message = 'Dental Record Committed Successfully';
       else if (url.includes('/medical-certificates/')) message = 'Medical Certificate Workflow Updated';
-      else if (url.includes('/reports/templates/') && url.includes('/generate/')) message = 'Report Export Initialized';
+      else if (url.includes('/reports/templates/') && url.includes('/generate/')) message = 'Report Export Started';
       else if (url.includes('/auth/profile/me/')) message = 'Profile Security Settings Updated';
 
       eventBus.dispatch('app_notification', {

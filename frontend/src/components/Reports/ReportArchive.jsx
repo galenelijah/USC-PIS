@@ -14,6 +14,7 @@ import {
   FilePresent as FileIcon
 } from '@mui/icons-material';
 import { reportService } from '../../services/api';
+import eventBus from '../../utils/eventBus';
 import dayjs from 'dayjs';
 
 const ReportArchive = () => {
@@ -28,7 +29,25 @@ const ReportArchive = () => {
       else setLoading(true);
       
       const response = await reportService.getReports({ ordering: '-created_at' });
-      setReports(response.data.results || response.data);
+      const newReports = response.data.results || response.data;
+      
+      // Detect newly completed reports for toast notification
+      if (reports.length > 0) {
+        newReports.forEach(newReport => {
+          const oldReport = reports.find(r => r.id === newReport.id);
+          if (oldReport && 
+              (oldReport.status === 'PENDING' || oldReport.status === 'GENERATING') && 
+              newReport.status === 'COMPLETED') {
+            
+            eventBus.dispatch('app_notification', {
+              message: `The report "${newReport.title}" is now ready to be downloaded.`,
+              severity: 'success'
+            });
+          }
+        });
+      }
+
+      setReports(newReports);
       setError(null);
     } catch (err) {
       console.error("Failed to fetch reports:", err);

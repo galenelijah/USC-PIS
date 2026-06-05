@@ -180,11 +180,7 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
         }
         throw err;
       });
-      setSuccess(`Report generation started! ID: ${response.data.report_id}`);
-      
-      setTimeout(() => {
-        setSuccess(null);
-      }, 3000);
+      // Success toast handled globally via api.js interceptor
     } catch (err) {
       console.error("Failed to generate report:", err);
       setError("Failed to trigger report generation.");
@@ -342,7 +338,6 @@ const ClinicalStatsPreview = ({ dateRange, customStart, customEnd }) => {
 
         <DialogContent dividers sx={{ p: 3, bgcolor: '#fcfcfc' }}>
           {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
-          {success && <Alert severity="success" sx={{ mb: 3 }}>{success}</Alert>}
 
           {/* FILTERS ROW 1 */}
           <Grid container spacing={2} sx={{ mb: 2 }}>

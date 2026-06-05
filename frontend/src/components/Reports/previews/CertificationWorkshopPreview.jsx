@@ -186,11 +186,7 @@ const CertificationWorkshopPreview = ({ dateRange, customStart, customEnd }) => 
       };
 
       const response = await reportService.generateReport('MEDICAL_CERTIFICATE', payload);
-      setSuccess(`Report generation started! ID: ${response.data.report_id}`);
-      
-      setTimeout(() => {
-        setSuccess(null);
-      }, 3000);
+      // Success toast handled globally via api.js interceptor
     } catch (err) {
       console.error("Failed to generate report:", err);
       setError("Failed to trigger report generation.");
