@@ -86,7 +86,7 @@ def is_whitelisted_action():
 
 def should_log_model(model):
     """ Exclude specific models from being logged to avoid recursion or noise """
-    excluded_models = ['AuditLog', 'Session', 'ContentFile', 'Migration', 'ContentType', 'LogEntry', 'NotificationPreference']
+    excluded_models = ['AuditLog', 'Session', 'ContentFile', 'Migration', 'ContentType', 'LogEntry', 'NotificationPreference', 'VerificationCode']
     if model.__name__ in excluded_models or model.__name__.startswith('Historical'):
         return False
     # Only log models from our core apps (Explicitly excluding notifications and utils)

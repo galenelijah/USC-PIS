@@ -885,8 +885,8 @@ def calculate_profile_completion(user, patient):
         ]),
         ('Profile', 2, [
             ('id_number', 'ID Number'), ('course', 'Course'), 
-            ('year_level', 'Year Level'), ('phone', 'Phone Number'),
-            ('civil_status', 'Civil Status'), ('nationality', 'Nationality')
+            ('year_level', 'Year Level'), ('department', 'Department'),
+            ('phone', 'Phone Number'), ('civil_status', 'Civil Status'), ('nationality', 'Nationality')
         ]),
         ('Medical', 2, [
             ('illness', 'Illness History'), ('allergies', 'Allergies'), 
@@ -896,6 +896,13 @@ def calculate_profile_completion(user, patient):
     
     for cat_name, points, fields in categories:
         for field_key, display_name in fields:
+            # Skip academic fields for faculty
+            if user.role == 'FACULTY' and field_key in ['id_number', 'course', 'year_level']:
+                continue
+            # Skip department for students
+            if user.role == 'STUDENT' and field_key == 'department':
+                continue
+                
             total_fields += points
             if get_field_value(field_key):
                 completed_fields += points

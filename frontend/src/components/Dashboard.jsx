@@ -831,9 +831,9 @@ const Dashboard = memo(({ user }) => {
             {stats.missingFields && stats.missingFields.length > 0 ? (
               <>
                 <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 2 }}>
-                  Missing information to complete your profile:
+                  The following information is missing from your record:
                 </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 3 }}>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
                   {stats.missingFields.slice(0, 10).map((field, idx) => (
                     <Chip key={idx} label={field} size="small" sx={{ fontSize: '0.75rem', height: 24, bgcolor: alpha('#ff9800', 0.1), color: '#e65100', border: '1px solid', borderColor: alpha('#ff9800', 0.2), fontWeight: 'bold' }} />
                   ))}
@@ -843,9 +843,6 @@ const Dashboard = memo(({ user }) => {
                     </Typography>
                   )}
                 </Box>
-                <Button component={Link} to="/profile-setup" variant="contained" color="warning" size="medium" fullWidth sx={{ mt: 'auto', borderRadius: 2, fontWeight: 'bold' }}>
-                  Complete My Profile
-                </Button>
               </>
             ) : (
               <Box sx={{ textAlign: 'center', py: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%' }}>

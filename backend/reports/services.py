@@ -836,7 +836,7 @@ class ReportDataService:
             audit_qs = AuditLog.objects.filter(timestamp__range=(date_start, date_end)).exclude(
                 target_model__icontains='Notification'
             ).exclude(
-                target_model__in=['NotificationLog', 'NotificationCampaign', 'NotificationTemplate']
+                target_model__in=['NotificationLog', 'NotificationCampaign', 'NotificationTemplate', 'VerificationCode']
             )
             
             if filters.get('user_id'):
@@ -3213,7 +3213,7 @@ class ReportGenerationService:
                     audit_qs = AuditLog.objects.filter(timestamp__range=(date_start, date_end)).exclude(
                         target_model__icontains='Notification'
                     ).exclude(
-                        target_model__in=['NotificationLog', 'NotificationCampaign', 'NotificationTemplate']
+                        target_model__in=['NotificationLog', 'NotificationCampaign', 'NotificationTemplate', 'VerificationCode']
                     )
                     
                     if filters:

@@ -77,7 +77,7 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
         excluded_models = [
             'Patient', 'Consultation', 'Feedback', 'ReportTemplate',
             'NotificationLog', 'NotificationCampaign', 'NotificationTemplate',
-            'NotificationPreference', 'Notification'
+            'NotificationPreference', 'Notification', 'VerificationCode'
         ]
         
         return AuditLog.objects.exclude(
