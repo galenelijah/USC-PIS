@@ -347,7 +347,6 @@ class MedicalCertificateViewSet(viewsets.ModelViewSet):
                     notification_type='DOWNLOAD',
                     title='Medical Certificate Downloaded',
                     message=f'You have successfully downloaded the medical certificate for {certificate.patient.get_full_name()}',
-                    priority='LOW',
                     delivery_method='IN_APP',
                     patient=certificate.patient
                 )

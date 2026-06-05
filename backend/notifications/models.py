@@ -8,16 +8,14 @@ import uuid
 class NotificationTemplate(models.Model):
     """Template for reusable notifications"""
     TEMPLATE_TYPES = [
-        ('APPOINTMENT_REMINDER', 'Appointment Reminder'),
-        ('MEDICATION_REMINDER', 'Medication Reminder'),
         ('HEALTH_CAMPAIGN', 'Health Campaign'),
         ('CLINIC_UPDATE', 'Clinic Update'),
-        ('FOLLOW_UP', 'Follow-up Reminder'),
-        ('VACCINATION_REMINDER', 'Vaccination Reminder'),
-        ('DENTAL_REMINDER', 'Dental Checkup Reminder'),
         ('MEDICAL_CERTIFICATE', 'Medical Certificate'),
+        ('MEDICAL_RECORD', 'Medical Record'),
+        ('DENTAL_RECORD', 'Dental Record'),
+        ('LABORATORY_RESULT', 'Laboratory Result'),
         ('DOWNLOAD', 'File Download'),
-        ('CUSTOM', 'Custom Notification'),
+        ('SYSTEM_ALERT', 'System Alert'),
     ]
     
     name = models.CharField(max_length=200)
@@ -44,24 +42,14 @@ class NotificationTemplate(models.Model):
 class Notification(models.Model):
     """Main notification model"""
     NOTIFICATION_TYPES = [
-        ('APPOINTMENT_REMINDER', 'Appointment Reminder'),
-        ('MEDICATION_REMINDER', 'Medication Reminder'),
         ('HEALTH_CAMPAIGN', 'Health Campaign'),
         ('CLINIC_UPDATE', 'Clinic Update'),
-        ('FOLLOW_UP', 'Follow-up Reminder'),
-        ('VACCINATION_REMINDER', 'Vaccination Reminder'),
-        ('DENTAL_REMINDER', 'Dental Checkup Reminder'),
         ('MEDICAL_CERTIFICATE', 'Medical Certificate'),
+        ('MEDICAL_RECORD', 'Medical Record'),
+        ('DENTAL_RECORD', 'Dental Record'),
+        ('LABORATORY_RESULT', 'Laboratory Result'),
         ('DOWNLOAD', 'File Download'),
-        ('CUSTOM', 'Custom Notification'),
         ('SYSTEM_ALERT', 'System Alert'),
-    ]
-    
-    PRIORITY_LEVELS = [
-        ('LOW', 'Low'),
-        ('MEDIUM', 'Medium'),
-        ('HIGH', 'High'),
-        ('URGENT', 'Urgent'),
     ]
     
     STATUS_CHOICES = [
@@ -90,7 +78,6 @@ class Notification(models.Model):
     notification_type = models.CharField(max_length=30, choices=NOTIFICATION_TYPES)
     title = models.CharField(max_length=255)
     message = models.TextField()
-    priority = models.CharField(max_length=10, choices=PRIORITY_LEVELS, default='MEDIUM')
     
     # Delivery settings
     delivery_method = models.CharField(max_length=10, choices=DELIVERY_METHODS, default='BOTH')

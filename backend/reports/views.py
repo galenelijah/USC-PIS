@@ -370,7 +370,6 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
                         notification_type='DOWNLOAD',
                         title='Report Downloaded',
                         message=f'You have successfully downloaded the report: {report.title}',
-                        priority='LOW',
                         delivery_method='IN_APP'
                     )
                 except Exception as ne:

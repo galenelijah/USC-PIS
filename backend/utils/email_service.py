@@ -167,8 +167,7 @@ class EmailService:
                 user=user,
                 title='Password Reset Requested',
                 message='A password reset link has been sent to your email. If you did not request this, please secure your account.',
-                notification_type='SYSTEM',
-                priority='HIGH'
+                notification_type='SYSTEM'
             )
             
         return success
@@ -176,9 +175,7 @@ class EmailService:
     @staticmethod
     def send_medical_certificate_notification(certificate, notification_type):
         """
-        Send medical certificate notifications
-        Note: In-app notifications for certificates are already handled by signals 
-        in medical_certificates/models.py to avoid duplication.
+        Send medical certificate notifications (Email + In-App)
         """
         if notification_type == 'created':
             # Notify student about certificate creation
@@ -195,6 +192,14 @@ class EmailService:
                 subject='Medical Certificate Created'
             )
             
+            # In-App Notification for Student
+            EmailService._create_in_app_notification(
+                user=certificate.patient.user,
+                title='Medical Certificate Application',
+                message=f'Your medical certificate application for {certificate.diagnosis} has been submitted and is pending review.',
+                notification_type='MEDICAL_CERTIFICATE'
+            )
+            
             # Notify doctors about pending review and issuance
             from authentication.models import User
             doctors = User.objects.filter(role='DOCTOR')
@@ -205,6 +210,15 @@ class EmailService:
                     context=context,
                     recipient_email=doctor.email,
                     subject='Medical Certificate Review & Issuance Required'
+                )
+                
+                # In-App Notification for Doctor
+                EmailService._create_in_app_notification(
+                    user=doctor,
+                    title='New Certificate Pending Review',
+                    message=f'A new medical certificate for {certificate.patient.get_full_name()} requires your review and issuance.',
+                    notification_type='MEDICAL_CERTIFICATE',
+                    action_url=f'/medical-certificates?id={certificate.id}'
                 )
         
         elif notification_type == 'issued':
@@ -220,6 +234,15 @@ class EmailService:
                 recipient_email=certificate.patient.user.email,
                 subject='Medical Certificate Issued'
             )
+            
+            # In-App Notification for Student
+            EmailService._create_in_app_notification(
+                user=certificate.patient.user,
+                title='Medical Certificate Issued',
+                message=f'Great news! Your medical certificate for {certificate.diagnosis} has been issued and is ready for download.',
+                notification_type='MEDICAL_CERTIFICATE',
+                action_url='/medical-certificates'
+            )
         
         elif notification_type == 'rejected':
             context = {
@@ -233,6 +256,15 @@ class EmailService:
                 context=context,
                 recipient_email=certificate.patient.user.email,
                 subject='Medical Certificate Updated'
+            )
+            
+            # In-App Notification for Student
+            EmailService._create_in_app_notification(
+                user=certificate.patient.user,
+                title='Medical Certificate Application Updated',
+                message=f'Your medical certificate application for {certificate.diagnosis} has been reviewed and rejected. Please contact the clinic for more details.',
+                notification_type='MEDICAL_CERTIFICATE',
+                action_url='/medical-certificates'
             )
     
     @staticmethod

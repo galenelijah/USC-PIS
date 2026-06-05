@@ -414,12 +414,9 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
                               Teeth: {record.tooth_numbers}
                             </Typography>
                           )}
-                          {record.priority && (
-                            <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: record.priority === 'High' ? 'error.main' : 'text.secondary' }}>
-                              Priority: {record.priority}
-                            </Typography>
-                          )}
-                        </>
+                          {/* Priority hidden in frontend per institutional cleanup */}
+                          {/* Removing record.priority display */}
+                          </TableCell>
                       ) : (
                         <>
                           <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{record.diagnosis || '—'}</Typography>

@@ -46,7 +46,6 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
   // Domain Specific Filters (Dental Dimensions)
   const [selectedProcedures, setSelectedProcedures] = useState([]);
   const [campusFilter, setCampusFilter] = useState('all');
-  const [priorityFilter, setPriorityFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const chartRef = React.useRef(null);
@@ -107,7 +106,6 @@ const DentalStatsPreview = ({ dateRange, customStart, customEnd }) => {
         filters: {
           procedure: selectedProcedures,
           campus: campusFilter !== 'all' ? [campusFilter] : undefined,
-          priority: priorityFilter !== 'all' ? priorityFilter : undefined,
           charts_base64: chartRef.current ? [chartRef.current.toBase64Image()] : []
         }
       };

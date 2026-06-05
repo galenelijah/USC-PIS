@@ -207,8 +207,7 @@ class EmailService:
                 .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
                 .header {{ background-color: #1976d2; color: white; padding: 20px; text-align: center; }}
                 .content {{ padding: 20px; background-color: #f9f9f9; }}
-                .message {{ background-color: white; padding: 20px; border-radius: 5px; margin: 10px 0; }}
-                .priority-{notification.priority.lower()} {{ border-left: 4px solid {'#f44336' if notification.priority == 'URGENT' else '#ff9800' if notification.priority == 'HIGH' else '#2196f3' if notification.priority == 'MEDIUM' else '#4caf50'}; }}
+                .message {{ background-color: white; padding: 20px; border-radius: 5px; margin: 10px 0; border-left: 4px solid #1976d2; }}
                 .action-button {{ 
                     display: inline-block; 
                     padding: 12px 24px; 
@@ -228,9 +227,8 @@ class EmailService:
                     <p>Patient Information System</p>
                 </div>
                 <div class="content">
-                    <div class="message priority-{notification.priority.lower()}">
+                    <div class="message">
                         <h2>{notification.title}</h2>
-                        <p><strong>Priority:</strong> {notification.get_priority_display()}</p>
                         <div>{notification.message.replace(chr(10), '<br>')}</div>
                         
                         {f'<a href="{notification.action_url}" class="action-button">{notification.action_text}</a>' if notification.action_url and notification.action_text else ''}
@@ -279,7 +277,6 @@ class NotificationService:
         notification_type: str,
         title: str,
         message: str,
-        priority: str = 'MEDIUM',
         delivery_method: str = 'BOTH',
         scheduled_at: Optional[datetime] = None,
         expires_at: Optional[datetime] = None,
@@ -324,7 +321,6 @@ class NotificationService:
             notification_type=notification_type,
             title=title,
             message=message,
-            priority=priority,
             delivery_method=delivery_method,
             scheduled_at=scheduled_at,
             expires_at=expires_at,
@@ -342,8 +338,8 @@ class NotificationService:
             details=f'Notification created for {recipient.email}'
         )
 
-        # Audit High-Priority or Clinical State Changes (Panel Recommendation 2.d)
-        if priority in ['HIGH', 'URGENT'] or notification_type in ['MEDICAL_CERTIFICATE', 'SYSTEM_ALERT']:
+        # Audit Clinical State Changes (Panel Recommendation 2.d)
+        if notification_type in ['MEDICAL_CERTIFICATE', 'SYSTEM_ALERT']:
             try:
                 AuditLog.objects.create(
                     actor=created_by or recipient, # Fallback to recipient for system-generated
@@ -356,7 +352,6 @@ class NotificationService:
                         'type': notification_type,
                         'title': title,
                         'recipient': recipient.email,
-                        'priority': priority,
                         'clinical_context': (patient.get_full_name() if patient else 'System')
                     }
                 )
@@ -380,7 +375,6 @@ class NotificationService:
         template: NotificationTemplate,
         recipient: User,
         context_data: Dict[str, Any],
-        priority: str = 'MEDIUM',
         delivery_method: str = 'BOTH',
         scheduled_at: Optional[datetime] = None,
         patient: Optional[Patient] = None,
@@ -396,7 +390,6 @@ class NotificationService:
             notification_type=template.template_type,
             title=rendered['subject'],
             message=rendered['body'],
-            priority=priority,
             delivery_method=delivery_method,
             scheduled_at=scheduled_at,
             patient=patient,
@@ -473,7 +466,6 @@ class NotificationService:
                 notification_type='SYSTEM',
                 title='New Role Request',
                 message=f'User {user.email} has requested the role: {requested_role}.',
-                priority='HIGH',
                 delivery_method='BOTH',
                 action_url='/user-management',
                 action_text='View Requests'

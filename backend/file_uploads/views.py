@@ -182,7 +182,6 @@ class PatientDocumentViewSet(viewsets.ModelViewSet):
                     notification_type='DOWNLOAD',
                     title='Document Downloaded',
                     message=f'You have successfully downloaded the document: {filename}',
-                    priority='LOW',
                     delivery_method='IN_APP',
                     patient=document.patient
                 )

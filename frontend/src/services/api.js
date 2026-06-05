@@ -1209,9 +1209,9 @@ export const notificationService = {
   },
 
   // Get unread notifications
-  getUnreadNotifications: async () => {
+  getUnreadNotifications: async (params = {}) => {
     try {
-      return await api.get('/notifications/notifications/unread/');
+      return await api.get('/notifications/notifications/unread/', { params });
     } catch (error) {
       handleApiError(error);
     }

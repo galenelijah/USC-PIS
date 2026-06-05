@@ -189,6 +189,11 @@ const Notifications = () => {
                 page_size: ps
             };
 
+            // Exclude DOWNLOAD notifications by default
+            if (!typeFilter) {
+                params.exclude_type = 'DOWNLOAD';
+            }
+
             // If on Unread tab, force status filter to SENT (maps to SENT/DELIVERED in backend)
             if (currentTab === 1) {
                 params.status = 'SENT';
@@ -227,7 +232,7 @@ const Notifications = () => {
 
     const loadUnreadNotifications = async () => {
         try {
-            const response = await notificationService.getUnreadNotifications();
+            const response = await notificationService.getUnreadNotifications({ exclude_type: 'DOWNLOAD' });
             setUnreadNotifications(response.data);
             dispatch(setUnreadCount(response.data?.length || 0));
         } catch (err) {
@@ -375,16 +380,13 @@ const Notifications = () => {
 
     const getNotificationIcon = (type) => {
         switch (type) {
-            case 'APPOINTMENT_REMINDER': return <Schedule />;
-            case 'MEDICATION_REMINDER': return <Schedule />;
             case 'HEALTH_CAMPAIGN': return <Campaign />;
             case 'CLINIC_UPDATE': return <NotificationImportant />;
-            case 'FOLLOW_UP': return <CheckCircle />;
-            case 'VACCINATION_REMINDER': return <Schedule />;
-            case 'DENTAL_REMINDER': return <Schedule />;
             case 'MEDICAL_CERTIFICATE': return <NotificationsIcon />;
+            case 'MEDICAL_RECORD': return <NotificationsIcon />;
+            case 'DENTAL_RECORD': return <NotificationsIcon />;
+            case 'LABORATORY_RESULT': return <NotificationsIcon />;
             case 'SYSTEM_ALERT': return <NotificationImportant />;
-            case 'CUSTOM': return <NotificationsIcon />;
             default: return <NotificationsIcon />;
         }
     };
@@ -407,9 +409,11 @@ const Notifications = () => {
     // Notification types for filters
     const notificationTypes = [
         { value: 'HEALTH_CAMPAIGN', label: 'Health Campaign' },
-        { value: 'MEDICAL_CERTIFICATE', label: 'Medical Certificate' },
-        { value: 'FOLLOW_UP', label: 'Patient Feedback' },
         { value: 'CLINIC_UPDATE', label: 'Clinic Update' },
+        { value: 'MEDICAL_CERTIFICATE', label: 'Medical Certificate' },
+        { value: 'MEDICAL_RECORD', label: 'Medical Record' },
+        { value: 'DENTAL_RECORD', label: 'Dental Record' },
+        { value: 'LABORATORY_RESULT', label: 'Laboratory Result' },
         { value: 'SYSTEM_ALERT', label: 'System Alert' },
     ];
 

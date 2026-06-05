@@ -6,7 +6,8 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 from datetime import timedelta
-from .models import MedicalRecord, DentalRecord, Patient
+from .models import MedicalRecord, DentalRecord, Patient, Consultation
+from file_uploads.models import PatientDocument
 from django.conf import settings
 from django.db import connection
 
@@ -86,10 +87,9 @@ def schedule_feedback_email_medical(sender, instance, created, **kwargs):
             Notification.objects.create(
                 recipient=instance.patient.user,
                 patient=instance.patient,
-                notification_type='FOLLOW_UP',
+                notification_type='CLINIC_UPDATE',
                 title='Medical Feedback Required',
                 message=f'Please provide feedback for your recent medical visit on {instance.visit_date.strftime("%Y-%m-%d")}.',
-                priority='MEDIUM',
                 delivery_method='IN_APP',
                 action_url=f'{settings.SITE_URL}/feedback/{instance.id}?type=medical',
                 action_text='Leave Feedback'
@@ -118,10 +118,9 @@ def schedule_feedback_email_dental(sender, instance, created, **kwargs):
             Notification.objects.create(
                 recipient=instance.patient.user,
                 patient=instance.patient,
-                notification_type='FOLLOW_UP',
+                notification_type='CLINIC_UPDATE',
                 title='Dental Feedback Required',
                 message=f'Please provide feedback for your recent dental consultation on {instance.visit_date.strftime("%Y-%m-%d")}.',
-                priority='MEDIUM',
                 delivery_method='IN_APP',
                 action_url=f'{settings.SITE_URL}/feedback/{instance.id}?type=dental',
                 action_text='Leave Feedback'
@@ -150,3 +149,100 @@ def send_immediate_feedback_email(medical_record):
     except Exception as e:
         logger.error(f"Error sending immediate feedback email for medical record {medical_record.id}: {e}")
         return False
+
+@receiver(post_save, sender=MedicalRecord)
+def notify_patient_medical_update(sender, instance, created, **kwargs):
+    """Notify patient when their medical record is added or updated."""
+    if instance.patient and hasattr(instance.patient, 'user') and instance.patient.user:
+        try:
+            title = 'New Medical Record Added' if created else 'Medical Record Updated'
+            message = f'A new medical record from your visit on {instance.visit_date.strftime("%Y-%m-%d")} has been added to your profile.'
+            if not created:
+                message = f'Your medical record from {instance.visit_date.strftime("%Y-%m-%d")} has been updated.'
+            
+            Notification.objects.create(
+                recipient=instance.patient.user,
+                patient=instance.patient,
+                notification_type='MEDICAL_RECORD',
+                title=title,
+                message=message,
+                delivery_method='IN_APP',
+                action_url='/health-records'
+            )
+            logger.info(f"Notification created for medical record {instance.id}")
+        except Exception as e:
+            logger.error(f"Error creating notification for medical record {instance.id}: {e}")
+
+@receiver(post_save, sender=DentalRecord)
+def notify_patient_dental_update(sender, instance, created, **kwargs):
+    """Notify patient when their dental record is added or updated."""
+    if instance.patient and hasattr(instance.patient, 'user') and instance.patient.user:
+        try:
+            title = 'New Dental Record Added' if created else 'Dental Record Updated'
+            message = f'A new dental record for {instance.get_procedure_performed_display()} on {instance.visit_date.strftime("%Y-%m-%d")} has been added to your profile.'
+            if not created:
+                message = f'Your dental record from {instance.visit_date.strftime("%Y-%m-%d")} has been updated.'
+            
+            Notification.objects.create(
+                recipient=instance.patient.user,
+                patient=instance.patient,
+                notification_type='DENTAL_RECORD',
+                title=title,
+                message=message,
+                delivery_method='IN_APP',
+                action_url='/health-records'
+            )
+            logger.info(f"Notification created for dental record {instance.id}")
+        except Exception as e:
+            logger.error(f"Error creating notification for dental record {instance.id}: {e}")
+
+@receiver(post_save, sender=Consultation)
+def notify_patient_consultation_update(sender, instance, created, **kwargs):
+    """Notify patient when their consultation record is added or updated."""
+    if instance.patient and hasattr(instance.patient, 'user') and instance.patient.user:
+        try:
+            title = 'New Consultation Record Added' if created else 'Consultation Record Updated'
+            message = f'A new consultation record from {instance.date_time.strftime("%Y-%m-%d")} has been added to your profile.'
+            if not created:
+                message = f'Your consultation record from {instance.date_time.strftime("%Y-%m-%d")} has been updated.'
+            
+            Notification.objects.create(
+                recipient=instance.patient.user,
+                patient=instance.patient,
+                notification_type='MEDICAL_RECORD',
+                title=title,
+                message=message,
+                delivery_method='IN_APP',
+                action_url='/health-records'
+            )
+            logger.info(f"Notification created for consultation record {instance.id}")
+        except Exception as e:
+            logger.error(f"Error creating notification for consultation record {instance.id}: {e}")
+
+@receiver(post_save, sender=PatientDocument)
+def notify_patient_document_upload(sender, instance, created, **kwargs):
+    """Notify patient when a document (like lab results) is uploaded to their profile."""
+    if created and instance.patient and hasattr(instance.patient, 'user') and instance.patient.user:
+        try:
+            # Map document types to notification types
+            notification_type = 'MEDICAL_RECORD'
+            if instance.document_type == 'LAB_RESULT':
+                notification_type = 'LABORATORY_RESULT'
+            elif instance.document_type == 'DENTAL_RECORD':
+                notification_type = 'DENTAL_RECORD'
+            
+            title = f'New {instance.get_document_type_display()} Uploaded'
+            message = f'A new {instance.get_document_type_display().lower()} has been added to your profile documents.'
+            
+            Notification.objects.create(
+                recipient=instance.patient.user,
+                patient=instance.patient,
+                notification_type=notification_type,
+                title=title,
+                message=message,
+                delivery_method='IN_APP',
+                action_url='/health-records'
+            )
+            logger.info(f"Notification created for patient document {instance.id}")
+        except Exception as e:
+            logger.error(f"Error creating notification for patient document {instance.id}: {e}")

@@ -36,10 +36,11 @@ class NotificationFilter(django_filters.FilterSet):
     """Custom filter for notifications"""
     status = django_filters.CharFilter(method='filter_status')
     search = django_filters.CharFilter(method='filter_search')
+    exclude_type = django_filters.CharFilter(method='filter_exclude_type')
 
     class Meta:
         model = Notification
-        fields = ['notification_type', 'priority', 'status', 'delivery_method']
+        fields = ['notification_type', 'status', 'delivery_method']
 
     def filter_status(self, queryset, name, value):
         if value == 'SENT':
@@ -53,6 +54,11 @@ class NotificationFilter(django_filters.FilterSet):
                 Q(title__icontains=value) | 
                 Q(message__icontains=value)
             )
+        return queryset
+
+    def filter_exclude_type(self, queryset, name, value):
+        if value:
+            return queryset.exclude(notification_type=value)
         return queryset
 
 
@@ -81,16 +87,23 @@ class NotificationViewSet(viewsets.ModelViewSet):
         
         if show_all and is_medical_staff:
             # Medical staff and admins can see all notifications if requested
-            return Notification.objects.select_related(
+            queryset = Notification.objects.select_related(
                 'recipient', 'patient', 'template', 'created_by'
             ).prefetch_related('logs')
         else:
             # By default, users (including admins) only see their own notifications in their inbox
-            return Notification.objects.filter(
+            queryset = Notification.objects.filter(
                 recipient=user
             ).select_related(
                 'recipient', 'patient', 'template', 'created_by'
             ).prefetch_related('logs')
+            
+        # Optional type exclusion
+        exclude_type = self.request.query_params.get('exclude_type')
+        if exclude_type:
+            queryset = queryset.exclude(notification_type=exclude_type)
+            
+        return queryset
     
     def get_serializer_class(self):
         """Return appropriate serializer based on action"""
@@ -132,7 +145,6 @@ class NotificationViewSet(viewsets.ModelViewSet):
             notification_type=serializer.validated_data['notification_type'],
             title=serializer.validated_data['title'],
             message=serializer.validated_data['message'],
-            priority=serializer.validated_data.get('priority', 'MEDIUM'),
             delivery_method=serializer.validated_data.get('delivery_method', 'BOTH'),
             scheduled_at=serializer.validated_data.get('scheduled_at'),
             expires_at=serializer.validated_data.get('expires_at'),
@@ -201,7 +213,6 @@ class NotificationViewSet(viewsets.ModelViewSet):
                     notification_type=serializer.validated_data['notification_type'],
                     title=serializer.validated_data['title'],
                     message=serializer.validated_data['message'],
-                    priority=serializer.validated_data.get('priority', 'MEDIUM'),
                     delivery_method=serializer.validated_data.get('delivery_method', 'BOTH'),
                     scheduled_at=serializer.validated_data.get('scheduled_at'),
                     expires_at=serializer.validated_data.get('expires_at'),
@@ -243,13 +254,6 @@ class NotificationViewSet(viewsets.ModelViewSet):
             count = queryset.filter(notification_type=type_code).count()
             by_type[type_name] = count
         
-        # By priority statistics
-        by_priority = {}
-        for choice in Notification.PRIORITY_LEVELS:
-            priority_code, priority_name = choice
-            count = queryset.filter(priority=priority_code).count()
-            by_priority[priority_name] = count
-        
         # Recent notifications
         recent_notifications = queryset.order_by('-created_at')[:10]
         
@@ -271,7 +275,6 @@ class NotificationViewSet(viewsets.ModelViewSet):
             'read_notifications': status_counts['read'],
             'failed_notifications': status_counts['failed'],
             'by_type': by_type,
-            'by_priority': by_priority,
             'recent_notifications': recent_notifications,
             'delivery_rate': round(delivery_rate, 2),
             'read_rate': round(read_rate, 2)

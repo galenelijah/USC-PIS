@@ -53,7 +53,6 @@ class NotificationAdmin(admin.ModelAdmin):
         'title', 
         'recipient_email', 
         'notification_type', 
-        'priority_badge',
         'status_badge', 
         'delivery_method',
         'scheduled_at',
@@ -61,7 +60,6 @@ class NotificationAdmin(admin.ModelAdmin):
     ]
     list_filter = [
         'notification_type', 
-        'priority', 
         'status', 
         'delivery_method',
         'created_at',
@@ -86,7 +84,7 @@ class NotificationAdmin(admin.ModelAdmin):
             'fields': ('recipient', 'patient')
         }),
         ('Content', {
-            'fields': ('notification_type', 'title', 'message', 'priority', 'template')
+            'fields': ('notification_type', 'title', 'message', 'template')
         }),
         ('Delivery Settings', {
             'fields': ('delivery_method', 'scheduled_at', 'expires_at')
@@ -111,21 +109,6 @@ class NotificationAdmin(admin.ModelAdmin):
     def recipient_email(self, obj):
         return obj.recipient.email
     recipient_email.short_description = 'Recipient'
-    
-    def priority_badge(self, obj):
-        colors = {
-            'LOW': 'green',
-            'MEDIUM': 'blue', 
-            'HIGH': 'orange',
-            'URGENT': 'red'
-        }
-        color = colors.get(obj.priority, 'gray')
-        return format_html(
-            '<span style="color: {}; font-weight: bold;">{}</span>',
-            color,
-            obj.get_priority_display()
-        )
-    priority_badge.short_description = 'Priority'
     
     def status_badge(self, obj):
         colors = {

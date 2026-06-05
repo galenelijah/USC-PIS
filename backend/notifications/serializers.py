@@ -101,7 +101,6 @@ class NotificationSerializer(serializers.ModelSerializer):
     
     # Display fields
     notification_type_display = serializers.CharField(source='get_notification_type_display', read_only=True)
-    priority_display = serializers.CharField(source='get_priority_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     delivery_method_display = serializers.CharField(source='get_delivery_method_display', read_only=True)
     
@@ -117,7 +116,7 @@ class NotificationSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'notification_id', 'recipient', 'recipient_email', 'recipient_name',
             'patient', 'patient_name', 'notification_type', 'notification_type_display',
-            'title', 'message', 'priority', 'priority_display',
+            'title', 'message',
             'delivery_method', 'delivery_method_display',
             'scheduled_at', 'expires_at', 'status', 'status_display',
             'sent_at', 'delivered_at', 'read_at',
@@ -158,7 +157,7 @@ class NotificationCreateSerializer(serializers.ModelSerializer):
         model = Notification
         fields = [
             'recipient', 'patient', 'notification_type', 'title', 'message',
-            'priority', 'delivery_method', 'scheduled_at', 'expires_at',
+            'delivery_method', 'scheduled_at', 'expires_at',
             'action_url', 'action_text', 'metadata'
         ]
     
@@ -329,9 +328,6 @@ class NotificationStatsSerializer(serializers.Serializer):
     # By type statistics
     by_type = serializers.DictField()
     
-    # By priority statistics
-    by_priority = serializers.DictField()
-    
     # Recent activity
     recent_notifications = NotificationSerializer(many=True)
     
@@ -351,7 +347,6 @@ class BulkNotificationSerializer(serializers.Serializer):
     notification_type = serializers.ChoiceField(choices=Notification.NOTIFICATION_TYPES)
     title = serializers.CharField(max_length=255)
     message = serializers.CharField()
-    priority = serializers.ChoiceField(choices=Notification.PRIORITY_LEVELS, default='MEDIUM')
     delivery_method = serializers.ChoiceField(choices=Notification.DELIVERY_METHODS, default='BOTH')
     scheduled_at = serializers.DateTimeField(required=False, allow_null=True)
     expires_at = serializers.DateTimeField(required=False, allow_null=True)

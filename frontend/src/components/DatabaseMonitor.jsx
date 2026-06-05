@@ -723,7 +723,7 @@ const DatabaseMonitor = () => {
                                 {backupData.health_recommendations.map((rec, index) => (
                                     <Alert 
                                         key={index} 
-                                        severity={rec.priority === 'high' ? 'error' : rec.priority === 'medium' ? 'warning' : 'info'}
+                                        severity="info"
                                         sx={{ mb: 1 }}
                                     >
                                         <Typography variant="body2">

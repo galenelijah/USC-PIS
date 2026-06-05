@@ -5,7 +5,7 @@ export const fetchUnreadCount = createAsyncThunk(
   'notifications/fetchUnreadCount',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await notificationService.getUnreadNotifications();
+      const response = await notificationService.getUnreadNotifications({ exclude_type: 'DOWNLOAD' });
       return response.data?.length || 0;
     } catch (error) {
       return rejectWithValue(error.message);

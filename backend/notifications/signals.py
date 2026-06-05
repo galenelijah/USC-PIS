@@ -48,7 +48,6 @@ def handle_user_updates(sender, instance, created, **kwargs):
             notification_type='SYSTEM_ALERT',
             title="Account Information Updated",
             message="Your account profile or security settings have been successfully updated.",
-            priority='MEDIUM',
             delivery_method='IN_APP',
             metadata={'action': 'profile_update'}
         )
@@ -84,7 +83,6 @@ def medical_certificate_notification_central(sender, instance, created, **kwargs
                     message=f"Your medical certificate is ready! Issued by {instance.issuing_doctor.get_full_name()}. It can now be claimed at the clinic or viewed in your health records.",
                     notification_type="MEDICAL_CERTIFICATE",
                     delivery_method='BOTH', # Push to email as well for issuance
-                    priority='HIGH',
                     metadata={'certificate_id': instance.id},
                     action_url='/health-insights',
                     action_text='View Certificate',
@@ -98,7 +96,6 @@ def medical_certificate_notification_central(sender, instance, created, **kwargs
                 message=f"Your medical certificate request has been rejected by {instance.issuing_doctor.get_full_name()}. Please contact the clinic for details.",
                 notification_type="MEDICAL_CERTIFICATE",
                 delivery_method='IN_APP',
-                priority='MEDIUM',
                 metadata={'certificate_id': instance.id},
                 patient=instance.patient
             )
@@ -112,7 +109,6 @@ def medical_certificate_notification_central(sender, instance, created, **kwargs
                 message=f"A medical certificate for {instance.patient.get_full_name()} requires review.",
                 notification_type="MEDICAL_CERTIFICATE",
                 delivery_method='IN_APP',
-                priority='MEDIUM',
                 metadata={'certificate_id': instance.id},
                 action_url='/medical-certificates',
                 action_text='Review',
@@ -129,9 +125,8 @@ def medical_record_notification(sender, instance, created, **kwargs):
             notification_type='CLINIC_UPDATE',
             title=f"Medical Record {action.capitalize()}",
             message=f"A medical record for your visit on {instance.visit_date.strftime('%B %d, %Y')} has been {action}.",
-            priority='MEDIUM',
             delivery_method='IN_APP',
-            patient=instance.patient,
+            patient=instance,
             metadata={'record_id': instance.id, 'type': 'MEDICAL'}
         )
 
@@ -145,9 +140,8 @@ def dental_record_notification(sender, instance, created, **kwargs):
             notification_type='CLINIC_UPDATE',
             title=f"Dental Record {action.capitalize()}",
             message=f"A dental record for your visit on {instance.visit_date.strftime('%B %d, %Y')} has been {action}.",
-            priority='MEDIUM',
             delivery_method='IN_APP',
-            patient=instance.patient,
+            patient=instance,
             metadata={'record_id': instance.id, 'type': 'DENTAL'}
         )
 
@@ -161,9 +155,8 @@ def consultation_notification(sender, instance, created, **kwargs):
             notification_type='CLINIC_UPDATE',
             title=f"Consultation {action.capitalize()}",
             message=f"A consultation record from {instance.date_time.strftime('%B %d, %Y')} has been {action}.",
-            priority='MEDIUM',
             delivery_method='IN_APP',
-            patient=instance.patient,
+            patient=instance,
             metadata={'consultation_id': instance.id}
         )
 
@@ -178,7 +171,6 @@ def feedback_notification(sender, instance, created, **kwargs):
                 title="New Feedback Received",
                 message=f"Patient {instance.patient.get_full_name()} submitted feedback (Rating: {instance.rating}/5).",
                 notification_type='CLINIC_UPDATE',
-                priority='LOW',
                 delivery_method='IN_APP',
                 metadata={'feedback_id': instance.id},
                 action_url='/admin-feedback',
@@ -202,7 +194,6 @@ def patient_document_notification(sender, instance, created, **kwargs):
                     title="New Document Uploaded",
                     message=f"A new {instance.get_document_type_display()} has been uploaded for {instance.patient.get_full_name()}.",
                     notification_type='CLINIC_UPDATE',
-                    priority='MEDIUM',
                     delivery_method='IN_APP',
                     metadata={'document_id': instance.id, 'patient_id': instance.patient.id},
                     action_url='/students',
@@ -277,7 +268,6 @@ USC Health Services Team''',
             template=template,
             recipient=instance.user,
             context_data=context_data,
-            priority='MEDIUM',
             delivery_method='BOTH',
             patient=instance
         )
@@ -313,7 +303,6 @@ def send_appointment_confirmation(sender, instance, created, **kwargs):
                 template=template,
                 recipient=instance.patient.user,
                 context_data=context_data,
-                priority='HIGH',
                 delivery_method='BOTH',
                 patient=instance.patient,
                 action_url=f'/appointments/{instance.id}',
@@ -365,7 +354,6 @@ def schedule_appointment_reminder(sender, instance, **kwargs):
             template=template,
             recipient=instance.patient.user,
             context_data=context_data,
-            priority='HIGH',
             delivery_method='BOTH',
             scheduled_at=reminder_time,
             patient=instance.patient,
