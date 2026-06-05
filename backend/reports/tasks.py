@@ -28,13 +28,13 @@ def generate_report_task_celery(report_id, is_sync=False):
         
         report.status = 'GENERATING'
         report.progress_percentage = 10
-        report.save()
+        report.save(update_fields=['status', 'progress_percentage'])
         
         # Initialize report generation service
         service = ReportGenerationService()
         
         report.progress_percentage = 30
-        report.save()
+        report.save(update_fields=['progress_percentage'])
         
         # Generate report data
         common_kwargs = {
@@ -47,7 +47,7 @@ def generate_report_task_celery(report_id, is_sync=False):
         }
         
         report.progress_percentage = 50
-        report.save()
+        report.save(update_fields=['progress_percentage'])
 
         # Mapping report types to service methods (with robust aliases)
         report_methods = {
@@ -81,7 +81,7 @@ def generate_report_task_celery(report_id, is_sync=False):
         
         if report_data is not None:
             report.progress_percentage = 80
-            report.save()
+            report.save(update_fields=['progress_percentage'])
             
             # Determine file extension
             file_extension = {
@@ -100,26 +100,27 @@ def generate_report_task_celery(report_id, is_sync=False):
 
             filename = f"report_{report.id}_{uuid.uuid4().hex[:8]}.{file_extension}"
             
+            report.file_size = len(report_data)
+            report.status = 'COMPLETED'
+            report.progress_percentage = 100
+            report.completed_at = timezone.now()
+            report.generation_time = timezone.now() - report.created_at
+            
             try:
-                report.file_path.save(filename, ContentFile(report_data))
-                report.file_size = len(report_data)
-                report.status = 'COMPLETED'
-                report.progress_percentage = 100
+                report.file_path.save(filename, ContentFile(report_data), save=True)
                 logger.info(f"Report {report_id} completed successfully via Celery")
             except Exception as save_err:
                 logger.error(f"Failed to save report file: {str(save_err)}")
                 report.status = 'FAILED'
                 report.error_message = f"Storage Error: {str(save_err)}"
-            
-            report.completed_at = timezone.now()
-            report.generation_time = timezone.now() - report.created_at
+                report.save()
             
         else:
             logger.error(f"No report data generated (or generation failed) for report {report_id}")
             report.status = 'FAILED'
             report.error_message = 'Service failed to generate valid file content (PDF/Excel generation error)'
+            report.save()
         
-        report.save()
         return True
         
     except Exception as e:

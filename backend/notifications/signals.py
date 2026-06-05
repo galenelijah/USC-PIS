@@ -162,16 +162,17 @@ def consultation_notification(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=Feedback)
 def feedback_notification(sender, instance, created, **kwargs):
-    """Notify clinic staff when new feedback is submitted by a student/faculty"""
+    """Notify clinic staff when new feedback is submitted (Anonymously)"""
     if created:
         staff_users = User.objects.filter(role__in=['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'])
         for staff in staff_users:
             NotificationService.create_notification(
                 recipient=staff,
                 title="New Feedback Received",
-                message=f"Patient {instance.patient.get_full_name()} submitted feedback (Rating: {instance.rating}/5).",
+                message=f"A patient has submitted new feedback (Rating: {instance.rating}/5).",
                 notification_type='CLINIC_UPDATE',
                 delivery_method='IN_APP',
+                # Keep ID for backend reference if needed, but the message is anonymous
                 metadata={'feedback_id': instance.id},
                 action_url='/admin-feedback',
                 action_text='View Feedback'

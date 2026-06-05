@@ -1049,7 +1049,6 @@ class ReportDataService:
                     'rating': f.rating,
                     'comments': f.comments,
                     'suggestions': f.improvement,
-                    'improvement': f.improvement, # Backward compatibility
                     'recommend': 'Yes' if str(f.recommend).lower() in ['yes', 'true', '1'] else 'No',
                     'courteous': 'Yes' if str(f.courteous).lower() in ['yes', 'true', '1'] else 'No',
                     'created_at': f.created_at.strftime('%Y-%m-%d'),
@@ -2855,21 +2854,21 @@ class ReportGenerationService:
                                         {{% for key in first_item.keys %}}
                                             {{% if key != "id" and key != "timestamp" and key != "charts_base64" and key != "meta" and key != "usc_id" and key != "priority" and key != "engagement_count" %}}
                                                 {{% if key|lower == "comments" or key|lower == "improvement" or key|lower == "suggestions" %}}
-                                                    <th width="30%">{{{{ key|title_clean }}}}</th>
+                                                    <th width="24%">{{{{ key|title_clean }}}}</th>
                                                 {{% elif key|lower == "summary" or key|lower == "notes" or key|lower == "findings" or key|lower == "formatted_summary" %}}
-                                                    <th width="40%">{{{{ key|title_clean }}}}</th>
+                                                    <th width="35%">{{{{ key|title_clean }}}}</th>
                                                 {{% elif key|lower == "diagnosis" or key|lower == "procedure" or key|lower == "treatment" or key|lower == "primary_info" or key|lower == "title" or key|lower == "actor_email" %}}
-                                                    <th width="22%">{{{{ key|title_clean }}}}</th>
+                                                    <th width="20%">{{{{ key|title_clean }}}}</th>
                                                 {{% elif key|lower == "recommend" or key|lower == "courteous" %}}
-                                                    <th width="10%">{{{{ key|title_clean }}}}</th>
-                                                {{% elif key|lower == "status" or key|lower == "rating" or key|lower == "performance" %}}
                                                     <th width="8%">{{{{ key|title_clean }}}}</th>
+                                                {{% elif key|lower == "status" or key|lower == "rating" or key|lower == "performance" %}}
+                                                    <th width="7%">{{{{ key|title_clean }}}}</th>
                                                 {{% elif key|lower == "date" or key|lower == "created_at" or key|lower == "updated_at" or key|lower == "visit_date" or key|lower == "period" or key|lower == "timestamp" %}}
-                                                    <th width="12%">{{{{ key|title_clean }}}}</th>
+                                                    <th width="10%">{{{{ key|title_clean }}}}</th>
                                                 {{% elif key|lower == "total_visits" or key|lower == "view_count" or key|lower == "count" or key|lower == "enrollment" or key|lower == "percentage" %}}
-                                                    <th width="9%">{{{{ key|title_clean }}}}</th>
+                                                    <th width="8%">{{{{ key|title_clean }}}}</th>
                                                 {{% else %}}
-                                                    <th>{{{{ key|title_clean }}}}</th>
+                                                    <th width="10%">{{{{ key|title_clean }}}}</th>
                                                 {{% endif %}}
                                             {{% endif %}}
                                         {{% endfor %}}

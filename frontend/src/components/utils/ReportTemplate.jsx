@@ -333,7 +333,7 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
                   <Typography variant="caption" color="text.secondary">
                     {dayjs(record.visit_date || record.created_at).format('hh:mm A')}
                   </Typography>
-                  {!isSinglePatient && (record.patient_name || record.patient_usc_id) && (
+                  {!isSinglePatient && reportType !== 'FEEDBACK' && (record.patient_name || record.patient_usc_id) && (
                     <Box sx={{ mt: 1, borderTop: '1px solid #eee', pt: 0.5 }}>
                       <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block' }}>
                         {record.patient_name}

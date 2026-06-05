@@ -112,6 +112,12 @@ def audit_log_save(sender, instance, created, **kwargs):
     action_type = 'CREATE' if created else 'UPDATE'
     target_model = sender.__name__
     target_object_id = getattr(instance, 'pk', 'N/A')
+
+    # Special Case: Suppression for Noisy Progress Updates (Report Generation)
+    if target_model == 'GeneratedReport' and not created:
+        update_fields = kwargs.get('update_fields')
+        if update_fields and list(update_fields) == ['progress_percentage']:
+            return
     
     # Detailed diffing for updates
     changes = {}
@@ -148,11 +154,13 @@ def audit_log_save(sender, instance, created, **kwargs):
             # Fallback for models without history (like GeneratedReport)
             changes = {'status': 'modified', 'description': str(instance)}
             
-            # Special Case: Report Export (Download) - Detect via path if history is missing
+            # Special Case: Report Generation & Export
             if target_model == 'GeneratedReport':
                 path = get_current_path()
                 if path and '/download' in path:
                     action_type = 'EXPORT'
+                else:
+                    action_type = 'GENERATE'
     else:
         # For creation, log key fields or just the description
         changes = {'status': 'new', 'description': str(instance)}
