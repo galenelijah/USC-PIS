@@ -263,13 +263,20 @@ class ReportDataService:
             patient_scope = filters.get('patient_scope', 'active_with_records') if filters else 'active_with_records'
             
             if patient_scope == 'all_verified':
-                queryset = User.objects.filter(is_verified=True)
+                queryset = User.objects.filter(is_verified=True, is_active=True)
                 gender_field = 'sex'
                 dob_field = 'birthday'
                 table_name = 'authentication_user'
                 id_col = 'id'
             else:
                 queryset = Patient.objects.select_related('user').prefetch_related('medical_records', 'dental_records')
+                # Strictly filter for patient roles (Student/Faculty) and exclude inactive/deleted accounts
+                queryset = queryset.filter(
+                    Q(user__role__in=['STUDENT', 'FACULTY']),
+                    user__is_active=True,
+                    user__is_verified=True
+                )
+                
                 gender_field = 'gender'
                 dob_field = 'date_of_birth'
                 table_name = 'patients_patient'
@@ -284,7 +291,7 @@ class ReportDataService:
                         queryset = queryset.filter(id__in=all_ids)
                 elif patient_scope == 'all_profiles':
                     # All verified patients who completed setup (have a Patient object)
-                    queryset = queryset.filter(user__is_verified=True)
+                    queryset = queryset.filter(user__is_verified=True, user__is_active=True)
                     # For a population summary, we usually want cumulative data as of the end date
                     if date_end:
                         queryset = queryset.filter(created_at__lte=date_end)
@@ -341,15 +348,15 @@ class ReportDataService:
             # Aggregate data in single query
             if patient_scope == 'all_verified':
                 aggregate_data = queryset.aggregate(
-                    total_patients=Count('id'),
-                    new_registrations=Count('id', filter=Q(date_joined__gte=timezone.now() - timedelta(days=30))),
+                    total_patients=Count('id', distinct=True),
+                    new_registrations=Count('id', filter=Q(date_joined__gte=timezone.now() - timedelta(days=30)), distinct=True),
                     patients_with_medical_records=Value(0),
                     patients_with_dental_records=Value(0)
                 )
             else:
                 aggregate_data = queryset.aggregate(
-                    total_patients=Count('id'),
-                    new_registrations=Count('id', filter=Q(created_at__gte=timezone.now() - timedelta(days=30))),
+                    total_patients=Count('id', distinct=True),
+                    new_registrations=Count('id', filter=Q(created_at__gte=timezone.now() - timedelta(days=30)), distinct=True),
                     patients_with_medical_records=Count('id', filter=Q(medical_records__isnull=False), distinct=True),
                     patients_with_dental_records=Count('id', filter=Q(dental_records__isnull=False), distinct=True)
                 )

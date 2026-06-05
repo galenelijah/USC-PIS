@@ -380,7 +380,13 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
                 <Select 
                   value={patientScope} 
                   label="Population Scope" 
-                  onChange={(e) => setPatientScope(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setPatientScope(val);
+                    if (val === 'all_profiles') {
+                      setModalDateRange('all');
+                    }
+                  }}
                 >
                   <MenuItem value="active_with_records">All active patients (With Records)</MenuItem>
                   <MenuItem value="all_profiles">All Patients with completed profile setup</MenuItem>
@@ -427,7 +433,7 @@ const PatientSummaryPreview = ({ dateRange, customStart, customEnd }) => {
               />
             </Grid>
             <Grid item xs={12} sm={2}>
-              <FormControl fullWidth size="small">
+              <FormControl fullWidth size="small" disabled={patientScope === 'all_profiles'}>
                 <InputLabel>Timeline</InputLabel>
                 <Select value={modalDateRange} label="Timeline" onChange={(e) => setModalDateRange(e.target.value)}>
                   <MenuItem value="all">Full Academic History</MenuItem>
