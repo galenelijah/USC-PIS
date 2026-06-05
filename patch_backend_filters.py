@@ -1,15 +1,20 @@
 import re
 
-with open('backend/reports/services.py', 'r') as f:
+with open('frontend/src/components/MedicalHistoryPage.jsx', 'r') as f:
     content = f.read()
 
-# Fix campus substring matching in all instances of ACADEMIC_DIRECTORY_MAP
-content = content.replace("if info['campus'] in campus_names]", "if any(c in info['campus'] for c in campus_names)]")
-content = content.replace("if info['campus'] in campuses]", "if any(c in info['campus'] for c in campuses)]")
-content = content.replace("if info['school'] in school_names]", "if any(s in info['school'] for s in school_names)]")
-content = content.replace("if info['school'] in schools]", "if any(s in info['school'] for s in schools)]")
+# Add imports
+content = content.replace("MenuItem", "MenuItem,\n  ListSubheader")
+content = content.replace("Delete as DeleteIcon,", "Delete as DeleteIcon,\n  School as SchoolIcon")
+content = content.replace("import dayjs from 'dayjs';", "import dayjs from 'dayjs';\nimport isBetween from 'dayjs/plugin/isBetween';")
+content = content.replace("dayjs.extend(relativeTime);", "dayjs.extend(relativeTime);\ndayjs.extend(isBetween);")
 
-with open('backend/reports/services.py', 'w') as f:
+# Add state
+state_injection = """  const [insightsDateFilter, setInsightsDateFilter] = useState('30days');
+  const academicHistory = selectedPatient?.academic_history || [];"""
+
+content = content.replace("const [insightsStartDate, setInsightsStartDate] = useState(null);", "const [insightsStartDate, setInsightsStartDate] = useState(null);\n" + state_injection)
+
+with open('frontend/src/components/MedicalHistoryPage.jsx', 'w') as f:
     f.write(content)
 
-print("Backend filters patched")

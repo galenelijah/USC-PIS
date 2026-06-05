@@ -608,19 +608,6 @@ const Dashboard = memo(({ user }) => {
                           size="small"
                           sx={{ height: 20, fontSize: '0.75rem', fontWeight: 'bold', bgcolor: '#1b5e20', color: 'white' }}
                         />
-                        <Button 
-                          size="small" 
-                          variant="text" 
-                          endIcon={<ArrowForwardIcon />}
-                          onClick={() => {
-                            setSelectedPatient(patient);
-                            fetchPatientFullData(patient.id);
-                            setIsModalOpen(true);
-                          }}
-                          sx={{ textTransform: 'none', py: 0 }}
-                        >
-                          Preview
-                        </Button>
                       </Box>
                     </Paper>
                   </Grid>
@@ -636,21 +623,6 @@ const Dashboard = memo(({ user }) => {
                         mb: 1,
                         '&:hover': { bgcolor: 'rgba(0,0,0,0.03)' }
                       }}
-                      secondaryAction={
-                        <Tooltip title="View Patient Summary">
-                          <IconButton 
-                            edge="end" 
-                            size="small"
-                            onClick={() => {
-                              setSelectedPatient(patient);
-                              fetchPatientFullData(patient.id);
-                              setIsModalOpen(true);
-                            }}
-                          >
-                            <ArrowForwardIcon />
-                          </IconButton>
-                        </Tooltip>
-                      }
                     >
                       <ListItemIcon>
                         <Avatar sx={{ bgcolor: 'primary.main' }}>

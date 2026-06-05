@@ -3,9 +3,8 @@ import re
 with open('frontend/src/components/MedicalHistoryPage.jsx', 'r') as f:
     content = f.read()
 
-content = content.replace("const [insightsSearchTerm, setInsightsSearchTerm] = useState('');\n", "")
-content = content.replace("insightsSearchTerm, ", "")
+content = content.replace("<MenuItem,\n  ListSubheader", "<MenuItem")
+content = content.replace("</MenuItem,\n  ListSubheader>", "</MenuItem>")
 
 with open('frontend/src/components/MedicalHistoryPage.jsx', 'w') as f:
     f.write(content)
-
