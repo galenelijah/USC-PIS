@@ -105,10 +105,10 @@ const SystemAuditWorkshop = () => {
     fetchLogs();
   }, [fetchLogs]);
 
-  // Handle date range changes specifically to reset page
+  // Handle filter changes specifically to reset page
   useEffect(() => {
     setPage(0);
-  }, [dateRange, startDate, endDate]);
+  }, [dateRange, startDate, endDate, search, actionFilter, modelFilter, actorRoleFilter]);
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -217,13 +217,13 @@ const SystemAuditWorkshop = () => {
     // If description is technical or missing, try to build a better one
     if (!context || String(context).includes('Object') || String(context).includes('at 0x')) {
         if (log.target_model === 'MedicalRecord' || log.target_model === 'DentalRecord') {
-            context = `visit record #${log.target_object_id}`;
+            context = `a visit record`;
         } else if (log.target_model === 'User') {
-            context = `account for ${log.changes_summary?.email || 'user #' + log.target_object_id}`;
+            context = `account for ${log.changes_summary?.email || 'a user'}`;
         } else if (log.target_model === 'GeneratedReport') {
-            context = `report: ${log.changes_summary?.title || 'Report #' + log.target_object_id}`;
+            context = `report: ${log.changes_summary?.title || 'a system report'}`;
         } else {
-            context = `${moduleLabel.toLowerCase()} #${log.target_object_id}`;
+            context = `a ${moduleLabel.toLowerCase()} record`;
         }
     }
 

@@ -66,10 +66,12 @@ import BMI_male_1 from "../assets/images/BMI_Visual/BMI_male_1.png";
 import BMI_male_2 from "../assets/images/BMI_Visual/BMI_male_2.png";
 import BMI_male_3 from "../assets/images/BMI_Visual/BMI_male_3.png";
 import BMI_male_4 from "../assets/images/BMI_Visual/BMI_male_4.png";
+import BMI_male_5 from "../assets/images/BMI_Visual/BMI_male_5.png";
 import BMI_female_1 from "../assets/images/BMI_Visual/BMI_female_1.png";
 import BMI_female_2 from "../assets/images/BMI_Visual/BMI_female_2.png";
 import BMI_female_3 from "../assets/images/BMI_Visual/BMI_female_3.png";
 import BMI_female_4 from "../assets/images/BMI_Visual/BMI_female_4.png";
+import BMI_female_5 from "../assets/images/BMI_Visual/BMI_female_5.png";
 import { useMediaQuery } from '@mui/material';
 
 import { 
@@ -77,15 +79,33 @@ import {
   getCourseLabel, 
   getYearLevelLabel,
   calculateAge,
-  convertStringToArray 
+  convertStringToArray,
+  getCivilStatusLabel
 } from '../utils/fieldMappers';
+import { 
+  healthRecordsService, 
+  consultationService, 
+  dentalRecordService, 
+  patientService, 
+  patientDocumentService 
+} from '../services/api';
 
 const Dashboard = memo(({ user }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const isCompactTable = useMediaQuery('(max-width:1000px)');
+  
+  // Patient Preview States
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [patientHistory, setPatientHistory] = useState([]);
+  const [patientDocuments, setPatientDocuments] = useState([]);
+  const [latestVitalSigns, setLatestVitalSigns] = useState({});
+  const [modalLoading, setModalLoading] = useState(false);
+  
+  // Record Detail Dialog
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
   const [stats, setStats] = useState({
     totalPatients: 0,
@@ -108,6 +128,7 @@ const Dashboard = memo(({ user }) => {
   const [error, setError] = useState(null);
 
   const isAdminOrStaffOrDoctor = user && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
+  const isAdmin = user && user.role === 'ADMIN';
   const isDoctor = user && (user.role === 'DOCTOR' || user.role === 'DENTIST');
   const isNurse = user && user.role === 'NURSE';
   const isStudent = user && ['STUDENT', 'FACULTY'].includes(user.role);
@@ -172,6 +193,57 @@ const Dashboard = memo(({ user }) => {
     localStorage.setItem('hasVisitedDashboard', 'true');
   }, []);
 
+  const fetchPatientFullData = useCallback(async (patientId) => {
+    if (!patientId) return;
+    
+    try {
+      setModalLoading(true);
+      
+      // Fetch all related history with patient filtering
+      const [medicalResp, consultationResp, dentalResp, documentResp] = await Promise.all([
+        healthRecordsService.getAll({ patient: patientId }).catch(() => ({ data: [] })),
+        consultationService.getAll({ patient: patientId }).catch(() => ({ data: [] })),
+        dentalRecordService.getAll({ patient: patientId }).catch(() => ({ data: [] })),
+        patientDocumentService.getPatientDocuments(patientId).catch(() => ({ data: [] }))
+      ]);
+      
+      const getResults = (resp) => {
+        if (!resp) return [];
+        if (Array.isArray(resp.data)) return resp.data;
+        if (resp.data && Array.isArray(resp.data.results)) return resp.data.results;
+        return [];
+      };
+      
+      const medical = getResults(medicalResp).map(r => ({ ...r, type: 'Medical', date: r.visit_date }));
+      const consultations = getResults(consultationResp).map(r => ({ ...r, type: 'Consultation', date: r.date_time }));
+      const dental = getResults(dentalResp).map(r => ({ ...r, type: 'Dental', date: r.visit_date }));
+      const docs = getResults(documentResp).map(r => ({ ...r, type: 'Document', date: r.uploaded_at }));
+
+      setPatientDocuments(docs);
+
+      const allHistory = [...medical, ...consultations, ...dental, ...docs].sort((a, b) => 
+        new Date(b.date) - new Date(a.date)
+      );
+      
+      setPatientHistory(allHistory);
+      
+      // Find latest vitals
+      const recordsWithVitalSigns = medical
+        .filter(r => r.vital_signs && Object.keys(r.vital_signs).length > 0)
+        .sort((a, b) => new Date(b.visit_date) - new Date(a.visit_date));
+      
+      if (recordsWithVitalSigns.length > 0) {
+        setLatestVitalSigns(recordsWithVitalSigns[0].vital_signs);
+      } else {
+        setLatestVitalSigns({});
+      }
+    } catch (err) {
+      console.error('Error fetching patient preview data:', err);
+    } finally {
+      setModalLoading(false);
+    }
+  }, []);
+
   const getBMIVisual = (bmiValue, sexOrGender) => {
     const bmi = parseFloat(bmiValue);
     if (isNaN(bmi) || bmi <= 0) return null;
@@ -182,12 +254,14 @@ const Dashboard = memo(({ user }) => {
       if (bmi < 18.5) return BMI_female_1;
       if (bmi >= 18.5 && bmi < 25) return BMI_female_2;
       if (bmi >= 25 && bmi < 30) return BMI_female_3;
-      return BMI_female_4;
+      if (bmi >= 30 && bmi < 35) return BMI_female_4;
+      return BMI_female_5;
     } else {
       if (bmi < 18.5) return BMI_male_1;
       if (bmi >= 18.5 && bmi < 25) return BMI_male_2;
       if (bmi >= 25 && bmi < 30) return BMI_male_3;
-      return BMI_male_4;
+      if (bmi >= 30 && bmi < 35) return BMI_male_4;
+      return BMI_male_5;
     }
   };
 
@@ -197,7 +271,43 @@ const Dashboard = memo(({ user }) => {
     if (bmi < 18.5) return { text: 'Underweight', color: '#1e88e5' };
     if (bmi >= 18.5 && bmi < 25) return { text: 'Healthy Weight', color: '#1b5e20' };
     if (bmi >= 25 && bmi < 30) return { text: 'Overweight', color: '#f57c00' };
-    return { text: 'Obese', color: '#d32f2f' };
+    if (bmi >= 30 && bmi < 35) return { text: 'Obesity', color: '#e69d68' };
+    return { text: 'Severe Obesity', color: '#d32f2f' };
+  };
+
+  const handleViewRecord = (record) => {
+    setSelectedRecord(record);
+    setDetailDialogOpen(true);
+  };
+
+  const closeDetailDialog = () => {
+    setDetailDialogOpen(false);
+    setSelectedRecord(null);
+  };
+
+  const handleDownloadDocument = async (doc) => {
+    try {
+      const response = await patientDocumentService.downloadDocument(doc.id);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const filename = doc.original_filename || `document_${doc.id}`;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading document:', error);
+    }
+  };
+
+  const getRecordSummary = (record) => {
+    if (record.type === 'Medical') return record.diagnosis || record.reason_for_visit || 'N/A';
+    if (record.type === 'Consultation') return record.chief_complaints || 'N/A';
+    if (record.type === 'Dental') return record.procedure_performed_display || record.diagnosis || 'N/A';
+    if (record.type === 'Document') return `${record.document_type || 'File'}: ${record.original_filename}`;
+    return 'N/A';
   };
 
   const StatCard = memo(({ title, value, icon, color, subtitle = null }) => (
@@ -504,6 +614,7 @@ const Dashboard = memo(({ user }) => {
                           endIcon={<ArrowForwardIcon />}
                           onClick={() => {
                             setSelectedPatient(patient);
+                            fetchPatientFullData(patient.id);
                             setIsModalOpen(true);
                           }}
                           sx={{ textTransform: 'none', py: 0 }}
@@ -532,6 +643,7 @@ const Dashboard = memo(({ user }) => {
                             size="small"
                             onClick={() => {
                               setSelectedPatient(patient);
+                              fetchPatientFullData(patient.id);
                               setIsModalOpen(true);
                             }}
                           >
@@ -707,11 +819,13 @@ const Dashboard = memo(({ user }) => {
               {new Date().toLocaleString()}
             </Typography>
           </Box>
-          <Box sx={{ mt: 3 }}>
-            <Button variant="outlined" fullWidth component={Link} to="/database-monitor" endIcon={<ArrowForwardIcon />} size="small">
-              View Details
-            </Button>
-          </Box>
+          {isAdmin && (
+            <Box sx={{ mt: 3 }}>
+              <Button variant="outlined" fullWidth component={Link} to="/database-monitor" endIcon={<ArrowForwardIcon />} size="small">
+                View Details
+              </Button>
+            </Box>
+          )}
         </Paper>
       </Grid>
     </Grid>
@@ -1058,11 +1172,11 @@ const Dashboard = memo(({ user }) => {
                         </Grid>
                         <Grid item xs={12} sm={6}>
                           <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><PhoneIcon fontSize="inherit"/> Phone Number</Typography>
-                          <Typography variant="body2" fontWeight="medium">{selectedPatient.phone || 'N/A'}</Typography>
+                          <Typography variant="body2" fontWeight="medium">{selectedPatient.phone_number || selectedPatient.phone || 'N/A'}</Typography>
                         </Grid>
                         <Grid item xs={12} sm={6}>
                           <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><PersonIcon fontSize="inherit"/> Civil Status</Typography>
-                          <Typography variant="body2" fontWeight="medium">{selectedPatient.civil_status || 'Single'}</Typography>
+                          <Typography variant="body2" fontWeight="medium">{getCivilStatusLabel(selectedPatient.civil_status)}</Typography>
                         </Grid>
                         <Grid item xs={12} sm={6}>
                           <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><HomeIcon fontSize="inherit"/> Nationality</Typography>
@@ -1075,13 +1189,13 @@ const Dashboard = memo(({ user }) => {
                         <Grid item xs={12} sm={6}>
                           <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><CalendarIcon fontSize="inherit"/> Age / Birthday</Typography>
                           <Typography variant="body2" fontWeight="medium">
-                            {calculateAge(selectedPatient.birthday) ? `${calculateAge(selectedPatient.birthday)} years old` : 'N/A'} ({selectedPatient.birthday || 'YYYY-MM-DD'})
+                            {calculateAge(selectedPatient.birthday || selectedPatient.date_of_birth) ? `${calculateAge(selectedPatient.birthday || selectedPatient.date_of_birth)} years old` : 'N/A'} ({selectedPatient.birthday || selectedPatient.date_of_birth || 'YYYY-MM-DD'})
                           </Typography>
                         </Grid>
                         <Grid item xs={12} sx={{ pt: '12px !important' }}>
                           <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
                           <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><HomeIcon fontSize="inherit"/> Present Address</Typography>
-                          <Typography variant="body2" fontWeight="medium">{selectedPatient.address_permanent || 'N/A'}</Typography>
+                          <Typography variant="body2" fontWeight="medium">{selectedPatient.address || selectedPatient.address_permanent || 'N/A'}</Typography>
                         </Grid>
                       </Grid>
                     </CardContent>
@@ -1096,8 +1210,8 @@ const Dashboard = memo(({ user }) => {
                       <Grid container spacing={2}>
                         <Grid item xs={12} sm={6}>
                           <Typography variant="caption" color="text.secondary" fontWeight="medium">Primary Emergency Contact</Typography>
-                          <Typography variant="subtitle1" fontWeight="bold" color="text.primary">{selectedPatient.emergency_contact_phone || 'N/A'}</Typography>
-                          <Typography variant="caption" color="text.secondary">{selectedPatient.emergency_contact_name || 'Contact Person Name'}</Typography>
+                          <Typography variant="subtitle1" fontWeight="bold" color="text.primary">{selectedPatient.emergency_contact_number || selectedPatient.emergency_contact_phone || 'N/A'}</Typography>
+                          <Typography variant="caption" color="text.secondary">{selectedPatient.emergency_contact || selectedPatient.emergency_contact_name || 'Contact Person Name'}</Typography>
                         </Grid>
                         <Grid item xs={12} sm={6} sx={{ borderLeft: { sm: '1px solid #e0e0e0' }, pl: { sm: 3 } }}>
                           <Typography variant="caption" color="text.secondary" fontWeight="medium" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><PeopleIcon fontSize="inherit"/> Parents</Typography>
@@ -1120,7 +1234,7 @@ const Dashboard = memo(({ user }) => {
                           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                             {convertStringToArray(selectedPatient.allergies).length > 0 ? (
                               convertStringToArray(selectedPatient.allergies).map((item, i) => (
-                                <Chip key={i} label={item} size="small" color="warning" variant="outlined" />
+                                <Chip key={i} label={item} size="small" color="error" variant="outlined" />
                               ))
                             ) : (
                               <Typography variant="body2" color="text.secondary">No allergies recorded</Typography>
@@ -1133,7 +1247,7 @@ const Dashboard = memo(({ user }) => {
                           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                             {convertStringToArray(selectedPatient.medications).length > 0 ? (
                               convertStringToArray(selectedPatient.medications).map((item, i) => (
-                                <Chip key={i} label={item} size="small" color="primary" variant="outlined" />
+                                <Chip key={i} label={item} size="small" color="warning" variant="outlined" />
                               ))
                             ) : (
                               <Typography variant="body2" color="text.secondary">No medications recorded</Typography>
@@ -1145,16 +1259,89 @@ const Dashboard = memo(({ user }) => {
                           <Divider sx={{ my: 0.5, borderStyle: 'dashed' }} />
                           <Typography variant="subtitle2" fontWeight="bold" sx={{ color: '#1b5e20', mt: 1, mb: 0.5 }}>Medical Conditions / History</Typography>
                           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                            {convertStringToArray(selectedPatient.existing_medical_condition).length > 0 ? (
-                              convertStringToArray(selectedPatient.existing_medical_condition).map((item, i) => (
-                                <Chip key={i} label={item} size="small" color="error" variant="outlined" />
-                              ))
-                            ) : (
-                              <Typography variant="body2" color="text.secondary">No historical conditions recorded</Typography>
-                            )}
+                            {(() => {
+                              const combined = [
+                                ...convertStringToArray(selectedPatient.illness),
+                                ...convertStringToArray(selectedPatient.existing_medical_condition),
+                                ...convertStringToArray(selectedPatient.childhood_diseases)
+                              ];
+                              return combined.length > 0 ? (
+                                combined.map((item, i) => (
+                                  <Chip key={i} label={item} size="small" variant="outlined" />
+                                ))
+                              ) : (
+                                <Typography variant="body2" color="text.secondary">No historical conditions recorded</Typography>
+                              );
+                            })()}
                           </Box>
                         </Grid>
                       </Grid>
+                    </CardContent>
+                  </Card>
+
+                  {/* Unified Medical History Table */}
+                  <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e0e0e0' }}>
+                    <Box sx={{ p: 2, px: 2.5, borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <CalendarIcon color="primary" fontSize="small" />
+                      <Typography variant="subtitle2" fontWeight="bold" color="text.secondary">Unified Medical History</Typography>
+                    </Box>
+                    <CardContent sx={{ p: 2 }}>
+                      <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 300, borderRadius: 2 }}>
+                        <Table size="small" stickyHeader>
+                          <TableHead>
+                            <TableRow>
+                              <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f8f9fa' }}>Date</TableCell>
+                              <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f8f9fa' }}>Type</TableCell>
+                              <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f8f9fa' }}>Summary</TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: '#f8f9fa' }}>Actions</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {modalLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={4} align="center" sx={{ py: 3 }}>
+                                        <CircularProgress size={24} />
+                                    </TableCell>
+                                </TableRow>
+                            ) : patientHistory.length > 0 ? (
+                              patientHistory.map((record, index) => (
+                                <TableRow key={index} hover>
+                                  <TableCell>{new Date(record.date).toLocaleDateString()}</TableCell>
+                                  <TableCell>
+                                    <Chip 
+                                      label={record.type} 
+                                      size="small" 
+                                      variant="outlined"
+                                      color={record.type === 'Medical' ? 'primary' : record.type === 'Dental' ? 'secondary' : record.type === 'Document' ? 'success' : 'info'}
+                                      sx={{ fontSize: '0.65rem', height: 20 }}
+                                    />
+                                  </TableCell>
+                                  <TableCell sx={{ maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    <Typography variant="caption">{getRecordSummary(record)}</Typography>
+                                  </TableCell>
+                                  <TableCell align="right">
+                                    <Button 
+                                      size="small" 
+                                      variant="text"
+                                      startIcon={<ArticleIcon sx={{ fontSize: 14 }} />}
+                                      onClick={() => handleViewRecord(record)}
+                                      sx={{ fontSize: '0.7rem', py: 0 }}
+                                    >
+                                      Details
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            ) : (
+                              <TableRow>
+                                <TableCell colSpan={4} align="center" sx={{ py: 3 }}>
+                                  <Typography variant="caption" color="text.secondary">No clinical history found</Typography>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
                     </CardContent>
                   </Card>
                 </Grid>
@@ -1166,6 +1353,110 @@ const Dashboard = memo(({ user }) => {
               <Button onClick={() => setIsModalOpen(false)} variant="outlined" color="inherit" sx={{ borderRadius: 2 }}>
                 Close Preview
               </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
+      {/* Record Detail Dialog (Inside Modal) */}
+      <Dialog open={detailDialogOpen} onClose={closeDetailDialog} maxWidth="sm" fullWidth>
+        {selectedRecord && (
+          <>
+            <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="h6">{selectedRecord.type} Record Detail</Typography>
+              <IconButton onClick={closeDetailDialog} size="small" sx={{ color: 'white' }}>
+                <CloseIcon />
+              </IconButton>
+            </DialogTitle>
+            <DialogContent dividers>
+              <Stack spacing={2}>
+                <Box>
+                  <Typography variant="caption" color="textSecondary">Visit Date</Typography>
+                  <Typography variant="body1">{new Date(selectedRecord.date).toLocaleString()}</Typography>
+                </Box>
+                
+                {selectedRecord.type === 'Medical' && (
+                  <>
+                    <Box>
+                      <Typography variant="caption" color="textSecondary">Diagnosis</Typography>
+                      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{selectedRecord.diagnosis || 'N/A'}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" color="textSecondary">Treatment</Typography>
+                      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{selectedRecord.treatment || 'N/A'}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" color="textSecondary">Notes</Typography>
+                      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{selectedRecord.notes || 'N/A'}</Typography>
+                    </Box>
+                  </>
+                )}
+
+                {selectedRecord.type === 'Consultation' && (
+                  <>
+                    <Box>
+                      <Typography variant="caption" color="textSecondary">Chief Complaints</Typography>
+                      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{selectedRecord.chief_complaints || 'N/A'}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" color="textSecondary">Treatment Plan</Typography>
+                      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{selectedRecord.treatment_plan || 'N/A'}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" color="textSecondary">Remarks</Typography>
+                      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{selectedRecord.remarks || 'N/A'}</Typography>
+                    </Box>
+                  </>
+                )}
+
+                {selectedRecord.type === 'Dental' && (
+                  <>
+                    <Box>
+                      <Typography variant="caption" color="textSecondary">Procedure</Typography>
+                      <Typography variant="body1">{selectedRecord.procedure_performed_display || 'N/A'}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" color="textSecondary">Diagnosis</Typography>
+                      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{selectedRecord.diagnosis || 'N/A'}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" color="textSecondary">Treatment Performed</Typography>
+                      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{selectedRecord.treatment_performed || 'N/A'}</Typography>
+                    </Box>
+                  </>
+                )}
+
+                {selectedRecord.type === 'Document' && (
+                  <>
+                    <Box>
+                      <Typography variant="caption" color="textSecondary">Document Type</Typography>
+                      <Typography variant="body1">{selectedRecord.document_type || 'N/A'}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" color="textSecondary">Original Filename</Typography>
+                      <Typography variant="body1">{selectedRecord.original_filename || 'N/A'}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" color="textSecondary">Description</Typography>
+                      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{selectedRecord.description || 'No description provided'}</Typography>
+                    </Box>
+                    <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                      <Button 
+                        variant="contained" 
+                        color="primary" 
+                        fullWidth 
+                        onClick={() => handleDownloadDocument(selectedRecord)} 
+                        startIcon={<DownloadIcon />}
+                      >
+                        Download
+                      </Button>
+                    </Box>
+                  </>
+                )}
+              </Stack>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={closeDetailDialog}>Close</Button>
             </DialogActions>
           </>
         )}

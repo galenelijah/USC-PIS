@@ -211,15 +211,6 @@ class EmailService:
                     recipient_email=doctor.email,
                     subject='Medical Certificate Review & Issuance Required'
                 )
-                
-                # In-App Notification for Doctor
-                EmailService._create_in_app_notification(
-                    user=doctor,
-                    title='New Certificate Pending Review',
-                    message=f'A new medical certificate for {certificate.patient.get_full_name()} requires your review and issuance.',
-                    notification_type='MEDICAL_CERTIFICATE',
-                    action_url=f'/medical-certificates?id={certificate.id}'
-                )
         
         elif notification_type == 'issued':
             context = {

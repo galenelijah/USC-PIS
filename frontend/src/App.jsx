@@ -67,6 +67,7 @@ const App = () => {
 
   // Memoized user role checks
   const userRoles = useMemo(() => ({
+    isAdmin: !!user && user.role === 'ADMIN',
     isAdminOrStaff: !!user && ['ADMIN', 'STAFF'].includes(user.role),
     isAdminOrStaffOrDoctor: !!user && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role),
     isDoctor: !!user && (user.role === 'DOCTOR' || user.role === 'DENTIST'),
@@ -224,7 +225,7 @@ const App = () => {
             element={
               <RequireAuth isAuthenticated={isAuthenticated}>
                 <RequireVerification>
-                  {userRoles.isAdminOrStaffOrDoctor ? (
+                  {userRoles.isAdmin ? (
                     <Layout>
                       <Suspense fallback={<PageLoader />}>
                         <EmailAdministration />

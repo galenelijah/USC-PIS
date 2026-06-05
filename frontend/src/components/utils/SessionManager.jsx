@@ -15,93 +15,135 @@ import { logout, logoutUser, selectIsAuthenticated } from '../../features/authen
 
 // Timeouts in milliseconds
 const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+const WARNING_TIMEOUT = 60 * 1000;         // 60 seconds
 
 const SessionManager = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const isAuthenticated = useSelector(selectIsAuthenticated);
     
-    const [isExpired, setIsExpired] = useState(false);
+    const [showWarning, setShowWarning] = useState(false);
+    const showWarningRef = useRef(false);
+    const [timeLeft, setTimeLeft] = useState(60);
+    
     const activityTimeoutRef = useRef(null);
+    const warningIntervalRef = useRef(null);
 
-    const handleAutoLogout = useCallback(async () => {
+    const handleLogout = useCallback(async () => {
         try {
-            // Clear timeout
+            // Clear all intervals and timeouts first
             if (activityTimeoutRef.current) clearTimeout(activityTimeoutRef.current);
+            if (warningIntervalRef.current) clearInterval(warningIntervalRef.current);
             
-            // Dispatch logout actions immediately for security
+            // Dispatch logout
             await dispatch(logoutUser());
             dispatch(logout());
             
-            // Show the expiration message
-            setIsExpired(true);
+            setShowWarning(false);
+            showWarningRef.current = false;
+            navigate('/');
         } catch (error) {
             console.error('Auto-logout failed:', error);
             dispatch(logout());
-            setIsExpired(true);
+            navigate('/');
         }
-    }, [dispatch]);
+    }, [dispatch, navigate]);
 
     const resetTimer = useCallback(() => {
-        if (isExpired) return; 
+        if (showWarningRef.current) return; // Don't reset if we're already warning
 
         if (activityTimeoutRef.current) clearTimeout(activityTimeoutRef.current);
         
         activityTimeoutRef.current = setTimeout(() => {
-            handleAutoLogout();
-        }, INACTIVITY_TIMEOUT);
-    }, [isExpired, handleAutoLogout]);
+            setShowWarning(true);
+            showWarningRef.current = true;
+            setTimeLeft(60);
+            
+            warningIntervalRef.current = setInterval(() => {
+                setTimeLeft((prev) => {
+                    if (prev <= 1) {
+                        clearInterval(warningIntervalRef.current);
+                        handleLogout();
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        }, INACTIVITY_TIMEOUT - WARNING_TIMEOUT);
+    }, [handleLogout]);
 
-    const handleRedirectToLogin = () => {
-        setIsExpired(false);
-        navigate('/');
+    const handleStayLoggedIn = () => {
+        setShowWarning(false);
+        showWarningRef.current = false;
+        if (warningIntervalRef.current) clearInterval(warningIntervalRef.current);
+        resetTimer();
     };
 
     useEffect(() => {
         if (!isAuthenticated) {
             if (activityTimeoutRef.current) clearTimeout(activityTimeoutRef.current);
-            // Don't clear isExpired here, we want the modal to stay until they click login
+            if (warningIntervalRef.current) clearInterval(warningIntervalRef.current);
+            setShowWarning(false);
             return;
         }
 
         const events = ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart'];
+        
         const activityHandler = () => resetTimer();
         
         events.forEach(event => window.addEventListener(event, activityHandler));
+        
+        // Initial timer setup
         resetTimer();
 
         return () => {
             events.forEach(event => window.removeEventListener(event, activityHandler));
             if (activityTimeoutRef.current) clearTimeout(activityTimeoutRef.current);
+            if (warningIntervalRef.current) clearInterval(warningIntervalRef.current);
         };
     }, [isAuthenticated, resetTimer]);
 
     return (
         <Dialog 
-            open={isExpired} 
-            onClose={handleRedirectToLogin}
-            PaperProps={{ sx: { borderRadius: '12px', p: 1, maxWidth: '400px' } }}
+            open={showWarning} 
+            onClose={handleStayLoggedIn}
+            PaperProps={{ sx: { borderRadius: '12px', p: 1 } }}
         >
-            <DialogTitle sx={{ fontWeight: 'bold', color: '#d32f2f', textAlign: 'center' }}>
-                Session Expired
+            <DialogTitle sx={{ fontWeight: 'bold', color: '#1e3a8a' }}>
+                Inactivity Warning
             </DialogTitle>
-            <DialogContent sx={{ textAlign: 'center' }}>
+            <DialogContent>
                 <Typography variant="body1" gutterBottom>
-                    You have been automatically logged out due to 30 minutes of inactivity. 
+                    Your session is about to expire due to inactivity. 
+                    You will be automatically logged out shortly.
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    Please login again to continue accessing the system.
-                </Typography>
+                <Box sx={{ mt: 3, mb: 1, textAlign: 'center' }}>
+                    {/* The 60s text has been removed based on user request */}
+                </Box>
+                <LinearProgress 
+                    variant="determinate" 
+                    value={(timeLeft / 60) * 100} 
+                    color="error"
+                    sx={{ height: 8, borderRadius: 5, mt: 2 }}
+                />
             </DialogContent>
-            <DialogActions sx={{ p: 2, justifyContent: 'center' }}>
+            <DialogActions sx={{ p: 2, justifyContent: 'center', gap: 2 }}>
                 <Button 
-                    onClick={handleRedirectToLogin} 
+                    onClick={handleLogout} 
+                    variant="outlined" 
+                    color="error"
+                    sx={{ borderRadius: '8px', px: 3 }}
+                >
+                    Logout Now
+                </Button>
+                <Button 
+                    onClick={handleStayLoggedIn} 
                     variant="contained" 
                     color="primary"
-                    fullWidth
-                    sx={{ borderRadius: '8px', py: 1.5, bgcolor: '#1e3a8a' }}
+                    autoFocus
+                    sx={{ borderRadius: '8px', px: 4, bgcolor: '#1e3a8a' }}
                 >
-                    Login Again
+                    Stay Logged In
                 </Button>
             </DialogActions>
         </Dialog>

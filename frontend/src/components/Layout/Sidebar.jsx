@@ -123,7 +123,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
 
   const adminItems = [
     { text: 'Database Monitor', icon: <StorageIcon />, path: '/database-monitor', requiredRole: ['ADMIN', 'STAFF'] },
-    { text: 'Email Administration', icon: <EmailIcon />, path: '/email-administration', requiredRole: ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST'] },
+    { text: 'Email Administration', icon: <EmailIcon />, path: '/email-administration', requiredRole: ['ADMIN'] },
     { text: 'User Management', icon: <UserManagementIcon />, path: '/user-management', requiredRole: ['ADMIN'] },
     { text: 'System Audit', icon: <HistoryIcon sx={{ color: 'white' }} />, path: '/system-audit', requiredRole: ['ADMIN'] },
   ];
