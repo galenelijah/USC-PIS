@@ -73,9 +73,9 @@ class MedicalCertificateSerializer(serializers.ModelSerializer):
                 })
 
         # 3. Exclusive Medical Clearance Status
-        # Handled by Model choices (physically_fit vs physically_unfit)
+        # Handled by Model choices (FIT vs UNFIT)
         # Validate fitness reason requirement
-        if data.get('fitness_status') == 'physically_unfit' and not data.get('fitness_reason'):
+        if data.get('fitness_status') == 'UNFIT' and not data.get('fitness_reason'):
             raise serializers.ValidationError({
                 'fitness_reason': 'Reason is required when fitness status is "Physically Unfit".'
             })

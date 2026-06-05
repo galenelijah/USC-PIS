@@ -45,7 +45,7 @@ class MedicalCertificate(models.Model):
     fitness_status = models.CharField(
         max_length=20, 
         choices=FITNESS_STATUS_CHOICES, 
-        default='physically_fit',
+        default='FIT',
         help_text="Medical fitness determination: Physically Fit or Physically Unfit"
     )
     fitness_reason = models.TextField(

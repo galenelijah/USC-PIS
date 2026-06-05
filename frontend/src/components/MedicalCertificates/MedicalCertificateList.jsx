@@ -42,6 +42,15 @@ const issuanceStatusColors = {
 const fitnessStatusColors = {
   FIT: 'success',
   UNFIT: 'error',
+  physically_fit: 'success', // Fallback for legacy data
+  physically_unfit: 'error', // Fallback for legacy data
+};
+
+const fitnessStatusLabels = {
+  FIT: 'Physically Fit',
+  UNFIT: 'Physically Unfit',
+  physically_fit: 'Physically Fit',
+  physically_unfit: 'Physically Unfit',
 };
 
 // Mobile Certificate Card Component
@@ -73,10 +82,10 @@ const CertificateCard = ({ certificate, onView, onEdit, onDelete, userRole }) =>
         <Typography className="mobile-table-label">Fitness Status:</Typography>
         <Box className="mobile-table-value">
           <Chip
-            label={certificate.fitness_status_display}
-            color={fitnessStatusColors[certificate.fitness_status]}
+            label={fitnessStatusLabels[certificate.fitness_status] || certificate.fitness_status_display}
+            color={fitnessStatusColors[certificate.fitness_status] || 'default'}
             size="small"
-            variant={certificate.fitness_status === 'physically_unfit' ? 'filled' : 'outlined'}
+            variant={(certificate.fitness_status === 'UNFIT' || certificate.fitness_status === 'physically_unfit') ? 'filled' : 'outlined'}
           />
         </Box>
       </Box>
@@ -272,10 +281,10 @@ const MedicalCertificateList = ({ onView, onEdit, onDelete, userRole, refreshTri
                   <TableCell>{formatDatePH(certificate.valid_until)}</TableCell>
                   <TableCell>
                     <Chip
-                      label={certificate.fitness_status_display}
-                      color={fitnessStatusColors[certificate.fitness_status]}
+                      label={fitnessStatusLabels[certificate.fitness_status] || certificate.fitness_status_display}
+                      color={fitnessStatusColors[certificate.fitness_status] || 'default'}
                       size="small"
-                      variant={certificate.fitness_status === 'physically_unfit' ? 'filled' : 'outlined'}
+                      variant={(certificate.fitness_status === 'UNFIT' || certificate.fitness_status === 'physically_unfit') ? 'filled' : 'outlined'}
                     />
                   </TableCell>
                   <TableCell>

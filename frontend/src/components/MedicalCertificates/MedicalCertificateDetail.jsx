@@ -34,6 +34,15 @@ const issuanceStatusColors = {
 const fitnessStatusColors = {
   FIT: 'success',
   UNFIT: 'error',
+  physically_fit: 'success', // Fallback for legacy data
+  physically_unfit: 'error', // Fallback for legacy data
+};
+
+const fitnessStatusLabels = {
+  FIT: 'Physically Fit',
+  UNFIT: 'Physically Unfit',
+  physically_fit: 'Physically Fit',
+  physically_unfit: 'Physically Unfit',
 };
 
 const MedicalCertificateDetail = ({ 
@@ -161,9 +170,9 @@ const MedicalCertificateDetail = ({
               </Typography>
               <Stack direction="row" spacing={1}>
                 <Chip
-                  label={certificate.fitness_status_display}
-                  color={fitnessStatusColors[certificate.fitness_status]}
-                  variant={certificate.fitness_status === 'physically_unfit' ? 'filled' : 'outlined'}
+                  label={fitnessStatusLabels[certificate.fitness_status] || certificate.fitness_status_display}
+                  color={fitnessStatusColors[certificate.fitness_status] || 'default'}
+                  variant={(certificate.fitness_status === 'UNFIT' || certificate.fitness_status === 'physically_unfit') ? 'filled' : 'outlined'}
                 />
                 <Chip
                   label={certificate.issuance_status_display}
@@ -276,9 +285,9 @@ const MedicalCertificateDetail = ({
               Fitness Status
             </Typography>
             <Chip
-              label={certificate.fitness_status_display}
-              color={fitnessStatusColors[certificate.fitness_status]}
-              variant={certificate.fitness_status === 'physically_unfit' ? 'filled' : 'outlined'}
+              label={fitnessStatusLabels[certificate.fitness_status] || certificate.fitness_status_display}
+              color={fitnessStatusColors[certificate.fitness_status] || 'default'}
+              variant={(certificate.fitness_status === 'UNFIT' || certificate.fitness_status === 'physically_unfit') ? 'filled' : 'outlined'}
               size="small"
             />
           </Grid>
@@ -294,7 +303,7 @@ const MedicalCertificateDetail = ({
             />
           </Grid>
 
-          {certificate.fitness_reason && certificate.fitness_status === 'physically_unfit' && (
+          {certificate.fitness_reason && (certificate.fitness_status === 'UNFIT' || certificate.fitness_status === 'physically_unfit') && (
             <Grid item xs={12}>
               <Typography variant="subtitle2" color="error" sx={{ fontWeight: 'bold' }}>
                 Reason for Physically Unfit Status
