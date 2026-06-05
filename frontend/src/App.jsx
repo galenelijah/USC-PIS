@@ -17,6 +17,7 @@ import Login from './components/Login';
 import Register from './components/Register';
 import VerifyEmail from './components/VerifyEmail';
 import AppNotification from './components/utils/AppNotification';
+import SessionManager from './components/utils/SessionManager';
 
 // Lazy loading for non-critical components
 const PatientsPage = lazy(() => import('./components/Patients/PatientsPage'));
@@ -117,6 +118,7 @@ const App = () => {
   return (
     <Router>
       <AppNotification />
+      <SessionManager />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Public Routes */}

@@ -1,48 +1,44 @@
 # Session Summary (June 4, 2026)
-## Campaign Lifecycle Simplification & Report Engine Hardening (v5.2)
+## Session Security & Filter Evolution (v5.6)
 
-This session focused on structural simplification of the clinical outreach systems and comprehensive layout hardening of the institutional reporting engine to ensure high-fidelity, professional exports.
+This session focused on implementing enterprise-grade session management, upgrading institutional workshop filters, and hardening the notification system for maximum security and usability.
 
 ### 🚀 Key Accomplishments
 
-#### 1. Health Campaign Lifecycle Simplification
-- **Unified Status Flow**: Removed the redundant "Active" status. All campaigns now use **"Posted"** as the unified trigger for visibility and mass notifications.
-- **Permanent Resources**: Enabled "Always On" health information by making `start_date` and `end_date` optional. Campaigns without dates are treated as evergreen resources.
-- **Privacy Shield**: Implemented role-based filtering to strictly hide **"Archived"** campaigns from students, faculty, and public users, while maintaining clinical access for history.
+#### 1. Automatic Session Management (v5.6)
+- **Browser Closure Expiry**: Transitioned authentication storage from `localStorage` to **`sessionStorage`**. This ensures that all session data is natively cleared the moment the user closes their browser or tab, preventing "zombie sessions" on shared devices.
+- **Inactivity Auto-Logout**: Implemented a global **SessionManager** that monitors user activity (mouse, keyboard, touch). 
+- **Graceful Warning**: The system now triggers a **60-second inactivity warning** modal after 30 minutes of idle time, allowing users to "Stay Logged In" or logout immediately to protect their data.
+- **Global Protection**: Integrated the session manager into the core `App.jsx` router, ensuring every authenticated page is protected by the inactivity guard.
 
-#### 2. Global Report Engine Hardening (v5.3)
-- **Universal Column Pruning**: Systematically removed technical and deprecated columns (`Priority`, `Engagement Count`, `ID`, `Meta`) from all 12 report types and 5 export formats (PDF, Excel, CSV, JSON, HTML).
-- **Chart.js v3 Integration**: Upgraded the backend QuickChart engine to the v3 standard, enabling modern rendering and superior layout control.
-- **Horizontal Bar Optimization**: Implemented the `horizontalBar` type for all clinical metrics (Diagnoses, Procedures, Satisfaction), preventing label overlapping and improving readability in A4 landscape exports.
-- **Pie Chart Legend Hardening**: 
-    - Moved legends to the **Right Side** of all Pie/Doughnut charts to prevent collision with data slices.
-    - Implemented **Vertical Item Spacing (padding: 30)** and **Explicit Line-Height (1.5)** to ensure multi-line wrapped labels (e.g., long course names) stack beautifully without overlapping.
-    - Added a defensive **180px right-side buffer** to prevent legend clipping on export.
-- **Layout Spacing Fixes**: 
-    - Disabled `autoSkip` on chart axes to ensure every category label is displayed.
-    - Implemented defensive padding buffers (25px-45px) to prevent text bleed and overlapping.
-    - Enforced explicit inline dimensions for image blocks in the PDF pipeline.
+#### 2. Multi-Select Workshop Evolution
+- **Stacking Logic**: Upgraded all 7 institutional workshops (Clinical Diagnostic, Oral Health, Operations, Visit Trends, Certification, Feedback) to support **multi-select Autocomplete** filters.
+- **Master List Persistence**: Implemented master registries for Diagnoses, Procedures, and Doctors. Filter options no longer disappear when a selection is made, enabling complex "stacking" and comparative analysis.
+- **Professional Mapping**: Replaced raw backend strings with user-friendly labels across all filters (e.g., "1st Year", "Faculty & Staff").
 
-#### 3. Institutional Accountability & Verification
-- **Download Notifications**: Implemented a new `DOWNLOAD` notification type that triggers whenever a user retrieves a Report, Medical Certificate, or Lab Result.
-- **Operational Density Visuals**: Restored the full suite of visual charts (Hourly Density, Service Share, Role Distribution, Satisfaction Index) to the Clinic Operational Flow & Density PDF export.
-- **Certification Workshop Transparency**: Added a new **"Approval Status"** visualization to the Medical Fitness Workshop PDF, explicitly distinguishing between Issued, Pending, and Rejected applications.
-- **Academic Mapping Correction**: Refined the college participation logic to correctly group all non-student users into a unified "Faculty & Staff" demographic, preventing academic program leakage.
+#### 3. Global Report Engine Hardening
+- **JSON Format Polish**: Implemented pretty-printing and recursive data pruning for JSON exports, ensuring consistency with PDF standards.
+- **Horizontal Bar Optimization**: Switched Top Purposes and Clinical Trends to **Horizontal Layouts** to handle long institutional labels without truncation or overlap.
+
+#### 4. Notification & Admin Hardening
+- **Deduplication Engine**: Implemented a **5-minute cooldown** guard in the backend to prevent duplicate notification spam.
+- **Paginated History**: Added backend-driven pagination to the `/notifications` page for improved performance.
+- **Administrative Streamlining**: Removed the redundant "Role Requests" tab from User Management to focus on direct overrides and the **Pre-Auth Safe List**.
 
 ### 📁 Modified Files
-- `backend/reports/services.py`: Comprehensive overhaul of the data collection and export engines; implemented legend layout guardrails and missing operational visuals.
-- `backend/health_info/models.py`, `views.py`, `serializers.py`: Refactored campaign lifecycle and visibility.
-- `backend/notifications/models.py`: Added the new `DOWNLOAD` event type.
-- `backend/reports/views.py`, `file_uploads/views.py`, `medical_certificates/views.py`: Integrated download triggers.
-- `frontend/src/components/CampaignsPage.jsx` & `StudentCampaigns.jsx`: UI alignment with simplified lifecycle.
+- `frontend/src/features/authentication/authSlice.js`: Migrated to `sessionStorage`.
+- `frontend/src/components/utils/SessionManager.jsx`: New global inactivity monitor.
+- `frontend/src/App.jsx`: Integrated `SessionManager`.
+- `backend/reports/services.py`: Overhaul for multi-select support and pretty JSON.
+- `backend/notifications/services.py` & `views.py`: Deduplication and pagination logic.
+- `frontend/src/components/UserManagement.jsx`: Streamlined admin interface.
 
 ### 🔍 Verification Status
-- ✅ **Campaign Lifecycle**: Verified optional dates and role-based archive hiding.
-- ✅ **Report Pruning**: Verified that technical columns are stripped from all exports.
-- ✅ **Legend Hardening**: Verified that long multi-line labels in pie charts stack without overlapping.
-- ✅ **Operational Flow Visuals**: Verified full chart suite presence in Operations PDF.
-- ✅ **Certification Transparency**: Verified Issued vs Rejected visibility in Fitness PDFs.
-- ✅ **Notification Engine**: Verified real-time alerts for file downloads.
+- ✅ **Auto-Logout**: Verified that closing the tab clears the session.
+- ✅ **Inactivity Guard**: Verified the 60s warning modal appears after the inactivity threshold.
+- ✅ **Multi-Select Filters**: Verified that choosing one option no longer hides others.
+- ✅ **Clean Exports**: Verified pretty-printed JSON and pruned columns.
+- ✅ **Notification Spam**: Verified cooldown guard prevents duplicate alerts.
 
 ---
-**Status**: Production Ready + Reports Workshop v5.2 (Clean Export Standard)
+**Status**: Production Ready + Reports Workshop v5.6 (Secure Session Standard)

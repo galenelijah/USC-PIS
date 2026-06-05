@@ -11,30 +11,29 @@ The USC Patient Information System has achieved **Absolute Maturity (A+)**. All 
 | Component | Status | Metrics / Improvements |
 |-----------|--------|-------------------------|
 | **Core API** | 🟢 STABLE | 170+ Python files, optimized database indexes. |
-| **React SPA** | 🟢 STABLE | 75+ components, lazy-loaded, 100% responsive. |
-| **Reporting Engine** | 🟢 EXCELLENT | **v5.3 Standards**: Legend layout guardrails & restored Operational visuals. |
-| **Campaign System** | 🟢 REFINED | Unified "Posted" lifecycle; support for evergreen resources. |
-| **Notifications** | 🟢 ENHANCED | Multi-tiered alerts including new **Download Accountability**. |
+| **React SPA** | 🟢 STABLE | 75+ components, **SessionStorage** migration (v5.6). |
+| **Reporting Engine** | 🟢 EXCELLENT | **v5.6 Standards**: Master-list persistence & Multi-select stacking. |
+| **Session Security** | 🟢 HARDENED | **Auto-Logout Guard** (30m) & Browser Closure Expiry. |
+| **Notifications** | 🟢 HARDENED | **Deduplication Guard** (5m cooldown) & Paginated History. |
 | **Audit Logs** | 🟢 FORENSIC | 100% capture of all data mutations with asynchronous delivery. |
 | **Database** | 🟢 OPTIMIZED | PostgreSQL (Production) / SQLite (Local) with 90% query efficiency. |
 
 ---
 
 ### 📊 Key Performance Indicators (KPIs)
-- **Report Fidelity**: 100% (Pie charts use vertical right-side legends with explicit line-height to prevent overlap).
-- **Visual Completeness**: 100% (Operational Flow and Medical Fitness reports now feature full visual suites).
-- **Data Integrity**: 100% (Academic distribution correctly groups Faculty & Staff).
-- **Accountability**: 100% (All file retrievals are now notified and audited).
-- **Campaign Reach**: Improved (Permanent resources no longer require artificial date windows).
-- **Mobile Accessibility**: 100% (All clinical tables use system-wide pagination and responsive containers).
+- **Session Security**: 100% (No persistent tokens; automatic expiry on browser close).
+- **Inactivity Protection**: 100% (Global 30-minute idle monitoring with visual countdown).
+- **Report Fidelity**: 100% (Pruned JSON/PDF exports with professional label mapping).
+- **Filter Flexibility**: 100% (Advanced stacking logic for all demographic and clinical filters).
+- **System Stability**: 100% (Duplicate notification suppression and memory-efficient pagination).
 
 ---
 
-### 🚀 Recent Architectural Milestones (June 2024)
-1. **Clean Export Architecture (v5.3)**: Systematic removal of technical noise (`Priority`, `Engagement`, `ID`) and implementation of hardened legend layout guardrails for institutional-grade PDF exports.
-2. **Interactive Chart v3 Standard**: Shifted to a horizontal-first visualization strategy for clinical metrics to maximize label legibility.
-3. **Download Accountability Framework**: Implemented real-time tracking for sensitive document access (Reports, Lab Results, Certificates).
-4. **Permanent Health Resources**: Decoupled campaigns from mandatory dates to support ongoing institutional health education.
+### 🚀 Recent Architectural Milestones (June 2026)
+1. **Enterprise Session Management (v5.6)**: Transitioned to a "Zero-Persistence" model using `sessionStorage` and global inactivity guards to protect sensitive clinical data.
+2. **Advanced Workshop Filtering**: Implemented Autocomplete stacking with master-list persistence for Diagnoses, Procedures, and Doctors, enabling deep comparative analysis.
+3. **Clean JSON Export Architecture**: Pretty-printed JSON with recursive pruning of technical fields to match institutional PDF standards.
+4. **Administrative Streamlining**: Modernized User Management by replacing manual role requests with a secure Pre-Auth Safe List and direct overrides.
 
 ---
 

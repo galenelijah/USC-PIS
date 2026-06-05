@@ -8,12 +8,12 @@ const TOKEN_KEY = 'Token';
 const USER_KEY = 'user';
 
 // Helper functions for token handling
-const getToken = () => localStorage.getItem(TOKEN_KEY);
+const getToken = () => sessionStorage.getItem(TOKEN_KEY);
 const saveToken = (token) => {
   if (token) {
-    localStorage.setItem(TOKEN_KEY, token);
+    sessionStorage.setItem(TOKEN_KEY, token);
   } else {
-    localStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
   }
 };
 

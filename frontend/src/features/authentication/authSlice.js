@@ -6,28 +6,28 @@ import logger from '../../utils/logger';
 const TOKEN_KEY = 'Token';
 const USER_KEY = 'user';
 
-// Helper functions for localStorage
+// Helper functions for sessionStorage
 const saveToken = (token) => {
   if (token) {
-    localStorage.setItem(TOKEN_KEY, token);
+    sessionStorage.setItem(TOKEN_KEY, token);
   } else {
-    localStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
   }
 };
 
 const saveUser = (user) => {
   if (user) {
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    sessionStorage.setItem(USER_KEY, JSON.stringify(user));
   } else {
-    localStorage.removeItem(USER_KEY);
+    sessionStorage.removeItem(USER_KEY);
   }
 };
 
-// Load initial state from localStorage
+// Load initial state from sessionStorage
 const loadInitialState = () => {
   try {
-    const token = localStorage.getItem(TOKEN_KEY);
-    const userStr = localStorage.getItem(USER_KEY);
+    const token = sessionStorage.getItem(TOKEN_KEY);
+    const userStr = sessionStorage.getItem(USER_KEY);
     const user = userStr ? JSON.parse(userStr) : null;
     
     return {
@@ -38,7 +38,7 @@ const loadInitialState = () => {
       error: null
     };
   } catch (error) {
-    logger.error('Error loading auth state from localStorage:', error);
+    logger.error('Error loading auth state from sessionStorage:', error);
     return {
       token: null,
       user: null,
