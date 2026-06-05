@@ -415,8 +415,7 @@ const ReportTemplate = ({ data, patient, title, reportType = 'MEDICAL' }) => {
                             </Typography>
                           )}
                           {/* Priority hidden in frontend per institutional cleanup */}
-                          {/* Removing record.priority display */}
-                          </TableCell>
+                        </>
                       ) : (
                         <>
                           <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{record.diagnosis || '—'}</Typography>
