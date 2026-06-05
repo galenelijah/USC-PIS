@@ -2305,7 +2305,11 @@ class ReportExportService:
 
                 # 2. Summary Metrics (Align with PDF Executive Summary)
                 summary_items = []; list_keys = []
-                skip_keys = ['report_title', 'date_range_start', 'date_range_end', 'generated_at', 'system_name', 'report_date', 'report_type', 'visual_charts', 'charts_base64', 'visual_analytics', 'priority', 'engagement_count']
+                skip_keys = ['report_title', 'date_range_start', 'date_range_end', 'generated_at', 'system_name', 'report_date', 'report_type', 'visual_charts', 'charts_base64', 'visual_analytics', 'priority', 'engagement_count', 'monthly']
+                
+                # Role-based exclusion: administrative_audit_trail is primary for USER_ACTIVITY but redundant for others (like OPERATIONS)
+                if report_data.get('report_type') != 'USER_ACTIVITY':
+                    skip_keys.append('administrative_audit_trail')
                 
                 for k, v in report_data.items():
                     if k in skip_keys: continue
@@ -2357,7 +2361,10 @@ class ReportExportService:
             writer.writerow([f"Filters: {', '.join(report_data.get('applied_filters', ['None']))}"])
             writer.writerow([])
             list_keys = []; writer.writerow(["SUMMARY OVERVIEW"])
-            skip_keys = ['report_title', 'date_range_start', 'date_range_end', 'generated_at', 'system_name', 'report_date', 'report_type', 'visual_charts', 'charts_base64', 'visual_analytics', 'priority', 'engagement_count']
+            skip_keys = ['report_title', 'date_range_start', 'date_range_end', 'generated_at', 'system_name', 'report_date', 'report_type', 'visual_charts', 'charts_base64', 'visual_analytics', 'priority', 'engagement_count', 'monthly']
+            
+            if report_data.get('report_type') != 'USER_ACTIVITY':
+                skip_keys.append('administrative_audit_trail')
             
             for k, v in report_data.items():
                 if k in skip_keys: continue
