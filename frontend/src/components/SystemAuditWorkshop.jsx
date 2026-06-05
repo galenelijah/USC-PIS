@@ -399,7 +399,6 @@ const SystemAuditWorkshop = () => {
                 <MenuItem value="User">Authentication</MenuItem>
                 <MenuItem value="MedicalRecord">Medical Records</MenuItem>
                 <MenuItem value="DentalRecord">Dental Records</MenuItem>
-                <MenuItem value="PatientDocument">Uploads</MenuItem>
                 <MenuItem value="MedicalCertificate">Certificates</MenuItem>
                 <MenuItem value="GeneratedReport">System Reports</MenuItem>
                 <MenuItem value="HealthCampaign">Health Campaigns</MenuItem>

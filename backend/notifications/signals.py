@@ -126,7 +126,7 @@ def medical_record_notification(sender, instance, created, **kwargs):
             title=f"Medical Record {action.capitalize()}",
             message=f"A medical record for your visit on {instance.visit_date.strftime('%B %d, %Y')} has been {action}.",
             delivery_method='IN_APP',
-            patient=instance,
+            patient=instance.patient,
             metadata={'record_id': instance.id, 'type': 'MEDICAL'}
         )
 
@@ -141,7 +141,7 @@ def dental_record_notification(sender, instance, created, **kwargs):
             title=f"Dental Record {action.capitalize()}",
             message=f"A dental record for your visit on {instance.visit_date.strftime('%B %d, %Y')} has been {action}.",
             delivery_method='IN_APP',
-            patient=instance,
+            patient=instance.patient,
             metadata={'record_id': instance.id, 'type': 'DENTAL'}
         )
 
@@ -156,7 +156,7 @@ def consultation_notification(sender, instance, created, **kwargs):
             title=f"Consultation {action.capitalize()}",
             message=f"A consultation record from {instance.date_time.strftime('%B %d, %Y')} has been {action}.",
             delivery_method='IN_APP',
-            patient=instance,
+            patient=instance.patient,
             metadata={'consultation_id': instance.id}
         )
 
