@@ -27,6 +27,16 @@ Finalize enterprise-grade session security, clinical notification automation, an
 - **Dashboard UI Polish**: Removed individual "preview/arrow" buttons from the compact grid and standard list views within the "Recent Patients" card on the Dashboard to declutter the UI. The overarching "View All" action remains.
 - **Export Control Standardization**: Removed the `Print` and `Export` buttons strictly from the "Health Insights" tab to centralize official data exports through the primary Reporting System and the `Unified History` module.
 
+### 6. Clinical Data Logic & Search Refinements
+- **Historical Baseline Fix**: Resolved an issue where earlier months (e.g., April) were not being tracked in the Health Insights chart. Added `insightsDateFilter` to the `useEffect` dependency array and set the default view to "Full Academic History" to ensure comprehensive data visibility.
+- **Search-by-ID Integration**: Enhanced the Patient Selection `Autocomplete` component to display and allow searching by ID Number/USC ID (e.g., "Name - 123456").
+- **Vitals Logic Hardening**: Fixed a UI bug where medical records incorrectly displayed a "Vitals Recorded" chip for records with no actual measurements. The logic now strictly excludes metadata and calculated fields (BMI) from the existence check.
+
+### 7. Sentiment Workshop Enhancements (General Feedback)
+- **General Feedback Integration**: Enhanced the `get_feedback_analysis_data` service to classify feedback without visit links as "General".
+- **Source-Aware UI**: Added a new "Source" column to the Sentiment Workshop's Qualitative Feedback Audit table, utilizing color-coded chips (Medical, Dental, General) to identify the origin of each response.
+- **Granular Filtering**: Added "GENERAL" as a filterable option in the Service Stream dropdown, allowing administrators to isolate non-visit feedback for analysis.
+
 ## Next Steps
 - Verify the newly applied RBAC settings in the live production environment.
 - Review the `OperationsPreview.jsx` to ensure Clinic Operational Flow includes the 00:00-24:00 time slots as requested earlier.

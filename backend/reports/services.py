@@ -997,6 +997,8 @@ class ReportDataService:
                             feedback_qs = feedback_qs.filter(medical_record__isnull=False)
                         elif v_type == 'DENTAL':
                             feedback_qs = feedback_qs.filter(dental_record__isnull=False)
+                        elif v_type == 'GENERAL':
+                            feedback_qs = feedback_qs.filter(medical_record__isnull=True, dental_record__isnull=True)
 
                 if filters.get('search'):
                     from django.db.models import Q
@@ -1038,6 +1040,10 @@ class ReportDataService:
             # Full raw feedback for the audit table
             raw_feedback = []
             for f in feedback_qs.order_by('-created_at'):
+                f_type = 'General'
+                if f.medical_record: f_type = 'Medical'
+                elif f.dental_record: f_type = 'Dental'
+                
                 raw_feedback.append({
                     'id': f.id,
                     'rating': f.rating,
@@ -1046,7 +1052,8 @@ class ReportDataService:
                     'improvement': f.improvement, # Backward compatibility
                     'recommend': 'Yes' if str(f.recommend).lower() in ['yes', 'true', '1'] else 'No',
                     'courteous': 'Yes' if str(f.courteous).lower() in ['yes', 'true', '1'] else 'No',
-                    'created_at': f.created_at.strftime('%Y-%m-%d')
+                    'created_at': f.created_at.strftime('%Y-%m-%d'),
+                    'type': f_type
                 })
 
             # Calculate Yes/No Metrics (Case-insensitive)

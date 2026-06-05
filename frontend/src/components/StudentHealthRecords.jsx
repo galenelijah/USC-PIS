@@ -256,13 +256,6 @@ const StudentHealthRecords = () => {
           Health Insights & History
         </Button>
       </Box>
-      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          My Medical Records
-        </Typography>
-        <InfoTooltip title="Search and filter your medical records. Export data or open related pages from quick actions." />
-      </Box>
-      
       <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
         View your complete medical history from USC clinic visits.
       </Typography>
@@ -334,61 +327,6 @@ const StudentHealthRecords = () => {
           </Card>
         </Grid>
       </Grid>
-
-      {/* Quick Actions */}
-      <Card elevation={2} sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Quick Actions
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-            <Button
-              variant="outlined"
-              startIcon={<CertificateIcon />}
-              onClick={() => window.open('/medical-certificates', '_blank')}
-              size="small"
-            >
-              Request Medical Certificate
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<HealingIcon />}
-              onClick={() => window.open('/dental-records', '_blank')}
-              size="small"
-            >
-              View Dental Records
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<HospitalIcon />}
-              onClick={() => window.open('/health-info', '_blank')}
-              size="small"
-            >
-              Health Information
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<DownloadIcon />}
-              onClick={handleExportMyRecords}
-              disabled={filteredRecords.length === 0}
-              size="small"
-              sx={{ borderColor: '#2e7d32', color: '#2e7d32', '&:hover': { borderColor: '#1b5e20', bgcolor: '#f1f8e9' } }}
-            >
-              Export CSV
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<PrintIcon />}
-              onClick={handlePrintReport}
-              disabled={filteredRecords.length === 0}
-              size="small"
-              sx={{ borderColor: '#d32f2f', color: '#d32f2f', '&:hover': { borderColor: '#c62828', bgcolor: '#ffebee' } }}
-            >
-              Print PDF
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
 
       {/* Filters */}
       <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>

@@ -327,7 +327,7 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
               <Autocomplete
                 multiple
                 size="small"
-                options={['MEDICAL', 'DENTAL']}
+                options={['MEDICAL', 'DENTAL', 'GENERAL']}
                 value={selectedServices}
                 onChange={(e, v) => setSelectedServices(v)}
                 renderTags={(tagValue, getTagProps) =>
@@ -448,6 +448,7 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
                       Date
                     </TableSortLabel>
                   </TableCell>
+                  <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>Source</TableCell>
                   <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>Rating</TableCell>
                   <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>Comments / Suggestions</TableCell>
                   <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>Recommend</TableCell>
@@ -458,6 +459,20 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
                 {getSortedTableData().map((row, idx) => (
                   <TableRow key={idx} hover>
                     <TableCell sx={{ whiteSpace: 'nowrap' }}>{new Date(row.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={row.type || 'General'} 
+                        size="small" 
+                        variant="outlined"
+                        sx={{ 
+                          fontSize: '0.65rem', 
+                          height: 20,
+                          bgcolor: row.type === 'Medical' ? '#e3f2fd' : row.type === 'Dental' ? '#f3e5f5' : '#f5f5f5',
+                          color: row.type === 'Medical' ? '#1976d2' : row.type === 'Dental' ? '#9c27b0' : '#616161',
+                          borderColor: row.type === 'Medical' ? '#bbdefb' : row.type === 'Dental' ? '#e1bee7' : '#e0e0e0'
+                        }}
+                      />
+                    </TableCell>
                     <TableCell>
                       <Rating value={row.rating} readOnly size="small" />
                     </TableCell>
@@ -489,7 +504,7 @@ const FeedbackAnalysisPreview = ({ dateRange, customStart, customEnd }) => {
                 ))}
                 {getSortedTableData().length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
+                    <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
                       <Typography variant="body2" color="text.secondary">No qualitative feedback found for current filters.</Typography>
                     </TableCell>
                   </TableRow>

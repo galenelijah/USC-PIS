@@ -16,6 +16,9 @@
 | **Sidebar Menu RBAC** | **FIXED** | Hid the "Email Administration" sidebar item and locked the `/email-administration` React route to the `ADMIN` role. Removed the dashboard "View Details" button from clinical views. |
 | **Health Insights UI Upgrade** | **RESOLVED** | Merged new UI logic into `MedicalHistoryPage.jsx`. Added Academic History data, timescale interval filters, and redesigned the clinical analytics with graphical progress bars. |
 | **UI Decluttering** | **RESOLVED** | Removed individual preview/arrow buttons from the Dashboard's Recent Patients list. Stripped the Print/Export action buttons from the Health Insights tab to enforce centralized reporting exports. |
+| **Historical Data Visibility** | **FIXED** | Fixed missing April data in Insights tracking by updating React hook dependencies and setting "Full Academic History" as the default analysis window. |
+| **Clinical Logic Accuracy** | **FIXED** | Refined the "Vitals Recorded" chip logic to prevent false positives from metadata/BMI. Added USC ID numbers to the global patient selection search for faster clinical lookups. |
+| **Sentiment Workshop Source** | **RESOLVED** | Added a "Source" column and "GENERAL" filter to the Sentiment Workshop, allowing administrators to track and filter feedback that is not tied to a specific clinical visit. |
 
 ## 3. Pending Objectives
 1. **Clinic Operational Flow Visualization**: Need to ensure the time slots on the Operations Preview and Density Workshop span the entire 24-hour cycle (00:00 - 24:00) as requested.

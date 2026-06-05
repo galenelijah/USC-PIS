@@ -781,21 +781,6 @@ Treatment: ${r.treatment || 'N/A'}
         {canEditRecords && (
           <Box sx={{ display: 'flex', gap: 2, ml: 'auto' }}>
             <Button
-              variant="outlined"
-              startIcon={<ReportIcon />}
-              onClick={() => handleGenerateReport()}
-              sx={{ 
-                borderColor: '#f093fb',
-                color: '#f093fb',
-                '&:hover': {
-                  borderColor: '#e070f0',
-                  backgroundColor: 'rgba(240, 147, 251, 0.1)',
-                }
-              }}
-            >
-              Generate Report
-            </Button>
-            <Button
               variant="contained"
               startIcon={<AddIcon />}
               onClick={handleOpenCreateDialog}
