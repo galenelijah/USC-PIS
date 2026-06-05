@@ -154,6 +154,8 @@ class AuditLog(models.Model):
         ('DELETE', 'Delete'),
         ('LOGIN', 'Login'),
         ('LOGOUT', 'Logout'),
+        ('GENERATE', 'Generate'),
+        ('EXPORT', 'Export'),
     ]
 
     actor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='audit_actions')
