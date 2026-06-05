@@ -838,10 +838,22 @@ class ReportDataService:
             if filters.get('action_type'):
                 audit_qs = audit_qs.filter(action_type=filters['action_type'])
 
+            if filters.get('target_model'):
+                audit_qs = audit_qs.filter(target_model=filters['target_model'])
+
+            if filters.get('actor_role'):
+                audit_qs = audit_qs.filter(actor_role=filters['actor_role'])
+
+            if filters.get('search'):
+                from django.db.models import Q
+                s = filters['search']
+                audit_qs = audit_qs.filter(Q(actor_email__icontains=s) | Q(target_model__icontains=s) | Q(changes_summary__description__icontains=s))
+
             total_actions = audit_qs.count()
             
             system_log = []
-            for entry in audit_qs.select_related('actor').order_by('-timestamp')[:100]:
+            # Increase limit for reports to 500 entries (exhaustive enough for a single period audit)
+            for entry in audit_qs.select_related('actor').order_by('-timestamp')[:500]:
                 system_log.append({
                     'timestamp': entry.timestamp.strftime('%Y-%m-%d %H:%M'),
                     'user': entry.actor_email or (entry.actor.get_full_name() if entry.actor else 'Unknown'),
@@ -2282,7 +2294,7 @@ class ReportExportService:
                     if data_list and isinstance(data_list[0], dict):
                         df = pd.DataFrame(data_list)
                         # Remove internal IDs and technical/deprecated fields
-                        drop_cols = ['id', 'usc_id', 'charts_base64', 'meta', 'timestamp', 'priority', 'engagement_count']
+                        drop_cols = ['id', 'usc_id', 'charts_base64', 'meta', 'priority', 'engagement_count']
                         for col in drop_cols:
                             if col in df.columns:
                                 df.drop(columns=[col], inplace=True)
@@ -2319,7 +2331,7 @@ class ReportExportService:
                 data_list = report_data[key]; 
                 if data_list and isinstance(data_list[0], dict):
                     # Filter headers to remove technical and deprecated fields
-                    skip_fields = ['id', 'usc_id', 'charts_base64', 'meta', 'timestamp', 'priority', 'engagement_count']
+                    skip_fields = ['id', 'usc_id', 'charts_base64', 'meta', 'priority', 'engagement_count']
                     headers = [h for h in data_list[0].keys() if h not in skip_fields]
                     writer.writerow([str(h).replace('_', ' ').upper() for h in headers])
                     for item in data_list:
@@ -2334,7 +2346,7 @@ class ReportExportService:
         try:
             # Universal Pruning for JSON format (Panel Recommendation: Clean Export)
             def prune_data(obj):
-                skip_fields = {'id', 'usc_id', 'priority', 'engagement_count', 'meta', 'charts_base64', 'timestamp'}
+                skip_fields = {'id', 'usc_id', 'priority', 'engagement_count', 'meta', 'charts_base64'}
                 if isinstance(obj, dict):
                     return {k: prune_data(v) for k, v in obj.items() if k not in skip_fields}
                 elif isinstance(obj, list):
@@ -2578,6 +2590,47 @@ class ReportGenerationService:
                 </table>
             </div>
             {{% endif %}}
+
+            {{% elif report_focus == 'SYSTEM_AUDIT_TRAIL' %}}
+            <div class="section">
+                <div class="section-title">Administrative Activity Overview</div>
+                <table class="metric-table">
+                    <tr>
+                        <td class="metric-box">
+                            <span class="metric-val">{{{{ total_actions|default:"0" }}}}</span>
+                            <span class="metric-lbl">Total Logged Actions</span>
+                        </td>
+                        <td class="metric-box">
+                            <span class="metric-val">{{{{ active_admins|default:"0" }}}}</span>
+                            <span class="metric-lbl">Active Administrators</span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-title">System Accountability Trail</div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th width="15%">Timestamp</th>
+                            <th width="20%">Actor (Role)</th>
+                            <th width="15%">Module</th>
+                            <th width="50%">Action Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{% for entry in administrative_audit_trail %}}
+                        <tr>
+                            <td style="vertical-align: top;">{{{{ entry.timestamp }}}}</td>
+                            <td style="vertical-align: top;">{{{{ entry.user }}}}-{{{{ entry.role }}}}</td>
+                            <td style="vertical-align: top;">{{{{ entry.target }}}}</td>
+                            <td style="vertical-align: top;"><strong>{{{{ entry.action }}}}:</strong> {{{{ entry.details }}}}</td>
+                        </tr>
+                        {{% endfor %}}
+                    </tbody>
+                </table>
+            </div>
 
             {{% elif report_type == "MEDICAL_CERTIFICATE" %}}
             <div class="section">
@@ -3101,7 +3154,15 @@ class ReportGenerationService:
             elif rtype == 'MEDICAL_CERTIFICATE':
                 data = self.data_service.get_certification_summary_data(date_start, date_end, filters)
                 report_title = title or "Medical Fitness & Certification Analysis"
-            elif rtype == 'USER_ACTIVITY' or rtype == 'OPERATIONS':
+            elif rtype == 'USER_ACTIVITY':
+                # Dedicated focus on Audit Trail (Panel Recommendation: Technical Accountability)
+                data = self.data_service.get_user_activity_data(date_start, date_end, filters)
+                report_title = title or "Administrative System Audit Log"
+                data['report_focus'] = 'SYSTEM_AUDIT_TRAIL'
+                # Standardize on one key to prevent duplicate sheets in Excel/CSV
+                data['administrative_audit_trail'] = data.pop('system_log', [])
+
+            elif rtype == 'OPERATIONS':
                 analytics = self.data_service.get_comprehensive_system_analytics(date_start, date_end, filters)
                 if 'error' in analytics:
                     data = {
@@ -3178,10 +3239,7 @@ class ReportGenerationService:
                     
                     data['administrative_audit_trail'] = trail
                 
-                if rtype == 'USER_ACTIVITY':
-                    report_title = title or "System Usage & Administrative Audit Log"
-                else:
-                    report_title = title or "Clinic Operational Flow & Density Analysis"
+                report_title = title or "Clinic Operational Flow & Density Analysis"
 
             elif rtype == 'HEALTH_METRICS':
                 data = self.data_service.get_health_metrics_data(date_start, date_end, filters)
