@@ -59,6 +59,11 @@ const SystemAuditWorkshop = () => {
   const [actionFilter, setActionFilter] = useState('');
   const [modelFilter, setModelFilter] = useState('');
   const [actorRoleFilter, setActorRoleFilter] = useState('');
+  const [dateRange, setDateRange] = useState('30days');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  const getTodayString = () => dayjs().format('YYYY-MM-DD');
 
   const fetchLogs = useCallback(async () => {
     try {
@@ -72,6 +77,16 @@ const SystemAuditWorkshop = () => {
         actor_role: actorRoleFilter,
         ordering: '-timestamp'
       };
+
+      if (dateRange !== 'all') {
+        if (dateRange === 'custom') {
+          if (startDate) params.timestamp__gte = dayjs(startDate).startOf('day').toISOString();
+          if (endDate) params.timestamp__lte = dayjs(endDate).endOf('day').toISOString();
+        } else {
+          const days = dateRange === '7days' ? 7 : dateRange === '30days' ? 30 : 180;
+          params.timestamp__gte = dayjs().subtract(days, 'day').startOf('day').toISOString();
+        }
+      }
       
       const response = await auditService.getLogs(params);
       setLogs(response.results);
@@ -106,6 +121,9 @@ const SystemAuditWorkshop = () => {
       const payload = {
         title: `System Accountability & Audit Report - ${dayjs().format('MMM DD, YYYY')}`,
         export_format: format,
+        date_range: dateRange,
+        date_range_start: dateRange === 'custom' ? startDate : undefined,
+        date_range_end: dateRange === 'custom' ? endDate : undefined,
         filters: {
           search: search,
           action_type: actionFilter,
@@ -287,6 +305,52 @@ const SystemAuditWorkshop = () => {
           </Grid>
           <Grid item xs={12} md={2}>
             <FormControl fullWidth size="small">
+              <InputLabel>Reporting Range</InputLabel>
+              <Select
+                value={dateRange}
+                onChange={(e) => setDateRange(e.target.value)}
+                label="Reporting Range"
+              >
+                <MenuItem value="all">Full History</MenuItem>
+                <MenuItem value="7days">Last 7 Days</MenuItem>
+                <MenuItem value="30days">Last 30 Days</MenuItem>
+                <MenuItem value="6months">Last 6 Months</MenuItem>
+                <MenuItem value="custom">Custom Range</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          
+          {dateRange === 'custom' && (
+            <>
+              <Grid item xs={12} md={1.5}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="date"
+                  label="From"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  inputProps={{ max: endDate || getTodayString() }}
+                />
+              </Grid>
+              <Grid item xs={12} md={1.5}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="date"
+                  label="To"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  inputProps={{ min: startDate, max: getTodayString() }}
+                />
+              </Grid>
+            </>
+          )}
+
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth size="small">
               <InputLabel>Actor Role</InputLabel>
               <Select
                 value={actorRoleFilter}
@@ -342,7 +406,10 @@ const SystemAuditWorkshop = () => {
                 fullWidth 
                 variant="contained" 
                 startIcon={<FilterList />}
-                onClick={() => setPage(0)}
+                onClick={() => {
+                  setPage(0);
+                  fetchLogs();
+                }}
             >
                 Filter
             </Button>
