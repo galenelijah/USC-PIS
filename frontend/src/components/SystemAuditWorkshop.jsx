@@ -209,34 +209,45 @@ const SystemAuditWorkshop = () => {
     const actor = log.actor_name || log.actor_email || 'System';
     const action = log.action_type;
     const moduleConfig = getModuleConfig(log.target_model, action);
-    
-    // Fallback if module is hidden or unknown
     const moduleLabel = (moduleConfig && moduleConfig.label) ? moduleConfig.label : (log.target_model || 'record');
     
-    let description = log.changes_summary?.description || `record #${log.target_object_id}`;
-    if (description && (String(description).includes('Object') || String(description).includes('at 0x'))) {
-        description = `ID: ${log.target_object_id}`;
+    // 1. Extract context from changes_summary
+    let context = log.changes_summary?.description;
+    
+    // If description is technical or missing, try to build a better one
+    if (!context || String(context).includes('Object') || String(context).includes('at 0x')) {
+        if (log.target_model === 'MedicalRecord' || log.target_model === 'DentalRecord') {
+            context = `visit record #${log.target_object_id}`;
+        } else if (log.target_model === 'User') {
+            context = `account for ${log.changes_summary?.email || 'user #' + log.target_object_id}`;
+        } else if (log.target_model === 'GeneratedReport') {
+            context = `report: ${log.changes_summary?.title || 'Report #' + log.target_object_id}`;
+        } else {
+            context = `${moduleLabel.toLowerCase()} #${log.target_object_id}`;
+        }
     }
 
-    if (action === 'LOGIN') return `${actor} successfully logged in.`;
+    // 2. Handle specific actions
+    if (action === 'LOGIN') return `${actor} successfully logged in to the system.`;
     if (action === 'LOGOUT') return `${actor} logged out.`;
-    if (action === 'GENERATE') return `${actor} generated the ${description}.`;
-    if (action === 'EXPORT') return `${actor} exported/downloaded the ${description}.`;
+    if (action === 'GENERATE') return `${actor} generated ${context}.`;
+    if (action === 'EXPORT') return `${actor} exported/downloaded ${context}.`;
     
+    // 3. Handle CRUD actions with context
     switch (action) {
         case 'CREATE': 
-            return `${actor} created a new ${moduleLabel.toLowerCase()} (${description}).`;
+            return `${actor} created ${context}.`;
         case 'UPDATE': 
             const changedFields = log.changes_summary ? Object.keys(log.changes_summary).filter(k => k !== 'status' && k !== 'description') : [];
             if (changedFields.length > 0) {
                 const fieldsList = changedFields.map(f => f.replace(/_/g, ' ')).join(', ');
-                return `${actor} updated ${fieldsList} for ${moduleLabel.toLowerCase()} (${description}).`;
+                return `${actor} updated ${fieldsList} for ${context}.`;
             }
-            return `${actor} updated ${moduleLabel.toLowerCase()} (${description}).`;
+            return `${actor} updated ${context}.`;
         case 'DELETE': 
-            return `${actor} removed ${moduleLabel.toLowerCase()} (${description}) from the system.`;
+            return `${actor} removed ${context} from the system.`;
         default: 
-            return `${actor} performed ${action.toLowerCase()} on ${moduleLabel.toLowerCase()} (${description}).`;
+            return `${actor} performed ${action.toLowerCase()} on ${context}.`;
     }
   };
 
@@ -421,8 +432,8 @@ const SystemAuditWorkshop = () => {
         </Typography>
       </Alert>
 
-      <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: theme.shadows[3], overflow: 'hidden' }}>
-        <Table sx={{ minWidth: 1000 }}>
+      <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: theme.shadows[3], width: '100%', overflowX: 'auto' }}>
+        <Table sx={{ minWidth: 1200 }}>
           <TableHead sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
             <TableRow>
               <TableCell sx={{ fontWeight: 'bold' }}>Timestamp</TableCell>
