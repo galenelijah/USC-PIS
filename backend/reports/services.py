@@ -1672,6 +1672,8 @@ class ReportDataService:
                 if isinstance(fs, str):
                     fs_list = [s.strip() for s in fs.split(',')]
                     certs = certs.filter(fitness_status__in=fs_list)
+                elif isinstance(fs, list):
+                    certs = certs.filter(fitness_status__in=fs)
                 else:
                     certs = certs.filter(fitness_status=fs)
 
@@ -1680,17 +1682,28 @@ class ReportDataService:
                 if isinstance(iss, str):
                     iss_list = [s.strip() for s in iss.split(',')]
                     certs = certs.filter(issuance_status__in=iss_list)
+                elif isinstance(iss, list):
+                    certs = certs.filter(issuance_status__in=iss)
                 else:
                     certs = certs.filter(issuance_status=iss)
 
             if filters.get('template'):
-                certs = certs.filter(template__name=filters['template'])
+                tmpl = filters['template']
+                if isinstance(tmpl, str):
+                    tmpl_list = [t.strip() for t in tmpl.split(',')]
+                    certs = certs.filter(template__name__in=tmpl_list)
+                elif isinstance(tmpl, list):
+                    certs = certs.filter(template__name__in=tmpl)
+                else:
+                    certs = certs.filter(template__name=tmpl)
 
             if filters.get('doctor'):
                 doctor_names = filters['doctor']
                 if isinstance(doctor_names, str):
                     doc_list = [d.strip() for d in doctor_names.split(',')]
                     certs = certs.filter(issuing_doctor__last_name__in=doc_list)
+                elif isinstance(doctor_names, list):
+                    certs = certs.filter(issuing_doctor__last_name__in=doctor_names)
                 else:
                     certs = certs.filter(issuing_doctor__last_name=doctor_names)
 
@@ -1780,6 +1793,8 @@ class ReportDataService:
                 if isinstance(fs, str):
                     fs_list = [s.strip() for s in fs.split(',')]
                     queryset = queryset.filter(fitness_status__in=fs_list)
+                elif isinstance(fs, list):
+                    queryset = queryset.filter(fitness_status__in=fs)
                 else:
                     queryset = queryset.filter(fitness_status=fs)
 
@@ -1788,17 +1803,28 @@ class ReportDataService:
                 if isinstance(iss, str):
                     iss_list = [s.strip() for s in iss.split(',')]
                     queryset = queryset.filter(issuance_status__in=iss_list)
+                elif isinstance(iss, list):
+                    queryset = queryset.filter(issuance_status__in=iss)
                 else:
                     queryset = queryset.filter(issuance_status=iss)
 
             if filters.get('template'):
-                queryset = queryset.filter(template__name=filters['template'])
+                tmpl = filters['template']
+                if isinstance(tmpl, str):
+                    tmpl_list = [t.strip() for t in tmpl.split(',')]
+                    queryset = queryset.filter(template__name__in=tmpl_list)
+                elif isinstance(tmpl, list):
+                    queryset = queryset.filter(template__name__in=tmpl)
+                else:
+                    queryset = queryset.filter(template__name=tmpl)
 
             if filters.get('doctor'):
                 doctor_names = filters['doctor']
                 if isinstance(doctor_names, str):
                     doc_list = [d.strip() for d in doctor_names.split(',')]
                     queryset = queryset.filter(issuing_doctor__last_name__in=doc_list)
+                elif isinstance(doctor_names, list):
+                    queryset = queryset.filter(issuing_doctor__last_name__in=doctor_names)
                 else:
                     queryset = queryset.filter(issuing_doctor__last_name=doctor_names)
 
@@ -3235,16 +3261,11 @@ class ReportGenerationService:
                         'dental_service_volume': analytics.get('visits', {}).get('service_segmentation', {}).get('dental', 0),
                         'institutional_patient_reach': analytics.get('demographics', {}).get('total_active', 0),
                         'hourly_traffic_density': peak_hours,
+                        'service_segmentation': analytics.get('visits', {}).get('service_segmentation', {}),
                         'administrative_audit_trail': []
                     }
                     
-                    # Flatten Sub-Analytics for Visual Mapping
-                    data.update(analytics.get('visits', {}))
-                    data.update(analytics.get('clinical', {}))
-                    data.update(analytics.get('demographics', {}))
-                    data.update(analytics.get('satisfaction', {}))
-                    
-                    # Enhanced Audit Trail Collection with filtering
+                    # Enhanced Audit Trail Collection with filtering (Unique to Operations)
                     audit_qs = AuditLog.objects.filter(timestamp__range=(date_start, date_end)).exclude(
                         target_model__icontains='Notification'
                     ).exclude(
