@@ -7,8 +7,8 @@ from django.db.models.functions import TruncMonth
 from django.db import transaction, IntegrityError, connection
 from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist
-from .models import Patient, MedicalRecord, Consultation, DentalRecord
-from .serializers import PatientSerializer, MedicalRecordSerializer, ConsultationSerializer, DentalRecordSerializer
+from .models import Patient, MedicalRecord, Consultation, DentalRecord, ClinicalRemark
+from .serializers import PatientSerializer, MedicalRecordSerializer, ConsultationSerializer, DentalRecordSerializer, ClinicalRemarkSerializer
 from authentication.models import User
 from .permissions import MedicalRecordPermission, IsStaffUser
 from .validators import (
@@ -352,7 +352,7 @@ class MedicalRecordViewSet(viewsets.ModelViewSet):
         """Filter records based on user role with enhanced error handling."""
         try:
             user = self.request.user
-            queryset = MedicalRecord.objects.select_related('patient', 'created_by').all()
+            queryset = MedicalRecord.objects.select_related('patient', 'created_by').prefetch_related('clinical_remarks__author').all()
 
             if user.role in [User.Role.STUDENT, User.Role.FACULTY]:
                 # Find the patient profile linked to the patient user
@@ -478,7 +478,7 @@ class DentalRecordViewSet(viewsets.ModelViewSet):
         """Filter dental records based on user role with enhanced error handling."""
         try:
             user = self.request.user
-            queryset = DentalRecord.objects.select_related('patient', 'created_by').all()
+            queryset = DentalRecord.objects.select_related('patient', 'created_by').prefetch_related('clinical_remarks__author').all()
 
             if user.role in [User.Role.STUDENT, User.Role.FACULTY]:
                 # Find the patient profile linked to the patient user
@@ -688,7 +688,7 @@ class ConsultationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Filter consultations based on user role."""
         user = self.request.user
-        queryset = Consultation.objects.select_related('patient', 'created_by').all()
+        queryset = Consultation.objects.select_related('patient', 'created_by').prefetch_related('clinical_remarks__author').all()
 
         if user.role in [User.Role.STUDENT, User.Role.FACULTY]:
             # Find the patient profile linked to the patient user
@@ -911,3 +911,27 @@ def calculate_profile_completion(user, patient):
     
     percentage = int((completed_fields / total_fields) * 100) if total_fields > 0 else 0
     return min(percentage, 100), missing_fields
+
+class ClinicalRemarkViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for handling clinical remarks attributed to medical professionals.
+    """
+    queryset = ClinicalRemark.objects.all()
+    serializer_class = ClinicalRemarkSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = super().get_queryset().select_related('author')
+        
+        # Filter by content type and object ID if provided
+        content_type_id = self.request.query_params.get('content_type')
+        object_id = self.request.query_params.get('object_id')
+        
+        if content_type_id and object_id:
+            queryset = queryset.filter(content_type_id=content_type_id, object_id=object_id)
+            
+        return queryset
+
+    def perform_create(self, serializer):
+        # Automatically set the author to the current user
+        serializer.save(author=self.request.user)

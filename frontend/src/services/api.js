@@ -1998,6 +1998,33 @@ export const patientDocumentService = {
   },
 
   // Get document details
+  getById: (id) => {
+    return api.get(`/files/patient-documents/${id}/`);
+  },
+
+  // Download document
+  downloadDocument: (id) => {
+    return api.get(`/files/patient-documents/${id}/download/`, {
+      responseType: 'blob'
+    });
+  }
+};
+
+// Clinical Remarks Service
+export const clinicalRemarkService = {
+  getAll: (params = {}) => {
+    return api.get('/patients/clinical-remarks/', { params });
+  },
+  create: (data) => {
+    return api.post('/patients/clinical-remarks/', data);
+  },
+  update: (id, data) => {
+    return api.put(`/patients/clinical-remarks/${id}/`, data);
+  },
+  delete: (id) => {
+    return api.delete(`/patients/clinical-remarks/${id}/`);
+  }
+};
   getDocumentDetails: (id) => {
     return api.get(`/files/patient-documents/${id}/`);
   },

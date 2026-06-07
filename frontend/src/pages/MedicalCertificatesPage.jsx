@@ -124,9 +124,28 @@ const MedicalCertificatesPage = () => {
       await medicalCertificateService[action](certificate.id);
       setSuccess(`Medical certificate ${action}ed successfully`);
       setRefreshTrigger(prev => prev + 1); // Trigger list refresh
-      handleBack();
+      
+      // Update selected certificate if in view mode
+      if (mode === 'view') {
+        const response = await medicalCertificateService.getById(certificate.id);
+        setSelectedCertificate(response.data);
+      } else {
+        handleBack();
+      }
     } catch (err) {
       setError(err.response?.data?.detail || `Failed to ${action} medical certificate`);
+    }
+  };
+
+  const handleRemarkAdded = async () => {
+    if (selectedCertificate) {
+      try {
+        const response = await medicalCertificateService.getById(selectedCertificate.id);
+        setSelectedCertificate(response.data);
+        setRefreshTrigger(prev => prev + 1);
+      } catch (err) {
+        console.error('Error refreshing certificate after remark:', err);
+      }
     }
   };
 
@@ -140,6 +159,7 @@ const MedicalCertificatesPage = () => {
           onSubmit={() => handleWorkflowAction('submit', selectedCertificate)}
           onIssue={() => handleWorkflowAction('issue', selectedCertificate)}
           onReject={() => handleWorkflowAction('reject', selectedCertificate)}
+          onRemarkAdded={handleRemarkAdded}
           userRole={user?.role}
         />
       );

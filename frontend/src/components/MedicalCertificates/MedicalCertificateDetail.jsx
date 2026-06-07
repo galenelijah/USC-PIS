@@ -23,6 +23,7 @@ import {
 import { format } from 'date-fns';
 import { medicalCertificateService } from '../../services/api';
 import axios from 'axios';
+import ClinicalRemarks from '../common/ClinicalRemarks';
 
 const issuanceStatusColors = {
   draft: 'default',
@@ -52,6 +53,7 @@ const MedicalCertificateDetail = ({
   onSubmit, 
   onEdit, 
   onBack,
+  onRemarkAdded,
   userRole 
 }) => {
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -353,6 +355,14 @@ const MedicalCertificateDetail = ({
           </Grid>
         </Grid>
       </Paper>
+
+      <ClinicalRemarks 
+        remarks={certificate.clinical_remarks} 
+        contentTypeId={certificate.content_type_id} 
+        objectId={certificate.id}
+        onRemarkAdded={onRemarkAdded}
+        readOnly={['STUDENT', 'FACULTY'].includes(userRole)}
+      />
 
       {error && (
         <Box sx={{ mt: 2 }}>

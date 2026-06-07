@@ -76,7 +76,8 @@ import {
   patientService, 
   patientDocumentService 
 } from '../services/api';
-import { dentalRecordService } from '../services/api';
+import { dentalRecordService, clinicalRemarkService } from '../services/api';
+import ClinicalRemarks from './common/ClinicalRemarks';
 import { useSelector } from 'react-redux';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
@@ -1679,6 +1680,16 @@ const MedicalHistoryPage = () => {
                           </Typography>
                         </Grid>
                       )}
+                      
+                      <Grid item xs={12}>
+                        <ClinicalRemarks 
+                          remarks={record.clinical_remarks} 
+                          contentTypeId={record.content_type_id} 
+                          objectId={record.id}
+                          onRemarkAdded={fetchMedicalHistory}
+                          readOnly={!isStaffOrMedical}
+                        />
+                      </Grid>
                     </Grid>
                   </Collapse>
                 </>

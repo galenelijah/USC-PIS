@@ -20,6 +20,7 @@ import { extractErrorMessage } from '../utils/errorUtils';
 import logger from '../utils/logger';
 
 import ValidationBanner from './common/ValidationBanner';
+import ClinicalRemarks from './common/ClinicalRemarks';
 
 const ConsultationFormModal = ({ open, onClose, consultationData, onSave, readOnly = false }) => {
   const [formError, setFormError] = useState(null);
@@ -226,6 +227,16 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave, readOn
               />
             </Grid>
           </Grid>
+          
+          {(isEditMode || readOnly) && consultationData && (
+            <ClinicalRemarks 
+              remarks={consultationData.clinical_remarks} 
+              contentTypeId={consultationData.content_type_id} 
+              objectId={consultationData.id}
+              onRemarkAdded={onSave}
+              readOnly={readOnly}
+            />
+          )}
         </DialogContent>
         <DialogActions sx={{ padding: '16px 24px' }}>
           <Button onClick={onClose} color="secondary" disabled={isSubmitting}>

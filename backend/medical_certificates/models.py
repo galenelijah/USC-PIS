@@ -2,12 +2,14 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from patients.models import Patient
+from django.contrib.contenttypes.fields import GenericRelation
+from patients.models import Patient, ClinicalRemark
 from simple_history.models import HistoricalRecords
 
 User = get_user_model()
 
 class CertificateTemplate(models.Model):
+# ...
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     content = models.TextField(help_text="HTML template with placeholders for certificate content")
@@ -41,7 +43,11 @@ class MedicalCertificate(models.Model):
     valid_until = models.DateField()
     additional_notes = models.TextField(blank=True)
     
+    # Attributed remarks
+    clinical_remarks = GenericRelation(ClinicalRemark)
+    
     # Medical Fitness Assessment
+# ...
     fitness_status = models.CharField(
         max_length=20, 
         choices=FITNESS_STATUS_CHOICES, 

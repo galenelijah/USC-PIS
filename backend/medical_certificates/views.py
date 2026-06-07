@@ -62,7 +62,7 @@ class CertificateTemplateViewSet(viewsets.ModelViewSet):
     pagination_class = None
 
 class MedicalCertificateViewSet(viewsets.ModelViewSet):
-    queryset = MedicalCertificate.objects.all()
+    queryset = MedicalCertificate.objects.select_related('patient', 'template', 'created_by', 'issuing_doctor').prefetch_related('clinical_remarks__author').all()
     serializer_class = MedicalCertificateSerializer
     permission_classes = [IsStaffOrMedicalPersonnel]
     pagination_class = None

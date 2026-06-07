@@ -1,7 +1,8 @@
 from django.contrib import admin
-from .models import Patient, MedicalRecord, DentalRecord
+from .models import Patient, MedicalRecord, DentalRecord, ClinicalRemark
 
 class PatientAdmin(admin.ModelAdmin):
+# ... (rest of PatientAdmin)
     list_display = ('get_full_name', 'email', 'get_course', 'gender', 'age', 'created_at')
     search_fields = ('first_name', 'last_name', 'email', 'user__course')
     list_filter = ('gender', 'user__course')
@@ -20,3 +21,4 @@ class PatientAdmin(admin.ModelAdmin):
 admin.site.register(Patient, PatientAdmin)
 admin.site.register(MedicalRecord)
 admin.site.register(DentalRecord)
+admin.site.register(ClinicalRemark)

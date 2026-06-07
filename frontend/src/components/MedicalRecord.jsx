@@ -69,6 +69,7 @@ const defaultUserData = {
 };
 
 import ValidationBanner from './common/ValidationBanner';
+import ClinicalRemarks from './common/ClinicalRemarks';
 
 // ... (rest of imports)
 
@@ -81,6 +82,10 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
     // Attachments state
     const [attachments, setAttachments] = useState([]);
     const [openUploadDialog, setOpenUploadDialog] = useState(false);
+    
+    // Clinical Remarks state
+    const [remarks, setRemarks] = useState([]);
+    const [contentTypeId, setContentTypeId] = useState(null);
 
     const handleDownloadDocument = async (doc) => {
         try {
@@ -299,6 +304,8 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
 
             // Reset form with fetched data
             reset(safeData);
+            setRemarks(data.clinical_remarks || []);
+            setContentTypeId(data.content_type_id);
 
             // Find and set the selected patient for display
             if (data.patient) {
@@ -324,6 +331,10 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleRemarkAdded = () => {
+        fetchRecord(); // Refresh to show new remarks with attribution
     };
 
     const handlePatientChange = (event, value) => {
@@ -817,6 +828,18 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                     </Paper>
                 </Grid>
             </Grid>
+
+            {medicalRecordId && (
+                <Grid item xs={12} sx={{ mt: 2 }}>
+                    <ClinicalRemarks 
+                        remarks={remarks} 
+                        contentTypeId={contentTypeId} 
+                        objectId={medicalRecordId}
+                        onRemarkAdded={handleRemarkAdded}
+                        readOnly={isStudent} // Students can't leave remarks
+                    />
+                </Grid>
+            )}
 
             {canEdit && (
                 <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2, pb: 4 }}>

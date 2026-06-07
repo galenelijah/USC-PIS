@@ -1,6 +1,15 @@
 from rest_framework import serializers
-from .models import Patient, MedicalRecord, Consultation, DentalRecord
+from .models import Patient, MedicalRecord, Consultation, DentalRecord, ClinicalRemark
 from authentication.validators import email_validator
+
+class ClinicalRemarkSerializer(serializers.ModelSerializer):
+    author_name = serializers.ReadOnlyField(source='author.get_full_name')
+    author_role = serializers.ReadOnlyField(source='author.role')
+    
+    class Meta:
+        model = ClinicalRemark
+        fields = ['id', 'content_type', 'object_id', 'remark', 'author', 'author_name', 'author_role', 'created_at', 'updated_at']
+        read_only_fields = ['author', 'created_at', 'updated_at']
 
 class MedicalRecordSerializer(serializers.ModelSerializer):
     patient_name = serializers.SerializerMethodField()
@@ -9,11 +18,17 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
     patient_course = serializers.SerializerMethodField()
     patient_department = serializers.SerializerMethodField()
     record_type = serializers.SerializerMethodField()
+    clinical_remarks = ClinicalRemarkSerializer(many=True, read_only=True)
+    content_type_id = serializers.SerializerMethodField()
     
     class Meta:
         model = MedicalRecord
-        fields = ['id', 'patient', 'patient_name', 'patient_usc_id', 'patient_role', 'patient_course', 'patient_department', 'record_type', 'visit_date', 'concern', 'diagnosis', 'treatment', 'notes', 'vital_signs', 'physical_examination', 'created_at', 'updated_at', 'created_by']
+        fields = ['id', 'patient', 'patient_name', 'patient_usc_id', 'patient_role', 'patient_course', 'patient_department', 'record_type', 'visit_date', 'concern', 'diagnosis', 'treatment', 'notes', 'vital_signs', 'physical_examination', 'clinical_remarks', 'content_type_id', 'created_at', 'updated_at', 'created_by']
         read_only_fields = ['created_at', 'updated_at', 'created_by', 'patient_name', 'patient_usc_id', 'patient_role', 'patient_course', 'patient_department', 'record_type']
+    
+    def get_content_type_id(self, obj):
+        from django.contrib.contenttypes.models import ContentType
+        return ContentType.objects.get_for_model(obj).id
     
     def get_patient_name(self, obj):
         return f"{obj.patient.first_name} {obj.patient.last_name}"
@@ -109,6 +124,8 @@ class DentalRecordSerializer(serializers.ModelSerializer):
     procedure_performed_display = serializers.CharField(source='get_procedure_performed_display', read_only=True)
     affected_teeth_display = serializers.CharField(source='get_affected_teeth_display', read_only=True)
     record_type = serializers.SerializerMethodField()
+    clinical_remarks = ClinicalRemarkSerializer(many=True, read_only=True)
+    content_type_id = serializers.SerializerMethodField()
     
     class Meta:
         model = DentalRecord
@@ -120,9 +137,13 @@ class DentalRecordSerializer(serializers.ModelSerializer):
             'pain_level', 'anesthesia_used', 'anesthesia_type', 'materials_used',
             'next_appointment_recommended', 'home_care_instructions', 'priority',
             'xray_images', 'photos', 'documents', 'cost', 'insurance_covered',
-            'created_at', 'updated_at', 'created_by'
+            'clinical_remarks', 'content_type_id', 'created_at', 'updated_at', 'created_by'
         ]
         read_only_fields = ['created_at', 'updated_at', 'created_by', 'patient_name', 'patient_usc_id', 'patient_role', 'patient_course', 'patient_department', 'procedure_performed_display', 'affected_teeth_display', 'record_type']
+
+    def get_content_type_id(self, obj):
+        from django.contrib.contenttypes.models import ContentType
+        return ContentType.objects.get_for_model(obj).id
 
     def get_patient_name(self, obj):
         return f"{obj.patient.first_name} {obj.patient.last_name}"
@@ -194,11 +215,17 @@ class ConsultationSerializer(serializers.ModelSerializer):
     patient_usc_id = serializers.SerializerMethodField()
     patient_role = serializers.SerializerMethodField()
     record_type = serializers.SerializerMethodField()
+    clinical_remarks = ClinicalRemarkSerializer(many=True, read_only=True)
+    content_type_id = serializers.SerializerMethodField()
     
     class Meta:
         model = Consultation
-        fields = ['id', 'patient', 'patient_name', 'patient_usc_id', 'patient_role', 'record_type', 'date_time', 'concern', 'chief_complaints', 'treatment_plan', 'remarks', 'created_at', 'updated_at', 'created_by']
+        fields = ['id', 'patient', 'patient_name', 'patient_usc_id', 'patient_role', 'record_type', 'date_time', 'concern', 'chief_complaints', 'treatment_plan', 'remarks', 'clinical_remarks', 'content_type_id', 'created_at', 'updated_at', 'created_by']
         read_only_fields = ['created_at', 'updated_at', 'created_by', 'patient_name', 'patient_usc_id', 'patient_role', 'record_type']
+    
+    def get_content_type_id(self, obj):
+        from django.contrib.contenttypes.models import ContentType
+        return ContentType.objects.get_for_model(obj).id
     
     def get_patient_name(self, obj):
         return f"{obj.patient.first_name} {obj.patient.last_name}"

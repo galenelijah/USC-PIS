@@ -86,6 +86,7 @@ import PatientDocumentUpload from './PatientDocumentUpload';
 import { extractErrorMessage } from '../utils/errorUtils';
 
 import ValidationBanner from './common/ValidationBanner';
+import ClinicalRemarks from './common/ClinicalRemarks';
 
 const Dental = () => {
   const theme = useTheme();
@@ -215,6 +216,23 @@ const Dental = () => {
       setToothConditions(response.data.tooth_conditions || []);
     } catch (error) {
       console.error('Error fetching tooth conditions:', error);
+    }
+  };
+
+  const handleRemarkAdded = async () => {
+    // Refresh all records to get the updated remarks
+    try {
+      const response = await dentalRecordService.getAll();
+      const records = response.data || [];
+      setDentalRecords(records);
+      
+      // Update selected record if open
+      if (selectedRecord) {
+        const updated = records.find(r => r.id === selectedRecord.id);
+        if (updated) setSelectedRecord(updated);
+      }
+    } catch (err) {
+      console.error('Error refreshing dental records:', err);
     }
   };
 
@@ -1131,6 +1149,15 @@ const Dental = () => {
                     </Typography>
                   )}
                 </Box>
+
+                {/* Clinical Remarks Section */}
+                <ClinicalRemarks 
+                  remarks={selectedRecord.clinical_remarks} 
+                  contentTypeId={selectedRecord.content_type_id} 
+                  objectId={selectedRecord.id}
+                  onRemarkAdded={handleRemarkAdded}
+                  readOnly={['STUDENT', 'FACULTY'].includes(user?.role)}
+                />
               </Box>
             )}
           </DialogContent>

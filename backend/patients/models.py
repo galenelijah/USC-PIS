@@ -1,12 +1,15 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
 from simple_history.models import HistoricalRecords
 import datetime
 
 # Create your models here.
 
 class Patient(models.Model):
+    # ... (rest of Patient model)
     GENDER_CHOICES = [
         ('M', 'Male'),
         ('F', 'Female'),
@@ -58,6 +61,29 @@ class Patient(models.Model):
     class Meta:
         ordering = ['-created_at']
 
+class ClinicalRemark(models.Model):
+    """
+    Model for storing attributed remarks/notes from doctors and nurses on any clinical record.
+    Supports MedicalRecord, DentalRecord, Consultation, and MedicalCertificate.
+    """
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+    
+    remark = models.TextField()
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='clinical_remarks')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['created_at']
+        indexes = [
+            models.Index(fields=["content_type", "object_id"]),
+        ]
+
+    def __str__(self):
+        return f"Remark by {self.author.get_full_name()} on {self.created_at}"
+
 class MedicalRecord(models.Model):
     patient = models.ForeignKey(Patient, related_name='medical_records', on_delete=models.CASCADE)
     visit_date = models.DateTimeField()
@@ -68,6 +94,10 @@ class MedicalRecord(models.Model):
     notes = models.TextField(blank=True)
     vital_signs = models.JSONField(default=dict, blank=True, help_text="Vital signs data (temperature, blood pressure, etc.)")
     physical_examination = models.JSONField(default=dict, blank=True, help_text="Physical examination findings")
+    
+    # Attributed remarks
+    clinical_remarks = GenericRelation(ClinicalRemark)
+    
     feedback_email_sent = models.BooleanField(default=False, help_text="Track if immediate feedback request email was sent")
     feedback_reminder_sent = models.BooleanField(default=False, help_text="Track if 24-hour feedback reminder email was sent")
     history = HistoricalRecords()
@@ -79,6 +109,7 @@ class MedicalRecord(models.Model):
         ordering = ['-visit_date']
 
     def save(self, *args, **kwargs):
+        # ... (save logic)
         # Calculate BMI automatically if height and weight are provided
         if self.vital_signs and isinstance(self.vital_signs, dict):
             try:
@@ -148,6 +179,7 @@ class MedicalRecord(models.Model):
         return f"{self.patient} - No Visit Date"
 
 class DentalRecord(models.Model):
+    # ... (rest of DentalRecord model)
     PROCEDURE_CHOICES = [
         ('CONSULTATION', 'Dental Consultation'),
         ('REFERRAL', 'Referral'),
@@ -219,6 +251,9 @@ class DentalRecord(models.Model):
     clinical_notes = models.TextField(blank=True, help_text="Additional clinical observations")
     pain_level = models.IntegerField(null=True, blank=True, help_text="Pain level on scale of 1-10")
     
+    # Attributed remarks
+    clinical_remarks = GenericRelation(ClinicalRemark)
+    
     # Treatment details
     anesthesia_used = models.BooleanField(default=False)
     anesthesia_type = models.CharField(max_length=100, blank=True)
@@ -273,6 +308,10 @@ class Consultation(models.Model):
     chief_complaints = models.TextField(blank=True)  # Kept for backward compatibility
     treatment_plan = models.TextField()
     remarks = models.TextField(blank=True)
+    
+    # Attributed remarks
+    clinical_remarks = GenericRelation(ClinicalRemark)
+    
     history = HistoricalRecords()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -1,10 +1,11 @@
 from rest_framework import serializers
 from .models import MedicalCertificate, CertificateTemplate
-from patients.serializers import PatientSerializer
+from patients.serializers import PatientSerializer, ClinicalRemarkSerializer
 from dateutil import parser as date_parser
 from datetime import date
 
 class CertificateTemplateSerializer(serializers.ModelSerializer):
+# ... (rest of template serializer)
     class Meta:
         model = CertificateTemplate
         fields = ['id', 'name', 'description', 'content', 'created_at', 'updated_at']
@@ -18,6 +19,12 @@ class MedicalCertificateSerializer(serializers.ModelSerializer):
     fitness_status_display = serializers.SerializerMethodField()
     issuance_status_display = serializers.SerializerMethodField()
     template_name = serializers.CharField(source='template.name', read_only=True)
+    clinical_remarks = ClinicalRemarkSerializer(many=True, read_only=True)
+    content_type_id = serializers.SerializerMethodField()
+
+    def get_content_type_id(self, obj):
+        from django.contrib.contenttypes.models import ContentType
+        return ContentType.objects.get_for_model(obj).id
 
     def get_fitness_status_display(self, obj):
         return obj.get_fitness_status_display()
@@ -34,12 +41,14 @@ class MedicalCertificateSerializer(serializers.ModelSerializer):
             'issuance_status', 'created_by', 'created_by_name', 
             'issuing_doctor', 'issuing_doctor_name', 'created_at', 
             'updated_at', 'submitted_at', 'issued_at',
-            'fitness_status_display', 'issuance_status_display'
+            'fitness_status_display', 'issuance_status_display',
+            'clinical_remarks', 'content_type_id'
         ]
         read_only_fields = [
             'created_by', 'issuing_doctor', 'created_at', 'updated_at',
             'submitted_at', 'issued_at', 'issuance_status'
         ]
+# ...
 
     def to_internal_value(self, data):
         # Parse valid_from and valid_until with flexible formats
