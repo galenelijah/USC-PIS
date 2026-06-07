@@ -129,6 +129,9 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
     // Check if user is staff or medical personnel
     const isStaffOrMedical = user?.role && ['ADMIN', 'STAFF', 'DOCTOR', 'DENTIST', 'NURSE'].includes(user.role);
     
+    // Check if user is in a patient role
+    const isStudent = user?.role === 'STUDENT' || user?.role === 'FACULTY';
+    
     // Can edit if they are authorized AND NOT in readOnly mode
     const canEdit = isAuthorizedToEdit && !readOnly;
     

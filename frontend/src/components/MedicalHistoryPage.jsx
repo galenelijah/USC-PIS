@@ -1686,7 +1686,7 @@ const MedicalHistoryPage = () => {
                           remarks={record.clinical_remarks} 
                           contentTypeId={record.content_type_id} 
                           objectId={record.id}
-                          onRemarkAdded={fetchMedicalHistory}
+                          onRemarkAdded={fetchRecords}
                           readOnly={!isStaffOrMedical}
                         />
                       </Grid>
