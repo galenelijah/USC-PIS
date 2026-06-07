@@ -1061,10 +1061,10 @@ const Dental = () => {
                         </Typography>
                       </Box>
                     </Grid>
-                  </Grid>
-                  </Grid>
+                  )}
+                </Grid>
 
-                  {/* Attachments Section */}
+                {/* Attachments Section */}
 
                 <Box sx={{ mt: 3 }}>
                   <Divider sx={{ mb: 2 }} />
