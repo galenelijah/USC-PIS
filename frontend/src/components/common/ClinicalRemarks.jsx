@@ -158,7 +158,7 @@ const ClinicalRemarks = ({
                 {submitting ? <CircularProgress size={24} color="inherit" /> : <SendIcon />}
               </Button>
             </Stack>
-          </Paper>
+          </Box>
         )}
       </Paper>
     </Box>
