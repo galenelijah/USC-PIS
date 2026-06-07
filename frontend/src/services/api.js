@@ -2002,16 +2002,20 @@ export const patientDocumentService = {
     return api.get(`/files/patient-documents/${id}/`);
   },
 
+  getDocumentDetails: (id) => {
+    return api.get(`/files/patient-documents/${id}/`);
+  },
+
   // Download document
   downloadDocument: (id) => {
     return api.get(`/files/patient-documents/${id}/download/`, {
       responseType: 'blob'
     });
   }
-};
+  };
 
-// Clinical Remarks Service
-export const clinicalRemarkService = {
+  // Clinical Remarks Service
+  export const clinicalRemarkService = {
   getAll: (params = {}) => {
     return api.get('/patients/clinical-remarks/', { params });
   },
@@ -2024,17 +2028,7 @@ export const clinicalRemarkService = {
   delete: (id) => {
     return api.delete(`/patients/clinical-remarks/${id}/`);
   }
-};
-  getDocumentDetails: (id) => {
-    return api.get(`/files/patient-documents/${id}/`);
-  },
+  };
 
-  // Download document (Secure proxy)
-  downloadDocument: (id) => {
-    return api.get(`/files/patient-documents/${id}/download/`, {
-      responseType: 'blob'
-    });
-  }
-};
-
-export default api; 
+  export default api;
+ 
