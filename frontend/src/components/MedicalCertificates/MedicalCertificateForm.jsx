@@ -49,7 +49,6 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
       recommendations: '',
       valid_from: null,
       valid_until: null,
-      additional_notes: '',
     };
     
     if (userRole === 'DOCTOR') {
@@ -86,7 +85,6 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
         recommendations: certificate.recommendations,
         valid_from: certificate.valid_from ? dayjs(certificate.valid_from) : null,
         valid_until: certificate.valid_until ? dayjs(certificate.valid_until) : null,
-        additional_notes: certificate.additional_notes || '',
         fitness_status: certificate.fitness_status || 'FIT',
         fitness_reason: certificate.fitness_reason || '',
       });
@@ -375,25 +373,6 @@ const MedicalCertificateForm = ({ certificate = null, onSubmit, onCancel, userRo
                 />
               </Grid>
             )}
-
-            <Grid item xs={12}>
-              <Controller
-                name="additional_notes"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    multiline
-                    rows={3}
-                    label="Additional Remarks / Recommendations"
-                    placeholder="Additional medical recommendations or restrictions..."
-                    error={!!errors.additional_notes}
-                    helperText={errors.additional_notes?.message}
-                  />
-                )}
-              />
-            </Grid>
 
             <Grid item xs={12}>
               <Stack direction="row" spacing={2} justifyContent="flex-end">

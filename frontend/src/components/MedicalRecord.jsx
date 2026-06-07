@@ -801,8 +801,7 @@ const MedicalRecord = ({ medicalRecordId, readOnly = false, onSuccess = null }) 
                             {[
                                 { name: 'concern', label: "Student's Concern / Reason for Visit *", rows: 3, required: true },
                                 { name: 'diagnosis', label: 'Diagnosis *', rows: 4, required: true },
-                                { name: 'treatment', label: 'Treatment Plan *', rows: 4, required: true },
-                                { name: 'notes', label: 'Additional Notes', rows: 3, required: false }
+                                { name: 'treatment', label: 'Treatment Plan *', rows: 4, required: true }
                             ].map((f) => (
                                 <Grid item xs={12} key={f.name}>                                    {readOnly ? (
                                         <DisplayField label={f.label} value={watch(f.name)} multiline rows={f.rows} />

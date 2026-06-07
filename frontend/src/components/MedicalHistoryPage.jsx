@@ -1670,17 +1670,6 @@ const MedicalHistoryPage = () => {
                           </Typography>
                         </Grid>
                       )}
-                      {record.notes && (
-                        <Grid item xs={12} md={record.medications ? 6 : 12}>
-                          <Typography variant="body2" fontWeight="medium" gutterBottom>
-                            Clinical Notes:
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {record.notes}
-                          </Typography>
-                        </Grid>
-                      )}
-                      
                       <Grid item xs={12}>
                         <ClinicalRemarks 
                           remarks={record.clinical_remarks} 

@@ -134,7 +134,6 @@ const Dental = () => {
     tooth_numbers: '',
     diagnosis: '',
     referral_to: '',
-    clinical_notes: '',
     pain_level: null,
   });
 
@@ -257,7 +256,6 @@ const Dental = () => {
         tooth_numbers: '',
         diagnosis: '',
         referral_to: '',
-        clinical_notes: '',
         pain_level: null,
       });
       setIsEditing(false);
@@ -956,28 +954,6 @@ const Dental = () => {
                       inputProps={{ min: 1, max: 10 }}
                     />
                   </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Additional Clinical Notes"
-                      value={formData.clinical_notes}
-                      onChange={(e) => handleInputChange('clinical_notes', e.target.value)}
-                      multiline
-                      rows={3}
-                      required={false}
-                      InputProps={{
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <Tooltip title="Note any oral health conditions, such as gingivitis, debris, tooth stains, calculus, or other clinical observations.">
-                              <IconButton size="small">
-                                <InfoIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </Grid>
                 </Grid>
               </Box>
             </Box>
@@ -1085,20 +1061,11 @@ const Dental = () => {
                         </Typography>
                       </Box>
                     </Grid>
-                  )}
-                  {selectedRecord.clinical_notes && (
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Additional Clinical Notes
-                      </Typography>
-                      <Typography variant="body1" gutterBottom>
-                        {selectedRecord.clinical_notes}
-                      </Typography>
-                    </Grid>
-                  )}
-                </Grid>
+                  </Grid>
+                  </Grid>
 
-                {/* Attachments Section */}
+                  {/* Attachments Section */}
+
                 <Box sx={{ mt: 3 }}>
                   <Divider sx={{ mb: 2 }} />
                   <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#7c3aed' }}>

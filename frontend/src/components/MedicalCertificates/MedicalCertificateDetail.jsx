@@ -244,17 +244,6 @@ const MedicalCertificateDetail = ({
             </Typography>
           </Grid>
 
-          {certificate.additional_notes && (
-            <Grid item xs={12}>
-              <Typography variant="subtitle2" color="text.secondary">
-                Remarks / Recommendations
-              </Typography>
-              <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                {certificate.additional_notes}
-              </Typography>
-            </Grid>
-          )}
-
           <Grid item xs={12} md={6}>
             <Typography variant="subtitle2" color="text.secondary">
               Valid From

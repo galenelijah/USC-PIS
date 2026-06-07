@@ -38,7 +38,6 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave, readOn
       date_time: '',
       chief_complaints: '',
       treatment_plan: '',
-      remarks: '',
     },
   });
 
@@ -73,7 +72,6 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave, readOn
       setValue('date_time', formattedDateTime);
       setValue('chief_complaints', consultationData.chief_complaints || '');
       setValue('treatment_plan', consultationData.treatment_plan || '');
-      setValue('remarks', consultationData.remarks || '');
     } else {
       reset(); // Reset to default values for add mode
     }
@@ -204,23 +202,6 @@ const ConsultationFormModal = ({ open, onClose, consultationData, onSave, readOn
                     margin="dense"
                     error={!!errors.treatment_plan}
                     helperText={errors.treatment_plan?.message}
-                    disabled={readOnly}
-                  />
-                )}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <Controller
-                name="remarks"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Remarks/Results (Optional)"
-                    fullWidth
-                    multiline
-                    rows={3}
-                    margin="dense"
                     disabled={readOnly}
                   />
                 )}
