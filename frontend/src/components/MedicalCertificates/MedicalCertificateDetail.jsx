@@ -92,16 +92,7 @@ const MedicalCertificateDetail = ({
 
   const handleDownloadPdf = async () => {
     try {
-      const token = localStorage.getItem('Token');
-      const response = await axios.get(
-        `/api/medical-certificates/certificates/${certificate.id}/render_pdf/`,
-        {
-          responseType: 'blob',
-          headers: {
-            Authorization: `Token ${token}`,
-          },
-        }
-      );
+      const response = await medicalCertificateService.downloadPdf(certificate.id);
       const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
       const link = document.createElement('a');
       link.href = url;

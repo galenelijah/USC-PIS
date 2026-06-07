@@ -346,7 +346,7 @@ export const authService = {
   getDatabaseHealth: async () => {
     try {
       console.log('Fetching database health...');
-      const token = localStorage.getItem('Token');
+      const token = getToken();
       console.log('Current token:', token);
       
       const response = await api.get('/utils/database-health/', {
@@ -1185,7 +1185,18 @@ export const medicalCertificateService = {
     } catch (error) {
       handleApiError(error);
     }
-  }
+  },
+  // Download certificate as PDF
+  downloadPdf: async (id) => {
+    try {
+      return await api.get(`/medical-certificates/certificates/${id}/render_pdf/`, {
+        responseType: 'blob'
+      });
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
 };
 
 // Notification Service
